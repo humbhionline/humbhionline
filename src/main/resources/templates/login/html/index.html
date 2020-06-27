@@ -1,0 +1,228 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/device-uuid/lib/device-uuid.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+
+<script type="text/javascript">
+    function login() {
+        return {
+            getPosition: function (options) {
+                return new Promise(function (resolve, reject) {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 });
+                    //Last 5 minutes;
+                });
+            },
+            http: axios.create({
+                baseURL: "/",
+                timeout: 30000,
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: false,
+            }),
+            params: { "SignUp": { "DeviceId": "",  "PhoneNumber": "" } },
+
+            initDeviceId: function () {
+                let self = this;
+                return new Promise(function (resolve, reject) {
+                    Lockr.rm("User");
+                    if (!Lockr.get("DeviceId")) {
+                        Lockr.set("DeviceId", new DeviceUUID().get());
+                    }
+                    resolve();
+                });
+            },
+            verifyPhoneOtp: function () {
+                var self = this;
+                this.http.post("/sign_ups/validateOtp/" + this.params.SignUp.Id, { "Otp": $("#PhoneOtp").val() }).then(function (response) {
+                    if (response.data.SignUp.Validated === 'Y') {
+                        self.params.SignUp = response.data.SignUp;
+                    } else {
+                        self.message("Otp doesnot match", true);
+                    }
+                    self.hideUnHideOtpFields().then(function (home) {
+                        if (home) {
+                            window.location.replace(home);
+                        }
+                    })
+                });
+            },
+            resendOtp: function () {
+                var self = this;
+                this.http.get("/sign_ups/sendOtp/" + this.params.SignUp.Id, { "data": {} }).then(function (response) {
+                    self.message(response.data.SWFHttpResponse.Message, true);
+                });
+            },
+            resetPhoneNumber: function () {
+                Lockr.rm("PhoneNumber");
+                Lockr.rm("SignUpId");
+                $("#PhoneNumber").val("");
+                window.location.reload();
+            },
+            message: function (text, state) {
+                state ? $("#msg").show().text(text) : $("#msg").hide().text("");
+                // $("#msg");
+            },
+            hideUnHideOtpFields: function () {
+                let self = this;
+                return new Promise(function (resolve, reject) {
+
+                    if (self.params.SignUp && self.params.SignUp.Validated !== 'Y') {
+                        $("#divPhoneOtp").show();
+                        $("#GetPhone").hide();
+                        $("#OtpNumber").text(login.params.SignUp.PhoneNumber)
+                    } else {
+                        $("#divPhoneOtp").hide();
+                    }
+                    if (!self.params.SignUp || self.params.SignUp.Validated === "Y") {
+                        var user = self.params.SignUp.User;
+                        if (user) {
+                            Lockr.set("User", user);
+                            setConfirmUnload(false);
+                            var params = (new URL(window.location)).searchParams;
+                            var redirect_to = params.get("_redirect_to");
+                            if (!redirect_to){
+                                redirect_to = "/index"
+                            }
+                            self.getPosition().then(function (position) {
+                                let location = {};
+                                location.accuracy = position.coords.accuracy;
+                                location.altitude = position.coords.altitude;
+                                location.altitudeAccuracy = position.coords.altitudeAccuracy;
+                                location.heading = position.coords.heading;
+                                location.latitude = position.coords.latitude;
+                                location.longitude = position.coords.longitude;
+                                location.speed = position.coords.speed;
+                                Lockr.set("Location", location);
+                            }).catch(function (error) {
+                                Lockr.set("Location", {});
+                                switch (error.code) {
+                                    case error.PERMISSION_DENIED:
+                                        console.error("User denied the request for Geolocation.");
+                                        break;
+                                    case error.POSITION_UNAVAILABLE:
+                                        console.error("Location information is unavailable.");
+                                        break;
+                                    case error.TIMEOUT:
+                                        console.error("The request to get user location timed out.");
+                                        break;
+                                    case error.UNKNOWN_ERROR:
+                                        console.error("An unknown error occurred.");
+                                        break;
+                                }
+                            }).finally(function () {
+                                setTimeout(function () {
+                                    resolve(redirect_to);
+                                }, 500);
+                            });
+                        }
+                    } else {
+                        resolve(null);
+                    }
+                });
+            },
+
+            signIn: function () {
+                this.message("", false);
+                var self = this;
+
+                this.initDeviceId().then(function () {
+                    self.params.SignUp.DeviceId = Lockr.get("DeviceId");
+                }).then(function () {
+                    if (Lockr.get("PhoneNumber")) {
+                        self.params.SignUp.PhoneNumber = Lockr.get("PhoneNumber");
+                        $("#PhoneNumber").val(self.params.SignUp.PhoneNumber);
+                    }
+                    if (Lockr.get("SignUpId")) {
+                        self.params.SignUp.Id = Lockr.get("SignUpId");
+                    }
+                    if ( self.params.SignUp.PhoneNumber) {
+                        self.http.post("/sign_ups/register", self.params).then(function (response) {
+                            if (response.data.SignUp){
+                                self.params.SignUp = response.data.SignUp;
+                                Lockr.set("SignUpId", self.params.SignUp.Id);
+                                $("#btnSignUp").hide();
+                                self.hideUnHideOtpFields().then(function (home) {
+                                    if (home) {
+                                        window.location.replace(home);
+                                    }
+                                });
+                            }else {
+                                self.message("Unexpected Response :" + response.data );    
+                            }
+                        }).catch(function (err) {
+                            //Lockr.rm("PhoneNumber");
+                            //self.params.SignUp.SignUpPhone.PhoneNumber = "";
+                            self.message(err.response.data.SWFHttpResponse.Error, true);
+                        });
+                    } else {
+                        $("#divPhoneOtp").hide();
+                        $("#btnSignUp").show();
+                    }
+                });
+
+            }
+        };
+    }
+    function signUp(event) {
+        if (event) {
+            event.preventDefault();
+        }
+        Lockr.set("PhoneNumber", $("#PhoneNumber").val());
+        setConfirmUnload(false);
+        login.signIn();
+    }
+
+    $(function () {
+        login = login();
+        login.signIn(true);
+    });
+</script>
+<link rel="stylesheet" href="/fragments/css/mandi.css" ></link>
+<style>
+    html,
+    body {
+        height: 100%;
+    }
+</style>
+<div class="v-fill d-flex align-items-center">
+    <div class="container-fluid">
+
+        <div class="row justify-content-center">
+            <div class="col-6 col-sm-2">
+                <div class="logo-holder mb-5">
+                    <img src="/resources/web_manifest/drawing2.svg" alt="Hum bhi online logo" style="width:100%;">
+                </div>
+            </div>
+        </div>
+        <div class="row justify-content-center" id="GetPhone">
+            <div class="col-10 col-sm-4">
+                <form onsubmit="signUp(event)">
+                    <div class="form-group">
+                        <label for="PhoneNumber" class="text-center d-block">Mobile Number</label>
+                        <input class="form-control" id="PhoneNumber" placeholder="Mobile Number" />
+                    </div>
+                    <div class="form-group text-right">
+                        <button class="btn btn-primary" type="submit" id="btnSignUp">Next</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="text-center" id="divPhoneOtp">
+            <p class="mb-0">
+                OTP has sent on your Mobile Number
+            </p>
+            <p id="OtpNumber" class="login-number mt-2 mb-4 py-2"> </p>
+            <div class="row justify-content-center">
+                <div class="col-10 col-sm-4">
+                    <label for="PhoneOtp" class="text-left d-block">Enter your OTP</label>
+                    <input id="PhoneOtp" class="form-control" placeholder="OTP" />
+                    <p class="text-right">
+                        <a id="btnReset" onclick="login.resetPhoneNumber()">Reset Mobile</a> /
+                        <a id="btnResendPhoneOtp" onclick="login.resendOtp()">Resend OTP</a>
+                    </p>
+                    <button class="btn btn-primary" id="btnVerifyPhoneOtp" onclick="login.verifyPhoneOtp()">Validate
+                        Mobile</button>
+                </div>
+            </div>
+        </div>
+        <p id="msg" class="mb-0"></p>
+    </div>
+</div>

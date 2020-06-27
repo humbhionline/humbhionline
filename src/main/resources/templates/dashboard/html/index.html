@@ -1,0 +1,72 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/jsrsasign/lib/jsrsasign.js"></script>
+
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<!--script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script!-->
+
+
+
+<script type="text/javascript">
+    $(function () {
+        $("#header").load("/fragments/html/header");
+        new Vue({
+            el: "#app",
+            data: {
+                messages: [],
+                User : {},
+            },
+            created: function () {
+                let self = this;
+                api().url("/users/current").get().then(function (response) {
+                    self.User = response.User;
+
+                    let  validated = self.User.UserPhones.length > 0 ;
+                    self.User.UserPhones.forEach((item, i) => {
+                            if (item.Validated === 'N'){
+                                validated = false;
+                            }
+                    });
+                    if (!validated){
+                        window.location.href = "/users/html/profile";
+                    }else {
+                        self.showApp();
+                    }
+                }).catch(function (err) {
+                    self.messages.push(err.response.data.SWFHttpResponse.Error);
+                    self.showApp();
+                    self.autoClearMessage();
+                })
+            },
+            methods: {
+                showApp: function () {
+                    $("#root").show();
+                },
+                message: function () {
+                    var message = "";
+                    let self = this;
+                    self.messages.forEach(function (m) {
+                        message += " " + m;
+                    });
+                    return message;
+                },
+                autoClearMessage: function () {
+                    setTimeout(function () {
+                        self.messages = [];
+                    }, 1500);
+                },
+            }
+        });
+    });
+</script>
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+        <div class="container-fluid mb-5 pb-4">
+            <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
+                {{ message() }}
+            </div>
+        </div>
+    </div>
+</div>
