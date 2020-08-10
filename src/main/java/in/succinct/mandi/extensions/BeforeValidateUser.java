@@ -5,6 +5,7 @@ import com.venky.swf.db.extensions.BeforeModelValidateExtension;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import com.venky.swf.plugins.collab.db.model.user.UserPhone;
 import com.venky.swf.routing.Config;
+import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.plugins.ecommerce.db.model.participation.User;
 
 import java.util.Optional;
@@ -15,13 +16,12 @@ public class BeforeValidateUser extends BeforeModelValidateExtension<User> {
     }
     @Override
     public void beforeValidate(User model) {
-        if (model.getId() > 1){
-            //Other than root all users name must be phonenumber.
-            model.setName(Phone.sanitizePhoneNumber(model.getName()).substring(3));
-        }
 
         if (!ObjectUtil.isVoid(model.getPhoneNumber())){
             model.setPhoneNumber(Phone.sanitizePhoneNumber(model.getPhoneNumber()));
+        }
+        if (ObjectUtil.isVoid(model.getCompanyId())){
+            model.setCompanyId(CompanyUtil.getCompanyId());
         }
 
         if (!model.getRawRecord().isNewRecord() && model.getRawRecord().isFieldDirty("PHONE_NUMBER") &&

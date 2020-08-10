@@ -1,5 +1,4 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/device-uuid/lib/device-uuid.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 
 <script type="text/javascript">
@@ -17,23 +16,13 @@
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: false,
             }),
-            params: { "SignUp": { "DeviceId": "",  "PhoneNumber": "" } },
-
-            initDeviceId: function () {
-                let self = this;
-                return new Promise(function (resolve, reject) {
-                    Lockr.rm("User");
-                    if (!Lockr.get("DeviceId")) {
-                        Lockr.set("DeviceId", new DeviceUUID().get());
-                    }
-                    resolve();
-                });
-            },
+            params: { "SignUp": { "PhoneNumber": "" } },
             verifyPhoneOtp: function () {
                 var self = this;
                 this.http.post("/sign_ups/validateOtp/" + this.params.SignUp.Id, { "Otp": $("#PhoneOtp").val() }).then(function (response) {
                     if (response.data.SignUp.Validated === 'Y') {
                         self.params.SignUp = response.data.SignUp;
+                        Lockr.set("SignUp",self.params.SignUp);
                     } else {
                         self.message("Otp doesnot match", true);
                     }
@@ -51,8 +40,9 @@
                 });
             },
             resetPhoneNumber: function () {
-                Lockr.rm("PhoneNumber");
-                Lockr.rm("SignUpId");
+                var self = this;
+                self.params.SignUp.PhoneNumber = "";
+                Lockr.set("SignUp",self.params.SignUp);
                 $("#PhoneNumber").val("");
                 window.location.reload();
             },
@@ -74,11 +64,10 @@
                     if (!self.params.SignUp || self.params.SignUp.Validated === "Y") {
                         var user = self.params.SignUp.User;
                         if (user) {
-                            Lockr.set("User", user);
                             setConfirmUnload(false);
                             var params = (new URL(window.location)).searchParams;
                             var redirect_to = params.get("_redirect_to");
-                            if (!redirect_to){
+                            if (!redirect_to) {
                                 redirect_to = "/index"
                             }
                             self.getPosition().then(function (position) {
@@ -122,41 +111,39 @@
             signIn: function () {
                 this.message("", false);
                 var self = this;
-
-                this.initDeviceId().then(function () {
-                    self.params.SignUp.DeviceId = Lockr.get("DeviceId");
-                }).then(function () {
-                    if (Lockr.get("PhoneNumber")) {
-                        self.params.SignUp.PhoneNumber = Lockr.get("PhoneNumber");
-                        $("#PhoneNumber").val(self.params.SignUp.PhoneNumber);
-                    }
-                    if (Lockr.get("SignUpId")) {
-                        self.params.SignUp.Id = Lockr.get("SignUpId");
-                    }
-                    if ( self.params.SignUp.PhoneNumber) {
-                        self.http.post("/sign_ups/register", self.params).then(function (response) {
-                            if (response.data.SignUp){
-                                self.params.SignUp = response.data.SignUp;
-                                Lockr.set("SignUpId", self.params.SignUp.Id);
-                                $("#btnSignUp").hide();
-                                self.hideUnHideOtpFields().then(function (home) {
-                                    if (home) {
-                                        window.location.replace(home);
-                                    }
-                                });
-                            }else {
-                                self.message("Unexpected Response :" + response.data );    
-                            }
-                        }).catch(function (err) {
-                            //Lockr.rm("PhoneNumber");
-                            //self.params.SignUp.SignUpPhone.PhoneNumber = "";
-                            self.message(err.response.data.SWFHttpResponse.Error, true);
-                        });
-                    } else {
-                        $("#divPhoneOtp").hide();
-                        $("#btnSignUp").show();
-                    }
-                });
+                $("#root").hide();
+                var signUp = Lockr.get("SignUp");
+                if (signUp) {
+                    self.params.SignUp = signUp;
+                }
+                if (self.params.SignUp.PhoneNumber){
+                    $("#PhoneNumber").val(self.params.SignUp.PhoneNumber);
+                }
+                if (self.params.SignUp.PhoneNumber) {
+                    self.http.post("/sign_ups/register", self.params).then(function (response) {
+                        if (response.data.SignUp) {
+                            self.params.SignUp = response.data.SignUp;
+                            $("#btnSignUp").hide();
+                            self.hideUnHideOtpFields().then(function (home) {
+                                if (home) {
+                                    window.location.replace(home);
+                                }else {
+                                    $("#root").show();
+                                }
+                            });
+                        } else {
+                            self.message("Unexpected Response :" + response.data);
+                        }
+                    }).catch(function (err) {
+                        //Lockr.rm("PhoneNumber");
+                        //self.params.SignUp.SignUpPhone.PhoneNumber = "";
+                        self.message(err.response.data.SWFHttpResponse.Error, true);
+                    })
+                } else {
+                    $("#root").show();
+                    $("#divPhoneOtp").hide();
+                    $("#btnSignUp").show();
+                }
 
             }
         };
@@ -165,30 +152,34 @@
         if (event) {
             event.preventDefault();
         }
-        Lockr.set("PhoneNumber", $("#PhoneNumber").val());
+        var SignUp =  {};
+        SignUp.PhoneNumber = $("#PhoneNumber").val();
+
+        Lockr.set("SignUp", SignUp);
         setConfirmUnload(false);
         login.signIn();
     }
 
     $(function () {
         login = login();
-        login.signIn(true);
+        login.signIn();
     });
 </script>
-<link rel="stylesheet" href="/fragments/css/mandi.css" ></link>
+<link rel="stylesheet" href="/fragments/css/mandi.css">
+</link>
 <style>
     html,
     body {
         height: 100%;
     }
 </style>
-<div class="v-fill d-flex align-items-center">
+<div id="root" class="v-fill align-items-center" style="display : none;">
     <div class="container-fluid">
 
         <div class="row justify-content-center">
             <div class="col-6 col-sm-2">
                 <div class="logo-holder mb-5">
-                    <img src="/resources/web_manifest/drawing2.svg" alt="Hum bhi online logo" style="width:100%;">
+                    <img src="/resources/web_manifest/drawing.svg" alt="Hum bhi online logo" style="width:100%;">
                 </div>
             </div>
         </div>

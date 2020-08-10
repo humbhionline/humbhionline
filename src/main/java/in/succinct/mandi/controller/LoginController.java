@@ -1,5 +1,6 @@
 package in.succinct.mandi.controller;
 
+import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.templates.controller.TemplatedController;
@@ -13,7 +14,11 @@ public class LoginController extends TemplatedController {
 
     @RequireLogin(false)
     public View index(){
-        return html("index");
+        if (ObjectUtil.equals(getPath().getRequest().getMethod(),"GET")){
+            return html("index");
+        }else {
+            return super.login();
+        }
     }
 
 

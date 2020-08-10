@@ -1,13 +1,41 @@
-<link rel="stylesheet" href="fragments/css/mandi.css">
+<link rel="stylesheet" href="/fragments/css/mandi.css">
+<script type="application/javascript">
+function logout(ev){
+    Lockr.rm("SignUp");
+    Lockr.rm("User");
+    return true;
+}
+function size(obj) {
+    var size = 0, key;
+    var numLines = 0;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            size++;
+            numLines += obj[key].OrderLines.length;
+        }
+    }
+    return size + "(" + numLines + ")";
+};
+
+
+
+$(function(){
+    let count = size(Lockr.get("facilityOrders"));
+    //console.log(count);
+    if (count){
+        $("#orderCount").text(count);
+    }
+})
+</script>
 <div class="fixed-top app-header">
     <div class="row">
         <div class="col m-logo">
-            <a href="/fragments/html/surveys" id="dropdownHomeLink">
+            <a href="/index" id="dropdownHomeLink">
                 <img src="/resources/web_manifest/drawing.svg" alt="">
             </a>
         </div>
         <div class="col text-right">
-            <a class="btn" href="/logout" >
+            <a class="btn" onclick="logout(event)" href="/logout" >
                 <i class="fas fa-power-off"></i>
             </a>
         </div>
@@ -17,10 +45,16 @@
     <div class="row">
         <div class="col text-left">
             <a class="btn btn-link" href="/buy">
-                <i class="fas fa-shopping-cart"></i>
+                <i class="fas fa-shopping-cart">
+                    <span id="orderCount">
+                    </span>
+                </i>
             </a>
             <a class="btn btn-link" href="/sell">
                 <i class="fas fa-coins"></i>
+            </a>
+            <a class="btn btn-link" href="/orders">
+                <i class="fas fa-list"></i>
             </a>
         </div>
         <div class="col text-right">

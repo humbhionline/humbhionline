@@ -1,0 +1,394 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+
+<link href="/fragments/css/mandi.css" rel="stylesheet"></link>
+<script type="text/javascript">
+    $(function () {
+        $("#header").load("/fragments/html/header");
+        var params = (new URL(window.location)).searchParams;
+        let id = params.get("id");
+
+        new Vue({
+            el: "#app",
+            data: {
+                messages: [],
+                User : Lockr.get("User"),
+                Facility : { },
+                current : {
+                    index : -1 ,
+                    Items : [] ,
+                    UnitOfMeasures : [],
+                    AssetCodes : [],
+                    lookupselectionIndex : -1,
+                    Inventory: {},
+                    AdjustmentQuantity : 0 ,
+                }
+            },
+            created: function () {
+                let self = this;
+                api().url("/facilities/show/" + id).get().then(function (response) {
+                    if (!response.Facility.Inventories){
+                        response.Facility.Inventories = [] ;
+                    }
+                    Vue.set(self,"Facility", response.Facility);
+                    self.showApp();
+                }).catch(function (err) {
+                    self.messages.push(err.response.data.SWFHttpResponse.Error);
+                    self.showApp();
+                    self.autoClearMessage();
+                })
+            },
+            methods: {
+                showApp: function () {
+                    $("#root").show();
+                },
+                message: function () {
+                    var message = "";
+                    let self = this;
+                    self.messages.forEach(function (m) {
+                        message += " " + m;
+                    });
+                    return message;
+                },
+                autoClearMessage: function () {
+                    setTimeout(function () {
+                        self.messages = [];
+                    }, 1500);
+                },
+                create: function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+
+                    var i = {
+                            Company :self.User.Company ,
+                            Facility : { Id : self.Facility.Id},
+                            Sku : {
+                                Item :{
+                                    Name :"",
+                                    Company : {Name :"MANDI"},
+                                    AssetCode : { "Code" : "" } ,
+                                },
+                                Name : "",
+                                SkuCode  : "" ,
+                                PackagingUOM : {
+                                    Measures : "Packaging",
+                                    Name :""
+                                },
+                                Published : "Y"
+                            },
+                            Quantity : "0" ,
+                            Infinite : "Y"
+                        };
+                    let last = self.Facility.Inventories.length > 0 ? self.Facility.Inventories[self.Facility.Inventories.length -1] : null ;
+
+                    if (!last || last.Id){
+                        self.Facility.Inventories.push(i);
+                        self.edit(null,self.Facility.Inventories.length-1);
+                    }
+
+                },
+                edit: function(event,index){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    this.current.index = index;
+                    if (index >= 0 ){
+                        this.current.Inventory = this.Facility.Inventories[this.current.index];
+                    }else {
+                        this.current.Inventory = {};
+                        let length = this.Facility.Inventories.length;
+                        let last = length >  0 ? this.Facility.Inventories[length - 1] : null ;
+                        if (last && !last.Id){
+                            this.Facility.Inventories.splice(length -1 , 1);
+                        }
+                    }
+                },
+                cancel: function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    this.edit(event,-1);
+                },
+                save: function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = self.current.index;
+                    let i = self.current.Inventory;
+                    let newRecord = !i.Id;
+                    let newProduct = !i.Sku.Id;
+
+
+
+                    api().url("/api/adjust").parameters({AdjustmentRequest : { NewProduct : newProduct , "Inventory" :i, AdjustmentQuantity :self.current.AdjustmentQuantity,
+                    Comment : "Adjust" }}).post().then(function (response) {
+                        if (newRecord){
+                            self.Facility.Inventories.splice(self.Facility.Inventories.length-1,1,response.AdjustmentRequests[0].Inventory);
+                        }else {
+                            self.Facility.Inventories.splice(index,1,response.AdjustmentRequests[0].Inventory);
+                        }
+                        self.cancel(null);
+                    }).catch(function (err) {
+                        self.messages.push(err.response.data.SWFHttpResponse.Error);
+                        self.autoClearMessage();
+                    });
+
+                },
+                remove: function(event,index){
+                    if (event){
+                        event.preventDefault();
+                    }
+
+                    let self = this;
+                    let i = self.Facility.Inventories[index];
+
+                    let newRecord = !i.Id;
+                    if (!newRecord){
+                        api().url("/api/adjust").parameters({AdjustmentRequest : { Inventory : i, AdjustmentQuantity : -1 * i.Quantity, Comment : "Remove Inventory" , NewProduct : "N" } }).post().then(function (response){
+                            self.Facility.Inventories.splice(index,1,response.AdjustmentRequests[0].Inventory);
+                        }).catch(function (err) {
+                            self.messages.push(err.response.data.SWFHttpResponse.Error);
+                            self.autoClearMessage();
+                        });
+                    }else {
+                        self.Facility.Inventories.splice(index,1);
+                    }
+                },
+                isKeyTriggerable: function (e) {
+                    if (e && e.keyCode >= 48 && e.keyCode <= 90) {
+                        return true;
+                    }
+                    return false;
+                },
+                onItemChange: function (e) {
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+                    let self = this;
+                    new Autocomplete("items", e.target).search().then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.current.Items = response.Items;
+                        if (self.current.Items.length === 1) {
+                            self.onItemSelect(null, self.current.Items[0]);
+                        } else {
+                            self.loadLookupEntries(e.target);
+                        }
+                    });
+                },
+                onItemSelect: function (e, item) {
+                    e && e.preventDefault();
+                    let self = this;
+                    self.current.Inventory.Sku.Item = item;
+                    self.current.Items = [];
+                },
+                onAssetCodeChange: function (e) {
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+
+                    let self = this;
+                    new Autocomplete("asset_codes", e.target).search().then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.current.AssetCodes = response.AssetCodes;
+                        if (response.AssetCodes.length === 1) {
+                            self.onAssetCodeSelect(null, self.current.AssetCodes[0]);
+                        } else {
+                            self.loadLookupEntries(e.target);
+                        }
+                    });
+                },
+                onAssetCodeSelect:function (e, item) {
+                    e && e.preventDefault();
+                    let self = this;
+                    self.current.Inventory.Sku.Item.AssetCode = item;
+                    self.current.AssetCodes = [];
+                },
+                onUnitOfMeasureChange: function (e) {
+                    e && e.preventDefault();
+                    let self = this;
+                    delete self.current.Inventory.Sku.PackagingUOM.Id;
+
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+
+                    new Autocomplete("unit_of_measures", e.target,1).search("MEASURES:Packaging AND NAME").then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.current.UnitOfMeasures = response.UnitOfMeasures;
+                        if (response.UnitOfMeasures.length === 1) {
+                            self.onUnitOfMeasuresSelect(null, self.current.UnitOfMeasures[0]);
+                        } else {
+                            self.loadLookupEntries(e.target);
+                        }
+                    });
+                },
+                onUnitOfMeasuresSelect:function (e, uom) {
+                    e && e.preventDefault();
+                    let self = this;
+                    delete uom.Id ;
+
+                    self.current.Inventory.Sku.PackagingUOM = uom ;
+                    api().url("/skus/search/ITEM:\'"+self.current.Inventory.Sku.Item.Name+"\' AND PACKAGING_U_O_M:\'"+ uom.Name +"\'").get().then(function(response){
+                        if (response.Skus.length === 1){
+                            self.current.Inventory.Sku = response.Skus[0];
+                        }
+                    });
+                    self.current.UnitOfMeasures = [] ;
+                },
+                getParentDiv: function (element) {
+                    var div = element;
+                    while (div && div.tagName !== 'DIV') {
+                        div = div.parentElement;
+                    }
+                    return div;
+                },
+                loadLookupEntries: function (element) {
+                    var div = this.getParentDiv(element);
+                    if (div) {
+                        div.appendChild(this.$refs['lookupEntries']);
+                    }
+                },
+
+                navigate : function(e,index,length){
+                    e && e.preventDefault();
+                    let self = this;
+                    this.current.lookupselectionIndex = (index % length);
+                    let anchors = this.$refs['lookupEntries'].getElementsByTagName("a");
+                    anchors[this.current.lookupselectionIndex].focus();
+                },
+            }
+        });
+    });
+</script>
+
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+        <div class="container-fluid mb-5 pb-4">
+            <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
+                {{ message() }}
+            </div>
+        </div>
+        <div id="lookupEntries" ref="lookupEntries" class="below">
+            <div v-for="(item,index) in current.Items" v-if="current.Items.length > 0">
+                <a href="#" v-on:click="onItemSelect($event,item)"  v-on:keyUp.enter="onItemSelect($event,item)" v-on:keyUp.space="onItemSelect($event,item)"
+                v-on:keyUp.up="navigate($event,index-1,current.Items.length)" v-on:keyUp.down="navigate($event,index+1,current.Items.length)">{{item.Name}} - {{ item.AssetCode}}</a>
+            </div>
+            <div v-for="(code,index) in current.AssetCodes" v-if="current.AssetCodes.length > 0">
+                <a href="#"
+                v-on:click="onAssetCodeSelect($event,code)" v-on:keyUp.space="onAssetCodeSelect($event,code)" v-on:keyUp.enter="onAssetCodeSelect($event,code)"
+                v-on:keyUp.up="navigate($event,index-1,current.AssetCodes.length)" v-on:keyUp.down="navigate($event,index+1,current.AssetCodes.length)" >{{code.Code}} - {{code.Description}} </a>
+            </div>
+            <div v-for="(code,index) in current.UnitOfMeasures" v-if="current.UnitOfMeasures.length > 0">
+                <a href="#"
+                v-on:click="onUnitOfMeasuresSelect($event,code)" v-on:keyUp.space="onUnitOfMeasuresSelect($event,code)" v-on:keyUp.enter="onUnitOfMeasuresSelect($event,code)"
+                v-on:keyUp.up="navigate($event,index-1,current.UnitOfMeasures.length)" v-on:keyUp.down="navigate($event,index+1,current.UnitOfMeasures.length)" >{{code.Code}} </a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-9">
+                Facility : {{Facility.Name}}
+            </div>
+            <div class="col-3">
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="create($event)" >
+                    Add
+                </a>
+            </div>
+        </div>
+
+        <div class="row " v-for="(inv,i) in Facility.Inventories">
+            <div class="col-9" v-if="current.index === i">
+                <input  v-bind:key="'item' + i"  v-bind:id="'item' + i"   class="form-control" placeholder="Product Name"
+                v-model="current.Inventory.Sku.Item.Name"
+                v-on:keyUp="onItemChange($event)" v-on:keyUp.down="navigate($event,0,current.Items.length)"   />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{inv.Sku.Item.Name}}</label>
+            </div>
+            <!-- If item is new only then gst is enterable -->
+            <div class="col-9" v-if="current.index === i && !current.Inventory.Sku.Item.Id">
+                <input  v-bind:key="'asset_code' + i"  v-bind:id="'asset_code' + i"   class="form-control" placeholder="GST/SAC Code"
+                v-model="current.Inventory.Sku.Item.AssetCode.Code"
+                v-on:keyUp="onAssetCodeChange($event)" v-on:keyUp.down="navigate($event,0,current.AssetCodes.length)"   />
+            </div>
+            <div class="col-9" v-if="inv.Sku.Item.AssetCode.LongDescription">
+                <label>{{inv.Sku.Item.AssetCode.LongDescription}}</label>
+                <br/>
+                <label>Tax Rate : {{inv.Sku.TaxRate}}</label>
+            </div>
+
+            <div class="col-9" v-if="current.index == i">
+                <input v-bind:key="'uom' + i"  v-bind:id="'uom' + i"  class="form-control" placeholder="Unit of Measure"
+                v-model="current.Inventory.Sku.PackagingUOM.Name" v-on:keyUp="onUnitOfMeasureChange($event)"
+                v-on:keyUp.down="navigate($event,0,current.UnitOfMeasures.length)"  />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{inv.Sku.PackagingUOM.Name}}</label>
+            </div>
+            <div class="col-9" v-if="current.index === i">
+                <input v-bind:key="'quantity' + i"  v-bind:id="'quantity' + i"  class="form-control" placeholder="Quantity"
+                v-model="current.Inventory.Quantity"  />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{inv.Quantity}}</label>
+            </div>
+            <div class="col-4">
+                <label>Infinite :</label>
+            </div>
+            <div class="col text-left" >
+                <input value="Y" type="checkbox" v-bind:key="'infinite' + i"  v-bind:id="'infinite' + i"  class="form-control" placeholder="Infinite"
+                v-model="inv.Infinite"  :disabled="current.index !== i || ( inv.Id && (inv.Quantity * 1.0  > 0))" true-value="Y" false-value="N" />
+            </div>
+
+            <div class="col-9" v-if="current.index === i">
+                Max Retail Price :
+                <input v-bind:key="'mrp' + i"  v-bind:id="'mrp' + i"  class="form-control" placeholder="MRP"
+                v-model="current.Inventory.Sku.MaxRetailPrice"  />
+            </div>
+            <div class="col-9" v-else>
+                Max Retail Price : <label>{{inv.Sku.MaxRetailPrice}}</label>
+            </div>
+            <div class="col-9" v-if="current.index === i">
+                Selling Price :
+                <input v-bind:key="'price' + i"  v-bind:id="'price' + i"  class="form-control" placeholder="Price"
+                v-model="current.Inventory.SellingPrice"  />
+            </div>
+            <div class="col-9" v-else>
+                Selling  Price : <label>{{inv.SellingPrice}}</label>
+            </div>
+
+            <div class="col-9 d-flex align-items-center" v-if="current.index === i">
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >
+                    Save
+                </a>
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)" >
+                    Cancel
+                </a>
+            </div>
+
+            <div class="col-9 d-flex align-items-center" v-else>
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)" >
+                    Edit
+                </a>
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="remove($event,i)" >
+                    Remove
+                </a>
+
+            </div>
+        </div>
+    </div>
+<div>

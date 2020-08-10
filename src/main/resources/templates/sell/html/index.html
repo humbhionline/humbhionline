@@ -1,0 +1,334 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+
+<link href="/fragments/css/mandi.css" rel="stylesheet"></link>
+<script type="text/javascript">
+    $(function () {
+        $("#header").load("/fragments/html/header");
+        new Vue({
+            el: "#app",
+            data: {
+                messages: [],
+                User : Lockr.get("User"),
+                Facilities : [] ,
+                current : {
+                    Facility : {} ,
+                    index : -1 ,
+                    Cities : [] ,
+                    PinCodes : [],
+                    lookupselectionIndex : -1,
+                }
+            },
+            created: function () {
+                let self = this;
+                api().url("/facilities").get().then(function (response) {
+                    self.Facilities = response.Facilities;
+                    self.showApp();
+                }).catch(function (err) {
+                    self.messages.push(err.response.data.SWFHttpResponse.Error);
+                    self.showApp();
+                    self.autoClearMessage();
+                })
+            },
+            methods: {
+                showApp: function () {
+                    $("#root").show();
+                },
+                message: function () {
+                    var message = "";
+                    let self = this;
+                    self.messages.forEach(function (m) {
+                        message += " " + m;
+                    });
+                    return message;
+                },
+                autoClearMessage: function () {
+                    setTimeout(function () {
+                        self.messages = [];
+                    }, 1500);
+                },
+                create: function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    if (!self.Facilities){
+                        self.Facilities = [];
+                    }
+
+                    var f = { Name :"" , AddressLine1 :"" , AddressLine2:"" , AddressLine3:"" ,AddressLine4:"" ,
+                                City :{ Name :"" , State :{ Name : "" , Country : {Name :"India"} } } ,
+                                PinCode : { PinCode :""},
+                                PhoneNumber :"" ,
+                                AlternatePhoneNumber : "",
+                                Company :self.User.Company
+                            };
+                    if (self.User.Verified && self.Facilities.length == 0){
+                        f.Name = "Residence of " + self.User.LongName;
+                        f.AddressLine1 = self.User.AddressLine1;
+                        f.AddressLine2 = self.User.AddressLine2;
+                        f.AddressLine3 = self.User.AddressLine3;
+                        f.AddressLine4 = self.User.AddressLine4;
+                        f.City = self.User.City;
+                        f.PinCode = self.User.PinCode;
+                        f.PhoneNumber = self.User.PhoneNumber;
+                        f.AlternatePhoneNumber = self.User.AlternatePhoneNumber;
+                    }
+                    let last = self.Facilities.length > 0 ? self.Facilities[self.Facilities.length -1] : null ;
+
+                    if (!last || last.Id){
+                        self.Facilities.push(f);
+                        self.edit(null,self.Facilities.length-1);
+                    }
+
+                },
+                edit: function(event,index){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    this.current.index = index;
+                    if (index >= 0 ){
+                        this.current.Facility = this.Facilities[this.current.index];
+                    }else {
+                        this.current.Facility = {};
+                    }
+                },
+                cancel: function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    this.edit(event,-1);
+                },
+                save: function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = self.current.index;
+                    let f = self.current.Facility;
+                    let newRecord = !f.Id;
+                    api().url("/facilities/save").parameters({"Facility" :f}).post().then(function (response) {
+                        if (newRecord){
+                            self.Facilities.splice(self.Facilities.length-1,1,response.Facilities[0]);
+                        }else {
+                            self.Facilities.splice(index,1,response.Facilities[0]);
+                        }
+                        self.cancel(null);
+                    }).catch(function (err) {
+                        self.messages.push(err.response.data.SWFHttpResponse.Error);
+                        self.autoClearMessage();
+                    });
+
+                },
+                remove: function(event,index){
+                    if (event){
+                        event.preventDefault();
+                    }
+
+                    let self = this;
+                    let f = self.Facilities[index];
+
+                    let newRecord = !f.Id;
+                    if (!newRecord){
+                        api().url("/facilities/destroy/"+f.Id).then(function (response){
+                            self.Facilities.splice(index,1);
+                        }).catch(function (err) {
+                            self.messages.push(err.response.data.SWFHttpResponse.Error);
+                            self.autoClearMessage();
+                        });
+                    }else {
+                        self.Facilities.splice(index,1);
+                    }
+                },
+                isKeyTriggerable: function (e) {
+                    if (e && e.keyCode >= 48 && e.keyCode <= 90) {
+                        return true;
+                    }
+                    return false;
+                },
+                onCityChange: function (e) {
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+                    let self = this;
+                    new Autocomplete("cities", e.target).search().then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.current.Cities = response.Cities;
+                        if (self.current.Cities.length === 1) {
+                            self.onCitySelect(null, self.current.Cities[0]);
+                        } else {
+                            self.loadLookupEntries(e.target);
+                        }
+                    });
+                },
+                onCitySelect: function (e, item) {
+                    e && e.preventDefault();
+                    let self = this;
+                    self.current.Facility.City = item;
+                    self.current.Facility.State = item.State;
+                    self.current.Facility.Country = item.State.Country;
+                    self.current.Cities = [];
+                },
+                onPinCodeChange: function (e) {
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+
+                    let self = this;
+                    new Autocomplete("pin_codes", e.target).search("PIN_CODE").then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.current.PinCodes = response.PinCodes;
+                        if (response.PinCodes.length === 1) {
+                            self.onPinCodeSelect(null, self.current.PinCodes[0]);
+                        } else {
+                            self.loadLookupEntries(e.target);
+                        }
+                    });
+                },
+                onPinCodeSelect:function (e, item) {
+                    e && e.preventDefault();
+                    let self = this;
+                    self.current.Facility.PinCode = item;
+                    self.current.PinCodes = [];
+                },
+                getParentDiv: function (element) {
+                    var div = element;
+                    while (div && div.tagName !== 'DIV') {
+                        div = div.parentElement;
+                    }
+                    return div;
+                },
+                loadLookupEntries: function (element) {
+                    var div = this.getParentDiv(element);
+                    if (div) {
+                        div.appendChild(this.$refs['lookupEntries']);
+                    }
+                },
+
+                navigate : function(e,index,length){
+                    e && e.preventDefault();
+                    let self = this;
+                    this.current.lookupselectionIndex = (index % length);
+                    let anchors = this.$refs['lookupEntries'].getElementsByTagName("a");
+                    anchors[this.current.lookupselectionIndex].focus();
+                },
+            }
+        });
+    });
+</script>
+
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+        <div class="container-fluid mb-5 pb-4">
+            <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
+                {{ message() }}
+            </div>
+        </div>
+        <div id="lookupEntries" ref="lookupEntries" class="below">
+            <div v-for="(city,index) in current.Cities" v-if="current.Cities.length > 0">
+                <a href="#" v-on:click="onCitySelect($event,city)"  v-on:keyUp.enter="onCitySelect($event,city)" v-on:keyUp.space="onCitySelect($event,city)"
+                v-on:keyUp.up="navigate($event,index-1,current.Cities.length)" v-on:keyUp.down="navigate($event,index+1,current.Cities.length)">{{city.Name}} - {{city.State.Name}}</a>
+            </div>
+            <div v-for="(pincode,index) in current.PinCodes" v-if="current.PinCodes.length > 0">
+                <a href="#"
+                v-on:click="onPinCodeSelect($event,pincode)" v-on:keyUp.space="onPinCodeSelect($event,pincode)" v-on:keyUp.enter="onPinCodeSelect($event,pincode)"
+                v-on:keyUp.up="navigate($event,index-1,current.PinCodes.length)" v-on:keyUp.down="navigate($event,index+1,current.PinCodes.length)" >{{pincode.PinCode}} </a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-9">
+                <h2>Facilities</h2>
+            </div>
+            <div class="col-3">
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="create($event)" >
+                    Add
+                </a>
+            </div>
+        </div>
+        <div class="row py-2 my-1 position-relative" v-for="(f,i) in Facilities">
+            <div class="col-9" v-if="current.index == i">
+                <input class="form-control" v-bind:key="'name' + i"  v-bind:id="'name' + i"  v-model="current.Facility.Name" placeholder="Alias for the facility" />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{f.Name}} </label>
+            </div>
+            <div class="col-3">
+                <i class="fas fa-check col-4" v-if="f.Verified && f.Verified === 'Y'">
+                    Verified
+                </i>
+            </div>
+            <div class="col-9" v-if="current.index == i">
+                <input class="form-control" v-bind:key="'address1' + i"  v-bind:id="'address1' + i"  v-model="current.Facility.AddressLine1" placeholder="Address Line 1" />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{f.AddressLine1}}</label>
+            </div>
+
+            <div class="col-9" v-if="current.index == i">
+                <input class="form-control"  v-bind:key="'address2' + i"  v-bind:id="'address2' + i"  v-model="current.Facility.AddressLine2" placeholder="Address Line 2" />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{f.AddressLine2}}</label>
+            </div>
+            <div class="col-9" v-if="current.index == i">
+                <input class="form-control"  v-bind:key="'address3' + i"  v-bind:id="'address3' + i"   v-model="current.Facility.AddressLine3" placeholder="Address Line 3" />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{f.AddressLine3}}</label>
+            </div>
+            <div class="col-9" v-if="current.index == i">
+                <input class="form-control"  v-bind:key="'address4' + i"  v-bind:id="'address4' + i"   v-model="current.Facility.AddressLine4" placeholder="Address Line 4"  />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{f.AddressLine4}}</label>
+            </div>
+            <div class="col-9" v-if="current.index == i">
+                <input  v-bind:key="'city' + i"  v-bind:id="'city' + i"   class="form-control" placeholder="City Name" v-model="current.Facility.City.Name"
+                v-on:keyUp="onCityChange($event)" v-on:keyUp.down="navigate($event,0,current.Cities.length)" v-if="User.City"  />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{f.City.Name}}-{{f.City.State.Name}}</label>
+            </div>
+
+            <div class="col-9" v-if="current.index == i">
+                <input v-bind:key="'pincode' + i"  v-bind:id="'pincode' + i"  class="form-control" placeholder="Pin Code"
+                v-model="current.Facility.PinCode.PinCode" v-on:keyUp="onPinCodeChange($event)"
+                v-on:keyUp.down="navigate($event,0,current.PinCodes.length)" v-if="f.PinCode"  />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{f.PinCode.PinCode}}</label>
+            </div>
+
+            <div class="col-9 d-flex align-items-center" v-if="current.index == i">
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >
+                    Save
+                </a>
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)" >
+                    Cancel
+                </a>
+            </div>
+
+            <div class="col-9 d-flex align-items-center" v-else>
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)" >
+                    Edit
+                </a>
+                <a href="#/" class="btn btn-primary" role="button" v-on:click="remove($event,i)" >
+                    Remove
+                </a>
+                <a v-bind:href="'/sell/html/facility?id='+f.Id+'&includeMenu=N'" class="btn btn-primary" role="button"  v-if="f.Verified == 'Y'">
+                    Add Inventory
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

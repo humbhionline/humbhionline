@@ -1,7 +1,5 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/jsrsasign/lib/jsrsasign.js"></script>
-
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <!--script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script!-->
 
@@ -15,11 +13,17 @@
             data: {
                 messages: [],
                 User : {},
+                search : {
+                    term :"",
+                    results : [] ,
+                },
+                facilityOrders : {}
             },
             created: function () {
                 let self = this;
                 api().url("/users/current").get().then(function (response) {
                     self.User = response.User;
+                    Lockr.set("User", self.User);
 
                     let  validated = self.User.UserPhones.length > 0 ;
                     self.User.UserPhones.forEach((item, i) => {
@@ -36,7 +40,11 @@
                     self.messages.push(err.response.data.SWFHttpResponse.Error);
                     self.showApp();
                     self.autoClearMessage();
-                })
+                });
+                let fo = Lockr.get("facilityOrders");
+                if (fo){
+                    self.facilityOrders = fo;
+                }
             },
             methods: {
                 showApp: function () {
@@ -51,18 +59,166 @@
                     return message;
                 },
                 autoClearMessage: function () {
+                    let self = this;
                     setTimeout(function () {
                         self.messages = [];
                     }, 1500);
                 },
+                headers: function(){
+                    let location = Lockr.get("Location");
+                    if (location && location.latitude && location.longitude){
+                        return { Lat: location.latitude , Lng : location.longitude };
+                    }else {
+                        return {} ;
+                    }
+                },
+                isKeyTriggerable: function (e) {
+                    if (e && (e.keyCode >= 48 && e.keyCode <= 90) || e.keyCode === 46 || e.keyCode === 8 ) {
+                        return true;
+                    }
+                    return false;
+                },
+                find: function(e){
+                    if (e){
+                        e.preventDefault();
+                    }
+
+                    let self = this;
+                    let term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ");
+                    if (term.length >= 3){
+                        if (self.isKeyTriggerable(e)){
+                            api().url("/inventories/search/"+term).headers(self.headers()).get().then(function (response) {
+                                if (!response) {
+                                    return
+                                }
+                                self.search.results = response.Inventories.sort(function(o1,o2){
+                                    return o1.Facility.Distance - o2.Facility.Distance;
+                                }) ;
+                                self.search.results.forEach((result, i) => {
+                                    var forders = self.facilityOrders[result.Facility.Id];
+                                    var order = forders && forders.Order;
+                                    result.OrderedQuantity = 0;
+                                    if (order){
+                                        order.OrderLines.forEach((orderLine, i) => {
+                                            if (orderLine.SkuId === result.Sku.Id && orderLine.ShipFromId === result.Facility.Id){
+                                                result.OrderedQuantity = orderLine.OrderedQuantity
+                                            }
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    }else {
+                        self.search.results = [];
+                    }
+                },
+                addToCart : function(event,result){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    if (!self.facilityOrders[result.Facility.Id]){
+                        let  user =  Lockr.get("User");
+                        self.facilityOrders[result.Facility.Id] = {
+
+                            OrderLines :[] ,
+                            OrderAddresses : [
+                            { AddressType : "ST" ,
+                                FirstName : user.FirstName,
+                                LastName : user.LastName,
+                                AddressLine1 : user.AddressLine1 ,
+                                AddressLine2: user.AddressLine2  ,
+                                AddressLine3 : user.AddressLine3,
+                                AddressLine4 : user.AddressLine4,
+                                City : user.City ,
+                                PinCode : user.PinCode,
+                                PhoneNumber :user.PhoneNumber,
+                                Lat : user.Lat,
+                                Lng : user.Lng
+                            },
+                            { AddressType : "BT" ,
+                                FirstName : user.FirstName,
+                                LastName : user.LastName,
+                                AddressLine1 : user.AddressLine1 ,
+                                AddressLine2: user.AddressLine2  ,
+                                AddressLine3 : user.AddressLine3,
+                                AddressLine4 : user.AddressLine4,
+                                City : user.City ,
+                                PinCode : user.PinCode,
+                                PhoneNumber :user.PhoneNumber,
+                                Lat : user.Lat,
+                                Lng : user.Lng
+                            }] };
+                        Vue.set(self.facilityOrders,result.Facility.Id , self.facilityOrders[result.Facility.Id]) ;
+                    }
+                    var order = self.facilityOrders[result.Facility.Id];
+                    if (order){
+                        let index = order.OrderLines.findIndex(function(ol){
+                            return ol.Inventory.Sku.Id === result.Sku.Id && ol.Inventory.Facility.Id === result.Facility.Id;
+                        });
+                        let ol = { Inventory : result,
+                            OrderedQuantity : result.OrderedQuantity };
+                        if (index < 0){
+                            if (ol.OrderedQuantity * 1 > 0) {
+                                order.OrderLines.push(ol);
+                            }
+                        }else {
+                            if (ol.OrderedQuantity * 1 > 0) {
+                                order.OrderLines.splice(index,1,ol);
+                            }else {
+                                order.OrderLines.splice(index,1);
+                            }
+                        }
+                    }
+                    Lockr.set("facilityOrders",self.facilityOrders);
+                    $("#header").load("/fragments/html/header");
+                }
             }
         });
     });
 </script>
+
 <div id="root" style="display:none;">
     <div id="header">
     </div>
     <div id="app" class="app-body">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-8">
+                    <input  key="search"  id="search"   class="form-control" placeholder="Search Item/Store" v-on:keyUp="find($event)"
+                    v-model="search.term"/>
+                </div>
+
+            </div>
+            <div class="row border-bottom" v-for="(result,index) in search.results" v-if="search.results.length > 0">
+                <div class="col-12">
+                    {{result.Sku.Name}}
+                </div>
+                <div class="col-12">
+                    {{result.Facility.Name}}
+                </div>
+                <div class="col-12">
+                    Available : {{result.Infinite == 'Y' || Math.ceil(result.Quantity) > 0 }}
+                </div>
+                <div class="col-12">
+                    Price : {{result.SellingPrice}}
+                </div>
+                <div class="col-12">
+                    Distance : {{result.Facility.Distance}}
+                </div>
+                <div class="col-4">
+                    Quantity :
+                </div>
+                <div class="col-4">
+                    <input  key="quantity"  id="quantity"   class="form-control" placeholder="Quantity"
+                    v-model="result.OrderedQuantity"/>
+                </div>
+                <div class="col-2">
+                    <button class="btn-primary" v-on:click="addToCart($event,result)">Update Cart</button>
+                </div>
+            </div>
+
+        </div>
         <div class="container-fluid mb-5 pb-4">
             <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
                 {{ message() }}

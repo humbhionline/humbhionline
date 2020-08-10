@@ -1,0 +1,135 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript">
+    $(function () {
+        $("#header").load("/fragments/html/header");
+        new Vue({
+            el: "#app",
+            data: {
+                messages: [],
+                User : Lockr.get("User"),
+                facilityOrders : Lockr.get("facilityOrders") || {} ,
+                facilities : []
+            },
+            created: function () {
+                let self = this;
+                for (key in self.facilityOrders) {
+                    if (self.facilityOrders.hasOwnProperty(key)) {
+                        self.facilities.push(self.facilityOrders[key].OrderLines[0].Inventory.Facility);
+                    }
+                }
+                if (self.facilities.length > 0 ){
+                    self.showApp();
+                }else {
+                    window.location.replace("/index");
+                }
+            },
+            methods: {
+                showApp: function () {
+                    $("#root").show();
+                },
+                message: function () {
+                    var message = "";
+                    let self = this;
+                    self.messages.forEach(function (m) {
+                        message += " " + m;
+                    });
+                    return message;
+                },
+                autoClearMessage: function () {
+                    let self = this;
+                    setTimeout(function () {
+                        self.messages = [];
+                    }, 1500);
+                },
+                headers: function(){
+                    let location = Lockr.get("Location");
+                    if (location && location.latitude && location.longitude){
+                        return { Lat: location.latitude , Lng : location.longitude };
+                    }else {
+                        return {} ;
+                    }
+                },
+                book :function(event){
+                    var Orders = [] ;
+                    let self = this;
+                    self.facilities.forEach((f, i) => {
+                        Orders.push(self.facilityOrders[f.Id]);
+                    });
+                    api().url("/orders/book").parameters({Orders : Orders}).post().then(function(response){
+                        self.facilities = [ ] ;
+                        self.facilityOrders = {};
+                        Lockr.rm("facilityOrders");
+                        window.location.reload();
+                    }).catch(function (err){
+                        self.messages.push(err.response.data.SWFHttpResponse.Error);
+                        self.autoClearMessage();
+                    });
+                }
+            }
+        });
+    });
+</script>
+<style media="screen">
+    .even {
+
+    }
+    .odd {
+        background-color : rgba(0,0,0,0.1);
+    }
+</style>
+
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+        <div class="container">
+            <div class="row">
+                <div class="container-fluid border-bottom border-dark" v-for="(facility,index) in facilities" v-if="facilities.length > 0">
+                    <div class="row">
+                        <div class="col-12">
+                            <b> Shipment {{ index + 1 }} (  From: {{ facility.Name }} @ Distance {{facility.Distance}} )
+                            </b>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-5">
+                            SKU
+                        </div>
+                        <div class="col-3">
+                            Unit Price
+                        </div>
+                        <div class="col-3">
+                            Quantity
+                        </div>
+                    </div>
+                    <div v-bind:class="'row ' +  (index%2 === 0 ? 'odd' : 'even' )" v-for="(ol,index) in facilityOrders[facility.Id].OrderLines">
+                        <div class="col-5">
+                            {{ol.Inventory.Sku.Name}}
+                        </div>
+                        <div class="col-3 text-right">
+                            {{ol.Inventory.SellingPrice}}
+                        </div>
+                        <div class="col-3 text-right">
+                            {{ ol.OrderedQuantity }}
+                        </div>
+                        <!--div class="col-2">
+                            {{ ol.Inventory.Infinite == 'Y' || Math.ceil(ol.Inventory.Quantity) > 0  ? 'Y' : 'N'}}
+                        </div-->
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <button class="btn-primary float-right pt-1" v-on:click="book($event)">Book All Orders</button>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid mb-5 pb-4">
+            <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
+                {{ message() }}
+            </div>
+        </div>
+    </div>
+</div>

@@ -5,6 +5,12 @@
 		},
 		{
 			"path": "/home/venky/Projects/java/github/swf-all/swf/src/main/resources/scripts"
+		},
+		{
+			"path": "/home/venky/mandi/src/main/resources/web_manifest"
 		}
-	]
+	],
+	"settings": {
+		"java.progressReports.enabled": false
+	}
 }
