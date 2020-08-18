@@ -147,10 +147,13 @@
                     }
                 },
                 isKeyTriggerable: function (e) {
+                    /*
                     if (e && e.keyCode >= 48 && e.keyCode <= 90) {
                         return true;
                     }
                     return false;
+                    */
+                    return e && e.target.value.length > 3;
                 },
                 onCityChange: function (e) {
                     e && e.preventDefault();
@@ -240,13 +243,13 @@
         </div>
         <div id="lookupEntries" ref="lookupEntries" class="below">
             <div v-for="(city,index) in current.Cities" v-if="current.Cities.length > 0">
-                <a href="#" v-on:click="onCitySelect($event,city)"  v-on:keyUp.enter="onCitySelect($event,city)" v-on:keyUp.space="onCitySelect($event,city)"
-                v-on:keyUp.up="navigate($event,index-1,current.Cities.length)" v-on:keyUp.down="navigate($event,index+1,current.Cities.length)">{{city.Name}} - {{city.State.Name}}</a>
+                <a href="#" v-on:click="onCitySelect($event,city)"  v-on:keyup.enter="onCitySelect($event,city)" v-on:keyup.space="onCitySelect($event,city)"
+                v-on:keyup.up="navigate($event,index-1,current.Cities.length)" v-on:keyup.down="navigate($event,index+1,current.Cities.length)">{{city.Name}} - {{city.State.Name}}</a>
             </div>
             <div v-for="(pincode,index) in current.PinCodes" v-if="current.PinCodes.length > 0">
                 <a href="#"
-                v-on:click="onPinCodeSelect($event,pincode)" v-on:keyUp.space="onPinCodeSelect($event,pincode)" v-on:keyUp.enter="onPinCodeSelect($event,pincode)"
-                v-on:keyUp.up="navigate($event,index-1,current.PinCodes.length)" v-on:keyUp.down="navigate($event,index+1,current.PinCodes.length)" >{{pincode.PinCode}} </a>
+                v-on:click="onPinCodeSelect($event,pincode)" v-on:keyup.space="onPinCodeSelect($event,pincode)" v-on:keyup.enter="onPinCodeSelect($event,pincode)"
+                v-on:keyup.up="navigate($event,index-1,current.PinCodes.length)" v-on:keyup.down="navigate($event,index+1,current.PinCodes.length)" >{{pincode.PinCode}} </a>
             </div>
         </div>
         <div class="row">
@@ -298,7 +301,7 @@
             </div>
             <div class="col-9" v-if="current.index == i">
                 <input  v-bind:key="'city' + i"  v-bind:id="'city' + i"   class="form-control" placeholder="City Name" v-model="current.Facility.City.Name"
-                v-on:keyUp="onCityChange($event)" v-on:keyUp.down="navigate($event,0,current.Cities.length)" v-if="User.City"  />
+                v-on:input="onCityChange($event)" v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City"  />
             </div>
             <div class="col-9" v-else>
                 <label>{{f.City.Name}}-{{f.City.State.Name}}</label>
@@ -306,8 +309,8 @@
 
             <div class="col-9" v-if="current.index == i">
                 <input v-bind:key="'pincode' + i"  v-bind:id="'pincode' + i"  class="form-control" placeholder="Pin Code"
-                v-model="current.Facility.PinCode.PinCode" v-on:keyUp="onPinCodeChange($event)"
-                v-on:keyUp.down="navigate($event,0,current.PinCodes.length)" v-if="f.PinCode"  />
+                v-model="current.Facility.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
+                v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="f.PinCode"  />
             </div>
             <div class="col-9" v-else>
                 <label>{{f.PinCode.PinCode}}</label>

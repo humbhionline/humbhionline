@@ -157,7 +157,17 @@
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
                     });
                 },
-
+                onTabSelect: function(event){
+                    if (!event){
+                        return;
+                    }
+                    event.preventDefault();
+                    if (event.target.value === "My Sales"){
+                        $('#nav-sales-tab').tab('show');
+                    }else if (event.target.value === "My Purchases"){
+                        $('#nav-purchases-tab').tab('show');
+                    }
+                }
             }
         });
     });
@@ -173,9 +183,9 @@
             <a class="nav-item nav-link" id="nav-sales-tab" data-toggle="tab" href="#nav-sales" role="tab" aria-controls="nav-profile" aria-selected="false">Sales</a>
           </div>
         </nav>
-        <select id="nav-select" class="select form-control">
-            <option onclick="$('#nav-purchases-tab').tab('show')" class="option" value="My Purchases" selected="selected">My Purchases</option>
-            <option onclick="$('#nav-sales-tab').tab('show')" class="option" value="My Sales">My Sales</option>
+        <select id="nav-select" class="select form-control" @change="onTabSelect($event)" >
+            <option class="option" value="My Purchases" selected="selected">My Purchases</option>
+            <option class="option" value="My Sales">My Sales</option>
         </select>
 
         <div class="tab-content" id="nav-tabContent">
@@ -233,7 +243,7 @@
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event,o)" >
                           Cancel
                       </a>
-                      <a v-bind:href="'upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress + '&pn='+o.Facility.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=HBO Txn ' + o.Id + '&am=' + o.SellingPrice + '&cu=INR&mode=04&orgId=000000&url=https://'+host+'/orders/complete_payment/'+o.Id + '&sign='" target="_blank" class="btn btn-primary" role="button" v-if="o.Paid !== 'Y'">Pay</a>
+                      <a v-bind:href="('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress + '&pn='+o.Facility.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=HBO Txn ' + o.Id + '&am=' + o.SellingPrice + '&cu=INR&mode=04&orgId=000000&sign=&url=https://'+host+'/orders/complete_payment/'+o.Id).replace(/ /g,'%20')" target="_blank" class="btn btn-primary" role="button" v-if="o.Paid !== 'Y'">Pay</a>
                   </div>
               </div>
           </div>

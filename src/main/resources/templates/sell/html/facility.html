@@ -160,10 +160,13 @@
                     }
                 },
                 isKeyTriggerable: function (e) {
+                    e.target.value.length > 3
+                    /*
                     if (e && e.keyCode >= 48 && e.keyCode <= 90) {
                         return true;
                     }
                     return false;
+                    */
                 },
                 onItemChange: function (e) {
                     e && e.preventDefault();
@@ -196,6 +199,7 @@
                     }
 
                     let self = this;
+
                     new Autocomplete("asset_codes", e.target).search().then(function (response) {
                         if (!response) {
                             return
@@ -285,18 +289,18 @@
         </div>
         <div id="lookupEntries" ref="lookupEntries" class="below">
             <div v-for="(item,index) in current.Items" v-if="current.Items.length > 0">
-                <a href="#" v-on:click="onItemSelect($event,item)"  v-on:keyUp.enter="onItemSelect($event,item)" v-on:keyUp.space="onItemSelect($event,item)"
-                v-on:keyUp.up="navigate($event,index-1,current.Items.length)" v-on:keyUp.down="navigate($event,index+1,current.Items.length)">{{item.Name}} - {{ item.AssetCode}}</a>
+                <a href="#" v-on:click="onItemSelect($event,item)"  v-on:keyup.enter="onItemSelect($event,item)" v-on:keyup.space="onItemSelect($event,item)"
+                v-on:keyup.up="navigate($event,index-1,current.Items.length)" v-on:keyup.down="navigate($event,index+1,current.Items.length)">{{item.Name}} - {{ item.AssetCode}}</a>
             </div>
             <div v-for="(code,index) in current.AssetCodes" v-if="current.AssetCodes.length > 0">
                 <a href="#"
-                v-on:click="onAssetCodeSelect($event,code)" v-on:keyUp.space="onAssetCodeSelect($event,code)" v-on:keyUp.enter="onAssetCodeSelect($event,code)"
-                v-on:keyUp.up="navigate($event,index-1,current.AssetCodes.length)" v-on:keyUp.down="navigate($event,index+1,current.AssetCodes.length)" >{{code.Code}} - {{code.Description}} </a>
+                v-on:click="onAssetCodeSelect($event,code)" v-on:keyup.space="onAssetCodeSelect($event,code)" v-on:keyup.enter="onAssetCodeSelect($event,code)"
+                v-on:keyup.up="navigate($event,index-1,current.AssetCodes.length)" v-on:keyup.down="navigate($event,index+1,current.AssetCodes.length)" >{{code.Code}} - {{code.Description}} </a>
             </div>
             <div v-for="(code,index) in current.UnitOfMeasures" v-if="current.UnitOfMeasures.length > 0">
                 <a href="#"
-                v-on:click="onUnitOfMeasuresSelect($event,code)" v-on:keyUp.space="onUnitOfMeasuresSelect($event,code)" v-on:keyUp.enter="onUnitOfMeasuresSelect($event,code)"
-                v-on:keyUp.up="navigate($event,index-1,current.UnitOfMeasures.length)" v-on:keyUp.down="navigate($event,index+1,current.UnitOfMeasures.length)" >{{code.Code}} </a>
+                v-on:click="onUnitOfMeasuresSelect($event,code)" v-on:keyup.space="onUnitOfMeasuresSelect($event,code)" v-on:keyup.enter="onUnitOfMeasuresSelect($event,code)"
+                v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)" v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)" >{{code.Code}} </a>
             </div>
         </div>
         <div class="row">
@@ -314,7 +318,7 @@
             <div class="col-9" v-if="current.index === i">
                 <input  v-bind:key="'item' + i"  v-bind:id="'item' + i"   class="form-control" placeholder="Product Name"
                 v-model="current.Inventory.Sku.Item.Name"
-                v-on:keyUp="onItemChange($event)" v-on:keyUp.down="navigate($event,0,current.Items.length)"   />
+                v-on:input="onItemChange($event)" v-on:keyup.down="navigate($event,0,current.Items.length)"   />
             </div>
             <div class="col-9" v-else>
                 <label>{{inv.Sku.Item.Name}}</label>
@@ -323,7 +327,7 @@
             <div class="col-9" v-if="current.index === i && !current.Inventory.Sku.Item.Id">
                 <input  v-bind:key="'asset_code' + i"  v-bind:id="'asset_code' + i"   class="form-control" placeholder="GST/SAC Code"
                 v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                v-on:keyUp="onAssetCodeChange($event)" v-on:keyUp.down="navigate($event,0,current.AssetCodes.length)"   />
+                v-on:input="onAssetCodeChange($event)" v-on:keyup.down="navigate($event,0,current.AssetCodes.length)"   />
             </div>
             <div class="col-9" v-if="inv.Sku.Item.AssetCode.LongDescription">
                 <label>{{inv.Sku.Item.AssetCode.LongDescription}}</label>
@@ -333,8 +337,8 @@
 
             <div class="col-9" v-if="current.index == i">
                 <input v-bind:key="'uom' + i"  v-bind:id="'uom' + i"  class="form-control" placeholder="Unit of Measure"
-                v-model="current.Inventory.Sku.PackagingUOM.Name" v-on:keyUp="onUnitOfMeasureChange($event)"
-                v-on:keyUp.down="navigate($event,0,current.UnitOfMeasures.length)"  />
+                v-model="current.Inventory.Sku.PackagingUOM.Name" v-on:input="onUnitOfMeasureChange($event)"
+                v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)"  />
             </div>
             <div class="col-9" v-else>
                 <label>{{inv.Sku.PackagingUOM.Name}}</label>

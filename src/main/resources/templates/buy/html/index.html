@@ -55,6 +55,36 @@
                     var Orders = [] ;
                     let self = this;
                     self.facilities.forEach((f, i) => {
+                        var order = self.facilityOrders[f.Id];
+                        let user = self.User;
+                        order.OrderAddresses = [
+                            { AddressType : "ST" ,
+                                FirstName : user.FirstName,
+                                LastName : user.LastName,
+                                AddressLine1 : user.AddressLine1 ,
+                                AddressLine2: user.AddressLine2  ,
+                                AddressLine3 : user.AddressLine3,
+                                AddressLine4 : user.AddressLine4,
+                                City : user.City ,
+                                PinCode : user.PinCode,
+                                PhoneNumber :user.PhoneNumber,
+                                Lat : user.Lat,
+                                Lng : user.Lng
+                            },
+                            { AddressType : "BT" ,
+                                FirstName : user.FirstName,
+                                LastName : user.LastName,
+                                AddressLine1 : user.AddressLine1 ,
+                                AddressLine2: user.AddressLine2  ,
+                                AddressLine3 : user.AddressLine3,
+                                AddressLine4 : user.AddressLine4,
+                                City : user.City ,
+                                PinCode : user.PinCode,
+                                PhoneNumber :user.PhoneNumber,
+                                Lat : user.Lat,
+                                Lng : user.Lng
+                            }
+                        ];
                         Orders.push(self.facilityOrders[f.Id]);
                     });
                     api().url("/orders/book").parameters({Orders : Orders}).post().then(function(response){

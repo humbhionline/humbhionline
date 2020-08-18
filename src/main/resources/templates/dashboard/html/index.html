@@ -75,10 +75,7 @@
                     }
                 },
                 isKeyTriggerable: function (e) {
-                    if (e && (e.keyCode >= 48 && e.keyCode <= 90) || e.keyCode === 46 || e.keyCode === 8 ) {
-                        return true;
-                    }
-                    return false;
+                    return  e && e.target.value.length > 3 ;
                 },
                 find: function(e){
                     if (e){
@@ -86,32 +83,31 @@
                     }
 
                     let self = this;
+                    self.search.results = [];
+                    if (!self.isKeyTriggerable(e)){
+                        return;
+                    }
+                    self.search.term = e.target.value;
                     let term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ");
-                    if (term.length >= 3){
-                        if (self.isKeyTriggerable(e)){
-                            api().url("/inventories/search/"+term).headers(self.headers()).get().then(function (response) {
-                                if (!response) {
-                                    return
-                                }
-                                self.search.results = response.Inventories.sort(function(o1,o2){
-                                    return o1.Facility.Distance - o2.Facility.Distance;
-                                }) ;
-                                self.search.results.forEach((result, i) => {
-                                    var order = self.facilityOrders[result.Facility.Id];
-                                    result.OrderedQuantity = 0;
-                                    if (order){
-                                        order.OrderLines.forEach((orderLine, i) => {
-                                            if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id){
-                                                result.OrderedQuantity = orderLine.OrderedQuantity
-                                            }
-                                        });
+                    api().url("/inventories/search/"+term).headers(self.headers()).get().then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.search.results = response.Inventories.sort(function(o1,o2){
+                            return o1.Facility.Distance - o2.Facility.Distance;
+                        }) ;
+                        self.search.results.forEach((result, i) => {
+                            var order = self.facilityOrders[result.Facility.Id];
+                            result.OrderedQuantity = 0;
+                            if (order){
+                                order.OrderLines.forEach((orderLine, i) => {
+                                    if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id){
+                                        result.OrderedQuantity = orderLine.OrderedQuantity
                                     }
                                 });
-                            });
-                        }
-                    }else {
-                        self.search.results = [];
-                    }
+                            }
+                        });
+                    });
                 },
                 addToCart : function(event,result){
                     if (event){
@@ -121,35 +117,9 @@
                     if (!self.facilityOrders[result.Facility.Id]){
                         let  user =  Lockr.get("User");
                         self.facilityOrders[result.Facility.Id] = {
-
                             OrderLines :[] ,
-                            OrderAddresses : [
-                            { AddressType : "ST" ,
-                                FirstName : user.FirstName,
-                                LastName : user.LastName,
-                                AddressLine1 : user.AddressLine1 ,
-                                AddressLine2: user.AddressLine2  ,
-                                AddressLine3 : user.AddressLine3,
-                                AddressLine4 : user.AddressLine4,
-                                City : user.City ,
-                                PinCode : user.PinCode,
-                                PhoneNumber :user.PhoneNumber,
-                                Lat : user.Lat,
-                                Lng : user.Lng
-                            },
-                            { AddressType : "BT" ,
-                                FirstName : user.FirstName,
-                                LastName : user.LastName,
-                                AddressLine1 : user.AddressLine1 ,
-                                AddressLine2: user.AddressLine2  ,
-                                AddressLine3 : user.AddressLine3,
-                                AddressLine4 : user.AddressLine4,
-                                City : user.City ,
-                                PinCode : user.PinCode,
-                                PhoneNumber :user.PhoneNumber,
-                                Lat : user.Lat,
-                                Lng : user.Lng
-                            }] };
+                            OrderAddresses : []
+                        };
                         Vue.set(self.facilityOrders,result.Facility.Id , self.facilityOrders[result.Facility.Id]) ;
                     }
                     var order = self.facilityOrders[result.Facility.Id];
@@ -189,8 +159,8 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-8">
-                    <input  key="search"  id="search"   class="form-control" placeholder="Search Item/Store" v-on:keyUp="find($event)"
-                     @input='evt=>search.term=evt.target.value'/>
+                    <input  key="search"  id="search"   class="form-control" placeholder="Search Item/Store" v-on:input="find($event)"
+                     v-model="search.term" />
                 </div>
 
             </div>

@@ -5,6 +5,7 @@ import com.venky.core.date.DateUtils;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.controller.annotations.SingleRecordAction;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
@@ -48,6 +49,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     }
 
 
+    @RequireLogin(false)
     public View complete_payment(long orderId){
         Config.instance().getLogger(getReflector().getModelClass().getName()).
                 info("PASSED_PARAMS" + getPath().getFormFields().toString());
