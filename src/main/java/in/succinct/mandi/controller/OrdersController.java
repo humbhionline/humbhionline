@@ -13,10 +13,16 @@ import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
+import com.venky.swf.plugins.background.core.CompositeTask;
+import com.venky.swf.plugins.background.core.Task;
+import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.templates.controller.TemplateLoader;
+import com.venky.swf.routing.Config;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
+import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
@@ -25,10 +31,12 @@ import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
+import in.succinct.plugins.ecommerce.db.model.order.OrderStatus;
 
 import javax.servlet.http.HttpServletRequest;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -40,26 +48,15 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     }
 
 
-    @SingleRecordAction(icon = "glyphicon-envelope",tooltip = "Deliver")
-    public View deliver(long orderId){
-        Order order = Database.getTable(Order.class).get(orderId);
-        order.deliver();
-        if (getIntegrationAdaptor() != null) {
-            return getIntegrationAdaptor().createResponse(getPath(), order,null,getIgnoredParentModels(), getIncludedModelFields());
-        }else {
-            return back();
-        }
-    }
+    public View complete_payment(long orderId){
+        Config.instance().getLogger(getReflector().getModelClass().getName()).
+                info("PASSED_PARAMS" + getPath().getFormFields().toString());
 
-    @SingleRecordAction(icon="glyphicon-thumbs-down",tooltip="Back order")
-    public View backorder(long  orderId){
         Order order = Database.getTable(Order.class).get(orderId);
-        order.backorder();
-        if (getIntegrationAdaptor() != null) {
-            return getIntegrationAdaptor().createResponse(getPath(), order,null,getIgnoredParentModels(), getIncludedModelFields());
-        }else {
-            return back();
-        }
+        order.completePayment();
+        TaskManager.instance().execute(new CompositeTask(getTasksToPrint(orderId).toArray(new Task[]{})));
+
+        return print(orderId);
     }
 
     public <T> View book() throws Exception {
@@ -268,11 +265,29 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     }
 
     @Override
+    protected String[] getIncludedFields() {
+        return getIncludedModelFields().get(Order.class).toArray(new String[] {});
+    }
+
+    @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>,List<String>> map =  super.getIncludedModelFields();
+        map.put(Order.class,ModelReflector.instance(Order.class).getFields());
+
+        map.put(Facility.class,ModelReflector.instance(Facility.class).getUniqueFields());
+        map.get(Facility.class).add("CREATOR_USER_ID");
+
         map.put(OrderLine.class,ModelReflector.instance(OrderLine.class).getFields());
         map.put(OrderAddress.class,ModelReflector.instance(OrderAddress.class).getFields());
+        map.put(OrderStatus.class,ModelReflector.instance(OrderStatus.class).getUniqueFields());
         map.put(Sku.class,ModelReflector.instance(Sku.class).getFields());
+        List<String> userFields = new ArrayList<>();
+        for (String addressField : Address.getAddressFields()) {
+            userFields.add(addressField);
+        }
+        userFields.addAll(ModelReflector.instance(User.class).getUniqueFields());
+        userFields.addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
+        map.put(User.class,userFields);
 
         return map;
     }

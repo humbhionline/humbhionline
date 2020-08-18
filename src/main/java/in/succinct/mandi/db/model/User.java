@@ -10,6 +10,9 @@ public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     public boolean isVerified();
     public void setVerified(boolean kycComplete);
 
+    public String getNameAsInBankAccount();
+    public void setNameAsInBankAccount(String name);
+
     public  String getVirtualPaymentAddress();
     public void setVirtualPaymentAddress(String vpa);
 

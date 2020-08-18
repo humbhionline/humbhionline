@@ -17,6 +17,13 @@ public class BeforeValidateFacility extends BeforeModelValidateExtension<Facilit
 
     @Override
     public void beforeValidate(Facility model) {
+        if (model.getCityId() != null) {
+            model.setStateId(model.getCity().getStateId());
+        }
+        if (model.getStateId() != null) {
+            model.setCountryId(model.getState().getCountryId());
+        }
+
         boolean addressChanged = Address.isAddressChanged(model);
         boolean verified = model.isVerified();
         if ( addressChanged || !verified ){
@@ -36,6 +43,5 @@ public class BeforeValidateFacility extends BeforeModelValidateExtension<Facilit
         model.setPhoneNumber(Phone.sanitizePhoneNumber(model.getPhoneNumber()));
         model.setAlternatePhoneNumber(Phone.sanitizePhoneNumber(model.getAlternatePhoneNumber()));
         model.setVerified(verified);
-
     }
 }

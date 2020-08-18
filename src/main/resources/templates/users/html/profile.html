@@ -377,26 +377,26 @@
                         </div>
 
                         <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input class="form-control" id="name" v-model="User.AddressLine1" placeholder="House Number" :disabled="User.Verified && User.Verified === 'Y'" />
+                            <input class="form-control" id="a1" v-model="User.AddressLine1" placeholder="House Number" :disabled="User.Verified && User.Verified === 'Y'" />
                         </div>
                         <div class="col-9" v-else>
                             <label>{{User.AddressLine1}}</label>
                         </div>
 
                         <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input class="form-control" id="name" v-model="User.AddressLine2" placeholder="Building Name" :disabled="User.Verified && User.Verified === 'Y'" />
+                            <input class="form-control" id="a2" v-model="User.AddressLine2" placeholder="Building Name" :disabled="User.Verified && User.Verified === 'Y'" />
                         </div>
                         <div class="col-9" v-else>
                             <label>{{User.AddressLine2}}</label>
                         </div>
                         <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input class="form-control" id="name" v-model="User.AddressLine3" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
+                            <input class="form-control" id="a3" v-model="User.AddressLine3" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
                         </div>
                         <div class="col-9" v-else>
                             <label>{{User.AddressLine3}}</label>
                         </div>
                         <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input class="form-control" id="name" v-model="User.AddressLine4" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
+                            <input class="form-control" id="a4" v-model="User.AddressLine4" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
                         </div>
                         <div class="col-9" v-else>
                             <label>{{User.AddressLine4}}</label>
@@ -419,10 +419,13 @@
                         </div>
 
                         <div class="col-9">
-                            <label>VPA: {{User.VirtualPaymentAddress}}</label>
+                            <label>VPA:</label>
                         </div>
                         <div class="col-9" >
-                            <input class="form-control" id="name" v-model="User.VirtualPaymentAddress" placeholder="Enter your UPI/Payment Address" />
+                            <input class="form-control" id="vpa" v-model="User.VirtualPaymentAddress" placeholder="Enter your UPI/Payment Address" />
+                        </div>
+                        <div class="col-9" >
+                            <input class="form-control" id="bankname" v-model="User.NameAsInBankAccount" placeholder="Enter your Name as in the Bank" />
                         </div>
                         <div class="col-3 d-flex align-items-center" >
                             <a href="#/" class="btn btn-primary" role="button" v-on:click="saveUser($event)" >

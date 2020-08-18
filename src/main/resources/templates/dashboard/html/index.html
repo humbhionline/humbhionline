@@ -26,11 +26,13 @@
                     Lockr.set("User", self.User);
 
                     let  validated = self.User.UserPhones.length > 0 ;
-                    self.User.UserPhones.forEach((item, i) => {
-                            if (item.Validated === 'N'){
-                                validated = false;
-                            }
-                    });
+                    if (validated){
+                        self.User.UserPhones.forEach((item, i) => {
+                                if (item.Validated === 'N'){
+                                    validated = false;
+                                }
+                        });
+                    }
                     if (!validated){
                         window.location.href = "/users/html/profile";
                     }else {
@@ -95,12 +97,11 @@
                                     return o1.Facility.Distance - o2.Facility.Distance;
                                 }) ;
                                 self.search.results.forEach((result, i) => {
-                                    var forders = self.facilityOrders[result.Facility.Id];
-                                    var order = forders && forders.Order;
+                                    var order = self.facilityOrders[result.Facility.Id];
                                     result.OrderedQuantity = 0;
                                     if (order){
                                         order.OrderLines.forEach((orderLine, i) => {
-                                            if (orderLine.SkuId === result.Sku.Id && orderLine.ShipFromId === result.Facility.Id){
+                                            if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id){
                                                 result.OrderedQuantity = orderLine.OrderedQuantity
                                             }
                                         });
@@ -169,6 +170,9 @@
                                 order.OrderLines.splice(index,1);
                             }
                         }
+                        if (order.OrderLines.length === 0){
+                            delete self.facilityOrders[result.Facility.Id];
+                        }
                     }
                     Lockr.set("facilityOrders",self.facilityOrders);
                     $("#header").load("/fragments/html/header");
@@ -186,7 +190,7 @@
             <div class="row">
                 <div class="col-8">
                     <input  key="search"  id="search"   class="form-control" placeholder="Search Item/Store" v-on:keyUp="find($event)"
-                    v-model="search.term"/>
+                     @input='evt=>search.term=evt.target.value'/>
                 </div>
 
             </div>

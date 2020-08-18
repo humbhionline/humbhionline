@@ -23,6 +23,9 @@
             },
             created: function () {
                 let self = this;
+                if (self.User.Verified === 'N'){
+                    window.location.href = "/users/html/profile";
+                }
                 api().url("/facilities").get().then(function (response) {
                     self.Facilities = response.Facilities;
                     self.showApp();
@@ -45,6 +48,7 @@
                     return message;
                 },
                 autoClearMessage: function () {
+                    let self = this;
                     setTimeout(function () {
                         self.messages = [];
                     }, 1500);
@@ -132,7 +136,7 @@
 
                     let newRecord = !f.Id;
                     if (!newRecord){
-                        api().url("/facilities/destroy/"+f.Id).then(function (response){
+                        api().url("/facilities/destroy/"+f.Id).get().then(function (response){
                             self.Facilities.splice(index,1);
                         }).catch(function (err) {
                             self.messages.push(err.response.data.SWFHttpResponse.Error);
@@ -307,6 +311,14 @@
             </div>
             <div class="col-9" v-else>
                 <label>{{f.PinCode.PinCode}}</label>
+            </div>
+
+            <div class="col-9" v-if="current.index == i">
+                <input v-bind:key="'gstin' + i"  v-bind:id="'gstin' + i"  class="form-control" placeholder="GSTIN"
+                v-model="current.Facility.GSTIN" />
+            </div>
+            <div class="col-9" v-else>
+                <label>{{f.GSTIN}}</label>
             </div>
 
             <div class="col-9 d-flex align-items-center" v-if="current.index == i">

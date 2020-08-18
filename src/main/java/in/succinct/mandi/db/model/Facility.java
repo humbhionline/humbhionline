@@ -32,4 +32,6 @@ public interface Facility extends in.succinct.plugins.ecommerce.db.model.partici
     public Double getDistance();
     public void setDistance(Double distance);
 
+    public String getGSTIN();
+    public void setGSTIN(String gstin);
 }
