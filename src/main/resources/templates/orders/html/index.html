@@ -21,28 +21,12 @@
                 packed:[],
                 acknowledged:[],
             },
+
             created: function () {
                 let self = this;
                 api().url("/orders").get().then(function (response) {
                     response.Orders.forEach((o, i) => {
-                        if (!o.OrderStatuses){
-                            o.OrderStatuses = [];
-                        }
-
-
-                        o.OrderStatuses.forEach((os, j) => {
-                            if (os.FulfillmentStatus === 'CANCELLED' || os.FulfillmentStatus === 'RETURNED'){
-                                self.cancelled.push(o.Id);
-                            }else if (os.FulfillmentStatus === "DELIVERED"){
-                                self.delivered.push(o.Id);
-                            }else if (os.FulfillmentStatus === "SHIPPED"){
-                                self.shipped.push(o.Id);
-                            }else if (os.FulfillmentStatus === "PACKED"){
-                                self.packed.push(o.Id);
-                            }else if (os.FulfillmentStatus !== 'DOWNLOADED'){
-                                self.acknowledged.push(o.Id);
-                            }
-                        });
+                        self.update_status_array(o);
                         if (o.CreatorUser.Id === self.User.Id){
                             self.MyPurchases.push(o);
                         }else{
@@ -61,6 +45,28 @@
 
             },
             methods: {
+                update_status_array: function(o){
+                    let self = this;
+                    if (!o.OrderStatuses){
+                        o.OrderStatuses = [];
+                    }
+
+
+                    o.OrderStatuses.forEach((os, j) => {
+                        if (os.FulfillmentStatus === 'CANCELLED' || os.FulfillmentStatus === 'RETURNED'){
+                            self.cancelled.push(o.Id);
+                        }else if (os.FulfillmentStatus === "DELIVERED"){
+                            self.delivered.push(o.Id);
+                        }else if (os.FulfillmentStatus === "SHIPPED"){
+                            self.shipped.push(o.Id);
+                        }else if (os.FulfillmentStatus === "PACKED"){
+                            self.packed.push(o.Id);
+                        }else if (os.FulfillmentStatus !== 'DOWNLOADED'){
+                            self.acknowledged.push(o.Id);
+                        }
+                    });
+
+                },
                 showApp: function () {
                     $("#root").show();
                 },
@@ -94,6 +100,7 @@
                     }
                     api().url("/orders/pack/" + order.Id).get().then(function (response) {
                         self.MySales.splice(sindex,1,response.Order);
+                        self.update_status_array(response.Order);
                         self.autoClearMessage("Pack initiated");
                     }).catch(function (err) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
@@ -112,6 +119,7 @@
                     }
                     api().url("/orders/ship/" + order.Id).get().then(function (response) {
                         self.MySales.splice(sindex,1,response.Order);
+                        self.update_status_array(response.Order);
                         self.autoClearMessage("Sending Out for delivery");
                     }).catch(function (err) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
@@ -130,6 +138,7 @@
                     }
                     api().url("/orders/deliver/" + order.Id).get().then(function (response) {
                         self.MySales.splice(sindex,1,response.Order);
+                        self.update_status_array(response.Order);
                         self.autoClearMessage("Being Deliveried");
                     }).catch(function (err) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
@@ -152,7 +161,77 @@
                         }else if (sindex >= 0) {
                             self.MySales.splice(sindex,1,response.Order);
                         }
+                        self.update_status_array(response.Order);
                         self.autoClearMessage("Cancellation initiated!");
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
+                },
+                start_payment: function(event,order){
+                    let self = this;
+                    let pindex  = this.MyPurchases.findIndex(function(o){
+                        return o.Id === order.Id;
+                    });
+                    api().url("/orders/initiate_payment/" + order.Id).get().then(function (response) {
+                        if (pindex >= 0 ){
+                            self.MyPurchases.splice(pindex,1,response.Order);
+                        }
+                        self.autoClearMessage("Payment initiated!");
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
+                    return true;
+                },
+                verify_payment: function(event,order){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let sindex  = this.MySales.findIndex(function(o){
+                        return o.Id === order.Id;
+                    });
+                    if (sindex < 0){
+                        return;
+                    }
+                    api().url("/orders/verify_payment/" + order.Id).get().then(function (response) {
+                        self.MySales.splice(sindex,1,response.Order);
+                        self.autoClearMessage("Verified Payment");
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
+                },
+                reset_payment: function(event,order){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let sindex  = this.MySales.findIndex(function(o){
+                        return o.Id === order.Id;
+                    });
+                    if (sindex < 0){
+                        return;
+                    }
+                    api().url("/orders/reset_payment/" + order.Id).get().then(function (response) {
+                        self.MySales.splice(sindex,1,response.Order);
+                        self.autoClearMessage("Payment Cancelled");
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
+                },
+                return_payment: function(event,order){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let sindex  = this.MySales.findIndex(function(o){
+                        return o.Id === order.Id;
+                    });
+                    if (sindex < 0){
+                        return;
+                    }
+                    api().url("/orders/return_payment/" + order.Id).get().then(function (response) {
+                        self.MySales.splice(sindex,1,response.Order);
+                        self.autoClearMessage("Returned Payment");
                     }).catch(function (err) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
                     });
@@ -236,6 +315,11 @@
                                   {{ o.SellingPrice}}
                               </div>
                           </div>
+                          <div class="row">
+                              <div class="col-12" v-if="o.Paid !== 'Y'">
+                                  {{ o.PaymentInitiated  === 'Y' ? 'Payment not verified' : 'Unpaid' }}
+                              </div>
+                          </div>
                       </div>
                   </div>
 
@@ -243,7 +327,8 @@
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event,o)" >
                           Cancel
                       </a>
-                      <a v-bind:href="('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress + '&pn='+o.Facility.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=HBO Txn ' + o.Id + '&am=' + o.SellingPrice + '&cu=INR&mode=04&orgId=000000&sign=&url=https://'+host+'/orders/complete_payment/'+o.Id).replace(/ /g,'%20')" target="_blank" class="btn btn-primary" role="button" v-if="o.Paid !== 'Y'">Pay</a>
+                      <a v-bind:href="('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress + '&pn='+o.Facility.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=HBO Txn ' + o.Id + '&am=' + o.SellingPrice + '&cu=INR&mode=04&orgId=000000&sign=&url=https://'+host+'/orders/complete_payment/'+o.Id).replace(/ /g,'%20')"
+                            v-on:click="start_payment($event,o)" target="_blank" class="btn btn-primary" role="button" v-if="o.PaymentInitiated !== 'Y'">Pay</a>
                   </div>
               </div>
           </div>
@@ -294,6 +379,11 @@
                                   {{ o.SellingPrice}}
                               </div>
                           </div>
+                          <div class="row">
+                              <div class="col-12" v-if="o.Paid !== 'Y'">
+                                  {{ o.PaymentInitiated  === 'Y' ? 'Payment not verified' : 'Unpaid' }}
+                              </div>
+                          </div>
                       </div>
                   </div>
 
@@ -304,11 +394,23 @@
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="pack($event,o)" v-if="packed.findIndex(x => x === o.Id) < 0">
                           Pack
                       </a>
-                      <a href="#/" class="btn btn-primary" role="button" v-on:click="ship($event,o)" v-if="shipped.findIndex(x => x === o.Id) < 0">
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="ship($event,o)" v-else-if="shipped.findIndex(x => x === o.Id) < 0">
                           Out for delivery
                       </a>
-                      <a href="#/" class="btn btn-primary" role="button" v-on:click="deliver($event,o)" v-if="delivered.findIndex(x => x === o.Id) < 0">
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="deliver($event,o)" v-else-if="delivered.findIndex(x => x === o.Id) < 0">
                           Deliver
+                      </a>
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="verify_payment($event,o)" v-if="o.Paid !== 'Y'">
+                          {{ o.PaymentInitiated === 'Y' ? 'Payment Verified' : 'Received Cash'}}
+                      </a>
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)" v-if="(o.PaymentInitiated === 'Y')">
+                          {{o.Paid === 'N' ? 'Reset Payment' : 'Unverify Payment'}}
+                      </a>
+
+                  </div>
+                  <div class="col-9 d-flex align-items-center" v-else>
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="return_payment($event,o)" v-if="cancelled.findIndex(x=>x === o.Id) >= 0 && (o.PaymentInitiated === 'Y' && o.Paid === 'Y' && o.Returned !== 'Y')">
+                          Returned Payment
                       </a>
                   </div>
               </div>

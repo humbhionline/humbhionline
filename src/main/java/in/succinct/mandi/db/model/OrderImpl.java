@@ -15,4 +15,28 @@ public class OrderImpl extends ModelImpl<Order> {
         order.setPaid(true);
         order.save();
     }
+    public void initiatePayment(){
+        Order order = getProxy();
+        order.setPaymentInitiated(true);
+        order.save();
+    }
+
+    public void resetPayment(){
+        Order order = getProxy();
+        if (order.isPaid()){
+            order.setPaid(false);
+        }else if (order.isPaymentInitiated()){
+            order.setPaymentInitiated(false);
+        }
+        order.save();
+    }
+
+    public void returnPayment(){
+        Order order = getProxy();
+        if (order.isPaid()){
+            order.setReturned(true);
+            order.save();
+        }
+    }
+
 }

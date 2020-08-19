@@ -49,17 +49,28 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     }
 
 
-    @RequireLogin(false)
-    public View complete_payment(long orderId){
-        Config.instance().getLogger(getReflector().getModelClass().getName()).
-                info("PASSED_PARAMS" + getPath().getFormFields().toString());
-
+    public View initiate_payment(long orderId){
+        Order order = Database.getTable(Order.class).get(orderId);
+        order.initiatePayment();
+        return show(order);
+    }
+    public View reset_payment(long orderId){
+        Order order = Database.getTable(Order.class).get(orderId);
+        order.resetPayment();
+        return show(order);
+    }
+    public View verify_payment(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
         order.completePayment();
         TaskManager.instance().execute(new CompositeTask(getTasksToPrint(orderId).toArray(new Task[]{})));
-
-        return print(orderId);
+        return show(orderId);
     }
+    public View return_payment(long orderId){
+        Order order = Database.getTable(Order.class).get(orderId);
+        order.returnPayment();
+        return show(orderId);
+    }
+
 
     public <T> View book() throws Exception {
         HttpServletRequest request = getPath().getRequest();

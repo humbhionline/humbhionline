@@ -16,12 +16,25 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     public Facility getFacility();
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isPaymentInitiated();
+    public void setPaymentInitiated(boolean initiated);
+
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     public boolean isPaid();
     public void setPaid( boolean paid);
+
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isReturned();
+    public void setReturned( boolean returned);
+
 
     @Override
     @PARTICIPANT
     Long getCreatorUserId();
 
+    void initiatePayment();
+    void resetPayment();
+
     void completePayment();
+    void returnPayment();
 }
