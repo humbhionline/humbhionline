@@ -1,6 +1,8 @@
 package in.succinct.mandi.db.model;
 
+import com.venky.core.util.Bucket;
 import com.venky.swf.db.table.ModelImpl;
+import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 
 public class OrderImpl extends ModelImpl<Order> {
     public OrderImpl(Order proxy){
@@ -12,31 +14,51 @@ public class OrderImpl extends ModelImpl<Order> {
     }
     public void completePayment() {
         Order order = getProxy();
-        order.setPaid(true);
-        order.save();
-    }
-    public void initiatePayment(){
-        Order order = getProxy();
-        order.setPaymentInitiated(true);
-        order.save();
+        order.setAmountPaid(order.getAmountPendingPayment());
+        order.resetPayment();
     }
 
+
+    public void completeRefund(){
+        Order order = getProxy();
+        if (order.getAmountPaid() > 0){
+            order.setAmountRefunded(order.getAmountToRefund());
+            order.resetRefund();
+        }
+    }
+    public double getAmountPendingPayment(){
+        Order order = getProxy();
+        Bucket netPayment = new Bucket(0.0);
+        for (OrderLine orderLine : order.getOrderLines()) {
+            double toPayQuantity = orderLine.getOrderedQuantity() - orderLine.getCancelledQuantity() - orderLine.getReturnedQuantity() ;
+            netPayment.increment(toPayQuantity * orderLine.getSellingPrice()/orderLine.getOrderedQuantity());
+        }
+        return  netPayment.doubleValue() - order.getAmountPaid() + order.getAmountRefunded();
+    }
+
+    public double getAmountToRefund(){
+        return -1 * getAmountPendingPayment();
+    }
+
+    public void initializePayment(){
+        Order order = getProxy();
+        order.setPaymentInitialized(true);
+        order.save();
+    }
+    public void initializeRefund(){
+        Order order = getProxy();
+        order.setRefundInitialized(true);
+        order.save();
+    }
     public void resetPayment(){
         Order order = getProxy();
-        if (order.isPaid()){
-            order.setPaid(false);
-        }else if (order.isPaymentInitiated()){
-            order.setPaymentInitiated(false);
-        }
+        order.setPaymentInitialized(false);
         order.save();
     }
-
-    public void returnPayment(){
+    public void resetRefund(){
         Order order = getProxy();
-        if (order.isPaid()){
-            order.setReturned(true);
-            order.save();
-        }
+        order.setRefundInitialized(false);
+        order.save();
     }
 
 }

@@ -167,38 +167,38 @@
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
                     });
                 },
-                start_payment: function(event,order){
-                    let self = this;
-                    let pindex  = this.MyPurchases.findIndex(function(o){
-                        return o.Id === order.Id;
-                    });
-                    api().url("/orders/initiate_payment/" + order.Id).get().then(function (response) {
-                        if (pindex >= 0 ){
-                            self.MyPurchases.splice(pindex,1,response.Order);
-                        }
-                        self.autoClearMessage("Payment initiated!");
-                    }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
-                    });
-                    return true;
-                },
-                verify_payment: function(event,order){
+                cancel_order_line: function(event,order_line,order_lines){
                     if (event){
                         event.preventDefault();
                     }
                     let self = this;
-                    let sindex  = this.MySales.findIndex(function(o){
-                        return o.Id === order.Id;
+                    let index  = order_lines.findIndex(function(ol){
+                        return ol.Id === order_line.Id;
                     });
-                    if (sindex < 0){
-                        return;
-                    }
-                    api().url("/orders/verify_payment/" + order.Id).get().then(function (response) {
-                        self.MySales.splice(sindex,1,response.Order);
-                        self.autoClearMessage("Verified Payment");
+                    api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
+                        order_lines.splice(index,1,response.OrderLine);
+                        self.autoClearMessage("Cancellation initiated!");
                     }).catch(function (err) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
                     });
+                },
+
+                initialize_payment:function(event,order){
+                    let self = this;
+                    let index  = this.MyPurchases.findIndex(function(o){
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0){
+                        return;
+                    }
+                    api().url("/orders/initialize_payment/" + order.Id).get().then(function (response) {
+                        self.MyPurchases.splice(index,1,response.Order);
+                        self.autoClearMessage("Payment Initialized");
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
+
+                    return true;
                 },
                 reset_payment: function(event,order){
                     if (event){
@@ -208,17 +208,24 @@
                     let sindex  = this.MySales.findIndex(function(o){
                         return o.Id === order.Id;
                     });
-                    if (sindex < 0){
+                    let pindex  = this.MyPurchases.findIndex(function(o){
+                        return o.Id === order.Id;
+                    });
+                    if (sindex < 0 && pindex < 0){
                         return;
                     }
                     api().url("/orders/reset_payment/" + order.Id).get().then(function (response) {
-                        self.MySales.splice(sindex,1,response.Order);
-                        self.autoClearMessage("Payment Cancelled");
+                        if (pindex >= 0 ){
+                            self.MyPurchases.splice(pindex,1,response.Order);
+                        }else if (sindex >= 0) {
+                            self.MySales.splice(sindex,1,response.Order);
+                        }
+                        self.autoClearMessage("Payment Reset");
                     }).catch(function (err) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
                     });
                 },
-                return_payment: function(event,order){
+                complete_payment: function(event,order){
                     if (event){
                         event.preventDefault();
                     }
@@ -229,9 +236,61 @@
                     if (sindex < 0){
                         return;
                     }
-                    api().url("/orders/return_payment/" + order.Id).get().then(function (response) {
+                    api().url("/orders/complete_payment/" + order.Id).get().then(function (response) {
                         self.MySales.splice(sindex,1,response.Order);
-                        self.autoClearMessage("Returned Payment");
+                        self.autoClearMessage("Verified Payment");
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
+                },
+                initialize_refund:function(event,order){
+                    let self = this;
+                    let index  = this.MySales.findIndex(function(o){
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0){
+                        return;
+                    }
+                    api().url("/orders/initialize_refund/" + order.Id).get().then(function (response) {
+                        self.MySales.splice(index,1,response.Order);
+                        self.autoClearMessage("Refund Initialized");
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
+                    return true;
+                },
+                reset_refund: function(event,order){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let sindex  = this.MySales.findIndex(function(o){
+                        return o.Id === order.Id;
+                    });
+                    if (sindex < 0){
+                        return;
+                    }
+                    api().url("/orders/reset_refund/" + order.Id).get().then(function (response) {
+                        self.MySales.splice(sindex,1,response.Order);
+                        self.autoClearMessage("Payment Reset");
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
+                },
+                complete_refund: function(event,order){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let pindex  = this.MyPurchases.findIndex(function(o){
+                        return o.Id === order.Id;
+                    });
+                    if (pindex < 0){
+                        return;
+                    }
+                    api().url("/orders/complete_refund/" + order.Id).get().then(function (response) {
+                        self.MyPurchases.splice(pindex,1,response.Order);
+                        self.autoClearMessage("Verified Payment");
                     }).catch(function (err) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
                     });
@@ -266,7 +325,11 @@
             <option class="option" value="My Purchases" selected="selected">My Purchases</option>
             <option class="option" value="My Sales">My Sales</option>
         </select>
-
+        <div class="container-fluid mb-5 pb-4" v-if="messages && messages.length > 0 ">
+            <div id="message" ref="message" class="alert alert-danger mb-0" >
+                {{ message() }}
+            </div>
+        </div>
         <div class="tab-content" id="nav-tabContent">
           <div class="tab-pane fade show active" id="nav-purchases" role="tabpanel" aria-labelledby="nav-purchases-tab">
               <div class="row py-2 my-1 position-relative" v-for="(o,i) in MyPurchases" >
@@ -297,27 +360,37 @@
                               <div class="col-4">
                                   {{ ol.Sku.Name}}
                               </div>
-                              <div class="col-4">
+                              <div class="col-2">
                                   {{ ol.OrderedQuantity}}
                               </div>
-                              <div class="col-4">
+                              <div class="col-4 text-right">
                                   {{ ol.SellingPrice}}
+                              </div>
+                              <div class="col-2" v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
+                                  <i class="fas fa-times" v-on:click="cancel_order_line($event,ol,o.OrderLines)"></i>
                               </div>
                           </div>
                           <div class="row">
                               <div class="col-4">
                                   Total
                               </div>
-                              <div class="col-4">
+                              <div class="col-2">
 
                               </div>
-                              <div class="col-4">
+                              <div class="col-4 text-right">
                                   {{ o.SellingPrice}}
+                              </div>
+                              <div class="col-2">
+
                               </div>
                           </div>
                           <div class="row">
-                              <div class="col-12" v-if="o.Paid !== 'Y'">
-                                  {{ o.PaymentInitiated  === 'Y' ? 'Payment not verified' : 'Unpaid' }}
+                              <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)" v-if="o.PaymentInitialized === 'Y'">
+                                  Reset Payment
+                              </a>
+
+                              <div class="col-12" v-if="o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
+                                  {{ o.PaymentInitialized  === 'Y' ? 'Payment not verified' : 'Unpaid' }}
                               </div>
                           </div>
                       </div>
@@ -327,8 +400,21 @@
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event,o)" >
                           Cancel
                       </a>
-                      <a v-bind:href="('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress + '&pn='+o.Facility.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=HBO Txn ' + o.Id + '&am=' + o.SellingPrice + '&cu=INR&mode=04&orgId=000000&sign=&url=https://'+host+'/orders/complete_payment/'+o.Id).replace(/ /g,'%20')"
-                            v-on:click="start_payment($event,o)" target="_blank" class="btn btn-primary" role="button" v-if="o.PaymentInitiated !== 'Y'">Pay</a>
+                  </div>
+
+                  <div class="col-9 d-flex align-items-center" >
+                      <a href="#/" class="btn btn-primary" v-on:click="complete_refund($event,o)" role="button" v-if="o.AmountRefunded * 1.0 < o.AmountToRefund * 1.0">
+                          Refund received
+                      </a>
+                      <!-- 'upi://pay?pa=' + order.Facility.CreatorUser.VirtualPaymentAddress +
+                                          '&pn='+order.Facility.CreatorUser.NameAsInBankAccount+
+                                          '&tr=' + order.Id +
+                                          '&tn=HBO Txn ' + order.Id +
+                                          '&am=' + order.AmountPendingPayment +
+                                          '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' ; -->
+
+                      <a v-bind:href="('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress + '&pn='+o.Facility.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=HBO Txn ' + o.Id + '&am=' + o.AmountPendingPayment + '&cu=INR&mode=04&orgId=000000&sign=&url=https://'+host+'/orders/complete_payment/'+o.Id).replace(/ /g,'%20')"
+                          target="_blank" class="btn btn-primary" role="button" v-if="o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'" v-on:click="initialize_payment($event,o)">Pay</a>
                   </div>
               </div>
           </div>
@@ -361,27 +447,33 @@
                               <div class="col-4">
                                   {{ ol.Sku.Name}}
                               </div>
-                              <div class="col-4">
+                              <div class="col-2 text-right">
                                   {{ ol.OrderedQuantity}}
                               </div>
-                              <div class="col-4">
+                              <div class="col-4 text-right">
                                   {{ ol.SellingPrice}}
+                              </div>
+                              <div class="col-2" v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
+                                  <i class="fas fa-times" v-on:click="cancel_order_line($event,ol,o.OrderLines)"></i>
                               </div>
                           </div>
                           <div class="row">
                               <div class="col-4">
                                   Total
                               </div>
-                              <div class="col-4">
+                              <div class="col-2">
 
                               </div>
-                              <div class="col-4">
+                              <div class="col-4 text-right" >
                                   {{ o.SellingPrice}}
+                              </div>
+                              <div class="col-2">
+
                               </div>
                           </div>
                           <div class="row">
-                              <div class="col-12" v-if="o.Paid !== 'Y'">
-                                  {{ o.PaymentInitiated  === 'Y' ? 'Payment not verified' : 'Unpaid' }}
+                              <div class="col-12" v-if="o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
+                                  {{ o.PaymentInitialized  === 'Y' ? 'Payment not verified' : 'Unpaid' }}
                               </div>
                           </div>
                       </div>
@@ -400,17 +492,24 @@
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="deliver($event,o)" v-else-if="delivered.findIndex(x => x === o.Id) < 0">
                           Deliver
                       </a>
-                      <a href="#/" class="btn btn-primary" role="button" v-on:click="verify_payment($event,o)" v-if="o.Paid !== 'Y'">
-                          {{ o.PaymentInitiated === 'Y' ? 'Payment Verified' : 'Received Cash'}}
-                      </a>
-                      <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)" v-if="(o.PaymentInitiated === 'Y')">
-                          {{o.Paid === 'N' ? 'Reset Payment' : 'Unverify Payment'}}
-                      </a>
 
                   </div>
-                  <div class="col-9 d-flex align-items-center" v-else>
-                      <a href="#/" class="btn btn-primary" role="button" v-on:click="return_payment($event,o)" v-if="cancelled.findIndex(x=>x === o.Id) >= 0 && (o.PaymentInitiated === 'Y' && o.Paid === 'Y' && o.Returned !== 'Y')">
-                          Returned Payment
+
+                  <div class="col-9 d-flex align-items-center" v-if="o.AmountPendingPayment * 1.0 > 0">
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="complete_payment($event,o)" v-if="o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
+                          Received Payment
+                      </a>
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)" v-if="o.PaymentInitialized === 'Y'">
+                          Reset Payment
+                      </a>
+                  </div>
+                  <div class="col-9 d-flex align-items-center" v-if="o.AmountToRefund * 1.0 > 0 ">
+                      <a target="_blank" v-on:click="initialize_refund($event,o)" v-bind:href="('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn='+o.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20')" class="btn btn-primary" role="button"
+                          v-if="o.RefundInitialized === 'N'">
+                          Refund Using UPI
+                      </a>
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_refund($event,o)" v-else>
+                          Reset Refund
                       </a>
                   </div>
               </div>
@@ -418,11 +517,7 @@
         </div>
 
 
-        <div class="container-fluid mb-5 pb-4">
-            <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
-                {{ message() }}
-            </div>
-        </div>
+
 
     </div>
 </div>

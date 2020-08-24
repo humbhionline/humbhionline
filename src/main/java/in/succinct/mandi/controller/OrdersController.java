@@ -48,26 +48,35 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         super(path);
     }
 
-
-    public View initiate_payment(long orderId){
-        Order order = Database.getTable(Order.class).get(orderId);
-        order.initiatePayment();
-        return show(order);
+    public View initialize_payment(long id){
+        Order order = Database.getTable(Order.class).get(id);
+        order.initializePayment();
+        return show(id);
     }
-    public View reset_payment(long orderId){
-        Order order = Database.getTable(Order.class).get(orderId);
+    public View initialize_refund(long id){
+        Order order = Database.getTable(Order.class).get(id);
+        order.initializeRefund();
+        return show(id);
+    }
+    public View reset_payment(long id){
+        Order order = Database.getTable(Order.class).get(id);
         order.resetPayment();
-        return show(order);
+        return show(id);
     }
-    public View verify_payment(long orderId){
+    public View reset_refund(long id){
+        Order order = Database.getTable(Order.class).get(id);
+        order.resetRefund();
+        return show(id);
+    }
+    public View complete_payment(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
         order.completePayment();
         TaskManager.instance().execute(new CompositeTask(getTasksToPrint(orderId).toArray(new Task[]{})));
         return show(orderId);
     }
-    public View return_payment(long orderId){
+    public View complete_refund(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
-        order.returnPayment();
+        order.completeRefund();
         return show(orderId);
     }
 
