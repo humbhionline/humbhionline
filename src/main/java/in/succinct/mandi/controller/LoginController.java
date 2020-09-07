@@ -21,6 +21,11 @@ public class LoginController extends TemplatedController {
         }
     }
 
+    @RequireLogin(false)
+    public View admin(){
+        return super.login();
+    }
+
 
     @Override
     public HtmlView html(String path) {

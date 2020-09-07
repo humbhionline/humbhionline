@@ -5,12 +5,12 @@ import com.venky.core.date.DateUtils;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
-import com.venky.swf.controller.annotations.RequireLogin;
-import com.venky.swf.controller.annotations.SingleRecordAction;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.db.model.reflection.ModelReflector.FieldMatcher;
+import com.venky.swf.db.table.Table.ColumnDescriptor;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
@@ -19,7 +19,6 @@ import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.templates.controller.TemplateLoader;
-import com.venky.swf.routing.Config;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
@@ -29,7 +28,6 @@ import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
 import in.succinct.plugins.ecommerce.db.model.inventory.Inventory;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
-
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 import in.succinct.plugins.ecommerce.db.model.order.OrderStatus;
@@ -71,6 +69,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     public View complete_payment(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
         order.completePayment();
+
         TaskManager.instance().execute(new CompositeTask(getTasksToPrint(orderId).toArray(new Task[]{})));
         return show(orderId);
     }
@@ -299,10 +298,19 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         map.put(Facility.class,ModelReflector.instance(Facility.class).getUniqueFields());
         map.get(Facility.class).add("CREATOR_USER_ID");
 
-        map.put(OrderLine.class,ModelReflector.instance(OrderLine.class).getFields());
-        map.put(OrderAddress.class,ModelReflector.instance(OrderAddress.class).getFields());
-        map.put(OrderStatus.class,ModelReflector.instance(OrderStatus.class).getUniqueFields());
-        map.put(Sku.class,ModelReflector.instance(Sku.class).getFields());
+        ModelReflector<OrderLine> orderLineModelReflector = ModelReflector.instance(OrderLine.class);
+        map.put(OrderLine.class,orderLineModelReflector.getFields(cd ->  cd.getName().equals("ID") || ( !cd.getName().equals("ORDER_ID") && !orderLineModelReflector.isHouseKeepingField(orderLineModelReflector.getFieldName(cd.getName())) ) ));
+
+        ModelReflector<OrderAddress> orderAddressModelReflector = ModelReflector.instance(OrderAddress.class);
+        map.put(OrderAddress.class, orderAddressModelReflector.getFields(cd -> !cd.getName().equals("ORDER_ID")  &&!orderAddressModelReflector.isHouseKeepingField(orderAddressModelReflector.getFieldName(cd.getName()))));
+
+
+        ModelReflector<OrderStatus> orderStatusModelReflector = ModelReflector.instance(OrderStatus.class);
+        map.put(OrderStatus.class,orderStatusModelReflector.getFields(cd -> !cd.getName().equals("ORDER_ID")  && !orderStatusModelReflector.isHouseKeepingField(orderStatusModelReflector.getFieldName(cd.getName()))));
+
+        ModelReflector<Sku> skuModelReflector = ModelReflector.instance(Sku.class);
+        map.put(Sku.class,skuModelReflector.getFields(cd -> !skuModelReflector.isHouseKeepingField(skuModelReflector.getFieldName(cd.getName()))));
+
         List<String> userFields = new ArrayList<>();
         for (String addressField : Address.getAddressFields()) {
             userFields.add(addressField);

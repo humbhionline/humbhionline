@@ -4,12 +4,7 @@
 <script type="text/javascript">
     function login() {
         return {
-            getPosition: function (options) {
-                return new Promise(function (resolve, reject) {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 });
-                    //Last 5 minutes;
-                });
-            },
+
             http: axios.create({
                 baseURL: "/",
                 timeout: 30000,
@@ -70,7 +65,7 @@
                             if (!redirect_to) {
                                 redirect_to = "/index"
                             }
-                            self.getPosition().then(function (position) {
+                            navigator.geolocation.getCurrentPosition(function( position ){
                                 let location = {};
                                 location.accuracy = position.coords.accuracy;
                                 location.altitude = position.coords.altitude;
@@ -80,7 +75,8 @@
                                 location.longitude = position.coords.longitude;
                                 location.speed = position.coords.speed;
                                 Lockr.set("Location", location);
-                            }).catch(function (error) {
+                                resolve(redirect_to);
+                            }, function (error) {
                                 Lockr.set("Location", {});
                                 switch (error.code) {
                                     case error.PERMISSION_DENIED:
@@ -96,11 +92,8 @@
                                         console.error("An unknown error occurred.");
                                         break;
                                 }
-                            }).finally(function () {
-                                setTimeout(function () {
-                                    resolve(redirect_to);
-                                }, 500);
-                            });
+                                resolve(redirect_to);
+                            }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 });
                         }
                     } else {
                         resolve(null);

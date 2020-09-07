@@ -20,5 +20,10 @@ public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     void setDateOfBirth(Date dateOfBirth);
 
 
+    @COLUMN_DEF(StandardDefault.ZERO)
+    public double getBalanceOrderLineCount();
+    public void setBalanceOrderLineCount(double balance);
+
+
 
 }

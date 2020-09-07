@@ -53,6 +53,7 @@
                     return message;
                 },
                 autoClearMessage: function () {
+                    let self = this;
                     setTimeout(function () {
                         self.messages = [];
                     }, 1500);
@@ -125,6 +126,7 @@
 
 
 
+
                     api().url("/api/adjust").parameters({AdjustmentRequest : { NewProduct : newProduct , "Inventory" :i, AdjustmentQuantity :self.current.AdjustmentQuantity,
                     Comment : "Adjust" }}).post().then(function (response) {
                         if (newRecord){
@@ -159,8 +161,8 @@
                         self.Facility.Inventories.splice(index,1);
                     }
                 },
-                isKeyTriggerable: function (e) {
-                    e.target.value.length > 3
+                isKeyTriggerable: function (e,length = 3) {
+                    return e.target.value.length > length;
                     /*
                     if (e && e.keyCode >= 48 && e.keyCode <= 90) {
                         return true;
@@ -223,7 +225,7 @@
                     let self = this;
                     delete self.current.Inventory.Sku.PackagingUOM.Id;
 
-                    if (!this.isKeyTriggerable(e)) {
+                    if (!this.isKeyTriggerable(e,1)) {
                         return;
                     }
 
@@ -282,8 +284,8 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div class="container-fluid mb-5 pb-4">
-            <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
+        <div class="container-fluid mb-5 pb-4" v-if="messages && messages.length > 0">
+            <div id="message" ref="message" class="alert alert-danger mb-0" >
                 {{ message() }}
             </div>
         </div>

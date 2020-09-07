@@ -36,9 +36,11 @@ a:not([href]):not([tabindex]){
 }
 
 .app-body{
-    height: calc(100vh - 96px);
+    height: calc(100vh - 115px);
     overflow: hidden;
     overflow-y: auto;
+    padding-left : 10px; 
+    padding-right : 10px;
 }
 
 .hash-tags span{
@@ -262,21 +264,21 @@ select {
     color: white;
     margin-bottom: 5px;
   }
-  
+
   .usp-box {
     background-color: #b3fffd;
     margin-bottom: 5px;
     margin-left: -15px;
     margin-right: -15px;
   }
-  
+
   .usp-box p {
     line-height: 1.2;
     font-size: 14px;
     padding-left: 10px;
     padding-right: 10px;
   }
-  
+
   .section-question {
     background-color: #dadada;
     padding: 15px 0;

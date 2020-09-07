@@ -2,6 +2,7 @@ package in.succinct.mandi.db.model;
 
 import com.venky.core.util.Bucket;
 import com.venky.swf.db.table.ModelImpl;
+import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 
 public class OrderImpl extends ModelImpl<Order> {
@@ -15,6 +16,25 @@ public class OrderImpl extends ModelImpl<Order> {
     public void completePayment() {
         Order order = getProxy();
         order.setAmountPaid(order.getAmountPendingPayment());
+        for (OrderLine line : order.getOrderLines()){
+            Item item = line.getSku().getItem().getRawRecord().getAsProxy(Item.class);
+            AssetCode assetCode = item.getAssetCodeId() == null ? null : item.getAssetCode();
+            if (assetCode != null && assetCode.isSac()){
+                if (line.getToAcknowledgeQuantity() > 0) {
+                    line.acknowledge();
+                }
+                if (line.getToPackQuantity() > 0) {
+                    line.pack(line.getToPackQuantity());
+                }
+                double toShipQuantity = line.getToShipQuantity();
+                if (toShipQuantity > 0 ){
+                    line.ship(toShipQuantity);
+                    line.deliver(toShipQuantity);
+                }
+                //Auto pack,ship and deliver service lines.
+            }
+
+        }
         order.resetPayment();
     }
 
@@ -60,5 +80,6 @@ public class OrderImpl extends ModelImpl<Order> {
         order.setRefundInitialized(false);
         order.save();
     }
+
 
 }

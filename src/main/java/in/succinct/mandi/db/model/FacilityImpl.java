@@ -27,7 +27,7 @@ public class FacilityImpl extends ModelImpl<Facility> {
 
     public Double getDistance() {
         Facility facility = getProxy();
-        Double distance;
+        double distance;
         User currentUser = Database.getInstance().getCurrentUser();
         if (currentUser != null && currentUser.getCurrentLat() != null){
             distance = new GeoCoordinate(facility).distanceTo(new GeoCoordinate(new GeoLocation() {
@@ -52,7 +52,7 @@ public class FacilityImpl extends ModelImpl<Facility> {
                 }
             }));
         }else {
-            distance = null;
+            distance = 0.0D;
         }
         return distance;
 
