@@ -1,6 +1,7 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+
 <!--script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script!-->
 
 
@@ -8,6 +9,8 @@
 <script type="text/javascript">
     $(function () {
         $("#header").load("/fragments/html/header");
+
+
         new Vue({
             el: "#app",
             data: {
@@ -96,6 +99,10 @@
                         self.search.results = response.Inventories.sort(function(o1,o2){
                             return o1.Facility.Distance - o2.Facility.Distance;
                         }) ;
+                        if (self.search.results.length === 0 ){
+                            return;
+                        }
+
                         self.search.results.forEach((result, i) => {
                             var order = self.facilityOrders[result.Facility.Id];
                             result.OrderedQuantity = 0;
@@ -107,7 +114,27 @@
                                 });
                             }
                         });
+
                     });
+                },
+                reduce: function(event,index){
+                    let self = this;
+                    let result = self.search.results[index];
+                    result.OrderedQuantity -=1 ;
+                    result.OrderedQuantity = Math.max(0,result.OrderedQuantity);
+                    Vue.set(self.search.results, index , result );
+                    self.addToCart(event,result);
+                },
+                increase: function(event,index){
+                    let self = this;
+                    let result = self.search.results[index];
+
+                    if (!result.OrderedQuantity){
+                        result.OrderedQuantity = 0.0 ;
+                    }
+                    result.OrderedQuantity += 1.0;
+                    Vue.set(self.search.results, index , result );
+                    self.addToCart(event,result);
                 },
                 addToCart : function(event,result){
                     if (event){
@@ -158,7 +185,7 @@
     <div id="app" class="app-body">
         <div class="container-fluid">
             <div class="row">
-                <div class="col-8">
+                <div class="col-12">
                     <input  key="search"  id="search"   class="form-control" placeholder="Search Item/Store" v-on:input="find($event)"
                      v-model="search.term" />
                 </div>
@@ -183,13 +210,20 @@
                 <div class="col-4">
                     Quantity :
                 </div>
-                <div class="col-4">
-                    <input  key="quantity"  id="quantity"   class="form-control" placeholder="Quantity"
+                <div class="col-1 p-0 m-0 text-right">
+                    <button class="h-100 btn btn-primary fas fa-minus" v-on:click="reduce($event,index)" />
+                </div>
+                <div class="col-1 p-0">
+                    <input  key="quantity"  id="quantity"   class="h-100 form-control" placeholder="Quantity"
                     v-model="result.OrderedQuantity"/>
                 </div>
-                <div class="col-2">
+                <div class="col-1 p-0 m-0 text-left">
+                    <button class="h-100 btn btn-primary fas fa-plus" v-on:click="increase($event,index)" />
+                </div>
+                <!-- <div class="col-2">
                     <button class="btn-primary" v-on:click="addToCart($event,result)">Update Cart</button>
                 </div>
+                -->
             </div>
 
         </div>
