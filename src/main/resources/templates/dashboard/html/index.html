@@ -141,6 +141,7 @@
                         event.preventDefault();
                     }
                     let self = this;
+                    var refreshHeader = false;
                     if (!self.facilityOrders[result.Facility.Id]){
                         let  user =  Lockr.get("User");
                         self.facilityOrders[result.Facility.Id] = {
@@ -159,11 +160,13 @@
                         if (index < 0){
                             if (ol.OrderedQuantity * 1 > 0) {
                                 order.OrderLines.push(ol);
+                                refreshHeader = true;
                             }
                         }else {
                             if (ol.OrderedQuantity * 1 > 0) {
                                 order.OrderLines.splice(index,1,ol);
                             }else {
+                                refreshHeader = true;
                                 order.OrderLines.splice(index,1);
                             }
                         }
@@ -172,7 +175,9 @@
                         }
                     }
                     Lockr.set("facilityOrders",self.facilityOrders);
-                    $("#header").load("/fragments/html/header");
+                    if (refreshHeader) {
+                        $("#header").load("/fragments/html/header");
+                    }
                 }
             }
         });
@@ -213,8 +218,8 @@
                 <div class="col-1 p-0 m-0 text-right">
                     <button class="h-100 btn btn-primary fas fa-minus" v-on:click="reduce($event,index)" />
                 </div>
-                <div class="col-1 p-0">
-                    <input  key="quantity"  id="quantity"   class="h-100 form-control" placeholder="Quantity"
+                <div class="col-2 p-0">
+                    <input  v-bind:key="'quantity' + index"  v-bind:id="'quantity' + index"   class="h-100 form-control" placeholder="Quantity"
                     v-model="result.OrderedQuantity"/>
                 </div>
                 <div class="col-1 p-0 m-0 text-left">

@@ -236,8 +236,8 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div class="container-fluid mb-5 pb-4">
-            <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
+        <div class="container-fluid mb-5 pb-4" v-if="messages && messages.length > 0">
+            <div id="message" ref="message" class="alert alert-danger mb-0" >
                 {{ message() }}
             </div>
         </div>
@@ -254,15 +254,15 @@
         </div>
         <div class="row">
             <div class="col-9">
-                <h2>Facilities</h2>
+                <h2 class="my-3 mt-4">Facilities</h2>
             </div>
             <div class="col-3">
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="create($event)" >
-                    Add
+                <a href="#/" class="ml-2 mt-4 btn btn-primary" role="button" v-on:click="create($event)" >
+                    <i class="fas fa-plus"></i>
                 </a>
             </div>
         </div>
-        <div class="row py-2 my-1 position-relative" v-for="(f,i) in Facilities">
+        <div class="row py-2 my-1 position-relative border-top border-dark" v-for="(f,i) in Facilities">
             <div class="col-9" v-if="current.index == i">
                 <input class="form-control" v-bind:key="'name' + i"  v-bind:id="'name' + i"  v-model="current.Facility.Name" placeholder="Alias for the facility" />
             </div>
@@ -270,7 +270,7 @@
                 <label>{{f.Name}} </label>
             </div>
             <div class="col-3">
-                <i class="fas fa-check col-4" v-if="f.Verified && f.Verified === 'Y'">
+                <i class="fas fa-check" v-if="f.Verified && f.Verified === 'Y'">
                     Verified
                 </i>
             </div>
@@ -335,13 +335,13 @@
 
             <div class="col-9 d-flex align-items-center" v-else>
                 <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)" >
-                    Edit
+                    <i class='fas fa-edit'></i>
                 </a>
                 <a href="#/" class="btn btn-primary" role="button" v-on:click="remove($event,i)" >
-                    Remove
+                    <i class="fas fa-trash"></i>
                 </a>
                 <a v-bind:href="'/sell/html/facility?id='+f.Id+'&includeMenu=N'" class="btn btn-primary" role="button"  v-if="f.Verified == 'Y'">
-                    Add Inventory
+                    <i class="fas fa-warehouse"></i>
                 </a>
             </div>
         </div>

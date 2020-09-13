@@ -181,9 +181,22 @@
                             return
                         }
                         self.current.Items = response.Items;
-                        if (self.current.Items.length === 1) {
-                            self.onItemSelect(null, self.current.Items[0]);
-                        } else {
+                        if (self.current.Items.length == 0){
+                            self.current.Inventory.Sku = {
+                                Item :{
+                                    Name :e.target.value,
+                                    Company : {Name :"MANDI"},
+                                    AssetCode : { "Code" : "" } ,
+                                },
+                                Name : "",
+                                SkuCode  : "" ,
+                                PackagingUOM : {
+                                    Measures : "Packaging",
+                                    Name :""
+                                },
+                                Published : "Y"
+                            };
+                        }else{
                             self.loadLookupEntries(e.target);
                         }
                     });
@@ -192,6 +205,8 @@
                     e && e.preventDefault();
                     let self = this;
                     self.current.Inventory.Sku.Item = item;
+                    self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
+                    self.current.Inventory.Sku.TaxRate = item.AssetCode.GstPct
                     self.current.Items = [];
                 },
                 onAssetCodeChange: function (e) {
@@ -207,8 +222,9 @@
                             return
                         }
                         self.current.AssetCodes = response.AssetCodes;
-                        if (response.AssetCodes.length === 1) {
-                            self.onAssetCodeSelect(null, self.current.AssetCodes[0]);
+                        if (response.AssetCodes.length === 0) {
+                            self.current.Inventory.Sku.Item.AssetCode = { Code : e.target.value };
+                            //self.onAssetCodeSelect(null, self.current.AssetCodes[0]);
                         } else {
                             self.loadLookupEntries(e.target);
                         }
@@ -218,6 +234,7 @@
                     e && e.preventDefault();
                     let self = this;
                     self.current.Inventory.Sku.Item.AssetCode = item;
+                    self.current.Inventory.Sku.TaxRate = item.GstPct
                     self.current.AssetCodes = [];
                 },
                 onUnitOfMeasureChange: function (e) {
@@ -234,8 +251,12 @@
                             return
                         }
                         self.current.UnitOfMeasures = response.UnitOfMeasures;
-                        if (response.UnitOfMeasures.length === 1) {
-                            self.onUnitOfMeasuresSelect(null, self.current.UnitOfMeasures[0]);
+                        if (response.UnitOfMeasures.length === 0) {
+                            //self.onUnitOfMeasuresSelect(null, self.current.UnitOfMeasures[0]);
+                            self.current.Inventory.Sku.PackagingUOM = {
+                                Measures : "Packaging",
+                                Name : e.target.value,
+                            };
                         } else {
                             self.loadLookupEntries(e.target);
                         }
@@ -250,6 +271,9 @@
                     api().url("/skus/search/ITEM:\'"+self.current.Inventory.Sku.Item.Name+"\' AND PACKAGING_U_O_M:\'"+ uom.Name +"\'").get().then(function(response){
                         if (response.Skus.length === 1){
                             self.current.Inventory.Sku = response.Skus[0];
+                            self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
+                            self.current.Inventory.Sku.TaxRate = self.current.Inventory.Sku.Item.GstPct
+
                         }
                     });
                     self.current.UnitOfMeasures = [] ;
@@ -292,7 +316,7 @@
         <div id="lookupEntries" ref="lookupEntries" class="below">
             <div v-for="(item,index) in current.Items" v-if="current.Items.length > 0">
                 <a href="#" v-on:click="onItemSelect($event,item)"  v-on:keyup.enter="onItemSelect($event,item)" v-on:keyup.space="onItemSelect($event,item)"
-                v-on:keyup.up="navigate($event,index-1,current.Items.length)" v-on:keyup.down="navigate($event,index+1,current.Items.length)">{{item.Name}} - {{ item.AssetCode}}</a>
+                v-on:keyup.up="navigate($event,index-1,current.Items.length)" v-on:keyup.down="navigate($event,index+1,current.Items.length)">{{item.Name}} - {{ item.AssetCode.LongDescription}}</a>
             </div>
             <div v-for="(code,index) in current.AssetCodes" v-if="current.AssetCodes.length > 0">
                 <a href="#"
@@ -302,37 +326,40 @@
             <div v-for="(code,index) in current.UnitOfMeasures" v-if="current.UnitOfMeasures.length > 0">
                 <a href="#"
                 v-on:click="onUnitOfMeasuresSelect($event,code)" v-on:keyup.space="onUnitOfMeasuresSelect($event,code)" v-on:keyup.enter="onUnitOfMeasuresSelect($event,code)"
-                v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)" v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)" >{{code.Code}} </a>
+                v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)" v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)" >{{code.Name}} </a>
             </div>
         </div>
         <div class="row">
             <div class="col-9">
-                Facility : {{Facility.Name}}
+                <h2 class="my-3 mt-4" > {{Facility.Name}} </h2>
             </div>
             <div class="col-3">
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="create($event)" >
-                    Add
+                <a href="#/" class="mt-4 btn btn-primary" role="button" v-on:click="create($event)" >
+                    <i class="fas fa-plus"></i>
                 </a>
             </div>
         </div>
 
-        <div class="row " v-for="(inv,i) in Facility.Inventories">
+        <div class="row py-2 my-1 position-relative border-top border-dark" v-for="(inv,i) in Facility.Inventories">
             <div class="col-9" v-if="current.index === i">
                 <input  v-bind:key="'item' + i"  v-bind:id="'item' + i"   class="form-control" placeholder="Product Name"
                 v-model="current.Inventory.Sku.Item.Name"
                 v-on:input="onItemChange($event)" v-on:keyup.down="navigate($event,0,current.Items.length)"   />
             </div>
             <div class="col-9" v-else>
-                <label>{{inv.Sku.Item.Name}}</label>
+                <label>Name : {{inv.Sku.Item.Name}}</label>
             </div>
             <!-- If item is new only then gst is enterable -->
             <div class="col-9" v-if="current.index === i && !current.Inventory.Sku.Item.Id">
+                <label>GST/SAC Code:</label>
                 <input  v-bind:key="'asset_code' + i"  v-bind:id="'asset_code' + i"   class="form-control" placeholder="GST/SAC Code"
                 v-model="current.Inventory.Sku.Item.AssetCode.Code"
                 v-on:input="onAssetCodeChange($event)" v-on:keyup.down="navigate($event,0,current.AssetCodes.length)"   />
             </div>
             <div class="col-9" v-if="inv.Sku.Item.AssetCode.LongDescription">
-                <label>{{inv.Sku.Item.AssetCode.LongDescription}}</label>
+                <label>GST/SAC Code:</label>
+                <label v-if="current.index === i">{{inv.Sku.Item.AssetCode.LongDescription}}</label>
+                <label v-else>{{inv.Sku.Item.AssetCode.Code}}</label>
                 <br/>
                 <label>Tax Rate : {{inv.Sku.TaxRate}}</label>
             </div>
@@ -388,10 +415,10 @@
 
             <div class="col-9 d-flex align-items-center" v-else>
                 <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)" >
-                    Edit
+                    <i class="fas fa-edit"></i>
                 </a>
                 <a href="#/" class="btn btn-primary" role="button" v-on:click="remove($event,i)" >
-                    Remove
+                    <i class="fas fa-trash"></i>
                 </a>
 
             </div>

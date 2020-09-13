@@ -344,10 +344,12 @@
             <a class="nav-item nav-link" id="nav-sales-tab" data-toggle="tab" href="#nav-sales" role="tab" aria-controls="nav-profile" aria-selected="false">Sales</a>
           </div>
         </nav>
+        <!--
         <select id="nav-select" class="select form-control" @change="onTabSelect($event)" >
             <option class="option" value="My Purchases" selected="selected">My Purchases</option>
             <option class="option" value="My Sales">My Sales</option>
         </select>
+        -->
         <div class="container-fluid mb-5 pb-4" v-if="messages && messages.length > 0 ">
             <div id="message" ref="message" class="alert alert-danger mb-0" >
                 {{ message() }}
@@ -409,7 +411,7 @@
                           </div>
                           <div class="row">
                               <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)" v-if="o.PaymentInitialized === 'Y'">
-                                  Reset Payment
+                                  <i class='fas fa-redo'>Reset Payment</i>
                               </a>
 
                               <div class="col-12" v-if="o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
@@ -421,13 +423,13 @@
 
                   <div class="col-9 d-flex align-items-center" v-if="cancelled.findIndex(x => x === o.Id) < 0">
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event,o)" >
-                          Cancel
+                          <i class="fas fa-times"> Cancel</i>
                       </a>
                   </div>
 
                   <div class="col-9 d-flex align-items-center" >
                       <a href="#/" class="btn btn-primary" v-on:click="complete_refund($event,o)" role="button" v-if="o.AmountRefunded * 1.0 < o.AmountToRefund * 1.0">
-                          Refund received
+                          <i class="fas fa-hand-holding-usd"> Received Refund </i>
                       </a>
 
                        <!--
@@ -435,7 +437,9 @@
                           target="_blank" class="btn btn-primary" role="button" v-if="o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'" v-on:click="initialize_payment($event,o)">Pay</a>
                           -->
                       <a href="#" class="btn btn-primary" role="button" v-if="o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
-                          v-on:click="initialize_payment($event,o)"> Pay </a>
+                          v-on:click="initialize_payment($event,o)">
+                          <i class='fas fa-rupee-sign'> Pay</i>
+                      </a>
                   </div>
               </div>
           </div>
@@ -502,35 +506,35 @@
 
                   <div class="col-9 d-flex align-items-center" v-if="cancelled.findIndex(x => x === o.Id) < 0">
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event,o)" >
-                          Cancel
+                          <i class="fas fa-times"> Cancel </i>
                       </a>
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="pack($event,o)" v-if="packed.findIndex(x => x === o.Id) < 0 && shipped.findIndex(x=> x=== o.Id) < 0 && delivered.findIndex(x=> x===o.Id) < 0">
-                          Pack
+                           <i class="fas fa-box"> Pack </i>
                       </a>
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="ship($event,o)" v-else-if="shipped.findIndex(x => x === o.Id) < 0 && delivered.findIndex(x=> x===o.Id) < 0" >
-                          Out for delivery
+                           <i class="fas fa-shipping-fast"> Out For Delivery</i>
                       </a>
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="deliver($event,o)" v-else-if="delivered.findIndex(x => x === o.Id) < 0">
-                          Deliver
+                           <i class="fas fa-truck"> Deliver </i>
                       </a>
 
                   </div>
 
                   <div class="col-9 d-flex align-items-center" v-if="o.AmountPendingPayment * 1.0 > 0">
-                      <a href="#/" class="btn btn-primary" role="button" v-on:click="complete_payment($event,o)" v-if="o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
-                          Received Payment
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="complete_payment($event,o)" v-if="o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0" title= "Received payment" >
+                          <i class="fas fa-thumbs-up"> Received Payment </i>
                       </a>
-                      <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)" v-if="o.PaymentInitialized === 'Y'">
-                          Reset Payment
+                      <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)" v-if="o.PaymentInitialized === 'Y'" title= "Reset payment" >
+                          <i class="fas fa-redo"> Reset Payment </i>
                       </a>
                   </div>
                   <div class="col-9 d-flex align-items-center" v-if="o.AmountToRefund * 1.0 > 0 ">
                       <a target="_blank" v-on:click="initialize_refund($event,o)" v-bind:href="('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn='+o.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20')" class="btn btn-primary" role="button"
                           v-if="o.RefundInitialized === 'N'">
-                          Refund Using UPI
+                          <i class="fas fa-undo"> Refund</i>
                       </a>
                       <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_refund($event,o)" v-else>
-                          Reset Refund
+                          <i class="fas fa-redo"> Reset Refund</i>
                       </a>
                   </div>
               </div>
