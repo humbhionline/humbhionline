@@ -24,6 +24,7 @@
                     lookupselectionIndex : -1,
                     Inventory: {},
                     AdjustmentQuantity : 0 ,
+                    itemEdited : false,
                 }
             },
             created: function () {
@@ -32,6 +33,12 @@
                     if (!response.Facility.Inventories){
                         response.Facility.Inventories = [] ;
                     }
+                    response.Facility.Inventories.forEach((inv, i) => {
+                        if (!inv.Sku.Item.AssetCode){
+                           inv.Sku.Item.AssetCode = { Code : "" };
+                        }
+                    });
+
                     Vue.set(self,"Facility", response.Facility);
                     self.showApp();
                 }).catch(function (err) {
@@ -82,7 +89,7 @@
                                 Published : "Y"
                             },
                             Quantity : "0" ,
-                            Infinite : "Y"
+                            Infinite : "N"
                         };
                     let last = self.Facility.Inventories.length > 0 ? self.Facility.Inventories[self.Facility.Inventories.length -1] : null ;
 
@@ -98,7 +105,7 @@
                     }
                     this.current.index = index;
                     if (index >= 0 ){
-                        this.current.Inventory = this.Facility.Inventories[this.current.index];
+                        this.current.Inventory = JSON.parse(JSON.stringify(this.Facility.Inventories[this.current.index] ) );
                     }else {
                         this.current.Inventory = {};
                         let length = this.Facility.Inventories.length;
@@ -106,6 +113,7 @@
                         if (last && !last.Id){
                             this.Facility.Inventories.splice(length -1 , 1);
                         }
+                        this.current.AdjustmentQuantity = 0 ;
                     }
                 },
                 cancel: function(event){
@@ -123,12 +131,17 @@
                     let i = self.current.Inventory;
                     let newRecord = !i.Id;
                     let newProduct = !i.Sku.Id;
-
+                    delete i.Quantity;
 
 
 
                     api().url("/api/adjust").parameters({AdjustmentRequest : { NewProduct : newProduct , "Inventory" :i, AdjustmentQuantity :self.current.AdjustmentQuantity,
                     Comment : "Adjust" }}).post().then(function (response) {
+                        var inv = response.AdjustmentRequests[0].Inventory;
+                        if (!inv.Sku.Item.AssetCode){
+                            inv.Sku.Item.AssetCode = { Code : "" };
+                        }
+
                         if (newRecord){
                             self.Facility.Inventories.splice(self.Facility.Inventories.length-1,1,response.AdjustmentRequests[0].Inventory);
                         }else {
@@ -141,7 +154,7 @@
                     });
 
                 },
-                remove: function(event,index){
+                zeroInventory: function(event,index){
                     if (event){
                         event.preventDefault();
                     }
@@ -151,6 +164,7 @@
 
                     let newRecord = !i.Id;
                     if (!newRecord){
+                        i.Infinite = "N";
                         api().url("/api/adjust").parameters({AdjustmentRequest : { Inventory : i, AdjustmentQuantity : -1 * i.Quantity, Comment : "Remove Inventory" , NewProduct : "N" } }).post().then(function (response){
                             self.Facility.Inventories.splice(index,1,response.AdjustmentRequests[0].Inventory);
                         }).catch(function (err) {
@@ -161,8 +175,29 @@
                         self.Facility.Inventories.splice(index,1);
                     }
                 },
+                infiniteInventory: function(event,index){
+                    if (event){
+                        event.preventDefault();
+                    }
+
+                    let self = this;
+                    let i = self.Facility.Inventories[index];
+
+                    let newRecord = !i.Id;
+                    if (!newRecord){
+                        i.Infinite = "Y";
+                        api().url("/api/adjust").parameters({AdjustmentRequest : { Inventory : i, AdjustmentQuantity : -1 * i.Quantity, Comment : "Mark Infinite Inventory" , NewProduct : "N" } }).post().then(function (response){
+                            self.Facility.Inventories.splice(index,1,response.AdjustmentRequests[0].Inventory);
+                        }).catch(function (err) {
+                            self.messages.push(err.response.data.SWFHttpResponse.Error);
+                            self.autoClearMessage();
+                        });
+                    }else {
+                        self.Facility.Inventories.splice(index,1);
+                    }
+                },
                 isKeyTriggerable: function (e,length = 3) {
-                    return e.target.value.length > length;
+                    return e.target.value.length >= length;
                     /*
                     if (e && e.keyCode >= 48 && e.keyCode <= 90) {
                         return true;
@@ -170,35 +205,52 @@
                     return false;
                     */
                 },
+                onItemBlur: function(e){
+                    e && e.preventDefault();
+                    if (!this.itemEdited) {
+                        return;
+                    }
+
+                    let self = this;
+                    self.itemEdited = false;
+                    self.current.Items = [];
+                    self._invokeItemLookup(e);
+                },
+                _invokeItemLookup: function(e){
+                    let self = this;
+                    if (self.current.Items.length == 0){
+                        self.current.Inventory.Sku = {
+                            Item :{
+                                Name :e.target.value,
+                                Company : {Name :"MANDI"},
+                                AssetCode : { "Code" : "" } ,
+                            },
+                            Name : "",
+                            SkuCode  : "" ,
+                            PackagingUOM : {
+                                Measures : "Packaging",
+                                Name :""
+                            },
+                            Published : "Y"
+                        };
+                    }else{
+                        self.loadLookupEntries(e.target);
+                    }
+
+                },
                 onItemChange: function (e) {
                     e && e.preventDefault();
                     if (!this.isKeyTriggerable(e)) {
                         return;
                     }
                     let self = this;
+                    self.itemEdited = true;
                     new Autocomplete("items", e.target).search().then(function (response) {
                         if (!response) {
                             return
                         }
                         self.current.Items = response.Items;
-                        if (self.current.Items.length == 0){
-                            self.current.Inventory.Sku = {
-                                Item :{
-                                    Name :e.target.value,
-                                    Company : {Name :"MANDI"},
-                                    AssetCode : { "Code" : "" } ,
-                                },
-                                Name : "",
-                                SkuCode  : "" ,
-                                PackagingUOM : {
-                                    Measures : "Packaging",
-                                    Name :""
-                                },
-                                Published : "Y"
-                            };
-                        }else{
-                            self.loadLookupEntries(e.target);
-                        }
+                        self._invokeItemLookup(e);
                     });
                 },
                 onItemSelect: function (e, item) {
@@ -206,7 +258,9 @@
                     let self = this;
                     self.current.Inventory.Sku.Item = item;
                     self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
-                    self.current.Inventory.Sku.TaxRate = item.AssetCode.GstPct
+                    if (item.AssetCode){
+                        self.current.Inventory.Sku.TaxRate = item.AssetCode.GstPct
+                    }
                     self.current.Items = [];
                 },
                 onAssetCodeChange: function (e) {
@@ -242,16 +296,18 @@
                     let self = this;
                     delete self.current.Inventory.Sku.PackagingUOM.Id;
 
-                    if (!this.isKeyTriggerable(e,1)) {
+                    if (!this.isKeyTriggerable(e,1) && self.current.UnitOfMeasures.length == 0 ) {
                         return;
                     }
 
-                    new Autocomplete("unit_of_measures", e.target,1).search("MEASURES:Packaging AND NAME").then(function (response) {
-                        if (!response) {
-                            return
+                    new Autocomplete("unit_of_measures", e.target,1).search("NAME" , "MEASURES:Packaging").then(function (response) {
+
+                        if (response){
+                            self.current.UnitOfMeasures = response.UnitOfMeasures;
+                        }else {
+                            self.current.UnitOfMeasures = [];
                         }
-                        self.current.UnitOfMeasures = response.UnitOfMeasures;
-                        if (response.UnitOfMeasures.length === 0) {
+                        if (self.current.UnitOfMeasures.length === 0) {
                             //self.onUnitOfMeasuresSelect(null, self.current.UnitOfMeasures[0]);
                             self.current.Inventory.Sku.PackagingUOM = {
                                 Measures : "Packaging",
@@ -316,7 +372,7 @@
         <div id="lookupEntries" ref="lookupEntries" class="below">
             <div v-for="(item,index) in current.Items" v-if="current.Items.length > 0">
                 <a href="#" v-on:click="onItemSelect($event,item)"  v-on:keyup.enter="onItemSelect($event,item)" v-on:keyup.space="onItemSelect($event,item)"
-                v-on:keyup.up="navigate($event,index-1,current.Items.length)" v-on:keyup.down="navigate($event,index+1,current.Items.length)">{{item.Name}} - {{ item.AssetCode.LongDescription}}</a>
+                v-on:keyup.up="navigate($event,index-1,current.Items.length)" v-on:keyup.down="navigate($event,index+1,current.Items.length)">{{item.Name}} {{ item.AssetCode ? ' - ' + item.AssetCode.LongDescription : ""}}</a>
             </div>
             <div v-for="(code,index) in current.AssetCodes" v-if="current.AssetCodes.length > 0">
                 <a href="#"
@@ -329,99 +385,144 @@
                 v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)" v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)" >{{code.Name}} </a>
             </div>
         </div>
-        <div class="row">
-            <div class="col-9">
-                <h2 class="my-3 mt-4" > {{Facility.Name}} </h2>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <h2 class="my-3 mt-4" > {{Facility.Name}} </h2>
+                </div>
+
             </div>
-            <div class="col-3">
-                <a href="#/" class="mt-4 btn btn-primary" role="button" v-on:click="create($event)" >
-                    <i class="fas fa-plus"></i>
-                </a>
+
+            <div class="py-3 border-top border-dark" v-for="(inv,i) in Facility.Inventories">
+                <div class="d-flex flex-row justify-content-end">
+                    <button class="btn btn-primary" role="button" v-if="inv.Infinite === 'Y'" v-on:click="zeroInventory($event,i)" :disabled="current.index === i">
+                        <i class="fas fa-stop-circle">Stop</i>
+                    </button>
+                    <button class="btn btn-primary" role="button" v-on:click="infiniteInventory($event,i)" :disabled="current.index === i" v-else>
+                        <i class="fas fa-play-circle">Start</i>
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-7" v-if="current.index === i">
+                        <label v-if="current.Inventory.Sku.Item.Name.length > 0" v-bind:for="'item' + i" class="form-label small">Product Name</label>
+                        <input  v-bind:key="'item' + i"  v-bind:id="'item' + i"   class="form-control" placeholder="Product Name"
+                        v-model="current.Inventory.Sku.Item.Name"
+                        v-on:input="onItemChange($event)" v-on:blur="onItemBlur($event)" v-on:keyup.down="navigate($event,0,current.Items.length)"   />
+                    </div>
+                    <div class="col-5" v-if="current.index === i">
+                        <label class="form-label small"   v-bind:for="'uom' + i"  >Package</label>
+                        <input v-bind:key="'uom' + i"  v-bind:id="'uom' + i"  class="form-control" placeholder="Package"
+                        v-model="current.Inventory.Sku.PackagingUOM.Name" v-on:input="onUnitOfMeasureChange($event)"
+                        v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)"  />
+                    </div>
+                    <div class="col-7" v-if="current.index !== i">
+                        <label v-if="inv.Sku.Item.Name.length > 0" class="form-label small">Product Name</label>
+                        <br/>
+                        <label>{{inv.Sku.Item.Name}}</label>
+                    </div>
+                    <div class="col-5" v-if="current.index !== i">
+                        <label class="form-label small"   >Package</label>
+                        <br/>
+                        <label> {{inv.Sku.PackagingUOM.Name}}</label>
+                    </div>
+
+                </div>
+                <div class="row" v-if="current.index === i">
+                    <div class="col-7" >
+                        <label class="form-label small"   v-bind:for="'mrp' + i"  >Max Retail Price</label>
+                        <input v-bind:key="'mrp' + i"  v-bind:id="'mrp' + i"  class="form-control" placeholder="MRP"
+                        v-model="current.Inventory.Sku.MaxRetailPrice"  />
+                    </div>
+                    <div class="col-5" >
+                        <label class="form-label small"   v-bind:for="'price' + i"  >Selling Price</label>
+                        <input v-bind:key="'price' + i"  v-bind:id="'price' + i"  class="form-control" placeholder="Price"
+                        v-model="current.Inventory.SellingPrice"  />
+                    </div>
+                </div>
+                <div class="row" v-else>
+                    <div class="col-7">
+                        <label class="form-label small"   >Max Retail Price</label>
+                        <br/>
+                        <label> {{inv.Sku.MaxRetailPrice}}</label>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label small"   >Selling Price</label>
+                        <br/>
+                        <label> {{inv.SellingPrice}}</label>
+                    </div>
+                </div>
+
+                <div class="row" v-if="current.index === i" >
+                    <div class="col-7">
+                        <!-- If item is new only then gst is enterable -->
+                        <label class="form-label small"   v-bind:for="'asset_code' + i"  >GST/SAC Code</label>
+                        <input  v-bind:key="'asset_code' + i"  v-bind:id="'asset_code' + i"   class="form-control" placeholder="GST/SAC Code"
+                        v-model="current.Inventory.Sku.Item.AssetCode.Code"
+                        v-on:input="onAssetCodeChange($event)" v-on:keyup.down="navigate($event,0,current.AssetCodes.length)"   />
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label small" >Tax Rate:</label>
+                        <br/>
+                        <label>{{current.Inventory.Sku.Item.AssetCode.GstPct}}</label>
+
+                    </div>
+                </div>
+                <div class="row" v-else-if="inv.Sku.Item.AssetCode && inv.Sku.Item.AssetCode.LongDescription">
+                    <div class="col-7" >
+                        <label class="form-label small" >GST/SAC Code</label>
+                        <br/>
+                        <label>{{inv.Sku.Item.AssetCode.Code}}</label>
+                    </div>
+                    <div class="col-5" >
+                        <label class="form-label small" >Tax Rate:</label>
+                        <br/>
+                        <label>{{inv.Sku.TaxRate}}</label>
+                    </div>
+                </div>
+                <!--
+                <div class="row">
+                    <div class="col-12">
+                        <label class="form-label small"  v-bind:for="'infinite' + i"  >Infinite</label>
+                        <input value="N" type="checkbox" v-bind:key="'infinite' + i"  v-bind:id="'infinite' + i"  class="mt-2 mb-3 form-check custom-control" placeholder="Infinite"
+                        v-model="inv.Infinite"  :disabled="current.index !== i || ( inv.Id && (inv.Quantity * 1.0  > 0))" true-value="Y" false-value="N" />
+                    </div>
+                    Quantity enabling may be complex. Disable for now.
+                    <div class="col-4" v-if=" inv.Infinite === 'N'">
+                        <label class="form-label small"   v-bind:for="'quantity' + i"  >Available</label>
+                        <input v-bind:key="'quantity' + i"  v-bind:id="'quantity' + i"  class="form-control" placeholder="Quantity"
+                        v-model="inv.Quantity"  disabled="disabled"/>
+                    </div>
+                    <div class="col-5" v-if="current.index === i && inv.Infinite === 'N' ">
+                        <label class="form-label small"   v-bind:for="'quantity' + i"  >Adjust +/- </label>
+                        <input v-bind:key="'adjustquantity' + i"  v-bind:id="'adjustquantity' + i"  class="form-control" title="Adjustment Quantity"
+                        v-model="current.AdjustmentQuantity"  />
+                    </div>
+                </div>
+                -->
+                <div class="d-flex flex-row justify-content-end py-2">
+                    <div v-if="current.index !== i">
+                        <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)" >
+                            <i class="fas fa-edit">Edit</i>
+                        </a>
+                    </div>
+                    <div v-else>
+                        <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >
+                            <i class="fas fa-save">Save</i>
+                        </a>
+                        <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)" >
+                            <i class="fas fa-undo">Cancel</i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="row py-2">
+                <div class="col-12 text-right">
+                    <a href="#/" class="ml-2 mt-3 btn btn-primary" role="button" v-on:click="create($event)" >
+                        <i class="fas fa-plus"> Product</i>
+                    </a>
+                </div>
             </div>
         </div>
 
-        <div class="row py-2 my-1 position-relative border-top border-dark" v-for="(inv,i) in Facility.Inventories">
-            <div class="col-9" v-if="current.index === i">
-                <input  v-bind:key="'item' + i"  v-bind:id="'item' + i"   class="form-control" placeholder="Product Name"
-                v-model="current.Inventory.Sku.Item.Name"
-                v-on:input="onItemChange($event)" v-on:keyup.down="navigate($event,0,current.Items.length)"   />
-            </div>
-            <div class="col-9" v-else>
-                <label>Name : {{inv.Sku.Item.Name}}</label>
-            </div>
-            <!-- If item is new only then gst is enterable -->
-            <div class="col-9" v-if="current.index === i && !current.Inventory.Sku.Item.Id">
-                <label>GST/SAC Code:</label>
-                <input  v-bind:key="'asset_code' + i"  v-bind:id="'asset_code' + i"   class="form-control" placeholder="GST/SAC Code"
-                v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                v-on:input="onAssetCodeChange($event)" v-on:keyup.down="navigate($event,0,current.AssetCodes.length)"   />
-            </div>
-            <div class="col-9" v-if="inv.Sku.Item.AssetCode.LongDescription">
-                <label>GST/SAC Code:</label>
-                <label v-if="current.index === i">{{inv.Sku.Item.AssetCode.LongDescription}}</label>
-                <label v-else>{{inv.Sku.Item.AssetCode.Code}}</label>
-                <br/>
-                <label>Tax Rate : {{inv.Sku.TaxRate}}</label>
-            </div>
-
-            <div class="col-9" v-if="current.index == i">
-                <input v-bind:key="'uom' + i"  v-bind:id="'uom' + i"  class="form-control" placeholder="Unit of Measure"
-                v-model="current.Inventory.Sku.PackagingUOM.Name" v-on:input="onUnitOfMeasureChange($event)"
-                v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)"  />
-            </div>
-            <div class="col-9" v-else>
-                <label>{{inv.Sku.PackagingUOM.Name}}</label>
-            </div>
-            <div class="col-9" v-if="current.index === i">
-                <input v-bind:key="'quantity' + i"  v-bind:id="'quantity' + i"  class="form-control" placeholder="Quantity"
-                v-model="current.Inventory.Quantity"  />
-            </div>
-            <div class="col-9" v-else>
-                <label>{{inv.Quantity}}</label>
-            </div>
-            <div class="col-4">
-                <label>Infinite :</label>
-            </div>
-            <div class="col text-left" >
-                <input value="Y" type="checkbox" v-bind:key="'infinite' + i"  v-bind:id="'infinite' + i"  class="form-control" placeholder="Infinite"
-                v-model="inv.Infinite"  :disabled="current.index !== i || ( inv.Id && (inv.Quantity * 1.0  > 0))" true-value="Y" false-value="N" />
-            </div>
-
-            <div class="col-9" v-if="current.index === i">
-                Max Retail Price :
-                <input v-bind:key="'mrp' + i"  v-bind:id="'mrp' + i"  class="form-control" placeholder="MRP"
-                v-model="current.Inventory.Sku.MaxRetailPrice"  />
-            </div>
-            <div class="col-9" v-else>
-                Max Retail Price : <label>{{inv.Sku.MaxRetailPrice}}</label>
-            </div>
-            <div class="col-9" v-if="current.index === i">
-                Selling Price :
-                <input v-bind:key="'price' + i"  v-bind:id="'price' + i"  class="form-control" placeholder="Price"
-                v-model="current.Inventory.SellingPrice"  />
-            </div>
-            <div class="col-9" v-else>
-                Selling  Price : <label>{{inv.SellingPrice}}</label>
-            </div>
-
-            <div class="col-9 d-flex align-items-center" v-if="current.index === i">
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >
-                    Save
-                </a>
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)" >
-                    Cancel
-                </a>
-            </div>
-
-            <div class="col-9 d-flex align-items-center" v-else>
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)" >
-                    <i class="fas fa-edit"></i>
-                </a>
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="remove($event,i)" >
-                    <i class="fas fa-trash"></i>
-                </a>
-
-            </div>
-        </div>
     </div>
 <div>

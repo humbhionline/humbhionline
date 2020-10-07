@@ -31,9 +31,12 @@ public class FacilitiesController extends ModelController<Facility> {
         return show(f);
     }
 
+
+    /* Keep in sync with apicontroller*/
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map =  super.getIncludedModelFields();
+
         map.put(Inventory.class, ModelReflector.instance(Inventory.class).getFields());
         List<String> itemFields = ModelReflector.instance(Item.class).getUniqueFields();
         itemFields.add("ASSET_CODE_ID");
@@ -45,7 +48,7 @@ public class FacilitiesController extends ModelController<Facility> {
 
         map.put(Sku.class,skuFields);
 
-        map.put(AssetCode.class, Arrays.asList("CODE","LONG_DESCRIPTION"));
+        map.put(AssetCode.class, Arrays.asList("CODE","LONG_DESCRIPTION","GST_PCT"));
 
         map.put(User.class,ModelReflector.instance(User.class).getUniqueFields());
         map.get(User.class).addAll(Arrays.asList("NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));

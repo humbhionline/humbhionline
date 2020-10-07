@@ -1,6 +1,7 @@
 package in.succinct.mandi.db.model;
 
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
+import com.venky.swf.db.annotations.column.COLUMN_SIZE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
@@ -17,6 +18,9 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     public void setFacilityId(Long facilityId);
     public Facility getFacility();
 
+    @COLUMN_SIZE(2048)
+    public String  getUpiResponse();
+    public void setUpiResponse(String upiResponse);
 
 
     @Override
@@ -24,8 +28,8 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     Long getCreatorUserId();
 
 
-    void completePayment();
-    void completeRefund();
+    void completePayment(boolean save);
+    void completeRefund(boolean save);
 
 
     @COLUMN_DEF(StandardDefault.ZERO)
@@ -51,14 +55,14 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     void setPaymentInitialized(boolean initialized);
 
     public void initializePayment();
-    public void resetPayment();
+    public void resetPayment(boolean save);
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     boolean isRefundInitialized();
     void setRefundInitialized(boolean initialized);
 
     public void initializeRefund();
-    public void resetRefund();
+    public void resetRefund(boolean save);
 
 
 

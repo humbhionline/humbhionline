@@ -1,5 +1,5 @@
-/* @import url('https://fonts.googleapis.com/css?family=Merienda+One|Poppins:400,500,700,800&display=swap'); */
-/* font-family: 'Merienda One', cursive; */
+@import url('https://fonts.googleapis.com/css?family=Merienda+One|Poppins:400,500,700,800&display=swap');
+font-family: 'Merienda One', cursive;
 body {
     font-family: 'Poppins', sans-serif;
     padding: 48px 0;
@@ -31,7 +31,7 @@ a:not([href]):not([tabindex]){
 
 .app-header, .app-footer{
     background-color: white;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    /*box-shadow: 0 0 5px rgba(0,0,0,0.5);*/
     padding: 5px 15px;
 }
 
@@ -39,8 +39,9 @@ a:not([href]):not([tabindex]){
     height: calc(100vh - 115px);
     overflow: hidden;
     overflow-y: auto;
-    padding-left : 10px; 
-    padding-right : 10px;
+    padding-left : 1rem;
+    padding-right : 1rem;
+    margin-top : 2rem;
 }
 
 .hash-tags span{
@@ -63,8 +64,7 @@ a:not([href]):not([tabindex]){
 }
 
 .m-logo img{
-    position: absolute;
-    height: 55px;
+    height: 52px;
 }
 
 .no-channel{
@@ -140,7 +140,7 @@ font-size: 12px;
 }
 
 input {
-    width: 100%;
+    /*width: 100%;*/
     margin-bottom: 2pt;
 }
 h1 {
@@ -180,20 +180,45 @@ select {
     position: absolute;
     z-index: 1;
 }
+.h-85 {
+    height: 85% !important;
+}
+.h-80 {
+    height: 80% !important;
+}
+.h-75 {
+    height: 75% !important;
+}
+.h-70 {
+    height: 70% !important;
+}
+.h-65 {
+    height: 65% !important;
+}
 
 .below {
+    position: absolute;
     top: 70%;
+    display: block;
+    z-index:1;
+    background-color: white;
+    width: 100%;
 }
+
 .middle {
+    position: absolute;
     top: 20%;
 }
 .top {
+    position: absolute;
     top: 0%;
 }
 .left {
+    position: absolute;
     left: 0%;
 }
 .right{
+    position: absolute;
     right:0%;
 }
 .overlay {
@@ -212,15 +237,22 @@ select {
 .aadhar-id + label.btn{
     font-size: 14px;
 }
+.form-label {
+    height :2.04rem;
+    padding: .375rem .75rem;
+}
 .verify-phone i{
     position: absolute;
 }
 .verify-email i{
     position: absolute;
 }
+
 .form-check input{
     width: auto;
+    height: 80%;
 }
+
 .action-btn{
     position: fixed;
     bottom: 49px;

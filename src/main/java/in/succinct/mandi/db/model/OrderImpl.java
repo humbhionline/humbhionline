@@ -13,7 +13,7 @@ public class OrderImpl extends ModelImpl<Order> {
     public OrderImpl(){
         super();
     }
-    public void completePayment() {
+    public void completePayment(boolean save) {
         Order order = getProxy();
         order.setAmountPaid(order.getAmountPendingPayment());
         for (OrderLine line : order.getOrderLines()){
@@ -35,15 +35,15 @@ public class OrderImpl extends ModelImpl<Order> {
             }
 
         }
-        order.resetPayment();
+        order.resetPayment(save);
     }
 
 
-    public void completeRefund(){
+    public void completeRefund(boolean save){
         Order order = getProxy();
         if (order.getAmountPaid() > 0){
             order.setAmountRefunded(order.getAmountToRefund());
-            order.resetRefund();
+            order.resetRefund(save);
         }
     }
     public double getAmountPendingPayment(){
@@ -70,15 +70,19 @@ public class OrderImpl extends ModelImpl<Order> {
         order.setRefundInitialized(true);
         order.save();
     }
-    public void resetPayment(){
+    public void resetPayment(boolean save){
         Order order = getProxy();
         order.setPaymentInitialized(false);
-        order.save();
+        if (save){
+            order.save();
+        }
     }
-    public void resetRefund(){
+    public void resetRefund(boolean save){
         Order order = getProxy();
         order.setRefundInitialized(false);
-        order.save();
+        if (save){
+            order.save();
+        }
     }
 
 

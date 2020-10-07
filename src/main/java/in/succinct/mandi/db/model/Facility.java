@@ -3,6 +3,7 @@ package in.succinct.mandi.db.model;
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.COLUMN_NAME;
 import com.venky.swf.db.annotations.column.HOUSEKEEPING;
+import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
@@ -21,6 +22,12 @@ public interface Facility extends in.succinct.plugins.ecommerce.db.model.partici
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     public boolean isVerified();
     public void setVerified(boolean verified);
+
+    @IS_NULLABLE
+    public Long getVerifiedById();
+    public void setVerifiedById(Long id);
+    public User getVerifiedBy();
+
 
     public void verify();
 

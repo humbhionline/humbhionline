@@ -335,106 +335,104 @@
 
 
             <div class="border-top border-bottom py-3 kyc-block"  >
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-8">
-                            <label for="name" class="col-8 d-block text-muted">Address</label>
-                        </div>
-                        <div class="col-4">
-                            <i class="fas fa-check col-4" v-if="User.Verified && User.Verified === 'Y'">
-                                Verified
-                            </i>
-                        </div>
+                <div class="row">
+                    <div class="col-8">
+                        <label for="name" class="d-block text-muted">Address</label>
                     </div>
+                    <div class="col-4">
+                        <i class="fas fa-check" v-if="User.Verified && User.Verified === 'Y'">
+                            Verified
+                        </i>
+                    </div>
+                </div>
 
-                    <div class="row form-group" v-if="!User.Verified || User.Verified === 'N'">
-                        <div class="col">
-                            <div class="row no-gutters">
-                                <div class="col-4">
-                                    <input type="file" class="aadhar-id" id="aadharzipfile" />
-                                    <label class="btn btn-primary" for="aadharzipfile">Aadhar e-Kyc</label>
-                                </div>
-                                <div class="col">
-                                    <input id="aadharzippassword" class="form-control" type="password"
-                                        placeholder="Password" />
-                                </div>
-                                <div class="col-4 text-right">
-                                    <a href="#" class="btn btn-primary" role="button" title="Upload"
-                                        v-on:click="doAadharKyc($event)">
-                                        <i class="fas fa-upload">Upload</i>
-                                    </a>
-                                </div>
+                <div class="row form-group" v-if="!User.Verified || User.Verified === 'N'">
+                    <div class="col">
+                        <div class="row no-gutters">
+                            <div class="col-4">
+                                <input type="file" class="aadhar-id" id="aadharzipfile" />
+                                <label class="btn btn-primary" for="aadharzipfile">Aadhar e-Kyc</label>
+                            </div>
+                            <div class="col">
+                                <input id="aadharzippassword" class="form-control" type="password"
+                                    placeholder="Password" />
+                            </div>
+                            <div class="col-4 text-right">
+                                <a href="#" class="btn btn-primary" role="button" title="Upload"
+                                    v-on:click="doAadharKyc($event)">
+                                    <i class="fas fa-upload">Upload</i>
+                                </a>
                             </div>
                         </div>
                     </div>
-                    <div class="row form-group" >
-                        <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input class="form-control" id="name" v-model="User.LongName" placeholder="Full Name." :disabled="User.Verified && User.Verified === 'Y'" />
-                        </div>
-                        <div class="col-9" v-else>
-                            <label>{{User.LongName}}</label>
-                        </div>
+                </div>
+                <div class="row form-group" >
+                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
+                        <input class="form-control" id="name" v-model="User.LongName" placeholder="Full Name." :disabled="User.Verified && User.Verified === 'Y'" />
+                    </div>
+                    <div class="col-9" v-else>
+                        <label>{{User.LongName}}</label>
+                    </div>
 
-                        <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input class="form-control" id="a1" v-model="User.AddressLine1" placeholder="House Number" :disabled="User.Verified && User.Verified === 'Y'" />
-                        </div>
-                        <div class="col-9" v-else>
-                            <label>{{User.AddressLine1}}</label>
-                        </div>
+                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
+                        <input class="form-control" id="a1" v-model="User.AddressLine1" placeholder="House Number" :disabled="User.Verified && User.Verified === 'Y'" />
+                    </div>
+                    <div class="col-9" v-else>
+                        <label>{{User.AddressLine1}}</label>
+                    </div>
 
-                        <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input class="form-control" id="a2" v-model="User.AddressLine2" placeholder="Building Name" :disabled="User.Verified && User.Verified === 'Y'" />
-                        </div>
-                        <div class="col-9" v-else>
-                            <label>{{User.AddressLine2}}</label>
-                        </div>
-                        <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input class="form-control" id="a3" v-model="User.AddressLine3" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
-                        </div>
-                        <div class="col-9" v-else>
-                            <label>{{User.AddressLine3}}</label>
-                        </div>
-                        <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input class="form-control" id="a4" v-model="User.AddressLine4" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
-                        </div>
-                        <div class="col-9" v-else>
-                            <label>{{User.AddressLine4}}</label>
-                        </div>
-                        <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input id="city" class="form-control" placeholder="City Name" v-model="User.City.Name"
-                            v-on:input="onCityChange($event)" v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City"  />
-                        </div>
-                        <div class="col-9" v-else>
-                            <label>{{User.City.Name}}-{{User.State.Name}}</label>
-                        </div>
+                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
+                        <input class="form-control" id="a2" v-model="User.AddressLine2" placeholder="Building Name" :disabled="User.Verified && User.Verified === 'Y'" />
+                    </div>
+                    <div class="col-9" v-else>
+                        <label>{{User.AddressLine2}}</label>
+                    </div>
+                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
+                        <input class="form-control" id="a3" v-model="User.AddressLine3" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
+                    </div>
+                    <div class="col-9" v-else>
+                        <label>{{User.AddressLine3}}</label>
+                    </div>
+                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
+                        <input class="form-control" id="a4" v-model="User.AddressLine4" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
+                    </div>
+                    <div class="col-9" v-else>
+                        <label>{{User.AddressLine4}}</label>
+                    </div>
+                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
+                        <input id="city" class="form-control" placeholder="City Name" v-model="User.City.Name"
+                        v-on:input="onCityChange($event)" v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City"  />
+                    </div>
+                    <div class="col-9" v-else>
+                        <label>{{User.City.Name}}-{{User.State.Name}}</label>
+                    </div>
 
-                        <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                            <input id="pincode" class="form-control" placeholder="Pin Code"
-                            v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
-                            v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="User.PinCode"  />
-                        </div>
-                        <div class="col-9" v-else>
-                            <label>{{User.PinCode.PinCode}}</label>
-                        </div>
+                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
+                        <input id="pincode" class="form-control" placeholder="Pin Code"
+                        v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
+                        v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="User.PinCode"  />
+                    </div>
+                    <div class="col-9" v-else>
+                        <label>{{User.PinCode.PinCode}}</label>
+                    </div>
 
-                        <div class="col-9">
-                            <label>VPA:</label>
-                        </div>
-                        <div class="col-9" >
-                            <input class="form-control" id="vpa" v-model="User.VirtualPaymentAddress" placeholder="Enter your UPI/Payment Address" />
-                        </div>
-                        <div class="col-9" >
-                            <input class="form-control" id="bankname" v-model="User.NameAsInBankAccount" placeholder="Enter your Name as in the Bank" />
-                        </div>
-                        <div class="col-3 d-flex align-items-center" >
-                            <a href="#/" class="btn btn-primary" role="button" v-on:click="saveUser($event)" >
-                                Save
-                            </a>
-                        </div>
-                        <div class="col-12" >
-                            <p>** Your virtual payment Address would be used to receive payments into your bank account. Please enter this correctly.
-                            Entering incorrectly can cause money to reach some one else's account. **</p>
-                        </div>
+                    <div class="col-9">
+                        <label>VPA:</label>
+                    </div>
+                    <div class="col-12" >
+                        <input class="form-control" id="vpa" v-model="User.VirtualPaymentAddress" placeholder="UPI/Payment Address" />
+                    </div>
+                    <div class="col-12" >
+                        <input class="form-control" id="bankname" v-model="User.NameAsInBankAccount" placeholder="Name As In Bank" />
+                    </div>
+                    <div class="col-12 d-flex justify-content-end" >
+                        <a href="#/" class="btn btn-primary" role="button" v-on:click="saveUser($event)" >
+                            Save
+                        </a>
+                    </div>
+                    <div class="col-12 small" >
+                        <p>** Your virtual payment Address would be used to receive payments into your bank account. Please enter this correctly.
+                        Entering incorrectly can cause money to reach some one else's account. **</p>
                     </div>
                 </div>
             </div>

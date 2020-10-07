@@ -1,0 +1,12 @@
+(tabledump 'POSTAL_OFFICES'
+  (file-encoding 'UTF-8')
+  (dump-version 1 1)
+  (henplus-version '0.9.8')
+  (time '2020-09-29 23:33:02.463')
+  (database-info 'H2 - 1.4.192 (2016-05-26)')
+  (estimated-rows '0')
+  (meta ('COUNTRY_ID', 'OFFICE_NAME', 'PIN_CODE', 'OFFICE_TYPE', 'DELIVERY_STATUS', 'DIVISION_NAME', 'REGION_NAME', 'CIRCLE_NAME', 'TALUK' , 'DISTRICT', 'STATE_NAME', 'STATE_ID', 'CITY_ID', 'ID'     , 'LOCK_ID', 'UPDATER_ID', 'UPDATED_AT', 'CREATOR_ID', 'CREATED_AT')
+	('NUMERIC'   , 'STRING'     , 'STRING'  , 'STRING'     , 'STRING'         , 'STRING'       , 'STRING'     , 'STRING'     , 'STRING', 'STRING'  , 'STRING'    , 'NUMERIC' , 'NUMERIC', 'NUMERIC', 'INTEGER', 'NUMERIC'   , 'TIMESTAMP' , 'NUMERIC'   , 'TIMESTAMP' ))
+  (data )
+  (rows 0))
+

@@ -26,22 +26,46 @@ public class BeforeValidateFacility extends BeforeModelValidateExtension<Facilit
 
         boolean addressChanged = Address.isAddressChanged(model);
         boolean verified = model.isVerified();
+        if (model.getRawRecord().isNewRecord() && verified) {
+            throw new RuntimeException("First create the facility. Verification can be done as a next step.");
+        }
+        com.venky.swf.db.model.User user = model.getRawRecord().isNewRecord() ? Database.getInstance().getCurrentUser() : model.getCreatorUser();
+        User creatorUser = user == null ? null : user.getRawRecord().getAsProxy(User.class);
+
+        User currentUser = Database.getInstance().getCurrentUser().getRawRecord().getAsProxy(User.class);
+
         if ( addressChanged || !verified ){
-            com.venky.swf.db.model.User user = Database.getInstance().getCurrentUser();
-            if (user != null){
-                User u = user.getRawRecord().getAsProxy(User.class);
+            if (creatorUser != null){
                 verified = true;
                 for (String f : Address.getAddressFields()){
                     verified = verified &&
-                            ObjectUtil.equals(u.getReflector().get(u,f), model.getReflector().get(model,f));
+                            ObjectUtil.equals(creatorUser.getReflector().get(creatorUser,f), model.getReflector().get(model,f));
                     if (!verified){
                         break;
                     }
+                }
+                if (verified){
+                    model.setVerifiedById(creatorUser.getId());
                 }
             }
         }
         model.setPhoneNumber(Phone.sanitizePhoneNumber(model.getPhoneNumber()));
         model.setAlternatePhoneNumber(Phone.sanitizePhoneNumber(model.getAlternatePhoneNumber()));
         model.setVerified(verified);
+        if (model.isVerified() && model.getRawRecord().isFieldDirty("VERIFIED")){
+            if (model.getVerifiedById() != null){
+                boolean verifiedOK ;
+                if ( model.getVerifiedById() == creatorUser.getId() && creatorUser.isVerified()){
+                    verifiedOK = true;
+                }else if (currentUser.isStaff()) {
+                    verifiedOK = true;
+                }else {
+                    verifiedOK = false;
+                }
+                if (!verifiedOK){
+                    throw new RuntimeException("Insufficient Rights to verify Address.");
+                }
+            }
+        }
     }
 }

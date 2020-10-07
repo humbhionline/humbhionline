@@ -56,8 +56,41 @@
 
             },
             methods: {
-                onUpiResponse:function(response){
-                    console.log(JSON.stringify(response));
+                onUpiResponse:function(r){
+                    console.log(JSON.stringify(r));
+                    var orderInfo = r.txnRef.split(":");
+                    var orderId = orderInfo[1] ;
+
+                    let self = this;
+                    let pindex  = this.MyPurchases.findIndex(function(o){
+                        return o.Id === orderId;
+                    });
+                    let sindex  = this.MySales.findIndex(function(o){
+                        return o.Id === orderId;
+                    });
+
+                    api().url("/orders/processUpi").parameters(r).post().then(function (response) {
+                        if (pindex >= 0 ){
+                            self.MyPurchases.splice(pindex,1,response.Order);
+                        }else if (sindex >= 0) {
+                            self.MySales.splice(sindex,1,response.Order);
+                        }
+                        self.autoClearMessage("Payment Status : " + r.Status );
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
+
+                    api().url("/orders/cancel/" + order.Id).get().then(function (response) {
+                        if (pindex >= 0 ){
+                            self.MyPurchases.splice(pindex,1,response.Order);
+                        }else if (sindex >= 0) {
+                            self.MySales.splice(sindex,1,response.Order);
+                        }
+                        self.update_status_array(response.Order);
+                        self.autoClearMessage("Cancellation initiated!");
+                    }).catch(function (err) {
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    });
                 },
                 update_status_array: function(o){
                     let self = this;
@@ -215,7 +248,7 @@
                                             '&am=' + order.AmountPendingPayment +
                                             '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' ; */
                         if (Android){
-                            Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress,order.Facility.CreatorUser.NameAsInBankAccount,order.Id,order.AmountPendingPayment * 1.0, 'HBO Txn ' + order.Id);
+                            Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress,order.Facility.CreatorUser.NameAsInBankAccount,"O:"+order.Id,order.AmountPendingPayment * 1.0, 'HBO Txn ' + order.Id);
                         }
                     }).catch(function (err) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
@@ -277,6 +310,10 @@
                     api().url("/orders/initialize_refund/" + order.Id).get().then(function (response) {
                         self.MySales.splice(index,1,response.Order);
                         self.autoClearMessage("Refund Initialized");
+                        if (Android){
+                            // v-bind:href="('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn='+o.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20')"
+                            Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress,order.CreatorUser.NameAsInBankAccount,"R:"+order.Id,order.AmountToRefund * 1.0, 'Return for HBO Txn ' + order.Id);
+                        }
                     }).catch(function (err) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
                     });
@@ -529,7 +566,7 @@
                       </a>
                   </div>
                   <div class="col-9 d-flex align-items-center" v-if="o.AmountToRefund * 1.0 > 0 ">
-                      <a target="_blank" v-on:click="initialize_refund($event,o)" v-bind:href="('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn='+o.CreatorUser.NameAsInBankAccount+'&tr=' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20')" class="btn btn-primary" role="button"
+                      <a href="#" target="_blank" v-on:click="initialize_refund($event,o)"  class="btn btn-primary" role="button"
                           v-if="o.RefundInitialized === 'N'">
                           <i class="fas fa-undo"> Refund</i>
                       </a>

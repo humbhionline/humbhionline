@@ -26,6 +26,12 @@
                 }
             },
             methods: {
+                continueShopping: function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    window.location.href= "/index";
+                },
                 showApp: function () {
                     $("#root").show();
                 },
@@ -52,6 +58,9 @@
                     }
                 },
                 book :function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
                     var Orders = [] ;
                     let self = this;
                     self.facilities.forEach((f, i) => {
@@ -119,7 +128,9 @@
                 <div class="container-fluid border-bottom border-dark" v-for="(facility,index) in facilities" v-if="facilities.length > 0">
                     <div class="row">
                         <div class="col-12">
-                            <b> Shipment {{ index + 1 }} (  From: {{ facility.Name }} @ Distance {{facility.Distance}} )
+                            <b> Shipment {{ index + 1 }} <br/>
+                                From: {{ facility.Name }} <br/>
+                                (Distance {{Math.round(facility.Distance * 100) / 100}} Km)
                             </b>
                         </div>
                     </div>
@@ -151,8 +162,11 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-12">
-                    <button class="btn-primary float-right pt-1" v-on:click="book($event)">Book All Orders</button>
+                <div class="col-7">
+                    <a href="#" class="w-100 float-left pt-1" v-on:click="continueShopping($event)">Continue Shopping</a>
+                </div>
+                <div class="col-5">
+                    <button class="w-100 btn-primary float-right pt-1" v-on:click="book($event)">Book Orders</button>
                 </div>
             </div>
         </div>

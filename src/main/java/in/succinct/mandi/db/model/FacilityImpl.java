@@ -22,6 +22,7 @@ public class FacilityImpl extends ModelImpl<Facility> {
     public void verify(){
         Facility f = getProxy();
         f.setVerified(true);
+        f.setVerifiedById(Database.getInstance().getCurrentUser().getId());
         f.save();
     }
 

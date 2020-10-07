@@ -31,8 +31,12 @@ import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 import in.succinct.plugins.ecommerce.db.model.order.OrderStatus;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,24 +62,24 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     }
     public View reset_payment(long id){
         Order order = Database.getTable(Order.class).get(id);
-        order.resetPayment();
+        order.resetPayment(true);
         return show(id);
     }
     public View reset_refund(long id){
         Order order = Database.getTable(Order.class).get(id);
-        order.resetRefund();
+        order.resetRefund(true);
         return show(id);
     }
     public View complete_payment(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
-        order.completePayment();
+        order.completePayment(true);
 
         TaskManager.instance().execute(new CompositeTask(getTasksToPrint(orderId).toArray(new Task[]{})));
         return show(orderId);
     }
     public View complete_refund(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
-        order.completeRefund();
+        order.completeRefund(true);
         return show(orderId);
     }
 
@@ -320,6 +324,37 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         map.put(User.class,userFields);
 
         return map;
+    }
+
+    public View processUpi() throws IOException {
+        JSONObject upiResponse = (JSONObject)JSONValue.parse(new InputStreamReader(getPath().getInputStream()));
+        String txnRef = (String)upiResponse.get("txnRef");
+        String[] orderInfo = txnRef.split(":");
+        boolean isRefund = ObjectUtil.equals(orderInfo[0],"R");
+        Long orderId = getReflector().getJdbcTypeHelper().getTypeRef(Long.class).getTypeConverter().valueOf(orderInfo[1]);
+        if (orderId != null){
+            throw new RuntimeException("Cannot Find order " + orderId);
+        }
+        Order order = Database.getTable(Order.class).lock(orderId);
+
+        boolean success = ObjectUtil.equals(upiResponse.get("Status"),"SUCCESS");
+        if (success){
+            if (isRefund){
+                order.completeRefund(false);
+            }else {
+                order.completePayment(false);
+            }
+        }else {
+            if (isRefund) {
+                order.resetRefund(false);
+            }else {
+                order.resetPayment(false);
+            }
+        }
+        order.setUpiResponse(upiResponse.toString());
+        order.save();
+
+        return show(order);
     }
 
 
