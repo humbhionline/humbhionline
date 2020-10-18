@@ -4,6 +4,7 @@ import com.venky.extension.Extension;
 import com.venky.extension.Registry;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
+import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.User;
@@ -21,8 +22,8 @@ public class OnOrderLineDownloaded implements Extension {
         double qtyDownloadedNow = orderLine.getReflector().getJdbcTypeHelper().getTypeRef(Double.class).getTypeConverter().valueOf(context[1]);
         Sku sku = orderLine.getSku();
         Item item = sku.getItem().getRawRecord().getAsProxy(Item.class);
+        User vendor = orderLine.getShipFrom().getCreatorUser().getRawRecord().getAsProxy(User.class);
         if (qtyDownloadedNow > 0 && !item.isHumBhiOnlineSubscriptionItem()){
-            User vendor = orderLine.getShipFrom().getCreatorUser().getRawRecord().getAsProxy(User.class);
             vendor.setBalanceOrderLineCount(vendor.getBalanceOrderLineCount() - 1);
             vendor.save();
         }

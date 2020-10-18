@@ -30,9 +30,12 @@
                     self.Facilities = response.Facilities;
                     self.showApp();
                 }).catch(function (err) {
-                    self.messages.push(err.response.data.SWFHttpResponse.Error);
                     self.showApp();
-                    self.autoClearMessage();
+                    if (err.response){
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    }else {
+                        self.autoClearMessage(err);
+                    }
                 })
             },
             methods: {
@@ -47,8 +50,16 @@
                     });
                     return message;
                 },
-                autoClearMessage: function () {
+                autoClearMessage: function (message,index) {
                     let self = this;
+                    if (message){
+                        self.messages.push(message);
+                        var element = document.getElementById('facility-' + index) ;
+                        if (element){
+                            var msg = self.$refs['message'];
+                            element.appendChild(msg);
+                        }
+                    }
                     setTimeout(function () {
                         self.messages = [];
                     }, 1500);
@@ -126,8 +137,11 @@
                         }
                         self.cancel(null);
                     }).catch(function (err) {
-                        self.messages.push(err.response.data.SWFHttpResponse.Error);
-                        self.autoClearMessage();
+                        if (err.response){
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,index);
+                        }else {
+                            self.autoClearMessage(err.toString(),index);
+                        }
                     });
 
                 },
@@ -144,8 +158,11 @@
                         api().url("/facilities/destroy/"+f.Id).get().then(function (response){
                             self.Facilities.splice(index,1);
                         }).catch(function (err) {
-                            self.messages.push(err.response.data.SWFHttpResponse.Error);
-                            self.autoClearMessage();
+                            if (err.response){
+                                self.autoClearMessage(err.response.data.SWFHttpResponse.Error,index);
+                            }else {
+                                self.autoClearMessage(err.toString(),index);
+                            }
                         });
                     }else {
                         self.Facilities.splice(index,1);
@@ -239,8 +256,7 @@
                     let f = self.Facilities[index];
                     let newRecord = !f.Id;
                     if (newRecord){
-                        self.messages.push("Facility not yet registered!");
-                        self.autoClearMessage();
+                        self.autoClearMessage("Facility not yet registered!",index);
                         return;
                     }
                     api().url("/facilities/verify/" +f.Id).get().then(function (response) {
@@ -250,8 +266,11 @@
                             self.Facilities.splice(index,1,response.Facility);
                         }
                     }).catch(function (err) {
-                        self.messages.push(err.response.data.SWFHttpResponse.Error);
-                        self.autoClearMessage();
+                        if (err.response){
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,index);
+                        }else {
+                            self.autoClearMessage(err.toString(),index);
+                        }
                     });
                 }
             }
@@ -263,8 +282,8 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div class="container-fluid mb-5 pb-4" v-if="messages && messages.length > 0">
-            <div id="message" ref="message" class="alert alert-danger mb-0" >
+        <div id="message" ref="message" class="row" >
+            <div class="col-12 alert alert-danger " v-if="messages && messages.length > 0">
                 {{ message() }}
             </div>
         </div>
@@ -285,7 +304,7 @@
                     <h2 class="my-3 mt-4">Facilities</h2>
                 </div>
             </div>
-            <div v-bind:class="'py-3 border-top border-dark ' + ((current.index == i) ? ' h-80 ' : '' )" v-for="(f,i) in Facilities">
+            <div v-bind:id="'facility-' + i" v-bind:class="'py-3 border-top border-dark ' + ((current.index == i) ? ' h-80 ' : '' )" v-for="(f,i) in Facilities">
                 <div class="d-flex flex-row justify-content-end py-2">
                     <div v-if="current.index == i">
                         <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >

@@ -11,6 +11,7 @@ import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
+import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.User;
 import in.succinct.plugins.ecommerce.db.model.inventory.Inventory;
 import org.apache.lucene.search.Query;
@@ -49,8 +50,9 @@ public class InventoriesController extends ModelController<Inventory> {
                 List<Inventory> records = sel.execute(getModelClass(), maxRecords, new DefaultModelFilter<Inventory>(getModelClass()){
                     @Override
                     public boolean pass(Inventory record) {
-                        return record.getFacility().getRawRecord().getAsProxy(Facility.class).getDistance() < 10 &&
-                                record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
+                        return ( record.getFacility().getRawRecord().getAsProxy(Facility.class).getDistance() < 10 || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem()) &&
+                                record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0 &&
+                                (record.isInfinite() || record.getQuantity() > 0 )
                                 && super.pass(record);
                     }
                 });

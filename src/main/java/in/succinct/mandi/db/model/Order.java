@@ -4,6 +4,7 @@ import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.COLUMN_SIZE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
+import com.venky.swf.db.annotations.column.indexing.Index;
 import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
 import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import in.succinct.plugins.ecommerce.db.model.participation.PreferredCarrier;
@@ -14,6 +15,7 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     public String getPreferredCarrierName();
 
     @PARTICIPANT
+    @Index
     public Long getFacilityId();
     public void setFacilityId(Long facilityId);
     public Facility getFacility();
@@ -25,6 +27,7 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
 
     @Override
     @PARTICIPANT
+    @Index
     Long getCreatorUserId();
 
 

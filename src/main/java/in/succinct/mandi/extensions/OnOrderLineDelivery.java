@@ -22,7 +22,7 @@ public class OnOrderLineDelivery implements Extension {
         double qtyDeliveredNow = orderLine.getReflector().getJdbcTypeHelper().getTypeRef(Double.class).getTypeConverter().valueOf(context[1]);
         Sku sku = orderLine.getSku();
         Item item = sku.getItem().getRawRecord().getAsProxy(Item.class);
-        if (qtyDeliveredNow > 0 && item.getAssetCode().isSac() && item.isItemRestrictedToSingleSeller() && item.isHumBhiOnlineSubscriptionItem()){
+        if (qtyDeliveredNow > 0 && item.getAssetCodeId() != null && item.getAssetCode().isSac() && item.isItemRestrictedToSingleSeller() && item.isHumBhiOnlineSubscriptionItem()){
             Order order = orderLine.getOrder().getRawRecord().getAsProxy(Order.class);
             if (order.getAmountPendingPayment() > 0){
                 throw new RuntimeException("Delivery happens after accepting the payment automatically. Just accept the payment.");

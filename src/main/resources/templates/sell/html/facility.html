@@ -42,9 +42,8 @@
                     Vue.set(self,"Facility", response.Facility);
                     self.showApp();
                 }).catch(function (err) {
-                    self.messages.push(err.response.data.SWFHttpResponse.Error);
                     self.showApp();
-                    self.autoClearMessage();
+                    self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
                 })
             },
             methods: {
@@ -59,8 +58,16 @@
                     });
                     return message;
                 },
-                autoClearMessage: function () {
+                autoClearMessage: function (message,index) {
                     let self = this;
+                    if (message){
+                        self.messages.push(message);
+                        var element = document.getElementById('inventory-' + index) ;
+                        if (element){
+                            var msg = self.$refs['message'];
+                            element.appendChild(msg);
+                        }
+                    }
                     setTimeout(function () {
                         self.messages = [];
                     }, 1500);
@@ -149,8 +156,7 @@
                         }
                         self.cancel(null);
                     }).catch(function (err) {
-                        self.messages.push(err.response.data.SWFHttpResponse.Error);
-                        self.autoClearMessage();
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
                     });
 
                 },
@@ -168,8 +174,7 @@
                         api().url("/api/adjust").parameters({AdjustmentRequest : { Inventory : i, AdjustmentQuantity : -1 * i.Quantity, Comment : "Remove Inventory" , NewProduct : "N" } }).post().then(function (response){
                             self.Facility.Inventories.splice(index,1,response.AdjustmentRequests[0].Inventory);
                         }).catch(function (err) {
-                            self.messages.push(err.response.data.SWFHttpResponse.Error);
-                            self.autoClearMessage();
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,index);
                         });
                     }else {
                         self.Facility.Inventories.splice(index,1);
@@ -189,8 +194,7 @@
                         api().url("/api/adjust").parameters({AdjustmentRequest : { Inventory : i, AdjustmentQuantity : -1 * i.Quantity, Comment : "Mark Infinite Inventory" , NewProduct : "N" } }).post().then(function (response){
                             self.Facility.Inventories.splice(index,1,response.AdjustmentRequests[0].Inventory);
                         }).catch(function (err) {
-                            self.messages.push(err.response.data.SWFHttpResponse.Error);
-                            self.autoClearMessage();
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,index);
                         });
                     }else {
                         self.Facility.Inventories.splice(index,1);
@@ -258,7 +262,10 @@
                     let self = this;
                     self.current.Inventory.Sku.Item = item;
                     self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
-                    if (item.AssetCode){
+                    if (!item.AssetCode){
+                        item.AssetCode = { Code :"" };
+                    }
+                    if (item.AssetCode.Code.length > 0 ){
                         self.current.Inventory.Sku.TaxRate = item.AssetCode.GstPct
                     }
                     self.current.Items = [];
@@ -284,11 +291,11 @@
                         }
                     });
                 },
-                onAssetCodeSelect:function (e, item) {
+                onAssetCodeSelect:function (e, ac) {
                     e && e.preventDefault();
                     let self = this;
-                    self.current.Inventory.Sku.Item.AssetCode = item;
-                    self.current.Inventory.Sku.TaxRate = item.GstPct
+                    self.current.Inventory.Sku.Item.AssetCode = ac;
+                    self.current.Inventory.Sku.TaxRate = ac.GstPct
                     self.current.AssetCodes = [];
                 },
                 onUnitOfMeasureChange: function (e) {
@@ -328,8 +335,12 @@
                         if (response.Skus.length === 1){
                             self.current.Inventory.Sku = response.Skus[0];
                             self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
-                            self.current.Inventory.Sku.TaxRate = self.current.Inventory.Sku.Item.GstPct
-
+                            if (!self.current.Inventory.Sku.Item.AssetCode){
+                                self.current.Inventory.Sku.Item.AssetCode = { Code : "" };
+                            }
+                            if (self.current.Inventory.Sku.Item.AssetCode.GstPct){
+                                self.current.Inventory.Sku.TaxRate = self.current.Inventory.Sku.Item.AssetCode.GstPct
+                            }
                         }
                     });
                     self.current.UnitOfMeasures = [] ;
@@ -350,10 +361,11 @@
 
                 navigate : function(e,index,length){
                     e && e.preventDefault();
+                    index = Math.max(index,0);
                     let self = this;
-                    this.current.lookupselectionIndex = (index % length);
-                    let anchors = this.$refs['lookupEntries'].getElementsByTagName("a");
-                    anchors[this.current.lookupselectionIndex].focus();
+                    self.current.lookupselectionIndex = (index % length);
+                    let anchors = self.$refs['lookupEntries'].getElementsByTagName("a");
+                    anchors[self.current.lookupselectionIndex].focus();
                 },
             }
         });
@@ -364,8 +376,8 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div class="container-fluid mb-5 pb-4" v-if="messages && messages.length > 0">
-            <div id="message" ref="message" class="alert alert-danger mb-0" >
+        <div id="message" ref="message" class="row" >
+            <div class="col-12 alert alert-danger " v-if="messages && messages.length > 0">
                 {{ message() }}
             </div>
         </div>
@@ -393,7 +405,7 @@
 
             </div>
 
-            <div class="py-3 border-top border-dark" v-for="(inv,i) in Facility.Inventories">
+            <div v-bind:id="'inventory-' + i " class="py-3 border-top border-dark" v-for="(inv,i) in Facility.Inventories">
                 <div class="d-flex flex-row justify-content-end">
                     <button class="btn btn-primary" role="button" v-if="inv.Infinite === 'Y'" v-on:click="zeroInventory($event,i)" :disabled="current.index === i">
                         <i class="fas fa-stop-circle">Stop</i>
@@ -404,24 +416,24 @@
                 </div>
                 <div class="row">
                     <div class="col-7" v-if="current.index === i">
-                        <label v-if="current.Inventory.Sku.Item.Name.length > 0" v-bind:for="'item' + i" class="form-label small">Product Name</label>
+                        <label v-bind:for="'item' + i" class="small">Product Name</label>
                         <input  v-bind:key="'item' + i"  v-bind:id="'item' + i"   class="form-control" placeholder="Product Name"
                         v-model="current.Inventory.Sku.Item.Name"
                         v-on:input="onItemChange($event)" v-on:blur="onItemBlur($event)" v-on:keyup.down="navigate($event,0,current.Items.length)"   />
                     </div>
                     <div class="col-5" v-if="current.index === i">
-                        <label class="form-label small"   v-bind:for="'uom' + i"  >Package</label>
+                        <label class="small"   v-bind:for="'uom' + i"  >Package</label>
                         <input v-bind:key="'uom' + i"  v-bind:id="'uom' + i"  class="form-control" placeholder="Package"
                         v-model="current.Inventory.Sku.PackagingUOM.Name" v-on:input="onUnitOfMeasureChange($event)"
                         v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)"  />
                     </div>
                     <div class="col-7" v-if="current.index !== i">
-                        <label v-if="inv.Sku.Item.Name.length > 0" class="form-label small">Product Name</label>
+                        <label class="small">Product Name</label>
                         <br/>
                         <label>{{inv.Sku.Item.Name}}</label>
                     </div>
                     <div class="col-5" v-if="current.index !== i">
-                        <label class="form-label small"   >Package</label>
+                        <label class="small"   >Package</label>
                         <br/>
                         <label> {{inv.Sku.PackagingUOM.Name}}</label>
                     </div>
@@ -429,24 +441,24 @@
                 </div>
                 <div class="row" v-if="current.index === i">
                     <div class="col-7" >
-                        <label class="form-label small"   v-bind:for="'mrp' + i"  >Max Retail Price</label>
+                        <label class="small"   v-bind:for="'mrp' + i"  >Max Retail Price</label>
                         <input v-bind:key="'mrp' + i"  v-bind:id="'mrp' + i"  class="form-control" placeholder="MRP"
                         v-model="current.Inventory.Sku.MaxRetailPrice"  />
                     </div>
                     <div class="col-5" >
-                        <label class="form-label small"   v-bind:for="'price' + i"  >Selling Price</label>
+                        <label class="small"   v-bind:for="'price' + i"  >Selling Price</label>
                         <input v-bind:key="'price' + i"  v-bind:id="'price' + i"  class="form-control" placeholder="Price"
                         v-model="current.Inventory.SellingPrice"  />
                     </div>
                 </div>
                 <div class="row" v-else>
                     <div class="col-7">
-                        <label class="form-label small"   >Max Retail Price</label>
+                        <label class="small"   >Max Retail Price</label>
                         <br/>
                         <label> {{inv.Sku.MaxRetailPrice}}</label>
                     </div>
                     <div class="col-5">
-                        <label class="form-label small"   >Selling Price</label>
+                        <label class="small"   >Selling Price</label>
                         <br/>
                         <label> {{inv.SellingPrice}}</label>
                     </div>
@@ -455,13 +467,13 @@
                 <div class="row" v-if="current.index === i" >
                     <div class="col-7">
                         <!-- If item is new only then gst is enterable -->
-                        <label class="form-label small"   v-bind:for="'asset_code' + i"  >GST/SAC Code</label>
+                        <label class="small"   v-bind:for="'asset_code' + i"  >GST/SAC Code</label>
                         <input  v-bind:key="'asset_code' + i"  v-bind:id="'asset_code' + i"   class="form-control" placeholder="GST/SAC Code"
                         v-model="current.Inventory.Sku.Item.AssetCode.Code"
                         v-on:input="onAssetCodeChange($event)" v-on:keyup.down="navigate($event,0,current.AssetCodes.length)"   />
                     </div>
                     <div class="col-5">
-                        <label class="form-label small" >Tax Rate:</label>
+                        <label class="small" >Tax Rate:</label>
                         <br/>
                         <label>{{current.Inventory.Sku.Item.AssetCode.GstPct}}</label>
 
@@ -469,12 +481,12 @@
                 </div>
                 <div class="row" v-else-if="inv.Sku.Item.AssetCode && inv.Sku.Item.AssetCode.LongDescription">
                     <div class="col-7" >
-                        <label class="form-label small" >GST/SAC Code</label>
+                        <label class="small" >GST/SAC Code</label>
                         <br/>
                         <label>{{inv.Sku.Item.AssetCode.Code}}</label>
                     </div>
                     <div class="col-5" >
-                        <label class="form-label small" >Tax Rate:</label>
+                        <label class="small" >Tax Rate:</label>
                         <br/>
                         <label>{{inv.Sku.TaxRate}}</label>
                     </div>

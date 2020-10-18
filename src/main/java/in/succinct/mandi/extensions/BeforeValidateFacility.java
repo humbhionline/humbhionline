@@ -46,6 +46,8 @@ public class BeforeValidateFacility extends BeforeModelValidateExtension<Facilit
                 }
                 if (verified){
                     model.setVerifiedById(creatorUser.getId());
+                    model.setLat(creatorUser.getLat());
+                    model.setLng(creatorUser.getLng());
                 }
             }
         }

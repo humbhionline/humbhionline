@@ -14,11 +14,7 @@
             },
             created: function () {
                 let self = this;
-                for (key in self.facilityOrders) {
-                    if (self.facilityOrders.hasOwnProperty(key)) {
-                        self.facilities.push(self.facilityOrders[key].OrderLines[0].Inventory.Facility);
-                    }
-                }
+                self.loadFacilities();
                 if (self.facilities.length > 0 ){
                     self.showApp();
                 }else {
@@ -26,6 +22,15 @@
                 }
             },
             methods: {
+                loadFacilities: function(){
+                    let self = this;
+                    self.facilities = [];
+                    for (key in self.facilityOrders) {
+                        if (self.facilityOrders.hasOwnProperty(key)) {
+                            self.facilities.push(self.facilityOrders[key].OrderLines[0].Inventory.Facility);
+                        }
+                    }
+                },
                 continueShopping: function(event){
                     if (event){
                         event.preventDefault();
@@ -49,54 +54,83 @@
                         self.messages = [];
                     }, 1500);
                 },
-                headers: function(){
-                    let location = Lockr.get("Location");
-                    if (location && location.latitude && location.longitude){
-                        return { Lat: location.latitude , Lng : location.longitude };
-                    }else {
-                        return {} ;
-                    }
+                addOrderToBook :function(f,orders){
+                    let self = this;
+                    let user = self.User;
+                    var order = self.facilityOrders[f.Id];
+
+                    order.OrderAddresses = [
+                        { AddressType : "ST" ,
+                            FirstName : user.FirstName,
+                            LastName : user.LastName,
+                            AddressLine1 : user.AddressLine1 ,
+                            AddressLine2: user.AddressLine2  ,
+                            AddressLine3 : user.AddressLine3,
+                            AddressLine4 : user.AddressLine4,
+                            City : user.City ,
+                            PinCode : user.PinCode,
+                            PhoneNumber :user.PhoneNumber,
+                            Lat : user.Lat,
+                            Lng : user.Lng
+                        },
+                        { AddressType : "BT" ,
+                            FirstName : user.FirstName,
+                            LastName : user.LastName,
+                            AddressLine1 : user.AddressLine1 ,
+                            AddressLine2: user.AddressLine2  ,
+                            AddressLine3 : user.AddressLine3,
+                            AddressLine4 : user.AddressLine4,
+                            City : user.City ,
+                            PinCode : user.PinCode,
+                            PhoneNumber :user.PhoneNumber,
+                            Lat : user.Lat,
+                            Lng : user.Lng
+                        }
+                    ];
+                    orders.push(order);
+
                 },
-                book :function(event){
+                book: function (orders){
+                    let self = this;
+                    return api().url("/orders/book").parameters({Orders : orders}).post();
+                },
+                bookOrder :function(event,f){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    var Orders = [];
+                    self.addOrderToBook(f,Orders);
+                    self.book(Orders).then(function(response){
+                        delete self.facilityOrders[f.Id];
+                        if (self.facilityOrders.length == 0){
+                            Lockr.rm("facilityOrders");
+                        }
+                        let index = self.facilities.findIndex(function(facility){
+                              return facility.Id === f.Id
+                        });
+                        if (index >= 0) {
+                            self.facilities.splice(index,1);
+                        }
+                        Lockr.set("facilityOrders",self.facilityOrders);
+                        window.location.reload();
+                    }).catch(function (err){
+                        self.messages.push(err.response.data.SWFHttpResponse.Error);
+                        self.autoClearMessage();
+                    });
+
+
+                },
+                bookOrders :function(event){
                     if (event){
                         event.preventDefault();
                     }
                     var Orders = [] ;
                     let self = this;
                     self.facilities.forEach((f, i) => {
-                        var order = self.facilityOrders[f.Id];
-                        let user = self.User;
-                        order.OrderAddresses = [
-                            { AddressType : "ST" ,
-                                FirstName : user.FirstName,
-                                LastName : user.LastName,
-                                AddressLine1 : user.AddressLine1 ,
-                                AddressLine2: user.AddressLine2  ,
-                                AddressLine3 : user.AddressLine3,
-                                AddressLine4 : user.AddressLine4,
-                                City : user.City ,
-                                PinCode : user.PinCode,
-                                PhoneNumber :user.PhoneNumber,
-                                Lat : user.Lat,
-                                Lng : user.Lng
-                            },
-                            { AddressType : "BT" ,
-                                FirstName : user.FirstName,
-                                LastName : user.LastName,
-                                AddressLine1 : user.AddressLine1 ,
-                                AddressLine2: user.AddressLine2  ,
-                                AddressLine3 : user.AddressLine3,
-                                AddressLine4 : user.AddressLine4,
-                                City : user.City ,
-                                PinCode : user.PinCode,
-                                PhoneNumber :user.PhoneNumber,
-                                Lat : user.Lat,
-                                Lng : user.Lng
-                            }
-                        ];
-                        Orders.push(self.facilityOrders[f.Id]);
+                        self.addOrderToBook(f,Orders);
                     });
-                    api().url("/orders/book").parameters({Orders : Orders}).post().then(function(response){
+                    self.book(Orders).then(function(response){
                         self.facilities = [ ] ;
                         self.facilityOrders = {};
                         Lockr.rm("facilityOrders");
@@ -105,6 +139,55 @@
                         self.messages.push(err.response.data.SWFHttpResponse.Error);
                         self.autoClearMessage();
                     });
+
+                },
+                onOrderLineQtyChange: function(event,f,index){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let result = self.facilityOrders[f.Id].OrderLines[index];
+                    var refreshHeader = false;
+                    if (result.OrderedQuantity <= 0){
+                        let order = self.facilityOrders[f.Id];
+                        refreshHeader = true;
+                        order.OrderLines.splice(index,1);
+                        if (order.OrderLines.length === 0){
+                            delete self.facilityOrders[f.Id];
+                        }
+                    }
+                    Lockr.set("facilityOrders",self.facilityOrders);
+                    if (refreshHeader) {
+                        self.loadFacilities();
+                        if (self.facilities.length === 0 ){
+                            window.location.reload();
+                        }else {
+                            $("#header").load("/fragments/html/header");
+                            self.$forceUpdate();
+                        }
+                    }else {
+                        self.$forceUpdate();
+                    }
+                },
+                reduceOrderLine: function(event,f,index){
+                    let self = this;
+                    let result = self.facilityOrders[f.Id].OrderLines[index];
+                    result.OrderedQuantity -=1 ;
+                    self.onOrderLineQtyChange(event,f,index);
+                },
+                increaseOrderLine: function(event,f,index){
+                    if (event){
+                        event.preventDefault();
+                    }
+
+                    let self = this;
+                    let result = self.facilityOrders[f.Id].OrderLines[index];
+                    if (!result.OrderedQuantity){
+                        result.OrderedQuantity = 0.0 ;
+                    }
+
+                    result.OrderedQuantity += 1.0;
+                    self.onOrderLineQtyChange(event,f,index);
                 }
             }
         });
@@ -123,53 +206,70 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div class="container">
-            <div class="row">
-                <div class="container-fluid border-bottom border-dark" v-for="(facility,index) in facilities" v-if="facilities.length > 0">
-                    <div class="row">
-                        <div class="col-12">
-                            <b> Shipment {{ index + 1 }} <br/>
-                                From: {{ facility.Name }} <br/>
-                                (Distance {{Math.round(facility.Distance * 100) / 100}} Km)
-                            </b>
-                        </div>
+        <div v-if="facilities.length > 0">
+            <div class="container border-bottom border-dark" v-for="(facility,index) in facilities" >
+                <div class="row">
+                    <div class="col-12">
+                        <b> Shipment {{ index + 1 }} <br/>
+                            From: {{ facility.Name }} <br/>
+                            (Distance {{Math.round(facility.Distance * 100) / 100}} Km)
+                        </b>
                     </div>
-                    <div class="row">
-                        <div class="col-5">
-                            SKU
-                        </div>
-                        <div class="col-3">
-                            Unit Price
-                        </div>
-                        <div class="col-3">
-                            Quantity
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col-5 text-left">
+                        SKU
                     </div>
-                    <div v-bind:class="'row ' +  (index%2 === 0 ? 'odd' : 'even' )" v-for="(ol,index) in facilityOrders[facility.Id].OrderLines">
+                    <div class="col-5 text-center">
+                        Qty
+                    </div>
+                    <div class="col-2 text-right">
+                        Price
+                    </div>
+                </div>
+                <div class="datalist">
+                    <div class="row" v-for="(ol,olindex) in facilityOrders[facility.Id].OrderLines">
                         <div class="col-5">
                             {{ol.Inventory.Sku.Name}}
+                            <br/>@ &#8377; {{ol.Inventory.SellingPrice}}
                         </div>
-                        <div class="col-3 text-right">
-                            {{ol.Inventory.SellingPrice}}
+                        <div class="col-5 text-right">
+                            <div class="d-flex flex-row justify-content-end" >
+                                <button class="btn btn-primary fas fa-minus" v-on:click="reduceOrderLine($event,facility,olindex)" >
+                                </button>
+                                <div>
+                                    <input  v-bind:key="'quantity-' + facility.Id +'-'+ index"  v-bind:id="'quantity-' + facility.Id +'-'+ index"
+                                    class="qty-box h-100 form-control text-center" placeholder="0"
+                                    v-model="ol.OrderedQuantity" @change="onOrderLineQtyChange($event,facility,olindex)"/>
+                                </div>
+                                <button class="btn btn-primary fas fa-plus" v-on:click="increaseOrderLine($event,facility,olindex)" >
+                                </button>
+                            </div>
                         </div>
-                        <div class="col-3 text-right">
-                            {{ ol.OrderedQuantity }}
+                        <div class="col-2 text-right">
+                            {{ ol.OrderedQuantity * ol.Inventory.SellingPrice }}
                         </div>
-                        <!--div class="col-2">
-                            {{ ol.Inventory.Infinite == 'Y' || Math.ceil(ol.Inventory.Quantity) > 0  ? 'Y' : 'N'}}
-                        </div-->
+
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12 d-flex flex-row justify-content-end">
+                        <button class="btn-primary" v-on:click="bookOrder($event,facility)">Book</button>
                     </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-7">
-                    <a href="#" class="w-100 float-left pt-1" v-on:click="continueShopping($event)">Continue Shopping</a>
-                </div>
-                <div class="col-5">
-                    <button class="w-100 btn-primary float-right pt-1" v-on:click="book($event)">Book Orders</button>
+            <div class="container">
+                <div class="row">
+                    <div class="col-6 d-flex flex-row justify-content-start">
+                        <a href="#" class="w-100 float-left pt-1" v-on:click="continueShopping($event)">Continue Shopping</a>
+                    </div>
+                    <div class="col-6 d-flex flex-row justify-content-end">
+                        <button class="btn-primary" v-on:click="bookOrders($event)">Book Orders</button>
+                    </div>
                 </div>
             </div>
         </div>
+
         <div class="container-fluid mb-5 pb-4">
             <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
                 {{ message() }}

@@ -29,31 +29,35 @@ public class FacilityImpl extends ModelImpl<Facility> {
     public Double getDistance() {
         Facility facility = getProxy();
         double distance;
-        User currentUser = Database.getInstance().getCurrentUser();
-        if (currentUser != null && currentUser.getCurrentLat() != null){
-            distance = new GeoCoordinate(facility).distanceTo(new GeoCoordinate(new GeoLocation() {
-                @Override
-                public BigDecimal getLat() {
-                    return currentUser.getCurrentLat();
-                }
-
-                @Override
-                public void setLat(BigDecimal bigDecimal) {
-                    currentUser.setCurrentLat(bigDecimal);
-                }
-
-                @Override
-                public BigDecimal getLng() {
-                    return currentUser.getCurrentLng();
-                }
-
-                @Override
-                public void setLng(BigDecimal bigDecimal) {
-                    currentUser.setCurrentLng(bigDecimal);
-                }
-            }));
+        if (facility.getLat() == null ){
+            distance = 0.0;
         }else {
-            distance = 0.0D;
+            User currentUser = Database.getInstance().getCurrentUser();
+            if (currentUser != null && currentUser.getCurrentLat() != null) {
+                distance = new GeoCoordinate(facility).distanceTo(new GeoCoordinate(new GeoLocation() {
+                    @Override
+                    public BigDecimal getLat() {
+                        return currentUser.getCurrentLat();
+                    }
+
+                    @Override
+                    public void setLat(BigDecimal bigDecimal) {
+                        currentUser.setCurrentLat(bigDecimal);
+                    }
+
+                    @Override
+                    public BigDecimal getLng() {
+                        return currentUser.getCurrentLng();
+                    }
+
+                    @Override
+                    public void setLng(BigDecimal bigDecimal) {
+                        currentUser.setCurrentLng(bigDecimal);
+                    }
+                }));
+            } else {
+                distance = 0.0D;
+            }
         }
         return distance;
 

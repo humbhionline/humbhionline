@@ -25,7 +25,7 @@ public class OnOrderLineCancel implements Extension {
         double qtyCancelledNow = orderLine.getReflector().getJdbcTypeHelper().getTypeRef(Double.class).getTypeConverter().valueOf(context[1]);
         Sku sku = orderLine.getSku();
         Item item = sku.getItem().getRawRecord().getAsProxy(Item.class);
-        if (qtyCancelledNow > 0 && item.getAssetCode().isSac() && item.isItemRestrictedToSingleSeller() && item.isHumBhiOnlineSubscriptionItem() && orderLine.getDeliveredQuantity() > 0){
+        if (qtyCancelledNow > 0 && item.getAssetCodeId() != null && item.getAssetCode().isSac() && item.isItemRestrictedToSingleSeller() && item.isHumBhiOnlineSubscriptionItem() && orderLine.getDeliveredQuantity() > 0){
             // unpaid can be cancelled. Paid auto delivers.
             if (Database.getInstance().getCurrentUser().getId() != 1){
                 throw new RuntimeException("Subscriptions are not refunded. It automatically stops once the amount is drained. ");

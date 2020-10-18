@@ -20,7 +20,8 @@
                     term :"",
                     results : [] ,
                 },
-                facilityOrders : {}
+                facilityOrders : {},
+                facilities : [],
             },
             created: function () {
                 let self = this;
@@ -92,7 +93,7 @@
                     }
                     self.search.term = e.target.value;
                     let term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ");
-                    api().url("/inventories/search/"+term).headers(self.headers()).get().then(function (response) {
+                    api().url("/inventories/search/"+term).get().then(function (response) {
                         if (!response) {
                             return
                         }
@@ -116,6 +117,13 @@
                         });
 
                     });
+                },
+                onQtyChange: function(event,index){
+                    let self = this;
+                    let result = self.search.results[index];
+                    result.OrderedQuantity = Math.max(0,result.OrderedQuantity);
+                    Vue.set(self.search.results, index , result );
+                    self.addToCart(event,result);
                 },
                 reduce: function(event,index){
                     let self = this;
@@ -143,7 +151,6 @@
                     let self = this;
                     var refreshHeader = false;
                     if (!self.facilityOrders[result.Facility.Id]){
-                        let  user =  Lockr.get("User");
                         self.facilityOrders[result.Facility.Id] = {
                             OrderLines :[] ,
                             OrderAddresses : []
@@ -170,15 +177,28 @@
                                 order.OrderLines.splice(index,1);
                             }
                         }
+                        var facilityIndex  = self.facilities.findIndex(function(f){
+                            return f.Id == result.Facility.Id;
+                        });
+
+
                         if (order.OrderLines.length === 0){
                             delete self.facilityOrders[result.Facility.Id];
+                            if (facilityIndex >= 0 ){
+                                self.facilities.splice(facilityIndex,1);
+                            }
+                        }else {
+                            if (facilityIndex < 0){
+                                self.facilities.push(result.Facility);
+                            }
                         }
                     }
                     Lockr.set("facilityOrders",self.facilityOrders);
                     if (refreshHeader) {
                         $("#header").load("/fragments/html/header");
                     }
-                }
+                },
+
             }
         });
     });
@@ -215,14 +235,15 @@
                 <div class="col-4">
                     Quantity :
                 </div>
-                <div class="col-1 p-0 m-0 text-right">
+                <div class="col-2 p-0 m-0 text-right">
                     <button class="h-100 btn btn-primary fas fa-minus" v-on:click="reduce($event,index)" />
                 </div>
-                <div class="col-2 p-0">
-                    <input  v-bind:key="'quantity' + index"  v-bind:id="'quantity' + index"   class="h-100 form-control" placeholder="Quantity"
-                    v-model="result.OrderedQuantity"/>
+                <div class="col-2 px-1">
+                    <input  v-bind:key="'quantity' + index"  v-bind:id="'quantity' + index"
+                    class="h-100 qty-box form-control text-center" placeholder="Quantity"
+                    v-model="result.OrderedQuantity" @change="onQtyChange($event,index)" />
                 </div>
-                <div class="col-1 p-0 m-0 text-left">
+                <div class="col-2 p-0 m-0 text-left">
                     <button class="h-100 btn btn-primary fas fa-plus" v-on:click="increase($event,index)" />
                 </div>
                 <!-- <div class="col-2">
@@ -230,9 +251,9 @@
                 </div>
                 -->
             </div>
-
         </div>
-        <div class="container-fluid mb-5 pb-4">
+
+        <div class="container-fluid mb-5 pb-4" >
             <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
                 {{ message() }}
             </div>

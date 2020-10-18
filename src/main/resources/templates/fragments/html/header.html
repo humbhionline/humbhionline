@@ -25,15 +25,24 @@ $(function(){
     if (count){
         $("#orderCount").text(count);
     }
-    /*
+    let appmenu = $('#appmenu');
     $(window).on('click', function(event){
-        // element over which click was made
-        var clickOver = $(event.target)
-        if ($('.navbar .navbar-toggler').attr('aria-expanded') == 'true' && clickOver.closest('.navbar').length === 0) {
+        let clickOver = $(event.target);
+        if (appmenu.attr('aria-expanded') == 'true' &&  clickOver.attr("id") !== 'appmenu' ){
             // Click on navbar toggler button
-            $('button[aria-expanded="true"]').click();
+            appmenu.click();
         }
-    });*/
+    });
+
+    subscribe(function (subscription) {
+        if (subscription) {
+            api().url("/devices/save").parameters({ 'Device': { 'DeviceId': subscription, 'UserId': Lockr.get("User").Id } }).post()
+            .then(function (response) {
+                console.log("Subscription made on the server");
+            });
+        }
+    });
+
 })
 </script>
 <style>
@@ -50,24 +59,37 @@ $(function(){
 <div class="fixed-top app-header">
     <div class="row">
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
-          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
+          <button id="appmenu" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
           <a class="navbar-brand m-logo" href="/buy">
               <span class="subscript" id="orderCount"></span>
-              <img  src="/resources/web_manifest/drawing.svg" alt=""><img>
+              <img  src="/resources/web_manifest/64x64.png" alt=""><img>
           </a>
           <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
             <ul class="navbar-nav mr-auto mt-2 mt-lg-0 ">
                 <li class="nav-item">
-                  <a class="fas fa-user-circle nav-link" href="/users/html/profile"> Profile</a>
+                    <a class="fas fa-user-circle nav-link" href="/users/html/profile"> Profile</a>
                 </li>
+
+                <li class="nav-item dropdown-submenu">
+                    <a class="fas fa-coins nav-link dropdown-toggle" href="" id="navbarSellingMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Sales</a>
+                    <ul class="dropdown-menu mt-1 ml-auto mr-auto">
+                        <li class="dropdown-item">
+                            <a class="fas fa-coins nav-link" href="/sell">
+                                Products
+                            </a>
+                        </li>
+                        <li class="dropdown-item">
+                            <a class="fas fa-list nav-link" href="/orders?type=sales">
+                                Orders
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
               <li class="nav-item">
-                <a class="fas fa-coins nav-link" href="/sell"> Selling Preferences
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="fas fa-list nav-link" href="/orders"> My Orders</a>
+                <a class="fas fa-list nav-link" href="/orders?type=purchases"> Purchases</a>
               </li>
               <li class="nav-item">
                   <a class="fas fa-power-off nav-link" onclick="logout(event)" href="/logout" > Logout</a>
@@ -77,44 +99,8 @@ $(function(){
         </nav>
     </div>
 
-    <!--
-
-    <div class="row">
-        <div class="col m-logo">
-            <a href="/index" id="dropdownHomeLink">
-                <img src="/resources/web_manifest/drawing.svg" alt="">
-            </a>
-        </div>
-        <div class="col text-right">
-            <a class="btn" onclick="logout(event)" href="/logout" >
-                <i class="fas fa-power-off"></i>
-            </a>
-        </div>
-    </div>
-    -->
-
 </div>
 <div class="fixed-bottom app-footer">
     <div class="row">
-        <!--div class="col">
-            <a class="btn btn-link" href="/buy">
-                <i id="orderCount" class="fas fa-shopping-cart"></i>
-            </a>
-        </div
-        <div class="col">
-            <a class="btn btn-link" href="/sell">
-                <i class="fas fa-coins"></i>
-            </a>
-        </div>
-        <div class="col">
-            <a class="btn btn-link" href="/orders">
-                <i class="fas fa-list"></i>
-            </a>
-        </div>
-        <div class="col text-right">
-            <a class="btn btn-link" href="/users/html/profile">
-                <i class="fas fa-user-circle"></i>
-            </a>
-        </div>-->
     </div>
 </div>

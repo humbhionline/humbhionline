@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css?family=Merienda+One|Poppins:400,500,700,800&display=swap');
+@import url('/resources/google-fonts/google.css');
 font-family: 'Merienda One', cursive;
 body {
     font-family: 'Poppins', sans-serif;
@@ -34,13 +34,16 @@ a:not([href]):not([tabindex]){
     /*box-shadow: 0 0 5px rgba(0,0,0,0.5);*/
     padding: 5px 15px;
 }
+.qty-box {
+    padding: 0;
+}
 
 .app-body{
     height: calc(100vh - 115px);
     overflow: hidden;
     overflow-y: auto;
-    padding-left : 1rem;
-    padding-right : 1rem;
+    padding-left : .5rem;
+    padding-right : .5rem;
     margin-top : 2rem;
 }
 
@@ -93,7 +96,10 @@ a:not([href]):not([tabindex]){
     background-color: #fff;
 }
 .data-list .row:nth-child(odd){
-    background-color: #e0e0e0;
+    background-color: #ccffff;
+}
+.data-list .row:nth-child(even){
+    background-color: #ffffcc;
 }
 
 .data-list .row a{
@@ -128,16 +134,6 @@ font-size: 12px;
     width: auto;
 }
 
-.bg-odd{
-    background-color: cadetblue;
-    padding-bottom: 5pt;
-    padding-top: 5pt
-}
-.bg-even{
-    background-color: tan;
-    padding-bottom: 5pt;
-    padding-top: 5pt
-}
 
 input {
     /*width: 100%;*/
@@ -346,4 +342,20 @@ select {
   .section-faq h2 {
     font-size: 26px;
     font-weight: 800;
+  }
+
+/* Multi level menu */
+  .dropdown-submenu {
+      position:relative;
+  }
+  .dropdown-submenu>.dropdown-menu {
+      top:0;
+      left:-100%;
+      margin-top:-6px;
+  }
+  .nav-link {
+       display:block!important ;
+  }
+  .dropdown-item:hover {
+      background-color: cyan!important;
   }

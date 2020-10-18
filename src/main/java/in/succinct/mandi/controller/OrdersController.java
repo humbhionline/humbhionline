@@ -18,7 +18,9 @@ import com.venky.swf.plugins.background.core.CompositeTask;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
+import com.venky.swf.plugins.collab.db.model.user.UserFacility;
 import com.venky.swf.plugins.templates.controller.TemplateLoader;
+import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
@@ -40,6 +42,7 @@ import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -256,6 +259,18 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             order.setFacilityId(shipFrom.getId());
         }
         order.save();
+
+        List<User> users = new ArrayList<>();
+        for (UserFacility uf : order.getFacility().getFacilityUsers()){
+            User user = uf.getUser().getRawRecord().getAsProxy(User.class);
+            users.add(user);
+        }
+        users.add(order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class));
+        for (User user: users){
+            Map<String,Object> entityMap = TemplateEngine.getInstance().createEntityMap(Arrays.asList(order));
+            TemplateEngine.getInstance().send(user,"New Order #" +order.getId() + " arrived." , "New_Order.ftlh",entityMap, getIncludedModelFields(),new HashMap<>());
+        }
+
         return order;
     }
 
@@ -299,8 +314,6 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         Map<Class<? extends Model>,List<String>> map =  super.getIncludedModelFields();
         map.put(Order.class,ModelReflector.instance(Order.class).getFields());
 
-        map.put(Facility.class,ModelReflector.instance(Facility.class).getUniqueFields());
-        map.get(Facility.class).add("CREATOR_USER_ID");
 
         ModelReflector<OrderLine> orderLineModelReflector = ModelReflector.instance(OrderLine.class);
         map.put(OrderLine.class,orderLineModelReflector.getFields(cd ->  cd.getName().equals("ID") || ( !cd.getName().equals("ORDER_ID") && !orderLineModelReflector.isHouseKeepingField(orderLineModelReflector.getFieldName(cd.getName())) ) ));
@@ -316,12 +329,19 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         map.put(Sku.class,skuModelReflector.getFields(cd -> !skuModelReflector.isHouseKeepingField(skuModelReflector.getFieldName(cd.getName()))));
 
         List<String> userFields = new ArrayList<>();
+        List<String> facilityFields = new ArrayList<>();
         for (String addressField : Address.getAddressFields()) {
             userFields.add(addressField);
+            facilityFields.add(addressField);
         }
         userFields.addAll(ModelReflector.instance(User.class).getUniqueFields());
+        facilityFields.addAll(ModelReflector.instance(Facility.class).getUniqueFields());
+
         userFields.addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
+        facilityFields.add("CREATOR_USER_ID");
+
         map.put(User.class,userFields);
+        map.put(Facility.class,facilityFields);
 
         return map;
     }
