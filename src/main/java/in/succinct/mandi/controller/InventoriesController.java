@@ -50,8 +50,10 @@ public class InventoriesController extends ModelController<Inventory> {
                 List<Inventory> records = sel.execute(getModelClass(), maxRecords, new DefaultModelFilter<Inventory>(getModelClass()){
                     @Override
                     public boolean pass(Inventory record) {
-                        return ( record.getFacility().getRawRecord().getAsProxy(Facility.class).getDistance() < 10 || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem()) &&
-                                record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0 &&
+                        return (
+                                    ( record.getFacility().getRawRecord().getAsProxy(Facility.class).getDistance() < 20  &&
+                                        record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0 )
+                                || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem() ) &&
                                 (record.isInfinite() || record.getQuantity() > 0 )
                                 && super.pass(record);
                     }

@@ -10,6 +10,10 @@
     $(function () {
         $("#header").load("/fragments/html/header");
 
+        var params = (new URL(window.location)).searchParams;
+        var term = params.get("search") ;
+
+
 
         new Vue({
             el: "#app",
@@ -17,7 +21,7 @@
                 messages: [],
                 User : {},
                 search : {
-                    term :"",
+                    term : term || "",
                     results : [] ,
                 },
                 facilityOrders : {},
@@ -41,9 +45,16 @@
                         window.location.href = "/users/html/profile";
                     }else {
                         self.showApp();
+                        if (self.search.term.length > 0 ){
+                            self.find(null);
+                        }
                     }
                 }).catch(function (err) {
-                    self.messages.push(err.response.data.SWFHttpResponse.Error);
+                    if (err.response){
+                        self.messages.push(err.response.data.SWFHttpResponse.Error);
+                    }else {
+                        self.messages.push(err);
+                    }
                     self.showApp();
                     self.autoClearMessage();
                 });
@@ -78,20 +89,20 @@
                         return {} ;
                     }
                 },
-                isKeyTriggerable: function (e) {
-                    return  e && e.target.value.length > 3 ;
+                isKeyTriggerable: function () {
+                    let self = this;
+                    return  self.search.term.length >= 3;
                 },
                 find: function(e){
+                    let self = this;
                     if (e){
                         e.preventDefault();
+                        self.search.term = e.target.value;
                     }
-
-                    let self = this;
-                    self.search.results = [];
-                    if (!self.isKeyTriggerable(e)){
+                    if (!self.isKeyTriggerable()){
                         return;
                     }
-                    self.search.term = e.target.value;
+                    self.search.results = [];
                     let term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ");
                     api().url("/inventories/search/"+term).get().then(function (response) {
                         if (!response) {

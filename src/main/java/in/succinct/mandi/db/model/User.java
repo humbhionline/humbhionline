@@ -24,6 +24,11 @@ public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     public double getBalanceOrderLineCount();
     public void setBalanceOrderLineCount(double balance);
 
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isBalanceBelowThresholdAlertSent();
+    public void setBalanceBelowThresholdAlertSent(boolean balanceBelowThresholdAlertSent);
+
+
 
 
 }
