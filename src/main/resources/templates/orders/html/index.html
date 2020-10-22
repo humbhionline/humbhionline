@@ -74,23 +74,24 @@
                                 if (!self.Android){
                                     o._phref = "#";
                                     o._rhref = "#";
-                                    if (o.Facility.CreatorUser.VirtualPaymentAddress){
-                                        o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
-                                                    '&pn='+ o.Facility.CreatorUser.NameAsInBankAccount+
-                                                    '&tr=O:' + o.Id +
-                                                    '&tn=HBO Txn ' + o.Id +
-                                                    '&am=' + o.AmountPendingPayment +
-                                                    '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' );
+                                    if (navigator.userAgent.match(/Android/i)){
+                                        if (o.Facility.CreatorUser.VirtualPaymentAddress){
+                                            o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
+                                                        '&pn='+ o.Facility.CreatorUser.NameAsInBankAccount+
+                                                        '&tr=O:' + o.Id +
+                                                        '&tn=HBO Txn ' + o.Id +
+                                                        '&am=' + o.AmountPendingPayment +
+                                                        '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' );
+                                        }
+                                        if (o.CreatorUser.VirtualPaymentAddress){
+                                            o._rhref =  ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress +
+                                                        '&pn='+o.CreatorUser.NameAsInBankAccount+
+                                                        '&tr=R:' + o.Id +
+                                                        '&tn=Return for HBO Txn ' + o.Id +
+                                                        '&am=' + o.AmountToRefund +
+                                                        '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20');
+                                        }
                                     }
-                                    if (o.CreatorUser.VirtualPaymentAddress){
-                                        o._rhref =  ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress +
-                                                    '&pn='+o.CreatorUser.NameAsInBankAccount+
-                                                    '&tr=R:' + o.Id +
-                                                    '&tn=Return for HBO Txn ' + o.Id +
-                                                    '&am=' + o.AmountToRefund +
-                                                    '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20');
-                                    }
-
                                 }
                             });
                             self.showApp();
@@ -280,7 +281,7 @@
                         response.Order._phref = "#";
                         if (self.Android){
                             self.Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress,order.Facility.CreatorUser.NameAsInBankAccount,"O:"+order.Id,order.AmountPendingPayment * 1.0, 'HBO Txn ' + order.Id);
-                        }else {
+                        }else if (navigator.userAgent.match(/Android/i) ){
                             let o = response.Order
                             o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
                                                 '&pn='+ o.Facility.CreatorUser.NameAsInBankAccount+
@@ -290,7 +291,12 @@
                                                 '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' );
                         }
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        if (err.response){
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        }else {
+                            self.autoClearMessage(err);
+                            console.log(err);
+                        }
                     });
 
                     return true;
@@ -307,7 +313,7 @@
                         return;
                     }
                     delete order._phref;
-                    delete order._href;
+                    delete order._rhref;
                     api().url("/orders/reset_payment/" + order.Id).get().then(function (response) {
                         if (index >= 0 ){
                             self.Orders.splice(index,1,response.Order);
@@ -329,7 +335,7 @@
                         return;
                     }
                     delete order._phref;
-                    delete order._href;
+                    delete order._rhref;
                     api().url("/orders/complete_payment/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index,1,response.Order);
                         self.autoClearMessage("Verified Payment",order);
@@ -351,7 +357,7 @@
                         return;
                     }
                     delete order._phref;
-                    delete order._href;
+                    delete order._rhref;
                     api().url("/orders/initialize_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index,1,response.Order);
                         self.autoClearMessage("Refund Initialized",order);
@@ -359,7 +365,7 @@
                         if (self.Android){
                             // v-bind:href=
                             self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress,order.CreatorUser.NameAsInBankAccount,"R:"+order.Id,order.AmountToRefund * 1.0, 'Return for HBO Txn ' + order.Id);
-                        }else {
+                        }else if (navigator.userAgent.match(/Android/i) ){
                             response.Order._rhref =  ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn='+o.CreatorUser.NameAsInBankAccount+'&tr=R:' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20');
                         }
                     }).catch(function (err) {
@@ -379,7 +385,7 @@
                         return;
                     }
                     delete order._phref;
-                    delete order._href;
+                    delete order._rhref;
                     api().url("/orders/reset_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index,1,response.Order);
                         self.autoClearMessage("Payment Reset",order);
@@ -399,7 +405,7 @@
                         return;
                     }
                     delete order._phref;
-                    delete order._href;
+                    delete order._rhref;
                     api().url("/orders/complete_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index,1,response.Order);
                         self.autoClearMessage("Verified Payment",self.Orders[index]);
@@ -524,7 +530,7 @@
                         </div>
                         <div class="row">
                             <div class="col-12" v-if="o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
-                                {{ o.PaymentInitialized  === 'Y' ? 'Payment not verified' : 'Unpaid' }}
+                                {{ o.PaymentInitialized  === 'Y' ? 'Payment inprogress' : 'Unpaid' }}
                             </div>
                         </div>
                     </div>
@@ -532,11 +538,11 @@
             </div>
             <div class="d-flex flex-row justify-content-end" >
                 <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)"
-                    v-if="o.AmountPendingPayment *1.0 > 0.0 && o.PaymentInitialized === 'Y'">
+                    v-if="o.AmountPendingPayment *1.0 > 0.0 && o.PaymentInitialized === 'Y' && sales">
                     <i class='fas fa-redo'>Reset Payment</i>
                 </a>
                 <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_refund($event,o)"
-                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized === 'Y'">
+                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized === 'Y' && sales">
                     <i class="fas fa-redo">Reset Refund</i>
                 </a>
 

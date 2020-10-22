@@ -35,11 +35,20 @@ $(function(){
     });
 
     subscribe(function (subscription) {
-        if (subscription) {
-            api().url("/devices/save").parameters({ 'Device': { 'DeviceId': subscription, 'UserId': Lockr.get("User").Id } }).post()
-            .then(function (response) {
-                console.log("Subscription made on the server");
-            });
+        let device = Lockr.get("device");
+
+        if (subscription ) {
+            if (!device || device.DeviceId !== subscription ) {
+                api().url("/devices/save").parameters({ 'Device': { 'DeviceId': subscription, 'UserId': Lockr.get("User").Id } }).post()
+                .then(function (response) {
+                    if (response.Devices && response.Devices.length > 0){
+                        Lockr.set("device",response.Devices[0]);
+                    }
+                    console.log("Subscription made on the server");
+                });
+            }else{
+                console.log("Subscription already present on the server");
+            }
         }
     });
 
@@ -62,10 +71,13 @@ $(function(){
           <button id="appmenu" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
-          <a class="navbar-brand m-logo" href="/buy">
-              <span class="subscript" id="orderCount"></span>
-              <img  src="/resources/web_manifest/64x64.png" alt=""><img>
-          </a>
+          <div class="navbar-brand">
+              <a class="m-logo fas fa-bell" href="/alerts"/>
+              <a class="m-logo" href="/buy">
+                  <span class="subscript" id="orderCount"></span>
+                  <img  src="/resources/web_manifest/64x64.png" alt=""><img>
+              </a>
+          </div>
           <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
             <ul class="navbar-nav mr-auto mt-2 mt-lg-0 ">
                 <li class="nav-item">

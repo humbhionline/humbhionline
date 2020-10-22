@@ -12,7 +12,10 @@
                 withCredentials: false,
             }),
             params: { "SignUp": { "PhoneNumber": "" } },
-            verifyPhoneOtp: function () {
+            verifyPhoneOtp: function (event) {
+                if (event){
+                    event.preventDefault();
+                }
                 var self = this;
                 this.http.post("/sign_ups/validateOtp/" + this.params.SignUp.Id, { "Otp": $("#PhoneOtp").val() }).then(function (response) {
                     if (response.data.SignUp.Validated === 'Y') {
@@ -171,14 +174,20 @@
             <p id="OtpNumber" class="login-number mt-2 mb-4 py-2"> </p>
             <div class="row justify-content-center">
                 <div class="col-10 col-sm-4">
-                    <label for="PhoneOtp" class="text-left d-block">Enter your OTP</label>
-                    <input id="PhoneOtp" class="form-control" placeholder="OTP" />
-                    <p class="text-right">
-                        <a id="btnReset" onclick="login.resetPhoneNumber()">Reset Mobile</a> /
-                        <a id="btnResendPhoneOtp" onclick="login.resendOtp()">Resend OTP</a>
-                    </p>
-                    <button class="btn btn-primary" id="btnVerifyPhoneOtp" onclick="login.verifyPhoneOtp()">Validate
-                        Mobile</button>
+                    <form onsubmit="login.verifyPhoneOtp(event)">
+                        <div class="form-group">
+                            <label for="PhoneOtp" class="text-left d-block">Enter your OTP</label>
+                            <input id="PhoneOtp" class="form-control" placeholder="OTP" />
+                            <p class="text-right">
+                                <a id="btnReset" onclick="login.resetPhoneNumber()">Reset Mobile</a> /
+                                <a id="btnResendPhoneOtp" onclick="login.resendOtp()">Resend OTP</a>
+                            </p>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary" id="btnVerifyPhoneOtp">Validate
+                                Mobile</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

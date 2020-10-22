@@ -56,7 +56,7 @@ public class SubscriptionRenewalAlert implements AgentSeederTaskBuilder , Task{
 
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map = new HashMap<>();
-        map.put(User.class, Arrays.asList("ID", "NAME", "LONG_NAME", "BALANCE_ORDER_COUNT"));
+        map.put(User.class, Arrays.asList("ID", "NAME", "LONG_NAME", "BALANCE_ORDER_LINE_COUNT"));
         return map;
     }
 
@@ -67,11 +67,12 @@ public class SubscriptionRenewalAlert implements AgentSeederTaskBuilder , Task{
             public List<Task> getTasks() {
                 ModelReflector<User> userRef = ModelReflector.instance(User.class);
                 Expression where = new Expression(userRef.getPool(), Conjunction.AND);
-                where.add(new Expression(userRef.getPool(),"BALANCE_ORDER_COUNT", Operator.GT , 0));
-                where.add(new Expression(userRef.getPool(),"BALANCE_ORDER_COUNT" , Operator.LT,  10));
+                where.add(new Expression(userRef.getPool(),"BALANCE_ORDER_LINE_COUNT", Operator.GT , 0));
+                where.add(new Expression(userRef.getPool(),"BALANCE_ORDER_LINE_COUNT" , Operator.LT,  10));
                 where.add(new Expression(userRef.getPool(),"BALANCE_BELOW_THRESHOLD_ALERT_SENT" , Operator.EQ,  false));
 
-                List<Task> tasks = new Select("ID").from(User.class).where(where).execute(User.class).stream().map(u -> new SubscriptionRenewalAlert(getFinishUpTask().getTaskId())).collect(Collectors.toList());
+                List<Task> tasks = new Select("ID").from(User.class).where(where).execute(User.class).stream().map(u -> new SubscriptionRenewalAlert(u.getId())).collect(Collectors.toList());
+                tasks.add(getFinishUpTask());
 
                 return tasks;
             }

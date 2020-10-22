@@ -50,7 +50,8 @@ self.addEventListener('push', function (event) {
   console.log('[Service Worker] Push Received.');
   console.log(`[Service Worker] Push had this data: "${event.data.text()}"`);
   var payload = event.data.json().notification;
-  event.waitUntil(self.registration.showNotification(payload.title, payload));
+  event.waitUntil(self.registration.showNotification(payload.title,
+        Object.assign(payload,{requireInteraction : true})));
 });
 
 self.addEventListener('notificationclick', function (event) {
