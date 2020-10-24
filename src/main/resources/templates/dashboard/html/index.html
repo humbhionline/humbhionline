@@ -236,6 +236,7 @@
                     {{search.Facility.City.Name}},{{search.Facility.State.Name}}<br/>
                     {{search.Facility.PinCode.PinCode}}<br/>
                     @ Distance of {{search.Facility.Distance}} Km <br/>
+                    {{search.Facility.Lat +","+ search.Facility.Lng}}
                 </div>
             </div>
 
@@ -254,7 +255,7 @@
                     {{result.Sku.Name}}
                 </div>
                 <div class="col-12">
-                    {{result.Facility.Name}}
+                    <a v-bind:href="'/dashboard?facility_id=' +result.Facility.Id" >{{result.Facility.Name}}</a>
                 </div>
                 <div class="col-12">
                     Available : {{result.Infinite == 'Y' || Math.ceil(result.Quantity) > 0 }}
@@ -263,7 +264,8 @@
                     Price : {{result.SellingPrice}}
                 </div>
                 <div class="col-12">
-                    Distance : {{result.Facility.Distance}}
+                    Distance :
+                    <a v-bind:href="'https://google.com/maps/@'+result.Facility.Lat +',' + result.Facility.Lng">{{result.Facility.Distance}}</a>
                 </div>
                 <div class="col-4">
                     Quantity :

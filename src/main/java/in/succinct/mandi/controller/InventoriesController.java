@@ -21,7 +21,7 @@ public class InventoriesController extends ModelController<Inventory> {
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map =  super.getIncludedModelFields();
-        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE"));
+        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG"));
         return map;
     }
 
