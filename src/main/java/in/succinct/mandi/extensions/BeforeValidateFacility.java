@@ -24,6 +24,10 @@ public class BeforeValidateFacility extends BeforeModelValidateExtension<Facilit
             model.setCountryId(model.getState().getCountryId());
         }
 
+        validateAddress(model);
+    }
+
+    private void validateAddress(Facility model){
         boolean addressChanged = Address.isAddressChanged(model);
         boolean verified = model.isVerified();
         if (model.getRawRecord().isNewRecord() && verified) {

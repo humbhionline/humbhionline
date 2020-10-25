@@ -236,7 +236,7 @@
                     {{search.Facility.City.Name}},{{search.Facility.State.Name}}<br/>
                     {{search.Facility.PinCode.PinCode}}<br/>
                     @ Distance of {{search.Facility.Distance}} Km <br/>
-                    {{search.Facility.Lat +","+ search.Facility.Lng}}
+                    <!-- {{search.Facility.Lat +","+ search.Facility.Lng}} -->
                 </div>
             </div>
 
@@ -245,8 +245,10 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-12">
-                    <input  key="search"  id="search"   class="form-control" placeholder="Search Item/Store" v-on:input="find($event)"
-                     v-model="search.term" />
+                    <div class="d-flex flex-row align-items-center" v-bind:style="search.facility_id ? '' : 'height:20rem' ">
+                        <input  key="search"  id="search"   class="form-control" placeholder="Search Item/Store" v-on:input="find($event)"
+                         v-model="search.term" />
+                    </div>
                 </div>
 
             </div>
