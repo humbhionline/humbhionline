@@ -24,7 +24,6 @@
                     lookupselectionIndex : -1,
                     Inventory: {},
                     AdjustmentQuantity : 0 ,
-                    itemEdited : false,
                 }
             },
             created: function () {
@@ -209,17 +208,6 @@
                     return false;
                     */
                 },
-                onItemBlur: function(e){
-                    e && e.preventDefault();
-                    if (!this.itemEdited) {
-                        return;
-                    }
-
-                    let self = this;
-                    self.itemEdited = false;
-                    self.current.Items = [];
-                    self._invokeItemLookup(e);
-                },
                 _invokeItemLookup: function(e){
                     let self = this;
                     if (self.current.Items.length == 0){
@@ -245,10 +233,10 @@
                 onItemChange: function (e) {
                     e && e.preventDefault();
                     if (!this.isKeyTriggerable(e)) {
+                        self.current.Items = [] ;
                         return;
                     }
                     let self = this;
-                    self.itemEdited = true;
                     new Autocomplete("items", e.target).search().then(function (response) {
                         if (!response) {
                             return
@@ -419,7 +407,7 @@
                         <label v-bind:for="'item' + i" class="small">Product Name</label>
                         <input  v-bind:key="'item' + i"  v-bind:id="'item' + i"   class="form-control" placeholder="Product Name"
                         v-model="current.Inventory.Sku.Item.Name"
-                        v-on:input="onItemChange($event)" v-on:blur="onItemBlur($event)" v-on:keyup.down="navigate($event,0,current.Items.length)"   />
+                        v-on:input="onItemChange($event)" v-on:keyup.down="navigate($event,0,current.Items.length)"   />
                     </div>
                     <div class="col-5" v-if="current.index === i">
                         <label class="small"   v-bind:for="'uom' + i"  >Package</label>

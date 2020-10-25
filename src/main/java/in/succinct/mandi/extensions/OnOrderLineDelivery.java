@@ -25,12 +25,13 @@ public class OnOrderLineDelivery implements Extension {
         if (qtyDeliveredNow > 0 && item.getAssetCodeId() != null && item.getAssetCode().isSac() && item.isItemRestrictedToSingleSeller() && item.isHumBhiOnlineSubscriptionItem()){
             Order order = orderLine.getOrder().getRawRecord().getAsProxy(Order.class);
             if (order.getAmountPendingPayment() > 0){
-                throw new RuntimeException("Delivery happens after accepting the payment automatically. Just accept the payment.");
+                throw new RuntimeException("Once payment is done by customer, delivery happens automatically");
             }
             User creator = orderLine.getCreatorUser().getRawRecord().getAsProxy(User.class);
             UnitOfMeasure pack = sku.getPackagingUOM();
             double numberOfLines = UnitOfMeasureConversionTable.convert(qtyDeliveredNow, pack.getMeasures(), pack.getName() ,"Single");
             creator.setBalanceOrderLineCount(creator.getBalanceOrderLineCount() + numberOfLines);
+            creator.setBalanceBelowThresholdAlertSent(false);
             creator.save();
         }
 

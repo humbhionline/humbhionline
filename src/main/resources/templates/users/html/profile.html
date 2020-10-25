@@ -315,6 +315,24 @@
     <div id="edit" class="app-body">
         <div class="container-fluid">
             <div class="row">
+                <div class="col-7" v-if="User.BalanceOrderLineCount <= 0">
+                     Zero Balance
+                </div>
+                <div class="col-7" v-else-if="User.BalanceOrderLineCount <= 10">
+                     Low Balance ({{User.BalanceOrderLineCount}})
+                </div>
+                <div class="col-7" v-else>
+                     Balance ({{User.BalanceOrderLineCount}})
+                </div>
+                <div class="col-5 d-flex flex-row justify-content-end">
+                    <a class="btn btn-primary" href="/dashboard?search=HBO Subscription">
+                        <i class="fas fa-rupee-sign">Recharge</i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row">
                 <div class="col">
                     <h2 class="my-3 mt-4">Profile Information</h2>
                     <p v-if="errors && errors.length > 0" v-for="(error,index) in errors">{{ error }}</p>
@@ -333,8 +351,9 @@
                 </div>
             </div>
 
-
             <div class="border-top border-bottom py-3 kyc-block"  >
+
+
                 <div class="row">
                     <div class="col-8">
                         <label for="name" class="d-block text-muted">Address</label>
