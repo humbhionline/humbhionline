@@ -31,6 +31,13 @@ public class FacilitiesController extends ModelController<Facility> {
         return show(f);
     }
 
+    @RequireLogin
+    public View shutdown(long id){
+        Facility f = Database.getTable(Facility.class).get(id);
+        f.shutdown();
+        return show(f);
+    }
+
 
     /* Keep in sync with apicontroller*/
     @Override

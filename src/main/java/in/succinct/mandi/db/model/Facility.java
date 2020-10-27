@@ -52,4 +52,6 @@ public interface Facility extends in.succinct.plugins.ecommerce.db.model.partici
 
     public List<DeliveryRule> getDeliveryRules();
 
+    public void shutdown();
+
 }
