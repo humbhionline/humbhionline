@@ -5,8 +5,6 @@ import com.venky.geo.GeoLocation;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.User;
 import com.venky.swf.db.table.ModelImpl;
-import in.succinct.plugins.ecommerce.agents.inventory.AdjustInventoryTask;
-import in.succinct.plugins.ecommerce.db.model.inventory.AdjustmentRequest;
 
 import java.math.BigDecimal;
 
@@ -21,18 +19,16 @@ public class FacilityImpl extends ModelImpl<Facility> {
     public Facility getSelfFacility() {
         return getProxy();
     }
-    public void verify(){
+    public void publish(){
         Facility f = getProxy();
-        f.setVerified(true);
-        f.setVerifiedById(Database.getInstance().getCurrentUser().getId());
+        f.setPublished(true);
         f.save();
     }
 
-    public void shutdown(){
-        getProxy().getInventoryList().forEach(i->{
-            i.setInfinite(false);
-            i.adjust(i.getQuantity() * -1,"Shutdown facility");
-        });
+    public void unpublish(){
+        Facility facility = getProxy();
+        facility.setPublished(false);
+        facility.save();
     }
 
     public Double getDistance() {

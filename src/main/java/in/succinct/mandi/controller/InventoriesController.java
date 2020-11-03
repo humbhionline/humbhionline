@@ -29,7 +29,8 @@ public class InventoriesController extends ModelController<Inventory> {
     protected ResultFilter<Inventory> getFilter() {
 
         return record ->
-                ((record.getFacility().getRawRecord().getAsProxy(Facility.class).getDistance() < 20 &&
+                ((record.getFacility().getRawRecord().getAsProxy(Facility.class).isPublished() &&
+                        record.getFacility().getRawRecord().getAsProxy(Facility.class).getDistance() < 20 &&
                         record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0)
                         || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem())
                         && (record.isInfinite() || record.getQuantity() > 0)

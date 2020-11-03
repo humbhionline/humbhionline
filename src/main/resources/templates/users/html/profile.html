@@ -314,6 +314,13 @@
                     }
                     self.userAddressBeingEdited = false;
                 },
+                verify : function(event){
+                    let self = this;
+                    api().url("/users/verify/" + self.User.Id).get().then(function(response){
+                       self.User = response.User;
+                       Lockr.set("User",self.User);
+                    });
+                },
 
                 showApp: function () {
                     $("#root").show();
@@ -384,7 +391,7 @@
                     <div class="col">
                         <div class="row no-gutters">
                             <div class="col-4">
-                                <input type="file" class="aadhar-id" id="aadharzipfile" />
+                                <input type="file" class="file-upload" id="aadharzipfile" />
                                 <label class="btn btn-primary" for="aadharzipfile">Aadhar e-Kyc</label>
                             </div>
                             <div class="col">
@@ -406,6 +413,9 @@
                     </div>
                     <div class="col-9" v-else>
                         <label>{{User.LongName}}</label>
+                    </div>
+                    <div class="col-3 d-flex flex-row justify-content-end" v-if="!User.Verified || User.Verified === 'N'">
+                         <a href="#" class="btn btn-primary" @click="verify($event)">Verify</a>
                     </div>
 
                     <div class="col-9" v-if="userAddressBeingEdited ">

@@ -48,14 +48,13 @@ public class BeforeValidateUser extends BeforeModelValidateExtension<User> {
         in.succinct.mandi.db.model.User model = u.getRawRecord().getAsProxy(in.succinct.mandi.db.model.User.class);
         boolean addressChanged = Address.isAddressChanged(model);
 
-        boolean verifiedViaKyc = !model.getReflector().getJdbcTypeHelper().getTypeRef(Boolean.class).
+        boolean verifiedViaKyc = model.getReflector().getJdbcTypeHelper().getTypeRef(Boolean.class).
                 getTypeConverter().valueOf(model.getTxnProperty("verifiedViaKyc"));
-        User currentUser = Database.getInstance().getCurrentUser().getRawRecord().getAsProxy(User.class);
+        com.venky.swf.db.model.User cu = Database.getInstance().getCurrentUser();
+        User currentUser = cu == null ? null : cu.getRawRecord().getAsProxy(User.class);
 
         if (model.isVerified() && !model.getRawRecord().isFieldDirty("VERIFIED")){
-            if (addressChanged && !verifiedViaKyc && !currentUser.isStaff()){
-                model.setVerified(false);
-            }
+            model.setVerified(!addressChanged);
         }
 
         if (model.getRawRecord().isNewRecord() && model.isVerified()) {
@@ -64,7 +63,7 @@ public class BeforeValidateUser extends BeforeModelValidateExtension<User> {
 
         if (model.getRawRecord().isFieldDirty("VERIFIED")){
             if (model.isVerified()) {
-                if (!verifiedViaKyc && !currentUser.isStaff()){
+                if (!verifiedViaKyc && currentUser != null && !currentUser.isStaff()){
                     throw new RuntimeException("Insufficient Rights to verify Address.");
                 }
             }

@@ -226,7 +226,7 @@ select {
     border-color: black !important;
     margin-bottom: 1rem;
 }
-.aadhar-id{
+.file-upload{
     position: absolute;
     visibility: hidden;
 }
