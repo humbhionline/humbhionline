@@ -628,19 +628,8 @@
                 </div>
             </div>
         </div>
-        <div class="container-fluid">
+        <div class="container">
             <div class="row">
-                <div class="col-12">
-                    <h2 class="my-3 mt-4" > {{Facility.Name}} </h2>
-                    <span v-if="Facility.City">
-                        {{Facility.AddressLine1}}
-                        {{!blank(Facility.AddressLine2) ? "," : "" }} {{ Facility.AddressLine2}}
-                        {{!blank(Facility.AddressLine3) ? "," : "" }}  {{Facility.AddressLine3}}
-                        {{!blank(Facility.AddressLine4) ? "," : "" }}  {{Facility.AddressLine4}}
-                        {{Facility.City.Name}}-{{Facility.City.State.Name}} ,{{Facility.PinCode.PinCode}}
-                    </span>
-                </div>
-
                 <div class="col-12">
                     <div id="banner-slider" class="carousel slide" data-ride="carousel">
                       <!-- Indicators -->
@@ -671,6 +660,7 @@
                 </div>
 
             </div>
+
             <div id="banners" class="row"  v-if="facilityBannerBeingEdited" >
                 <div class="col-12">
                      <div class="d-flex flex-row justify-content-end">
@@ -709,6 +699,28 @@
                     </div>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-12">
+                    <h2 class="my-3 mt-4" > {{Facility.Name}} </h2>
+                    <span v-if="Facility.City">
+                        {{Facility.AddressLine1}}
+                        {{!blank(Facility.AddressLine2) ? "," : "" }} {{ Facility.AddressLine2}}
+                        {{!blank(Facility.AddressLine3) ? "," : "" }}  {{Facility.AddressLine3}}
+                        {{!blank(Facility.AddressLine4) ? "," : "" }}  {{Facility.AddressLine4}}
+                        {{Facility.City.Name}}-{{Facility.City.State.Name}} ,{{Facility.PinCode.PinCode}}
+                    </span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-8 d-flex small justify-content-start">
+                    <span>Credit Balance: {{User.BalanceOrderLineCount}}</span>
+                </div>
+                <div class="col-4 d-flex small justify-content-end">
+                    <span>#Products: {{Facility.Inventories.length}}</span>
+                </div>
+
+            </div>
+
 
             <div v-bind:id="'inventory-' + i " class="py-3 border-top border-dark" v-for="(inv,i) in Facility.Inventories">
                 <div class="d-flex flex-row justify-content-end">
