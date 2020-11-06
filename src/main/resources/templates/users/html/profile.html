@@ -10,309 +10,330 @@
 
     $(function () {
         $("#header").load("/fragments/html/header");
-        profile = user_profile();
-        profile.load();
-    });
-
-    function user_profile() {
-        return {
-            vmprofile: new Vue({
-                el: '#edit',
-                data: {
-                    User: { VirtualPaymentAddress: ""  ,  DateOfBirth: "" , City : { Name : "" } , PinCode : { PinCode : "" } },
-                    errors: [],
-                    userPhoneBeingEdited: false,
-                    userEmailBeingEdited: false,
-                    current : {
-                        Cities : [] ,
-                        PinCodes : [],
-                        lookupselectionIndex : -1,
-                    }
-                },
-                methods: {
-                    isKeyTriggerable: function (e) {
-                        return  (e && e.target.value.length > 3);
-                    },
-                    onCityChange: function (e) {
-                        e && e.preventDefault();
-                        if (!this.isKeyTriggerable(e)) {
-                            return;
-                        }
-                        let self = this;
-                        new Autocomplete("cities", e.target).search().then(function (response) {
-                            if (!response) {
-                                return
-                            }
-                            self.current.Cities = response.Cities;
-                            if (self.current.Cities.length === 1) {
-                                self.onCitySelect(null, self.current.Cities[0]);
-                            } else {
-                                self.loadLookupEntries(e.target);
-                            }
-                        });
-                    },
-                    onCitySelect: function (e, item) {
-                        e && e.preventDefault();
-                        let self = this;
-                        self.User.City = item;
-                        self.User.State = item.State;
-                        self.User.Country = item.State.Country;
-                        self.current.Cities = [];
-                    },
-                    onPinCodeChange: function (e) {
-                        e && e.preventDefault();
-                        if (!this.isKeyTriggerable(e)) {
-                            return;
-                        }
-
-                        let self = this;
-                        new Autocomplete("pin_codes", e.target).search("PIN_CODE").then(function (response) {
-                            if (!response) {
-                                return
-                            }
-                            self.current.PinCodes = response.PinCodes;
-                            if (response.PinCodes.length === 1) {
-                                self.onPinCodeSelect(null, self.current.PinCodes[0]);
-                            } else {
-                                self.loadLookupEntries(e.target);
-                            }
-                        });
-                    },
-                    onPinCodeSelect:function (e, item) {
-                        e && e.preventDefault();
-                        let self = this;
-                        self.User.PinCode = item;
-                        self.current.PinCodes = [];
-                    },
-                    getParentDiv: function (element) {
-                        var div = element;
-                        while (div && div.tagName !== 'DIV') {
-                            div = div.parentElement;
-                        }
-                        return div;
-                    },
-                    loadLookupEntries: function (element) {
-                        var div = this.getParentDiv(element);
-                        if (div) {
-                            div.appendChild(this.$refs['lookupEntries']);
-                        }
-                    },
-
-                    navigate : function(e,index,length){
-                        e && e.preventDefault();
-                        let self = this;
-                        this.current.lookupselectionIndex = (index % length);
-                        let anchors = this.$refs['lookupEntries'].getElementsByTagName("a");
-                        anchors[this.current.lookupselectionIndex].focus();
-                    },
-                    saveUser: function (e) {
-                        e.preventDefault();
-                        self = this;
-                        self.errors = [];
-                        if (!self.User.LongName) {
-                            self.errors.push("Let us know your full name.");
-                        }
-                        if (self.errors.length === 0) {
-                            api().url("/users/save").parameters({ "User": self.User }).post().then(function (response) {
-                                //self.Lockr.set("User", response.User);
-                                profile.load();
-                            });
-                        }
-                    },
-                    doAadharKyc: function (e) {
-                        var files = $("#aadharzipfile")[0].files;
-                        if (!files.length) {
-                            return;
-                        }
-                        var aadharzipfile = files[0];
-                        var password = $("#aadharzippassword").val();
-
-                        let self = this;
-                        this.createDataFile(aadharzipfile, function (datafile) {
-                            let formData = new FormData();
-                            formData.append('zipfile', datafile);
-                            formData.append('password', password);
-                            api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata" }).post().then(function (response) {
-                                console.log(response);
-                                self.User = response.User;
-                                Lockr.set("User",self.User);
-                            });
-                        });
-                    },
-                    createDataFile: function (file, callback) {
-                        var reader = new FileReader();
-                        reader.onload = (e) => {
-                            callback(e.target.result);
-                        }
-                        reader.readAsDataURL(file);
-                    },
-
-                    verifyPhone: function (userPhone) {
-                        self = this;
-                        self.errors = [];
-                        api().url("/user_phones/validateOtp/" + userPhone.Id).parameters({ "Otp": userPhone.Otp }).post().then(function (response) {
-                            if (response.UserPhone.Validated === 'Y') {
-                                index = self.User.UserPhones.findIndex(function (currentValue) {
-                                    return currentValue.Id === userPhone.Id;
-                                });
-                                self.User.UserPhones.splice(index, 1, response.UserPhone);
-                                self.checkUserPhones();
-                            } else {
-                                self.errors.push("Otp doesnot match");
-                            }
-
-                        });
-                    },
-
-                    makePrimaryPhone: function (userPhone) {
-                        self = this;
-                        self.errors = [];
-                        if (!userPhone.Validated || userPhone.Validated !== 'Y') {
-                            self.errors.push("Only validated phone numbers can be made as primary phone number.");
-                        }
-                        if (self.errors.length === 0) {
-                            api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "PhoneNumber": userPhone.PhoneNumber } }).post().then(function (response) {
-                                self.User = response.Users[0];
-                                self.checkUserPhones();
-                                self.checkUserEmails();
-                            }).catch(function (err) {
-                                self.errors.push(err.response.data.SWFHttpResponse.Error)
-                            });
-                        }
-                    },
-                    destroyPhone: function (userPhone) {
-                        let self = this;
-                        api().url("/user_phones/destroy/" + userPhone.Id).get().then(function (response) {
-                            index = self.User.UserPhones.findIndex(function (currentValue) {
-                                return currentValue.Id === userPhone.Id;
-                            });
-                            self.User.UserPhones.splice(index, 1);
-                            self.checkUserPhones();
-                        });
-
-                    },
-                    checkUserPhones: function () {
-                        let self = this;
-                        let allPhonesValidated = self.User.UserPhones.filter(user => user.Validated && user.Validated === 'N').length ? false : true;
-                        self.userPhoneBeingEdited = !allPhonesValidated
-                        if (allPhonesValidated) {
-                            if (self.User.UserPhones.filter(p => p.PhoneNumber === "").length === 0) {
-                                self.User.UserPhones.push({ "PhoneNumber": "" });
-                            }
-                        }
-                    },
-                    addPhone: function (userPhone) {
-                        self = this;
-                        api().url("/user_phones/save").parameters({ "UserPhone": { "PhoneNumber": userPhone.PhoneNumber, "UserId": self.User.Id } }).post().then(function (response) {
-                            index = self.User.UserPhones.findIndex(function (currentValue) {
-                                return !currentValue.Id;
-                            });
-                            self.User.UserPhones.splice(index, 1, response.UserPhones[0]);
-                            self.checkUserPhones();
-                        });
-                    },
-                    viewAddPhone: function () {
-                        this.userPhoneBeingEdited = true;
-                    },
-                    verifyEmail: function (userEmail) {
-                        self = this;
-                        self.errors = [];
-                        api().url("/user_emails/validateOtp/" + userEmail.Id).parameters({ "Otp": userEmail.Otp }).post().then(function (response) {
-                            if (response.UserEmail.Validated === 'Y') {
-                                index = self.User.UserEmails.findIndex(function (currentValue) {
-                                    return currentValue.Id === userEmail.Id;
-                                });
-                                self.User.UserEmails.splice(index, 1, response.UserEmail);
-                                self.checkUserEmails();
-                            } else {
-                                self.errors.push("Otp doesnot match");
-                            }
-                        });
-                    },
-                    makePrimaryEmail: function (userEmail) {
-                        self = this;
-                        self.errors = [];
-                        if (!userEmail.Validated || userEmail.Validated !== 'Y') {
-                            self.errors.push("Only validated emails can be made as primary email.");
-                        }
-                        if (self.errors.length === 0) {
-                            api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "Email": userEmail.Email } }).post().then(function (response) {
-                                self.User = response.Users[0];
-                                self.checkUserEmails();
-                                self.checkUserPhones();
-                            });
-                        }
-                    },
-                    destroyEmail: function (userEmail) {
-                        self = this;
-                        api().url("/user_emails/destroy/" + userEmail.Id).get().then(function (response) {
-                            index = self.User.UserEmails.findIndex(function (currentValue) {
-                                return currentValue.Id === userEmail.Id;
-                            });
-                            self.User.UserEmails.splice(index, 1);
-                            self.checkUserEmails();
-                        });
-                    },
-                    checkUserEmails: function () {
-                        let self = this;
-                        let allEmailsValidated = self.User.UserEmails.filter(user => user.Validated && user.Validated === 'N').length ? false : true;
-                        self.userEmailBeingEdited = !allEmailsValidated
-                        if (allEmailsValidated) {
-                            if (self.User.UserEmails.filter(p => p.Email === "").length === 0) {
-                                self.User.UserEmails.push({ "Email": "" });
-                            }
-                        }
-                    },
-                    addEmail: function (userEmail) {
-                        self = this;
-                        api().url("/user_emails/save").parameters({ "UserEmail": { "Email": userEmail.Email, "UserId": self.User.Id } }).post().then(function (response) {
-                            index = self.User.UserEmails.findIndex(function (currentValue) {
-                                return !currentValue.Id;
-                            });
-                            self.User.UserEmails.splice(index, 1, response.UserEmails[0]);
-                            self.checkUserEmails();
-                        });
-                    },
-                    viewAddEmail: function () {
-                        this.userEmailBeingEdited = true;
-                    },
+        new Vue({
+            el: '#edit',
+            data: {
+                User: { VirtualPaymentAddress: ""  ,  DateOfBirth: "" , City : { Name : "" } , PinCode : { PinCode : "" } },
+                errors: [],
+                userPhoneBeingEdited: false,
+                userEmailBeingEdited: false,
+                userAddressBeingEdited : false,
+                current : {
+                    Cities : [] ,
+                    PinCodes : [],
+                    lookupselectionIndex : -1,
                 }
-            }),
-            load: function () {
+            },
+            created: function () {
                 self = this;
-                self.vmprofile.User = {};
+                self.User = {};
                 api().url("/users/show/" + Lockr.get("User").Id).get().then(function (response) {
                     Lockr.set("User", response.User);
-                    self.vmprofile.User = response.User;
-                    if (!self.vmprofile.User.City){
-                        self.vmprofile.User.City = {} ;
+                    self.User = response.User;
+                    if (!self.User.City){
+                        self.User.City = {} ;
                     }
-                    if (!self.vmprofile.User.PinCode){
-                        self.vmprofile.User.PinCode = {} ;
+                    if (!self.User.PinCode){
+                        self.User.PinCode = {} ;
                     }
-                    if (!self.vmprofile.User.UserPhones) {
-                        self.vmprofile.User.UserPhones = [];
+                    if (!self.User.UserPhones) {
+                        self.User.UserPhones = [];
                     }
-                    self.vmprofile.checkUserPhones();
-                    if (!self.vmprofile.User.UserEmails) {
-                        self.vmprofile.User.UserEmails = [];
+                    self.checkUserPhones();
+                    if (!self.User.UserEmails) {
+                        self.User.UserEmails = [];
                     }
-                    self.vmprofile.User.UserEmails.push({ "Email": "" });
+                    //self.vmprofile.User.UserEmails.push({ "Email": "" , Validated : "N"});
+                    self.checkUserEmails();
+                    self.userAddressBeingEdited =  false; //!self.User.Verified || self.User.Verified === 'N' ;
                     self.showApp();
                 });
             },
-            showApp: function () {
-                $("#root").show();
-            }
-        };
-    }
+            methods: {
+                isKeyTriggerable: function (e) {
+                    return  (e && e.target.value.length > 3);
+                },
+                onCityChange: function (e) {
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+                    let self = this;
+                    new Autocomplete("cities", e.target).search().then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.current.Cities = response.Cities;
+                        if (self.current.Cities.length === 1) {
+                            self.onCitySelect(null, self.current.Cities[0]);
+                        } else {
+                            self.loadLookupEntries(e.target);
+                        }
+                    });
+                },
+                onCitySelect: function (e, item) {
+                    e && e.preventDefault();
+                    let self = this;
+                    self.User.City = item;
+                    self.User.State = item.State;
+                    self.User.Country = item.State.Country;
+                    self.current.Cities = [];
+                },
+                onPinCodeChange: function (e) {
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
 
+                    let self = this;
+                    new Autocomplete("pin_codes", e.target).search("PIN_CODE").then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.current.PinCodes = response.PinCodes;
+                        if (response.PinCodes.length === 1) {
+                            self.onPinCodeSelect(null, self.current.PinCodes[0]);
+                        } else {
+                            self.loadLookupEntries(e.target);
+                        }
+                    });
+                },
+                onPinCodeSelect:function (e, item) {
+                    e && e.preventDefault();
+                    let self = this;
+                    self.User.PinCode = item;
+                    self.current.PinCodes = [];
+                },
+                getParentDiv: function (element) {
+                    var div = element;
+                    while (div && div.tagName !== 'DIV') {
+                        div = div.parentElement;
+                    }
+                    return div;
+                },
+                loadLookupEntries: function (element) {
+                    var div = this.getParentDiv(element);
+                    if (div) {
+                        div.appendChild(this.$refs['lookupEntries']);
+                    }
+                },
+
+                navigate : function(e,index,length){
+                    e && e.preventDefault();
+                    let self = this;
+                    this.current.lookupselectionIndex = (index % length);
+                    let anchors = this.$refs['lookupEntries'].getElementsByTagName("a");
+                    anchors[this.current.lookupselectionIndex].focus();
+                },
+                saveUser: function (e) {
+                    e.preventDefault();
+                    self = this;
+                    self.errors = [];
+                    if (!self.User.LongName) {
+                        self.errors.push("Let us know your full name.");
+                    }
+
+                    if (self.errors.length === 0) {
+                        api().url("/users/save").parameters({ "User": self.User }).post().then(function (response) {
+                            self.User = response.Users[0];
+                            Lockr.set("User", self.User);
+                            self.userAddressBeingEdited = false;
+                        });
+                    }
+                },
+                doAadharKyc: function (e) {
+                    if (e){
+                        e.preventDefault();
+                    }
+                    var files = $("#aadharzipfile")[0].files;
+                    if (!files.length) {
+                        return;
+                    }
+                    var aadharzipfile = files[0];
+                    var password = $("#aadharzippassword").val();
+
+                    let self = this;
+                    this.createDataFile(aadharzipfile, function (datafile) {
+                        let formData = new FormData();
+                        formData.append('zipfile', datafile);
+                        formData.append('password', password);
+                        api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata" }).post().then(function (response) {
+                            console.log(response);
+                            self.User = response.User;
+                            Lockr.set("User",self.User);
+                        });
+                    });
+                },
+                createDataFile: function (file, callback) {
+                    var reader = new FileReader();
+                    reader.onload = (e) => {
+                        callback(e.target.result);
+                    }
+                    reader.readAsDataURL(file);
+                },
+
+                verifyPhone: function (userPhone) {
+                    self = this;
+                    self.errors = [];
+                    api().url("/user_phones/validateOtp/" + userPhone.Id).parameters({ "Otp": userPhone.Otp }).post().then(function (response) {
+                        if (response.UserPhone.Validated === 'Y') {
+                            index = self.User.UserPhones.findIndex(function (currentValue) {
+                                return currentValue.Id === userPhone.Id;
+                            });
+                            self.User.UserPhones.splice(index, 1, response.UserPhone);
+                            self.checkUserPhones();
+                        } else {
+                            self.errors.push("Otp doesnot match");
+                        }
+
+                    });
+                },
+
+                makePrimaryPhone: function (userPhone) {
+                    self = this;
+                    self.errors = [];
+                    if (!userPhone.Validated || userPhone.Validated !== 'Y') {
+                        self.errors.push("Only validated phone numbers can be made as primary phone number.");
+                    }
+                    if (self.errors.length === 0) {
+                        api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "PhoneNumber": userPhone.PhoneNumber } }).post().then(function (response) {
+                            self.User = response.Users[0];
+                            self.checkUserPhones();
+                            self.checkUserEmails();
+                        }).catch(function (err) {
+                            self.errors.push(err.response.data.SWFHttpResponse.Error)
+                        });
+                    }
+                },
+                destroyPhone: function (userPhone) {
+                    let self = this;
+                    api().url("/user_phones/destroy/" + userPhone.Id).get().then(function (response) {
+                        index = self.User.UserPhones.findIndex(function (currentValue) {
+                            return currentValue.Id === userPhone.Id;
+                        });
+                        self.User.UserPhones.splice(index, 1);
+                        self.checkUserPhones();
+                    });
+
+                },
+                checkUserPhones: function () {
+                    let self = this;
+                    let allPhonesValidated = self.User.UserPhones.filter(user => user.Validated && user.Validated === 'N').length ? false : true;
+                    self.userPhoneBeingEdited = !allPhonesValidated
+                    if (allPhonesValidated) {
+                        if (self.User.UserPhones.filter(p => p.PhoneNumber === "").length === 0) {
+                            self.User.UserPhones.push({ "PhoneNumber": "" });
+                        }
+                    }
+                },
+                addPhone: function (userPhone) {
+                    self = this;
+                    api().url("/user_phones/save").parameters({ "UserPhone": { "PhoneNumber": userPhone.PhoneNumber, "UserId": self.User.Id } }).post().then(function (response) {
+                        index = self.User.UserPhones.findIndex(function (currentValue) {
+                            return !currentValue.Id;
+                        });
+                        self.User.UserPhones.splice(index, 1, response.UserPhones[0]);
+                        self.checkUserPhones();
+                    });
+                },
+                viewAddPhone: function () {
+                    this.userPhoneBeingEdited = true;
+                },
+                verifyEmail: function (userEmail) {
+                    self = this;
+                    self.errors = [];
+                    api().url("/user_emails/validateOtp/" + userEmail.Id).parameters({ "Otp": userEmail.Otp }).post().then(function (response) {
+                        if (response.UserEmail.Validated === 'Y') {
+                            index = self.User.UserEmails.findIndex(function (currentValue) {
+                                return currentValue.Id === userEmail.Id;
+                            });
+                            self.User.UserEmails.splice(index, 1, response.UserEmail);
+                            self.checkUserEmails();
+                        } else {
+                            self.errors.push("Otp doesnot match");
+                        }
+                    });
+                },
+                makePrimaryEmail: function (userEmail) {
+                    self = this;
+                    self.errors = [];
+                    if (!userEmail.Validated || userEmail.Validated !== 'Y') {
+                        self.errors.push("Only validated emails can be made as primary email.");
+                    }
+                    if (self.errors.length === 0) {
+                        api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "Email": userEmail.Email } }).post().then(function (response) {
+                            self.User = response.Users[0];
+                            self.checkUserEmails();
+                            self.checkUserPhones();
+                        });
+                    }
+                },
+                destroyEmail: function (userEmail) {
+                    self = this;
+                    api().url("/user_emails/destroy/" + userEmail.Id).get().then(function (response) {
+                        index = self.User.UserEmails.findIndex(function (currentValue) {
+                            return currentValue.Id === userEmail.Id;
+                        });
+                        self.User.UserEmails.splice(index, 1);
+                        self.checkUserEmails();
+                    });
+                },
+                checkUserEmails: function () {
+                    let self = this;
+                    let allEmailsValidated = self.User.UserEmails.filter(user => user.Validated && user.Validated === 'N').length ? false : true;
+                    self.userEmailBeingEdited = !allEmailsValidated
+                },
+                addEmail: function (userEmail) {
+                    self = this;
+                    api().url("/user_emails/save").parameters({ "UserEmail": { "Email": userEmail.Email, "UserId": self.User.Id } }).post().then(function (response) {
+                        index = self.User.UserEmails.findIndex(function (currentValue) {
+                            return !currentValue.Id;
+                        });
+                        self.User.UserEmails.splice(index, 1, response.UserEmails[0]);
+                        self.checkUserEmails();
+                    });
+                },
+                viewAddEmail: function () {
+                    let self = this;
+                    if (!self.userEmailBeingEdited) {
+                        self.User.UserEmails.push({"Email" : "" , Validated:"N"});
+                        this.userEmailBeingEdited = true;
+                    }
+                },
+                editAddress: function(event){
+                    let self = this;
+                    if (event){
+                        event.preventDefault();
+                    }
+                    self.userAddressBeingEdited = true;
+                },
+                cancelEditAddress: function(event){
+                    let self = this;
+                    if (event){
+                        event.preventDefault();
+                    }
+                    self.userAddressBeingEdited = false;
+                },
+                verify : function(event){
+                    let self = this;
+                    api().url("/users/verify/" + self.User.Id).get().then(function(response){
+                       self.User = response.User;
+                       Lockr.set("User",self.User);
+                    });
+                },
+
+                showApp: function () {
+                    $("#root").show();
+                }
+            }
+        });
+    });
 </script>
-<div id="root" style="display:none;">
+<div id="root" style="display:none;" >
 
     <div id="header">
     </div>
-    <div id="edit" class="app-body">
+    <div id="edit" class="app-body" v-if="User.Id">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-7" v-if="User.BalanceOrderLineCount <= 0">
@@ -355,13 +376,14 @@
 
 
                 <div class="row">
-                    <div class="col-8">
+                    <div class="col-4">
                         <label for="name" class="d-block text-muted">Address</label>
                     </div>
-                    <div class="col-4">
-                        <i class="fas fa-check" v-if="User.Verified && User.Verified === 'Y'">
-                            Verified
-                        </i>
+                    <div class="col d-flex flex-row justify-content-end">
+                        <i class="fas fa-check" v-if="User.Verified && User.Verified === 'Y'">Verified</i>
+                        <a href="#" class="fas fa-edit" v-if="!userAddressBeingEdited" @click="editAddress($event)">Edit</a>
+                        <a href="#" class="fas fa-undo" @click="cancelEditAddress($event)" v-else>Cancel</a>
+
                     </div>
                 </div>
 
@@ -369,7 +391,7 @@
                     <div class="col">
                         <div class="row no-gutters">
                             <div class="col-4">
-                                <input type="file" class="aadhar-id" id="aadharzipfile" />
+                                <input type="file" class="file-upload" id="aadharzipfile" />
                                 <label class="btn btn-primary" for="aadharzipfile">Aadhar e-Kyc</label>
                             </div>
                             <div class="col">
@@ -386,39 +408,42 @@
                     </div>
                 </div>
                 <div class="row form-group" >
-                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                        <input class="form-control" id="name" v-model="User.LongName" placeholder="Full Name." :disabled="User.Verified && User.Verified === 'Y'" />
+                    <div class="col-9" v-if="userAddressBeingEdited">
+                        <input class="form-control" id="name" v-model="User.LongName" placeholder="Full Name."  />
                     </div>
                     <div class="col-9" v-else>
                         <label>{{User.LongName}}</label>
                     </div>
+                    <div class="col-3 d-flex flex-row justify-content-end" v-if="!User.Verified || User.Verified === 'N'">
+                         <a href="#" class="btn btn-primary" @click="verify($event)">Verify</a>
+                    </div>
 
-                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                        <input class="form-control" id="a1" v-model="User.AddressLine1" placeholder="House Number" :disabled="User.Verified && User.Verified === 'Y'" />
+                    <div class="col-9" v-if="userAddressBeingEdited ">
+                        <input class="form-control" id="a1" v-model="User.AddressLine1" placeholder="House Number"  />
                     </div>
                     <div class="col-9" v-else>
                         <label>{{User.AddressLine1}}</label>
                     </div>
 
-                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                        <input class="form-control" id="a2" v-model="User.AddressLine2" placeholder="Building Name" :disabled="User.Verified && User.Verified === 'Y'" />
+                    <div class="col-9" v-if="userAddressBeingEdited">
+                        <input class="form-control" id="a2" v-model="User.AddressLine2" placeholder="Building Name"  />
                     </div>
                     <div class="col-9" v-else>
                         <label>{{User.AddressLine2}}</label>
                     </div>
-                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                        <input class="form-control" id="a3" v-model="User.AddressLine3" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
+                    <div class="col-9" v-if="userAddressBeingEdited">
+                        <input class="form-control" id="a3" v-model="User.AddressLine3" placeholder="Locality"  />
                     </div>
                     <div class="col-9" v-else>
                         <label>{{User.AddressLine3}}</label>
                     </div>
-                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
-                        <input class="form-control" id="a4" v-model="User.AddressLine4" placeholder="Locality" :disabled="User.Verified && User.Verified === 'Y'" />
+                    <div class="col-9" v-if="userAddressBeingEdited">
+                        <input class="form-control" id="a4" v-model="User.AddressLine4" placeholder="Locality"   />
                     </div>
                     <div class="col-9" v-else>
                         <label>{{User.AddressLine4}}</label>
                     </div>
-                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
+                    <div class="col-9" v-if="userAddressBeingEdited">
                         <input id="city" class="form-control" placeholder="City Name" v-model="User.City.Name"
                         v-on:input="onCityChange($event)" v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City"  />
                     </div>
@@ -426,7 +451,7 @@
                         <label>{{User.City.Name}}-{{User.State.Name}}</label>
                     </div>
 
-                    <div class="col-9" v-if="!User.Verified || User.Verified === 'N'">
+                    <div class="col-9" v-if="userAddressBeingEdited">
                         <input id="pincode" class="form-control" placeholder="Pin Code"
                         v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
                         v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="User.PinCode"  />
@@ -474,9 +499,11 @@
                 <div class="col-4">
                     <h2>Mobile(s)</h2>
                 </div>
-                <div class="col text-right">
+                <div class="col d-flex flex-row justify-content-end">
                     <button class="btn btn-primary" v-if="!userPhoneBeingEdited" v-on:click="viewAddPhone()">Add New
                         Mobile</button>
+                </div>
+                <div class="col-12">
                     <div v-if="userPhoneBeingEdited">
                         <div v-for="(userPhone,index) in User.UserPhones">
                             <div v-if="userPhone.Id && userPhone.Validated && userPhone.Validated === 'N'">
@@ -504,7 +531,7 @@
                                         <input v-bind:id="'phone-'+index" class="form-control form-control-sm"
                                             v-model="userPhone.PhoneNumber" placeholder="Mobile number" />
                                     </div>
-                                    <div class="col-4">
+                                    <div class="col-4 d-flex flex-row justify-content-end">
                                         <a class="btn btn-sm btn-primary" href="#" role="button"
                                             v-on:click="addPhone(userPhone)">
                                             Get OTP
@@ -544,9 +571,11 @@
                 <div class="col-4">
                     <h2>Emails(s)</h2>
                 </div>
-                <div class="col text-right">
+                <div class="col d-flex flex-row justify-content-end">
                     <button class="btn btn-primary" v-if="!userEmailBeingEdited" v-on:click="viewAddEmail()">Add New
                         Email</button>
+                </div>
+                <div class="col-12">
                     <div v-if="userEmailBeingEdited">
                         <div v-for="(userEmail,index) in User.UserEmails">
                             <div v-if="userEmail.Id && userEmail.Validated && userEmail.Validated === 'N'">

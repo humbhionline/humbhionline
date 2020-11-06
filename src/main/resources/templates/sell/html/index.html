@@ -249,7 +249,15 @@
                     let anchors = this.$refs['lookupEntries'].getElementsByTagName("a");
                     anchors[this.current.lookupselectionIndex].focus();
                 },
-                verify : function(e,index){
+                publish : function(e,index){
+                    let self = this;
+                    self.facility_player(e,index,"publish");
+                },
+                unpublish : function(e,index){
+                    let self = this;
+                    self.facility_player(e,index,"unpublish");
+                },
+                facility_player : function(e,index,apiName){
                     e && e.preventDefault();
                     let self = this;
 
@@ -259,7 +267,7 @@
                         self.autoClearMessage("Facility not yet registered!",index);
                         return;
                     }
-                    api().url("/facilities/verify/" +f.Id).get().then(function (response) {
+                    api().url("/facilities/"+apiName+"/" +f.Id).get().then(function (response) {
                         if (newRecord){
                             self.Facilities.splice(self.Facilities.length-1,1,response.Facility);
                         }else {
@@ -272,6 +280,9 @@
                             self.autoClearMessage(err.toString(),index);
                         }
                     });
+                },
+                blank: function(s){
+                    return (!s || s.length === 0)
                 }
             }
         });
@@ -304,121 +315,67 @@
                     <h2 class="my-3 mt-4">Facilities</h2>
                 </div>
             </div>
-            <div v-bind:id="'facility-' + i" v-bind:class="'py-3 border-top border-dark ' + ((current.index == i) ? ' h-80 ' : '' )" v-for="(f,i) in Facilities">
+            <div v-bind:id="'facility-' + i" v-bind:class="'my-3 px-3 border rounded border-dark '" v-for="(f,i) in Facilities">
                 <div class="d-flex flex-row justify-content-end py-2">
-                    <div v-if="current.index == i">
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >
-                            <i class="fas fa-save">Save</i>
-                        </a>
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)" >
-                            <i class="fas fa-undo">Cancel</i>
-                        </a>
+                    <div>
+                        <!-- show status in the icon -->
 
+                        <div v-if="current.index == i">
+                            <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >
+                                <i class="fas fa-check"></i>
+                            </a>
+                            <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)" >
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </div>
+                        <div v-else>
+                            <a href="#" class="btn btn-primary small" v-if="(!f.Published || f.Published === 'N')" v-on:click="publish($event,i)">
+                                <i class="fas fa-lock"></i>
+                            </a>
+                            <a href="#" class="btn btn-primary small" v-if="(f.Published && f.Published === 'Y')" v-on:click="unpublish($event,i)">
+                                <i class="fas fa-lock-open"></i>
+                            </a>
+                            <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)"  >
+                                <i class='fas fa-edit'></i>
+                            </a>
+                        </div>
                     </div>
-                    <div v-else>
-                        <i class="fas fa-check small" v-if="f.Verified && f.Verified === 'Y'">
-                            Verified
-                        </i>
-                        <button class="btn btn-primary small" v-if="(!f.Verified || f.Verified === 'N') && User.Staff === 'Y'" v-on:click="verify($event,i)">
-                            <i class="fas fa-check"> Verified</i>
-                        </button>
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)" >
-                            <i class='fas fa-edit'>Edit</i>
-                        </a>
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="remove($event,i)" v-if="f.Inventories && f.Inventories.length === 0" >
-                            <i class="fas fa-trash">Remove</i>
-                        </a>
-                    </div>
-
                 </div>
-                <div class="row">
-                    <div class="col-12" v-if="current.index == i">
-                        <!-- <label v-if="current.Facility.Name" v-bind:for="'name' + i" class="form-label small">Facility Name</label>
-                        -->
-                        <input class="form-control font-weight-bolder" v-bind:key="'name' + i"  v-bind:id="'name' + i"  v-model="current.Facility.Name" placeholder="Alias for the facility" />
-                    </div>
-                    <div class="col-12" v-else>
-                        <label class="form-label font-weight-bolder">&nbsp;{{f.Name}} </label>
-                    </div>
-                    <div class="col-12 " v-if="current.index == i">
-                        <!-- <label v-if="current.Facility.AddressLine1" v-bind:for="'address1' + i" class="form-label small">AddressLine1</label> -->
-                        <input class="form-control" v-bind:key="'address1' + i"  v-bind:id="'address1' + i"  v-model="current.Facility.AddressLine1" placeholder="Address Line 1" />
-                    </div>
-                    <div class="col-12 " v-else>
-                        <label class="form-label">&nbsp;{{f.AddressLine1}}</label>
-                    </div>
-
-                    <div class="col-12" v-if="current.index == i">
-                        <!-- <label v-if="current.Facility.AddressLine2" v-bind:for="'address2' + i" class="form-label small">AddressLine2</label>
-                            -->
-                        <input class="form-control"  v-bind:key="'address2' + i"  v-bind:id="'address2' + i"  v-model="current.Facility.AddressLine2" placeholder="Address Line 2" />
-                    </div>
-                    <div class="col-12" v-else>
-                        <label class="form-label">&nbsp;{{f.AddressLine2}}</label>
-                    </div>
-                    <div class="col-12" v-if="current.index == i">
-                        <!--
-                            <label v-if="current.Facility.AddressLine3" v-bind:for="'address3' + i" class="form-label small">AddressLine3</label>
-                            -->
-                        <input class="form-control"  v-bind:key="'address3' + i"  v-bind:id="'address3' + i"   v-model="current.Facility.AddressLine3" placeholder="Address Line 3" />
-                    </div>
-                    <div class="col-12" v-else>
-                        <label class="form-label">&nbsp;{{f.AddressLine3}}</label>
-                    </div>
-                    <div class="col-12" v-if="current.index == i">
-                        <!-- <label v-if="current.Facility.AddressLine4" v-bind:for="'address4' + i" class="form-label small">AddressLine4</label>
-                            -->
-                        <input class="form-control"  v-bind:key="'address4' + i"  v-bind:id="'address4' + i"   v-model="current.Facility.AddressLine4" placeholder="Address Line 4"  />
-                    </div>
-                    <div class="col-12" v-else>
-                        <label class="form-label">&nbsp;{{f.AddressLine4}}</label>
-                    </div>
-                    <div class="col-12" v-if="current.index == i">
-                        <!-- <label v-if="current.Facility.City.Name" v-bind:for="'city' + i" class="form-label small">City</label>
-                            -->
-
-                        <input  v-bind:key="'city' + i"  v-bind:id="'city' + i"   class="form-control" placeholder="City Name" v-model="current.Facility.City.Name"
+                <div class="row py-2 px-2 " v-if="current.index != i">
+                    <h2>{{f.Name}} - {{ (f.GSTIN && f.GSTIN.length > 0) ? f.GSTIN :  "??GSTIN"}}</h2>
+                    {{f.AddressLine1}}
+                    {{!blank(f.AddressLine2) ? "," : "" }} {{ f.AddressLine2}}
+                    {{!blank(f.AddressLine3) ? "," : "" }}  {{f.AddressLine3}}
+                    {{!blank(f.AddressLine4) ? "," : "" }}  {{f.AddressLine4}}
+                    {{f.City.Name}}-{{f.City.State.Name}} ,{{f.PinCode.PinCode}}
+                </div>
+                <div class="row" v-else>
+                    <input class="form-control font-weight-bolder" v-bind:key="'name' + i"  v-bind:id="'name' + i"  v-model="current.Facility.Name" placeholder="Alias for the facility" />
+                    <input class="form-control" v-bind:key="'address1' + i"  v-bind:id="'address1' + i"  v-model="current.Facility.AddressLine1" placeholder="Address Line 1" />
+                    <input class="form-control"  v-bind:key="'address2' + i"  v-bind:id="'address2' + i"  v-model="current.Facility.AddressLine2" placeholder="Address Line 2" />
+                    <input class="form-control"  v-bind:key="'address3' + i"  v-bind:id="'address3' + i"   v-model="current.Facility.AddressLine3" placeholder="Address Line 3" />
+                    <input class="form-control"  v-bind:key="'address4' + i"  v-bind:id="'address4' + i"   v-model="current.Facility.AddressLine4" placeholder="Address Line 4"  />
+                    <input  v-bind:key="'city' + i"  v-bind:id="'city' + i"   class="form-control" placeholder="City Name" v-model="current.Facility.City.Name"
                         v-on:input="onCityChange($event)" v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City"  />
-                    </div>
-                    <div class="col-12" v-else>
-                        <label class="form-label">&nbsp;{{f.City.Name}}-{{f.City.State.Name}}</label>
-                    </div>
-
-                    <div class="col-12" v-if="current.index == i">
-                        <!-- <label v-if="current.Facility.PinCode.PinCode" v-bind:for="'pincode' + i" class="form-label small">PinCode</label>
-                            -->
-                        <input v-bind:key="'pincode' + i"  v-bind:id="'pincode' + i"  class="form-control" placeholder="Pin Code"
+                    <input v-bind:key="'pincode' + i"  v-bind:id="'pincode' + i"  class="form-control" placeholder="Pin Code"
                         v-model="current.Facility.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
                         v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="f.PinCode"  />
-                    </div>
-                    <div class="col-12" v-else>
-                        <label class="form-label">&nbsp;{{f.PinCode.PinCode}}</label>
-                    </div>
-
-                    <div class="col-12" v-if="current.index == i">
-
-                        <!-- <label v-if="current.Facility.GSTIN" v-bind:for="'gstin' + i" class="form-label small">GSTIN</label>
-                            -->
-
-                        <input v-bind:key="'gstin' + i"  v-bind:id="'gstin' + i"  class="form-control" placeholder="GSTIN"
+                    <input v-bind:key="'gstin' + i"  v-bind:id="'gstin' + i"  class="form-control" placeholder="GSTIN"
                         v-model="current.Facility.GSTIN" />
-                    </div>
-                    <div class="col-12" v-else>
-                        <label class="form-label">&nbsp;{{f.GSTIN}}</label>
-                    </div>
                 </div>
 
                 <div class="d-flex flex-row justify-content-end py-2">
                     <div v-if="current.index == i">
                         <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >
-                            <i class="fas fa-save">Save</i>
+                            <i class="fas fa-check"></i>
                         </a>
                         <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)" >
-                            <i class="fas fa-undo">Cancel</i>
+                            <i class="fas fa-times"></i>
                         </a>
                     </div>
                     <div v-else>
-                        <a v-bind:href="'/sell/html/facility?id='+f.Id+'&includeMenu=N'" class="btn btn-primary" role="button"  v-if="f.Verified == 'Y'">
+                        <p>Items Added : {{f.Inventories.length }} </p>
+                        <a v-bind:href="'/sell/html/facility?id='+f.Id+'&includeMenu=N'" class="btn btn-primary" role="button"  v-if="f.Published == 'Y'">
                             <i class="fas fa-boxes">Stock</i>
                         </a>
                     </div>

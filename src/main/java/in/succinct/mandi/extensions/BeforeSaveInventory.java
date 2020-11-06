@@ -21,6 +21,9 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
     public void beforeSave(Inventory inventory) {
         Sku sku = inventory.getSku();
         Item item = sku.getItem().getRawRecord().getAsProxy(Item.class);
+        if (inventory.getRawRecord().isNewRecord()){
+            inventory.setInfinite(false);
+        }
         if (item.isItemRestrictedToSingleSeller()){
             List<Sku> skus = item.getSkus();
             List<Long> skuIds = skus.stream().map(s->s.getId()).collect(Collectors.toList());

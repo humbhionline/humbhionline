@@ -19,11 +19,16 @@ public class FacilityImpl extends ModelImpl<Facility> {
     public Facility getSelfFacility() {
         return getProxy();
     }
-    public void verify(){
+    public void publish(){
         Facility f = getProxy();
-        f.setVerified(true);
-        f.setVerifiedById(Database.getInstance().getCurrentUser().getId());
+        f.setPublished(true);
         f.save();
+    }
+
+    public void unpublish(){
+        Facility facility = getProxy();
+        facility.setPublished(false);
+        facility.save();
     }
 
     public Double getDistance() {

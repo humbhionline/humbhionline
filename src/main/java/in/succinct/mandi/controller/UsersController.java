@@ -56,6 +56,13 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         dir.append("/users");
         return dir.toString();
     }
+    public View verify(long id) {
+        User user = Database.getTable(User.class).get(id);
+        user.setVerified(true);
+        user.save();
+        return IntegrationAdaptor.instance(User.class, FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).createResponse(getPath(),
+                user,user.getReflector().getFields(),new HashSet<>(),getIncludedModelFields());
+    }
 
     public View doAadharKyc() throws Exception {
         HttpServletRequest request = getPath().getRequest();
@@ -84,6 +91,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
                 if (!ObjectUtil.isVoid(user.getPhoneNumber())) {
                     data.validatePhone(user.getPhoneNumber());
                     user.setVerified(true);
+                    user.setTxnProperty("verifiedViaKyc",true);
                 }
                 user.setLongName(data.get(AadharEKyc.AadharData.NAME));
                 user.setDateOfBirth(new Date(data.getDateOfBirth().getTime()));
