@@ -35,7 +35,8 @@ a:not([href]):not([tabindex]){
     padding: 5px 15px;
 }
 .qty-box {
-    padding: 0;
+    width :100%;
+
 }
 
 .app-body{
@@ -175,6 +176,15 @@ select {
     right : 0;
     position: absolute;
     z-index: 1;
+}
+.bottom-card {
+    border-top-left-radius: 1rem !important;
+    border-top-right-radius: 1rem !important;
+    bottom: 0;
+    position:fixed;
+    z-index: 10000;
+    right:1em;
+    left: 1em;
 }
 .h-85 {
     height: 85% !important;

@@ -7,6 +7,7 @@
 
 
 <script type="text/javascript">
+
     $(function () {
         $("#header").load("/fragments/html/header");
 
@@ -14,14 +15,21 @@
         var term = params.get("search") ;
         var facility_id = params.get("facility_id");
 
-
+        let PreferredMaxDistance = Lockr.get("PreferredMaxDistance");
+        if (!PreferredMaxDistance){
+            Lockr.set("PreferredMaxDistance",10);
+        }
 
         new Vue({
             el: "#app",
             data: {
                 messages: [],
                 User : {},
+                ShipmentCount : 0,
+                OrderLineCount : 0,
+                OrderAmount : 0,
                 search : {
+                    MaxDistance : Lockr.get("PreferredMaxDistance") || 10 ,
                     facility_id : facility_id,
                     Facility : {},
                     term : term || "",
@@ -68,9 +76,31 @@
                 let fo = Lockr.get("facilityOrders");
                 if (fo){
                     self.facilityOrders = fo;
+                    self.reloadCounts();
                 }
             },
             methods: {
+                reloadCounts: function (){
+                    let self = this;
+
+                    var obj = self.facilityOrders;
+                    self.ShipmentCount = 0 ;
+                    self.OrderLineCount = 0 ;
+                    self.OrderAmount = 0
+
+                    for (key in obj) {
+                        if (obj.hasOwnProperty(key)) {
+                            self.ShipmentCount += 1;
+                            self.OrderLineCount += obj[key].OrderLines.length;
+                            obj[key].OrderLines.forEach((ol, i) => {
+                                self.OrderAmount += ol.OrderedQuantity * ol.Inventory.SellingPrice
+                            });
+                            if ( obj[key].OrderLines.length === 0){
+                                delete obj[key];
+                            }
+                        }
+                    }
+                },
                 loadFacility: function(){
                     let self = this;
                     return new Promise(function(resolve,reject){
@@ -87,6 +117,7 @@
                 },
                 showApp: function () {
                     $("#root").show();
+                    $("#search").focus();
                 },
                 message: function () {
                     var message = "";
@@ -128,7 +159,7 @@
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0 ){
                         term = "(FACILITY_ID:" + self.search.facility_id + ( term.length > 0 ? " AND SKU:" + term +"*" : "" ) +")";
                     }
-                    api().url("/inventories/search/"+term).get().then(function (response) {
+                    api().url("/inventories/search/" + term).get({"MaxDistance":self.search.MaxDistance}).then(function (response) {
                         if (!response) {
                             return
                         }
@@ -142,10 +173,12 @@
                         self.search.results.forEach((result, i) => {
                             var order = self.facilityOrders[result.Facility.Id];
                             result.OrderedQuantity = 0;
+                            result.OrderedAmount = (0.00).toFixed(2);
                             if (order){
                                 order.OrderLines.forEach((orderLine, i) => {
                                     if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id){
                                         result.OrderedQuantity = orderLine.OrderedQuantity
+                                        result.OrderedAmount = ( result.OrderedQuantity * result.SellingPrice * 100 / 100 ).toFixed(2) ;
                                     }
                                 });
                             }
@@ -165,6 +198,7 @@
                     let result = self.search.results[index];
                     result.OrderedQuantity -=1 ;
                     result.OrderedQuantity = Math.max(0,result.OrderedQuantity);
+                    result.OrderedAmount = ( result.OrderedQuantity * result.SellingPrice * 100 / 100 ).toFixed(2);
                     Vue.set(self.search.results, index , result );
                     self.addToCart(event,result);
                 },
@@ -176,7 +210,8 @@
                         result.OrderedQuantity = 0.0 ;
                     }
                     result.OrderedQuantity += 1.0;
-                    Vue.set(self.search.results, index , result );
+                    result.OrderedAmount = ( result.OrderedQuantity * result.SellingPrice * 100 / 100 ).toFixed(2);
+                   Vue.set(self.search.results, index , result );
                     self.addToCart(event,result);
                 },
                 addToCart : function(event,result){
@@ -213,11 +248,19 @@
                             }
                         }
                     }
+                    self.reloadCounts();
                     Lockr.set("facilityOrders",self.facilityOrders);
                     if (refreshHeader) {
                         $("#header").load("/fragments/html/header");
                     }
                 },
+                setPreferredDistance : function(distance){
+                    let oldValue =  Lockr.get("PreferredMaxDistance");
+                    if (oldValue != distance){
+                        Lockr.set("PreferredMaxDistance",distance);
+                        this.find(null);
+                    }
+                }
 
             }
         });
@@ -243,50 +286,90 @@
 
         </div>
         <div class="container-fluid">
-            <div class="row">
+            <div class="row border-bottom">
                 <div class="col-12">
-                    <div class="d-flex flex-row align-items-center" v-bind:style="search.facility_id ? '' : 'height:20rem' ">
+                    <div class="d-flex flex-row align-items-center" >
                         <input  key="search"  id="search"   class="form-control" placeholder="Search Item/Store" v-on:input="find($event)"
-                         v-model="search.term" />
+                         v-model="search.term"/>
                     </div>
                 </div>
-
+                <div class="col-12">
+                    Max Distance in Kms
+                    <div class="d-flex flex-row align-items-center" >
+                        <input id="distance_filter_5" type="radio" v-model="search.MaxDistance" value="5" @change="setPreferredDistance(5)">
+                        <label for="distance_filter_5">5 Kms</label>
+                        <input id="distance_filter_10" type="radio" v-model="search.MaxDistance" value="10" @change="setPreferredDistance(10)">
+                        <label for="distance_filter_10">10 Kms</label>
+                        <input id="distance_filter_10000" type="radio" v-model="search.MaxDistance" value="10000" @change="setPreferredDistance(10000)">
+                        <label for="distance_filter_10000">  > 10 Kms</label>
+                    </div>
+                </div>
             </div>
             <div class="row border-bottom" v-for="(result,index) in search.results" v-if="search.results.length > 0">
-                <div class="col-12">
-                    {{result.Sku.Name}}
+                <div class="col-12 text-muted">
+                    Seller: <a v-bind:href="'/dashboard?facility_id=' +result.Facility.Id">{{result.Facility.Name}}</a>
                 </div>
-                <div class="col-12">
-                    <a v-bind:href="'/dashboard?facility_id=' +result.Facility.Id" >{{result.Facility.Name}}</a>
-                </div>
-                <div class="col-12">
-                    Available : {{result.Infinite == 'Y' || Math.ceil(result.Quantity) > 0 }}
-                </div>
-                <div class="col-12">
-                    Price : {{result.SellingPrice}}
-                </div>
-                <div class="col-12">
-                    Distance :
-                    <a v-bind:href="'https://google.com/maps/@'+result.Facility.Lat +',' + result.Facility.Lng">{{result.Facility.Distance}}</a>
-                </div>
+
                 <div class="col-4">
-                    Quantity :
+                    <div class="d-flex flex-row" style="height : 6em">
+                        <img v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id" v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0" style="height:100%;"/>
+                    </div>
+                    <div class="d-flex small flex-row mr-5">
+                        <button class="h-100 p-1 btn btn-primary fas fa-minus" v-on:click="reduce($event,index)" ></button>
+                        <input  v-bind:key="'quantity' + index"  v-bind:id="'quantity' + index"
+                        class="h-100 p-0 form-control qty-box text-center" placeholder="Quantity"
+                        v-model="result.OrderedQuantity" @change="onQtyChange($event,index)" />
+                        <button class="h-100 p-1 btn btn-primary fas fa-plus" v-on:click="increase($event,index)" ></button>
+                        <!--
+                        <div class="col-2 p-0 m-0 justify-content-end">
+                        </div>
+                        <div class="col-2 px-1">
+                        </div>
+                        <div class="col-2 p-0 m-0 justify-content-start">
+                        </div>
+                        -->
+                    </div>
                 </div>
-                <div class="col-2 p-0 m-0 text-right">
-                    <button class="h-100 btn btn-primary fas fa-minus" v-on:click="reduce($event,index)" />
+                <div class="col-8">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-12">
+                                {{result.Sku.Name}}
+                            </div>
+                            <!--
+                            Only what is available is listed. So no need to show that.
+                            <div class="col-12">
+                                Available : {{result.Infinite == 'Y' || Math.ceil(result.Quantity) > 0 }}
+                            </div>
+                            -->
+                            <div class="col-12">
+                               <a class="fas fa-drafting-compass" v-bind:href="'https://google.com/maps/place/'+result.Facility.Lat +',' + result.Facility.Lng">{{result.Facility.Distance}} Km</a>
+                            </div>
+                            <div class="col-12">
+                                <b>&#x20B9; {{result.SellingPrice}}</b>
+                            </div>
+                            <div class="col-12 d-flex flex-row">
+                                <span>Pickup
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                <span>&nbsp;  Delivery
+                                    <i v-bind:class="'fas ' + ( result.Facility.DeliveryProvided === 'Y' ? 'fa-check' : 'fa-times' )" ></i>
+                                </span>
+                            </div>
+                            <div class="col-12">
+                                <b>Line Total : &#x20B9; {{result.OrderedAmount}}</b>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-2 px-1">
-                    <input  v-bind:key="'quantity' + index"  v-bind:id="'quantity' + index"
-                    class="h-100 qty-box form-control text-center" placeholder="Quantity"
-                    v-model="result.OrderedQuantity" @change="onQtyChange($event,index)" />
-                </div>
-                <div class="col-2 p-0 m-0 text-left">
-                    <button class="h-100 btn btn-primary fas fa-plus" v-on:click="increase($event,index)" />
-                </div>
-                <!-- <div class="col-2">
-                    <button class="btn-primary" v-on:click="addToCart($event,result)">Update Cart</button>
-                </div>
-                -->
+            </div>
+            <div class="font-weight-bold  row bottom-card border border-dark bg-light p-3">
+                 <div class="col-9">
+                     {{OrderLineCount}} Items | &#x20B9; {{OrderAmount}}
+                 </div>
+                 <div class="col-3 d-flex flex-row justify-content-end">
+                     <a class="btn btn-primary" href="/buy" >CHECKOUT</a>
+                 </div>
             </div>
         </div>
 
