@@ -36,12 +36,10 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
 
 
     @COLUMN_DEF(StandardDefault.ZERO)
-    @HIDDEN
     double getAmountPaid();
     void setAmountPaid(double amountPaid);
 
     @COLUMN_DEF(StandardDefault.ZERO)
-    @HIDDEN
     double getAmountRefunded();
     void setAmountRefunded(double amountRefunded);
 

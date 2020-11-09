@@ -4,6 +4,7 @@
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
 
 <link href="/fragments/css/mandi.css" rel="stylesheet"></link>
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
 <script type="text/javascript">
     var hboViewModel = null;
     function onUpiResponse(jsonresponse){
@@ -34,6 +35,7 @@
                 shipped : [],
                 packed:[],
                 acknowledged:[],
+                blank : blank,
             },
 
             created: function () {
@@ -257,7 +259,11 @@
                     api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
                         order_lines.splice(index,1,response.OrderLine);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        if (err.response){
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        }else {
+                            self.autoClearMessage(err,order);
+                        }
                     });
                 },
 
@@ -417,6 +423,7 @@
                         }
                     });
                 },
+
             }
         });
     });
@@ -426,147 +433,149 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div id="Order-null" >
-            <div id="message" ref="message" class="row" >
-                <div class="col-12 alert alert-danger " v-if="messages && messages.length > 0">
-                    {{ message() }}
-                </div>
+        <div id="message" ref="message" class=" row status-message " >
+            <div class="col-12 alert alert-danger" v-if="messages && messages.length > 0">
+                {{ message() }}
             </div>
         </div>
-        <div v-bind:id="'Order-' + o.Id" class="py-3 border-top border-primary" v-for="(o,i) in Orders" >
+        <div v-bind:id="'Order-' + o.Id" class="my-3 border border-primary rounded" v-for="(o,i) in Orders" >
             <div class="row">
-                <div class="col-5 small">
-                    <b>{{o.Id}} - {{ o.FulfillmentStatus }}</b>
-                </div>
                 <div class="col-7">
-                    <div class="d-flex flex-row justify-content-end" v-if="cancelled.findIndex(x => x === o.Id) < 0">
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event,o)" >
-                            <i class="fas fa-times"> Cancel</i>
-                        </a>
+                    <b>Order : {{o.Id}}</b>
+                </div>
+                <div class="col-5 d-flex justify-content-end">
+                    {{o.FulfillmentStatus}}
+                    <a href="#/" class="fas fa-times" role="button" v-on:click="cancel($event,o)" v-if="cancelled.findIndex(x => x === o.Id) < 0"></a>
+                </div>
+                <div class="col-7" >
+                    <div class="row">
+                        <div class="col-12">
+                            <b>From: {{o.Facility.Name}}</b>
+                        </div>
+                        <div class="col-12 d-flex align-content-start text-muted" >
+                                {{o.Facility.AddressLine1}}
+                                {{(blank(o.Facility.AddressLine2)? "" : "," )}} {{o.Facility.AddressLine2}}
+                                {{(blank(o.Facility.AddressLine3)? "" : "," )}} {{o.Facility.AddressLine3}}
+                                {{(blank(o.Facility.AddressLine4)? "" : "," )}} {{o.Facility.AddressLine4}}
+                                , {{o.Facility.City.Name}}-{{o.Facility.State.Name}}, {{o.Facility.PinCode.PinCode}}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-5">
+                    <div class="row text-muted">
+                        <div class="col-12 d-flex justify-content-end">
+                            <b>Total : &#x20B9; {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}</b>
+                        </div>
+                        <div class="small col-12 d-flex justify-content-end" v-if="o.AmountPendingPayment * 1.0 > 0">
+                            {{ o.PaymentInitialized  === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9; {{(o.AmountPendingPayment *1.0).toFixed(2)}}
+
+                        </div>
+                        <div class="small col-12 d-flex justify-content-end" v-if="o.AmountToRefund * 1.0 > 0">
+                            To Refund : &#x20B9; {{(o.AmountToRefund * 1.0).toFixed(2) }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 d-flex justify-content-end">
+                            <a v-bind:href="o._phref ? o._phref : '#'" class="btn btn-primary" role="button"
+                                v-if="purchases && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
+                                v-on:click="initialize_payment($event,o)">
+                                Pay
+                            </a>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)"
+                                v-if="o.AmountPendingPayment *1.0 > 0.0 && o.PaymentInitialized === 'Y' && sales">
+                                Reset
+                            </a>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <a href="#/" class="btn btn-primary" role="button" v-on:click="complete_payment($event,o)"
+                                v-if="sales && o.AmountPendingPayment * 1.0 > 0 && o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0" >
+                                Received
+                            </a>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <a v-bind:href="o._rhref ? o._rhref : '#'" class="btn btn-primary" role="button"
+                                v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y'"
+                                v-on:click="initialize_refund($event,o)" >
+                                Refund
+                            </a>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_refund($event,o)"
+                                v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized === 'Y'">
+                                Reset
+                            </a>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end">
+                            <a href="#/" class="btn btn-primary" role="button" v-on:click="complete_refund($event,o)"
+                                v-if="purchases && o.AmountToRefund *1.0 > 0.0 && o.AmountRefunded * 1.0 < o.AmountToRefund * 1.0">
+                                Received
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <b>To: {{o.CreatorUser.LongName}}</b>
+                </div>
+                <div class="col-8 text-muted" >
+                    {{o.CreatorUser.AddressLine1}}
+                        {{(blank(o.CreatorUser.AddressLine2)? "" : "," )}} {{o.CreatorUser.AddressLine2}}
+                        {{(blank(o.CreatorUser.AddressLine3)? "" : "," )}} {{o.CreatorUser.AddressLine3}}
+                        {{(blank(o.CreatorUser.AddressLine4)? "" : "," )}} {{o.CreatorUser.AddressLine4}}
+                        , {{o.CreatorUser.City.Name}}-{{o.CreatorUser.State.Name}}, {{o.CreatorUser.PinCode.PinCode}}
+                </div>
+                <div class="col-4" >
+
+                    <div class="d-flex flex-row justify-content-end" v-if="cancelled.findIndex(x => x === o.Id) < 0" >
                         <a href="#/" class="btn btn-primary" role="button" v-on:click="pack($event,o)" v-if="sales &&
                                     packed.findIndex(x => x === o.Id) < 0 &&
                                     shipped.findIndex(x=> x=== o.Id) < 0 &&
                                     delivered.findIndex(x=> x===o.Id) < 0">
-                             <i class="fas fa-box"> Pack </i>
+                             Pack
                         </a>
                         <a href="#/" class="btn btn-primary" role="button" v-on:click="ship($event,o)" v-else-if="sales &&
                                     shipped.findIndex(x => x === o.Id) < 0 &&
                                     delivered.findIndex(x=> x===o.Id) < 0" >
-                             <i class="fas fa-shipping-fast"> Out For Delivery</i>
+                             Out For Delivery
                         </a>
                         <a href="#/" class="btn btn-primary" role="button" v-on:click="deliver($event,o)" v-else-if="sales &&
                                     delivered.findIndex(x => x === o.Id) < 0">
-                             <i class="fas fa-truck"> Deliver </i>
+                             Deliver
                         </a>
                     </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-6 small" v-if="sales">
-                    To,
-                    <br/><span>{{o.CreatorUser.LongName}}</span>
-                    <br/><span>{{o.CreatorUser.AddressLine1}}</span>
-                    <br/><span>{{o.CreatorUser.AddressLine2}}</span>
-                    <br/><span>{{o.CreatorUser.AddressLine3}}</span>
-                    <br/><span>{{o.CreatorUser.AddressLine4}}</span>
-                    <br/><span>{{o.CreatorUser.City.Name}}, {{o.CreatorUser.State.Name}}, {{o.CreatorUser.PinCode.PinCode}}</span>
+            <div class="row p-1 m-1 border-dark border-top" v-for="(ol,i) in o.OrderLines" v-bind:style="(ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 == 0) ? 'text-decoration:line-through' : ''">
+                <div class="col-6 small d-flex justify-content-start">
+                    {{ ol.Sku.Name}}
                 </div>
-                <div class="col-6 small" v-if="purchases">
-                    From,
-                    <br/><span>{{o.Facility.Name}}</span>
-                    <br/><span>{{o.Facility.AddressLine1}}</span>
-                    <br/><span>{{o.Facility.AddressLine2}}</span>
-                    <br/><span>{{o.Facility.AddressLine3}}</span>
-                    <br/><span>{{o.Facility.AddressLine4}}</span>
-                    <br/><span>{{o.Facility.City.Name}}, {{o.Facility.State.Name}}, {{o.Facility.PinCode.PinCode}}</span>
+                <div class="col-1 d-flex justify-content-end">
+                    {{ (ol.OrderedQuantity * 1.0).toFixed(0) }}
                 </div>
-
-
-                <div class="col-12">
-                    <div class="container">
-                        <div class="row border-bottom border-dark mx-1">
-                            <div class="col-5">
-                                Product
-                            </div>
-                            <div class="col-2">
-                                Qty
-                            </div>
-                            <div class="col-3 text-right">
-                                Price
-                            </div>
-                            <div class="col-1">
-
-                            </div>
-                        </div>
-                        <div class="data-list">
-                            <div class="row mx-1" v-for="(ol,i) in o.OrderLines">
-                                <div class="col-5 small">
-                                    {{ ol.Sku.Name}}
-                                </div>
-                                <div class="col-2">
-                                    {{ ol.OrderedQuantity}}
-                                </div>
-                                <div class="col-3 text-right">
-                                    {{ ol.SellingPrice}}
-                                </div>
-                                <div class="col-1" v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
-                                    <i class="fas fa-times" v-on:click="cancel_order_line($event,ol,o)"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row border-dark border-top mx-1">
-                            <div class="col-5">
-                                Total
-                            </div>
-                            <div class="col-2">
-
-                            </div>
-                            <div class="col-3 text-right">
-                                {{ o.SellingPrice}}
-                            </div>
-                            <div class="col-1">
-
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-12" v-if="o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
-                                {{ o.PaymentInitialized  === 'Y' ? 'Payment inprogress' : 'Unpaid' }}
-                            </div>
-                        </div>
-                    </div>
+                <div class="col-3 d-flex justify-content-end">
+                     &#x20B9; {{ ol.SellingPrice}}
+                </div>
+                <div class="col-1" v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
+                    <button class="border-dark rounded-circle  fas fa-times p-1" v-on:click="cancel_order_line($event,ol,o)" style="height:2em;width:2em"></button>
                 </div>
             </div>
-            <div class="d-flex flex-row justify-content-end" >
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)"
-                    v-if="o.AmountPendingPayment *1.0 > 0.0 && o.PaymentInitialized === 'Y' && sales">
-                    <i class='fas fa-redo'>Reset Payment</i>
-                </a>
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_refund($event,o)"
-                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized === 'Y' && sales">
-                    <i class="fas fa-redo">Reset Refund</i>
-                </a>
+            <div class="row p-1 m-1 border-dark border-top">
+                <div class="col-6">
+                    Total
+                </div>
+                <div class="col-1 d-flex justify-content-end">
 
-                <a v-bind:href="o._phref ? o._phref : '#'" class="btn btn-primary" role="button"
-                    v-if="purchases && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
-                    v-on:click="initialize_payment($event,o)">
-                    <i class='fas fa-rupee-sign'> Pay</i>
-                </a>
-                <a v-bind:href="o._rhref ? o._rhref : '#'" class="btn btn-primary" role="button"
-                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y'"
-                    v-on:click="initialize_refund($event,o)" >
-                    <i class="fas fa-rupee-sign"> Refund</i>
-                </a>
+                </div>
+                <div class="col-3 d-flex justify-content-end">
+                    &#x20B9; {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
+                </div>
+                <div class="col-1">
 
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="complete_refund($event,o)"
-                    v-if="purchases && o.AmountToRefund *1.0 > 0.0 && o.AmountRefunded * 1.0 < o.AmountToRefund * 1.0">
-                    <i class="fas fa-hand-holding-usd"> Received Refund </i>
-                </a>
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="complete_payment($event,o)"
-                    v-if="sales && o.AmountPendingPayment * 1.0 > 0 && o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0" >
-                    <i class="fas fa-hand-holding-usd"> Received Payment </i>
-                </a>
+                </div>
             </div>
         </div>
+
 
     </div>
 </div>

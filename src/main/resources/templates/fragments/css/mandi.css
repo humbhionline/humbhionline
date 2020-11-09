@@ -186,6 +186,13 @@ select {
     right:1em;
     left: 1em;
 }
+.status-message {
+    position: absolute;
+    z-index: 20000;
+    right:1em;
+    left: 1em;
+    top : 0;
+}
 .h-85 {
     height: 85% !important;
 }
