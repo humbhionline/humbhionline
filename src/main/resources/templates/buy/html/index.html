@@ -62,6 +62,8 @@ $(function () {
                 let user = self.User;
                 var order = self.facilityOrders[f.Id];
 
+                order.ShippingSellingPrice = f.DeliveryProvided === 'Y' ? f.DeliveryCharges  : 0;
+
                 order.OrderAddresses = [
                 { AddressType : "ST" ,
                 FirstName : user.FirstName,
@@ -149,29 +151,25 @@ $(function () {
                 }
                 let self = this;
                 let result = self.facilityOrders[f.Id].OrderLines[index];
-                var refreshHeader = false;
+                var mayNeedToReload = false;
                 if (result.OrderedQuantity <= 0){
                     let order = self.facilityOrders[f.Id];
-                    refreshHeader = true;
+                    mayNeedToReload = true;
                     order.OrderLines.splice(index,1);
                     if (order.OrderLines.length === 0){
                         delete self.facilityOrders[f.Id];
                     }
                 }
                 Lockr.set("facilityOrders",self.facilityOrders);
-                if (refreshHeader) {
+                if (mayNeedToReload) {
                     self.loadFacilities();
                     if (self.facilities.length === 0 ){
                         window.location.reload();
-                    }else {
-                        self.reloadCounts();
-                        $("#header").load("/fragments/html/header");
-                        self.$forceUpdate();
+                        console.log("Line After Reload");
                     }
-                }else {
-                    self.reloadCounts();
-                    self.$forceUpdate();
                 }
+                self.reloadCounts();
+                self.$forceUpdate();
             },
             reduceOrderLine: function(event,f,index){
                 let self = this;
@@ -221,6 +219,15 @@ $(function () {
                 }
                 return total;
             },
+            deliveryAmount :function () {
+                let self = this;
+                var total = 0.0 ;
+                self.facilities.forEach((f, i) => {
+                    total += (f.DeliveryProvided === 'Y' ? f.DeliveryCharges * 1.0 : 0);
+                });
+                return total;
+
+            }
         }
     });
 });
@@ -290,16 +297,33 @@ $(function () {
                     </div>
                 </div>
                 <div class="row border-dark border-top border-bottom">
-                    <div class="col-3">
-
-                    </div>
-                    <div class="col-5 d-flex flex-row text-muted text-bold">
-                        Total
+                    <div class="col-8 d-flex flex-row text-muted text-bold">
+                        Item Total
                     </div>
                     <div class="col-4">
                         <div class="row">
                             <div class="col-10 d-flex flex-row justify-content-end">
                                 &#8377; {{OrderAmount[facility.Id].toFixed(2)}}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-8 d-flex flex-row text-muted text-bold">
+                        Delivery Charges
+                    </div>
+                    <div class="col-4">
+                        <div class="row">
+                            <div class="col-10 d-flex flex-row justify-content-end">
+                                &#8377; {{(facility.DeliveryProvided === 'Y' ? (facility.DeliveryCharges * 1.0).toFixed(2) : 0.00.toFixed(2))}}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-8 d-flex flex-row text-muted text-bold">
+                        Total
+                    </div>
+                    <div class="col-4">
+                        <div class="row">
+                            <div class="col-10 d-flex flex-row justify-content-end">
+                                &#8377; {{(facility.DeliveryCharges * 1.0 + OrderAmount[facility.Id]).toFixed(2)}}
                             </div>
                         </div>
                     </div>
@@ -334,7 +358,7 @@ $(function () {
                                 Delivery Charges
                             </div>
                             <div class="col-6 d-flex flex-row justify-content-end">
-                                &#8377; 0.00
+                                &#8377; {{deliveryAmount().toFixed(2)}}
                             </div>
                         </div>
                         <div class="row text-muted">
@@ -342,7 +366,7 @@ $(function () {
                                 Total
                             </div>
                             <div class="col-6 d-flex flex-row justify-content-end">
-                                &#8377; {{totalAmount().toFixed(2)}}
+                                &#8377; {{(deliveryAmount() + totalAmount()).toFixed(2)}}
                             </div>
                         </div>
                     </div>

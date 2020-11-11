@@ -65,36 +65,13 @@
                     }else if (self.purchases){
                         query = "CREATOR_USER_ID:" + self.User.Id ;
                     }
+                    self.Orders = [];
                     if (!query){
-                        self.Orders = [];
                         self.showApp();
                     }else {
                         api().url("/orders/search").get({ q : query }).then(function (response) {
                             response.Orders.forEach((o, i) => {
-                                self.update_status_array(o);
-                                self.Orders.push(o);
-                                if (!self.Android){
-                                    o._phref = "#";
-                                    o._rhref = "#";
-                                    if (navigator.userAgent.match(/Android/i)){
-                                        if (o.Facility.CreatorUser.VirtualPaymentAddress){
-                                            o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
-                                                        '&pn='+ o.Facility.CreatorUser.NameAsInBankAccount+
-                                                        '&tr=O:' + o.Id +
-                                                        '&tn=HBO Txn ' + o.Id +
-                                                        '&am=' + o.AmountPendingPayment +
-                                                        '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' );
-                                        }
-                                        if (o.CreatorUser.VirtualPaymentAddress){
-                                            o._rhref =  ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress +
-                                                        '&pn='+o.CreatorUser.NameAsInBankAccount+
-                                                        '&tr=R:' + o.Id +
-                                                        '&tn=Return for HBO Txn ' + o.Id +
-                                                        '&am=' + o.AmountToRefund +
-                                                        '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20');
-                                        }
-                                    }
-                                }
+                                self.loadOrder(o,-1); // sending -1 avoid findIndex int the Orders Array.
                             });
                             self.showApp();
                         }).catch(function (err) {
@@ -103,6 +80,38 @@
                         });
                     }
 
+                },
+                loadOrder: function(o,indexHint){
+                    let self = this;
+                    self.update_status_array(o);
+                    let index = indexHint || self.Orders.findIndex(ino => ino.Id === o.Id );
+                    if (index >=0 ){
+                        self.Orders.splice(index,1,o);
+                    }else {
+                        self.Orders.push(o);
+                    }
+                    if (!self.Android){
+                        o._phref = "#";
+                        o._rhref = "#";
+                        if (navigator.userAgent.match(/Android/i)){
+                            if (o.Facility.CreatorUser.VirtualPaymentAddress){
+                                o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
+                                            '&pn='+ o.Facility.CreatorUser.NameAsInBankAccount+
+                                            '&tr=O:' + o.Id +
+                                            '&tn=HBO Txn ' + o.Id +
+                                            '&am=' + o.AmountPendingPayment +
+                                            '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' );
+                            }
+                            if (o.CreatorUser.VirtualPaymentAddress){
+                                o._rhref =  ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress +
+                                            '&pn='+o.CreatorUser.NameAsInBankAccount+
+                                            '&tr=R:' + o.Id +
+                                            '&tn=Return for HBO Txn ' + o.Id +
+                                            '&am=' + o.AmountToRefund +
+                                            '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20');
+                            }
+                        }
+                    }
                 },
                 onUpiResponse:function(r){
                     console.log(JSON.stringify(r));
@@ -257,7 +266,10 @@
                         return ol.Id === order_line.Id;
                     });
                     api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
-                        order_lines.splice(index,1,response.OrderLine);
+                        api().url("/orders/show/" + order.Id).get().then(function(response){
+                            //Refresh the order Status.
+                            self.loadOrder(response.Order);
+                        });
                     }).catch(function (err) {
                         if (err.response){
                             self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
@@ -440,12 +452,14 @@
         </div>
         <div v-bind:id="'Order-' + o.Id" class="my-3 border border-primary rounded" v-for="(o,i) in Orders" >
             <div class="row">
-                <div class="col-7">
+                <div class="col-6">
                     <b>Order : {{o.Id}}</b>
                 </div>
-                <div class="col-5 d-flex justify-content-end">
+                <div class="col-6 d-flex justify-content-end">
                     {{o.FulfillmentStatus}}
-                    <a href="#/" class="fas fa-times" role="button" v-on:click="cancel($event,o)" v-if="cancelled.findIndex(x => x === o.Id) < 0"></a>
+                    <button class="fas fa-times  border-dark rounded-circle" v-on:click="cancel($event,o)" style="height:2em;width:2em;margin-top:-1em;margin-right:-0.1em"
+                        v-if="cancelled.findIndex(x => x === o.Id) < 0" >
+                    </button>
                 </div>
                 <div class="col-7" >
                     <div class="row">
@@ -547,13 +561,13 @@
                 </div>
             </div>
             <div class="row p-1 m-1 border-dark border-top" v-for="(ol,i) in o.OrderLines" v-bind:style="(ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 == 0) ? 'text-decoration:line-through' : ''">
-                <div class="col-6 small d-flex justify-content-start">
+                <div class="col-5 small d-flex justify-content-start">
                     {{ ol.Sku.Name}}
                 </div>
                 <div class="col-1 d-flex justify-content-end">
                     {{ (ol.OrderedQuantity * 1.0).toFixed(0) }}
                 </div>
-                <div class="col-3 d-flex justify-content-end">
+                <div class="col-4 d-flex justify-content-end">
                      &#x20B9; {{ ol.SellingPrice}}
                 </div>
                 <div class="col-1" v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
@@ -561,13 +575,13 @@
                 </div>
             </div>
             <div class="row p-1 m-1 border-dark border-top">
-                <div class="col-6">
+                <div class="col-5">
                     Total
                 </div>
                 <div class="col-1 d-flex justify-content-end">
 
                 </div>
-                <div class="col-3 d-flex justify-content-end">
+                <div class="col-4 d-flex justify-content-end">
                     &#x20B9; {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
                 </div>
                 <div class="col-1">

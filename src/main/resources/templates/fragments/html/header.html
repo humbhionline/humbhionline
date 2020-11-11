@@ -6,25 +6,9 @@ function logout(ev){
     return true;
 }
 
-function size(obj) {
-    var size = 0, key;
-    var numLines = 0;
-    for (key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            size++;
-            numLines += obj[key].OrderLines.length;
-        }
-    }
-    return size + "(" + numLines + ")";
-};
 
 
 $(function(){
-    let count = size(Lockr.get("facilityOrders"));
-    //console.log(count);
-    if (count){
-        $("#orderCount").text(count);
-    }
     let appmenu = $('#appmenu');
     $(window).on('click', function(event){
         let clickOver = $(event.target);
@@ -54,16 +38,6 @@ $(function(){
 
 })
 </script>
-<style>
-    .subscript {
-        position: absolute;
-        margin-left: 15px;
-        font-size: 10px;
-        color: rgb(0,0,105);
-    }
-</style>
-
-
 
 <div class="fixed-top app-header">
     <div class="row">
@@ -74,7 +48,6 @@ $(function(){
           <div class="navbar-brand">
               <a class="m-logo fas fa-bell" href="/alerts"/>
               <a class="m-logo" href="/buy">
-                  <span class="subscript" id="orderCount"></span>
                   <img  src="/resources/web_manifest/64x64.png" alt=""><img>
               </a>
           </div>

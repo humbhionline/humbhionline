@@ -28,6 +28,7 @@
                 ShipmentCount : 0,
                 OrderLineCount : 0,
                 OrderAmount : 0,
+                DeliveryAmount : 0,
                 search : {
                     MaxDistance : Lockr.get("PreferredMaxDistance") || 10 ,
                     facility_id : facility_id,
@@ -86,17 +87,26 @@
                     var obj = self.facilityOrders;
                     self.ShipmentCount = 0 ;
                     self.OrderLineCount = 0 ;
-                    self.OrderAmount = 0
+                    self.OrderAmount = 0;
+                    self.DeliveryAmount =0 ;
 
                     for (key in obj) {
                         if (obj.hasOwnProperty(key)) {
                             self.ShipmentCount += 1;
                             self.OrderLineCount += obj[key].OrderLines.length;
+                            var facility = null ;
                             obj[key].OrderLines.forEach((ol, i) => {
                                 self.OrderAmount += ol.OrderedQuantity * ol.Inventory.SellingPrice
+                                if (!facility){
+                                    facility = ol.Inventory.Facility;
+                                }
                             });
                             if ( obj[key].OrderLines.length === 0){
                                 delete obj[key];
+                            }
+
+                            if (facility){
+                                self.DeliveryAmount += (facility.DeliveryProvided==='Y' ? facility.DeliveryCharges * 1.0 : 0);
                             }
                         }
                     }
@@ -174,6 +184,11 @@
                             var order = self.facilityOrders[result.Facility.Id];
                             result.OrderedQuantity = 0;
                             result.OrderedAmount = (0.00).toFixed(2);
+                            if (result.Facility.DeliveryProvided === 'Y'){
+                                if (result.Facility.DeliveryRadius * 1 <  result.Facility.Distance * 1){
+                                    result.Facility.DeliveryProvided = 'N';
+                                }
+                            }
                             if (order){
                                 order.OrderLines.forEach((orderLine, i) => {
                                     if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id){
@@ -219,7 +234,6 @@
                         event.preventDefault();
                     }
                     let self = this;
-                    var refreshHeader = false;
                     if (!self.facilityOrders[result.Facility.Id]){
                         self.facilityOrders[result.Facility.Id] = {
                             OrderLines :[] ,
@@ -237,22 +251,17 @@
                         if (index < 0){
                             if (ol.OrderedQuantity * 1 > 0) {
                                 order.OrderLines.push(ol);
-                                refreshHeader = true;
                             }
                         }else {
                             if (ol.OrderedQuantity * 1 > 0) {
                                 order.OrderLines.splice(index,1,ol);
                             }else {
-                                refreshHeader = true;
                                 order.OrderLines.splice(index,1);
                             }
                         }
                     }
                     self.reloadCounts();
                     Lockr.set("facilityOrders",self.facilityOrders);
-                    if (refreshHeader) {
-                        $("#header").load("/fragments/html/header");
-                    }
                 },
                 setPreferredDistance : function(distance){
                     let oldValue =  Lockr.get("PreferredMaxDistance");
@@ -356,6 +365,17 @@
                                     <i v-bind:class="'fas ' + ( result.Facility.DeliveryProvided === 'Y' ? 'fa-check' : 'fa-times' )" ></i>
                                 </span>
                             </div>
+                            <div class="col-12 d-flex flex-row">
+                                <span v-if="result.Facility.DeliveryProvided === 'Y'">
+                                    <span v-if="result.Facility.DeliveryCharges * 1.0 === 0">
+                                        Free
+                                    </span>
+                                    <span v-else>
+                                        &#x20B9;  {{ (result.Facility.DeliveryCharges * 1.0) }}
+                                    </span>
+                                    <span v-if="result.Facility.DeliveryRadius * 1.0 > 0"> up to {{ result.Facility.DeliveryRadius * 1.0}} Kms </span>
+                                </span>
+                            </div>
                             <div class="col-12">
                                 <b>Line Total : &#x20B9; {{result.OrderedAmount}}</b>
                             </div>
@@ -363,12 +383,39 @@
                     </div>
                 </div>
             </div>
-            <div class="font-weight-bold  row bottom-card border border-dark bg-light p-3">
+            <div class="font-weight-bold  row bottom-card border border-dark bg-light p-3" v-if="OrderLineCount > 0">
                  <div class="col-9">
-                     {{OrderLineCount}} Items | &#x20B9; {{OrderAmount}}
+                     <div class="row">
+                         <div class="col-5">
+                             {{OrderLineCount}} Items
+                         </div>
+                         <div class="col-5 d-flex justify-content-right">
+                              &#x20B9; {{(OrderAmount * 1.0).toFixed(2)}}
+                          </div>
+                     </div>
+                     <div class="row">
+                         <div class="col-5">
+                             Delivery
+                         </div>
+                         <div class="col-5 d-flex justify-content-right">
+                             &#x20B9; {{(DeliveryAmount *1.0).toFixed(2)}}
+                         </div>
+                     </div>
+                     <div class="row">
+                         <div class="col-5">
+                             Total
+                         </div>
+                         <div class="col-5 d-flex justify-content-right border-top border-dark">
+                             &#x20B9; {{((DeliveryAmount * 1) + (OrderAmount * 1)).toFixed(2)}}
+                         </div>
+                     </div>
                  </div>
-                 <div class="col-3 d-flex flex-row justify-content-end">
-                     <a class="btn btn-primary" href="/buy" >CHECKOUT</a>
+                 <div class="col-3">
+                     <div class="row ">
+                         <div class="col-12 d-flex justify-content-end  ml-4 mt-3" >
+                             <a class="btn btn-primary" href="/buy" >CHECKOUT</a>
+                         </div>
+                     </div>
                  </div>
             </div>
         </div>

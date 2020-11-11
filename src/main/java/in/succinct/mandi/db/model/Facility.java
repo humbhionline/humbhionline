@@ -41,12 +41,18 @@ public interface Facility extends in.succinct.plugins.ecommerce.db.model.partici
     public boolean isDeliveryProvided();
     public void setDeliveryProvided(boolean deliveryProvided);
 
+    @COLUMN_DEF(StandardDefault.ZERO)
+    public double getDeliveryRadius();
+    public void setDeliveryRadius(double deliveryRadius);
 
-    public List<DeliveryRule> getDeliveryRules();
+    @COLUMN_DEF(StandardDefault.ZERO)
+    public double getDeliveryCharges();
+    public void setDeliveryCharges(double deliveryCharges);
+
+
 
     public void publish();
     public void unpublish();
 
-    public List<Attachment> getAttachments();
 
 }

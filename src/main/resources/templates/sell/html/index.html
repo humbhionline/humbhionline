@@ -362,6 +362,24 @@
                         v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="f.PinCode"  />
                     <input v-bind:key="'gstin' + i"  v-bind:id="'gstin' + i"  class="form-control" placeholder="GSTIN"
                         v-model="current.Facility.GSTIN" />
+
+
+
+                    <div class="col-12">
+                        Delivery Provided
+                        <input type="checkbox" v-bind:key="'DeliveryProvided' + i"  v-bind:id="'DeliveryProvided' + i"  placeholder="Delivery Provided"
+                            v-model="current.Facility.DeliveryProvided" true-value="Y" false-value="N"/>
+                    </div>
+
+                    <div class="col-12" v-bind:id="'Deliveryrules' + i"  v-bind:id="'Deliveryrules' + i" v-if="current.Facility.DeliveryProvided === 'Y'">
+                        Upto
+                        <input  class="my-1" v-bind:key="'DeliveryRadius' + i"  v-bind:id="'DeliveryRadius' + i"  placeholder="Upto how many Kms"
+                            v-model="current.Facility.DeliveryRadius" style="width:5em"/>
+                        Kms for &#x20B9
+                        <input  class="my-1" v-bind:key="'DeliveryCharges' + i"  v-bind:id="'DeliveryCharges' + i"  placeholder="0"
+                            v-model="current.Facility.DeliveryCharges" style="width:5em"/>
+                    </div>
+
                 </div>
 
                 <div class="d-flex flex-row justify-content-end py-2">

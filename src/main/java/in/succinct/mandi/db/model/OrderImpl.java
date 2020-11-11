@@ -53,7 +53,7 @@ public class OrderImpl extends ModelImpl<Order> {
             double toPayQuantity = orderLine.getOrderedQuantity() - orderLine.getCancelledQuantity() - orderLine.getReturnedQuantity() ;
             netPayment.increment(toPayQuantity * orderLine.getSellingPrice()/orderLine.getOrderedQuantity());
         }
-        return  netPayment.doubleValue() - order.getAmountPaid() + order.getAmountRefunded();
+        return  netPayment.doubleValue() + (netPayment.doubleValue() > 0 ? order.getShippingSellingPrice() : 0 ) - order.getAmountPaid() + order.getAmountRefunded();
     }
 
     public double getAmountToRefund(){
