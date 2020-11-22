@@ -1,0 +1,217 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+
+<script type="text/javascript">
+
+    function onOtpReceipt(otp){
+        if (login){
+            login.onOtpReceipt(otp);
+        }
+    }
+
+    function login() {
+
+        return {
+            Android : typeof Android == "undefined" ? undefined : Android,
+            http: axios.create({
+                baseURL: "/",
+                timeout: 30000,
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: false,
+            }),
+            params: { "SignUp": { "PhoneNumber": "" } },
+            waitForOtp : function(){
+                if (this.Android){
+                    this.Android.waitForOtp();
+                }
+            },
+            onOtpReceipt: function(otp){
+                $("#PhoneOtp").val(otp);
+                this.verifyPhoneOtp(null);
+            },
+            verifyPhoneOtp: function (event) {
+                if (event){
+                    event.preventDefault();
+                }
+                var self = this;
+                this.http.post("/sign_ups/validateOtp/" + this.params.SignUp.Id, { "Otp": $("#PhoneOtp").val() }).then(function (response) {
+                    if (response.data.SignUp.Validated === 'Y') {
+                        self.params.SignUp = response.data.SignUp;
+                        Lockr.set("SignUp",self.params.SignUp);
+                    } else {
+                        self.message("Otp doesnot match", true);
+                    }
+                    self.hideUnHideOtpFields().then(function (home) {
+                        if (home) {
+                            window.location.replace(home);
+                        }
+                    })
+                });
+            },
+            resendOtp: function () {
+                var self = this;
+                this.http.get("/sign_ups/sendOtp/" + this.params.SignUp.Id, { "data": {} }).then(function (response) {
+                    self.message(response.data.SWFHttpResponse.Message, true);
+                });
+            },
+            resetPhoneNumber: function () {
+                var self = this;
+                self.params.SignUp.PhoneNumber = "";
+                Lockr.set("SignUp",self.params.SignUp);
+                $("#PhoneNumber").val("");
+                window.location.reload();
+            },
+            message: function (text, state) {
+                state ? $("#msg").show().text(text) : $("#msg").hide().text("");
+                // $("#msg");
+            },
+            hideUnHideOtpFields: function () {
+                let self = this;
+                return new Promise(function (resolve, reject) {
+
+                    if (self.params.SignUp && self.params.SignUp.Validated !== 'Y') {
+                        $("#divPhoneOtp").show();
+                        $("#GetPhone").hide();
+                        $("#OtpNumber").text(login.params.SignUp.PhoneNumber);
+                        self.waitForOtp();
+                    } else {
+                        $("#divPhoneOtp").hide();
+                    }
+                    if (!self.params.SignUp || self.params.SignUp.Validated === "Y") {
+                        var user = self.params.SignUp.User;
+                        if (user) {
+                            setConfirmUnload(false);
+                            var params = (new URL(window.location)).searchParams;
+                            var redirect_to = params.get("_redirect_to");
+                            if (!redirect_to) {
+                                redirect_to = "/index"
+                            }
+                            loadLocation().then(function(){
+                               resolve(redirect_to);
+                            });
+                        }
+                    } else {
+                        resolve(null);
+                    }
+                });
+            },
+
+            signIn: function () {
+                this.message("", false);
+                var self = this;
+                $("#root").hide();
+                var signUp = Lockr.get("SignUp");
+                if (signUp) {
+                    self.params.SignUp = signUp;
+                }
+                if (self.params.SignUp.PhoneNumber){
+                    $("#PhoneNumber").val(self.params.SignUp.PhoneNumber);
+                }
+                if (self.params.SignUp.PhoneNumber) {
+                    self.http.post("/sign_ups/register", self.params).then(function (response) {
+                        if (response.data.SignUp) {
+                            self.params.SignUp = response.data.SignUp;
+                            $("#btnSignUp").hide();
+                            self.hideUnHideOtpFields().then(function (home) {
+                                if (home) {
+                                    window.location.replace(home);
+                                }else {
+                                    $("#root").show();
+                                }
+                            });
+                        } else {
+                            self.message("Unexpected Response :" + response.data);
+                        }
+                    }).catch(function (err) {
+                        //Lockr.rm("PhoneNumber");
+                        //self.params.SignUp.SignUpPhone.PhoneNumber = "";
+                        self.message(err.response.data.SWFHttpResponse.Error, true);
+                        $("#root").show();
+                    })
+                } else {
+                    $("#root").show();
+                    $("#divPhoneOtp").hide();
+                    $("#btnSignUp").show();
+                }
+
+            }
+        };
+    }
+    function signUp(event) {
+        if (event) {
+            event.preventDefault();
+        }
+        var SignUp =  {};
+        SignUp.PhoneNumber = $("#PhoneNumber").val();
+
+        Lockr.set("SignUp", SignUp);
+        setConfirmUnload(false);
+        login.signIn();
+    }
+
+    $(function () {
+        login = login();
+        login.signIn();
+    });
+</script>
+<link rel="stylesheet" href="/fragments/css/mandi.css">
+</link>
+<style>
+    html,
+    body {
+        height: 100%;
+    }
+</style>
+<div id="root" class="v-fill align-items-center" style="display : none;">
+    <div class="container-fluid">
+
+        <div class="row justify-content-center">
+            <div class="col-6 col-sm-2">
+                <div class="logo-holder mb-5">
+                    <img src="/resources/web_manifest/drawing.svg" alt="Hum bhi online logo">
+                    <div class="text-center font-weight-bold"  style="color: red;font-size: large;">
+                        HumBhi Online
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row justify-content-center" id="GetPhone">
+            <div class="col-10 col-sm-4">
+                <form onsubmit="signUp(event)">
+                    <div class="form-group">
+                        <label for="PhoneNumber" class="text-center d-block">Mobile Number</label>
+                        <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" />
+                    </div>
+                    <div class="form-group text-right">
+                        <button class="btn btn-primary" type="submit" id="btnSignUp">Next</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="text-center" id="divPhoneOtp">
+            <p class="mb-0">
+                OTP has sent on your Mobile Number
+            </p>
+            <p id="OtpNumber" class="login-number mt-2 mb-4 py-2"> </p>
+            <div class="row justify-content-center">
+                <div class="col-10 col-sm-4">
+                    <form onsubmit="login.verifyPhoneOtp(event)">
+                        <div class="form-group">
+                            <label for="PhoneOtp" class="text-left d-block">Enter your OTP</label>
+                            <input id="PhoneOtp" type="number" class="form-control" placeholder="OTP"/>
+                            <p class="text-right">
+                                <a id="btnReset" onclick="login.resetPhoneNumber()">Reset Mobile</a> /
+                                <a id="btnResendPhoneOtp" onclick="login.resendOtp()">Resend OTP</a>
+                            </p>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary" id="btnVerifyPhoneOtp">Validate
+                                Mobile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <p id="msg" class="mb-0"></p>
+    </div>
+</div>

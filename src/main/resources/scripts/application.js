@@ -26,19 +26,26 @@ function sw_start(callback){
           console.log('ServiceWorker registration failed: ', err);
         });
     }else {
+        console.warn('navigator' + navigator );
+        console.warn('serviceWorker' + 'serviceWorker' in navigator);
+        console.warn('PushManager' + 'PushManager' in window);
         console.warn('Push messaging is not supported');
     }
 }
-
 
 function registerServiceWorker(callback) {
     sw_start(callback);
 }
 
 function subscribe(updateSubscriptionOnServer) {
-    registerServiceWorker((swReg) => {
-        createSubscription(swReg, updateSubscriptionOnServer);
-    });
+    
+    if (typeof Android != "undefined" ){
+        Android.startFirebaseService(updateSubscriptionOnServer.name);
+    }else {
+        registerServiceWorker((swReg) => {
+            createSubscription(swReg, updateSubscriptionOnServer);
+        });
+    }
 }
 
 function unsubscribe(updateSubscriptionOnServer) {
@@ -113,7 +120,8 @@ function subscribeUser(swRegistration, updateSubscriptionOnServer) {
     });
 }
 
+/*
 $(function () {
     sw_start();
 });
-
+*/

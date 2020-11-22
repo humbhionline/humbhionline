@@ -1,0 +1,16 @@
+for i in 16 24 32 48 64 72 144 192 294  
+do 
+    convert -transparent yellow -scale ${i}x${i} drawing-final.svg "${i}x${i}.png" ;
+    convert -transparent white -scale ${i}x${i} drawing-round.svg "${i}x${i}-round.png" ;
+done
+cp 72x72.png ~/Projects/java/Android/HumBhiOnline/app/src/main/res/mipmap-hdpi/ic_launcher.png
+cp 72x72-round.png ~/Projects/java/Android/HumBhiOnline/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+
+cp 48x48.png ~/Projects/java/Android/HumBhiOnline/app/src/main/res/mipmap-mdpi/ic_launcher.png
+cp 48x48-round.png ~/Projects/java/Android/HumBhiOnline/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+
+cp 144x144.png ~/Projects/java/Android/HumBhiOnline/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+cp 144x144-round.png ~/Projects/java/Android/HumBhiOnline/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+
+cp 192x192.png ~/Projects/java/Android/HumBhiOnline/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+cp 192x192-round.png ~/Projects/java/Android/HumBhiOnline/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png

@@ -1,13 +1,5 @@
 <link rel="stylesheet" href="/fragments/css/mandi.css">
 <script type="application/javascript">
-function logout(ev){
-    Lockr.rm("SignUp");
-    Lockr.rm("User");
-    return true;
-}
-
-
-
 $(function(){
     let appmenu = $('#appmenu');
     $(window).on('click', function(event){
@@ -15,24 +7,6 @@ $(function(){
         if (appmenu.attr('aria-expanded') == 'true' &&  clickOver.attr("id") !== 'appmenu' ){
             // Click on navbar toggler button
             appmenu.click();
-        }
-    });
-
-    subscribe(function (subscription) {
-        let device = Lockr.get("device");
-
-        if (subscription ) {
-            if (!device || device.DeviceId !== subscription ) {
-                api().url("/devices/save").parameters({ 'Device': { 'DeviceId': subscription, 'UserId': Lockr.get("User").Id } }).post()
-                .then(function (response) {
-                    if (response.Devices && response.Devices.length > 0){
-                        Lockr.set("device",response.Devices[0]);
-                    }
-                    console.log("Subscription made on the server");
-                });
-            }else{
-                console.log("Subscription already present on the server");
-            }
         }
     });
 

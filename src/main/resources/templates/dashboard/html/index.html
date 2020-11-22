@@ -1,7 +1,7 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
-
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
 <!--script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script!-->
 
 
@@ -9,6 +9,8 @@
 <script type="text/javascript">
 
     $(function () {
+
+
         $("#header").load("/fragments/html/header");
 
         var params = (new URL(window.location)).searchParams;
@@ -25,6 +27,7 @@
             data: {
                 messages: [],
                 User : {},
+                sendSubscriptionToServer: sendSubscriptionToServer,
                 ShipmentCount : 0,
                 OrderLineCount : 0,
                 OrderAmount : 0,
@@ -44,7 +47,7 @@
                 api().url("/users/current").get().then(function (response) {
                     self.User = response.User;
                     Lockr.set("User", self.User);
-
+                    subscribe(sendSubscriptionToServer); //Do Subscription only after setting User.
                     let  validated = self.User.UserPhones.length > 0 ;
                     if (validated){
                         self.User.UserPhones.forEach((item, i) => {
