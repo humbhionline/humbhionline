@@ -382,7 +382,7 @@
                                     <input v-bind:key="'quantity' + index" v-bind:id="'quantity' + index"
                                         class="btn btn-sm btn-outline-primary w-100 border-left-0 border-right-0 m-0"
                                         placeholder="Quantity" v-model="result.OrderedQuantity"
-                                        @change="onQtyChange($event,index)" v-bind:onblur="onQtyChange($event,index)" />
+                                        @change="onQtyChange($event,index)" />
                                     <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
                                         v-on:click="increase($event,index)">
                                         <i class="fa fa-plus"></i>

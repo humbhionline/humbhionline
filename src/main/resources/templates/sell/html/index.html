@@ -80,7 +80,8 @@
                         PinCode: { PinCode: "" },
                         PhoneNumber: "",
                         AlternatePhoneNumber: "",
-                        Company: self.User.Company
+                        Company: self.User.Company,
+                        Inventories : []
                     };
                     if (self.User.Verified && self.Facilities.length == 0) {
                         f.Name = "Residence of " + self.User.LongName;
