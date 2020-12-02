@@ -3,13 +3,14 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
 
-<link href="/fragments/css/mandi.css" rel="stylesheet"></link>
-<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<link href="/fragments/css/mandi.css" rel="stylesheet">
+</link>
+<script type="text/javascript" src="/fragments/js/util.js"></script>
 <script type="text/javascript">
     var hboViewModel = null;
-    function onUpiResponse(jsonresponse){
-        console.log("UPI Response got from webview: " +jsonresponse);
-        if (hboViewModel){
+    function onUpiResponse(jsonresponse) {
+        console.log("UPI Response got from webview: " + jsonresponse);
+        if (hboViewModel) {
             hboViewModel.onUpiResponse(JSON.parse(jsonresponse));
         }
     }
@@ -17,35 +18,35 @@
     $(function () {
         $("#header").load("/fragments/html/header");
         var params = (new URL(window.location)).searchParams;
-        let type = params.get("type") ;
-        let purchases = !type  || (type === "purchases");
-        let sales = !type  || (type === "sales");
+        let type = params.get("type");
+        let purchases = !type || (type === "purchases");
+        let sales = !type || (type === "sales");
 
         hboViewModel = new Vue({
             el: "#app",
             data: {
-                Android : typeof Android == "undefined" ? undefined : Android,
-                purchases : purchases,
-                sales : sales,
+                Android: typeof Android == "undefined" ? undefined : Android,
+                purchases: purchases,
+                sales: sales,
                 messages: [],
-                User : Lockr.get("User"),
-                Orders :[] ,
-                cancelled :[],
-                delivered : [],
-                shipped : [],
-                packed:[],
-                acknowledged:[],
-                blank : blank,
+                User: Lockr.get("User"),
+                Orders: [],
+                cancelled: [],
+                delivered: [],
+                shipped: [],
+                packed: [],
+                acknowledged: [],
+                blank: blank,
             },
 
             created: function () {
                 let self = this;
-                if (purchases){
+                if (purchases) {
                     self.loadOrders();
-                }else {
-                    api().url("/facilities").get().then(function (response){
+                } else {
+                    api().url("/facilities").get().then(function (response) {
                         self.loadOrders(response.Facilities);
-                    }).catch(function(err){
+                    }).catch(function (err) {
                         self.showApp();
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
                     });
@@ -54,24 +55,24 @@
 
             },
             methods: {
-                loadOrders:function(facilities){
+                loadOrders: function (facilities) {
                     let self = this;
                     var query = null;
-                    if (self.sales){
-                        let facility_ids = facilities.map(function(f){
+                    if (self.sales) {
+                        let facility_ids = facilities.map(function (f) {
                             return f.Id;
                         });
                         query = facility_ids.length === 0 ? null : "FACILITY_ID:(" + facility_ids.join(" OR ") + ")";
-                    }else if (self.purchases){
-                        query = "CREATOR_USER_ID:" + self.User.Id ;
+                    } else if (self.purchases) {
+                        query = "CREATOR_USER_ID:" + self.User.Id;
                     }
                     self.Orders = [];
-                    if (!query){
+                    if (!query) {
                         self.showApp();
-                    }else {
-                        api().url("/orders/search").get({ q : query }).then(function (response) {
+                    } else {
+                        api().url("/orders/search").get({ q: query }).then(function (response) {
                             response.Orders.forEach((o, i) => {
-                                self.loadOrder(o,-1); // sending -1 avoid findIndex int the Orders Array.
+                                self.loadOrder(o, -1); // sending -1 avoid findIndex int the Orders Array.
                             });
                             self.showApp();
                         }).catch(function (err) {
@@ -81,81 +82,83 @@
                     }
 
                 },
-                loadOrder: function(o,indexHint){
+                loadOrder: function (o, indexHint) {
                     let self = this;
                     self.update_status_array(o);
-                    let index = indexHint || self.Orders.findIndex(ino => ino.Id === o.Id );
-                    if (index >=0 ){
-                        self.Orders.splice(index,1,o);
-                    }else {
+                    let index = indexHint || self.Orders.findIndex(ino => ino.Id === o.Id);
+                    if (index >= 0) {
+                        self.Orders.splice(index, 1, o);
+                    } else {
                         self.Orders.push(o);
                     }
-                    if (!self.Android){
+                    if (!self.Android) {
                         o._phref = "#";
                         o._rhref = "#";
-                        if (navigator.userAgent.match(/Android/i)){
-                            if (o.Facility.CreatorUser.VirtualPaymentAddress){
+                        if (navigator.userAgent.match(/Android/i)) {
+                            if (o.Facility.CreatorUser.VirtualPaymentAddress) {
                                 o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
-                                            '&pn='+ o.Facility.CreatorUser.NameAsInBankAccount+
-                                            '&tr=O:' + o.Id +
-                                            '&tn=HBO Txn ' + o.Id +
-                                            '&am=' + o.AmountPendingPayment +
-                                            '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' );
+                                    '&pn=' + o.Facility.CreatorUser.NameAsInBankAccount +
+                                    '&tr=O:' + o.Id +
+                                    '&tn=HBO Txn ' + o.Id +
+                                    '&am=' + o.AmountPendingPayment +
+                                    '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                             }
-                            if (o.CreatorUser.VirtualPaymentAddress){
-                                o._rhref =  ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress +
-                                            '&pn='+o.CreatorUser.NameAsInBankAccount+
-                                            '&tr=R:' + o.Id +
-                                            '&tn=Return for HBO Txn ' + o.Id +
-                                            '&am=' + o.AmountToRefund +
-                                            '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20');
+                            if (o.CreatorUser.VirtualPaymentAddress) {
+                                o._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress +
+                                    '&pn=' + o.CreatorUser.NameAsInBankAccount +
+                                    '&tr=R:' + o.Id +
+                                    '&tn=Return for HBO Txn ' + o.Id +
+                                    '&am=' + o.AmountToRefund +
+                                    '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                             }
                         }
                     }
                 },
-                onUpiResponse:function(r){
+                onUpiResponse: function (r) {
                     console.log(JSON.stringify(r));
                     var orderInfo = r.txnRef.split(":");
-                    var orderId = orderInfo[1] ;
+                    var orderId = orderInfo[1];
 
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === orderId;
                     });
 
                     api().url("/orders/processUpi").parameters(r).post().then(function (response) {
-                        if (index >= 0 ){
-                            self.Orders.splice(index,1,response.Order);
+                        if (index >= 0) {
+                            self.Orders.splice(index, 1, response.Order);
                         }
-                        self.autoClearMessage("Payment Status : " + r.Status , self.Orders[index]);
+                        self.autoClearMessage("Payment Status : " + r.Status, self.Orders[index]);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,self.Orders[index]);
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, self.Orders[index]);
                     });
 
                 },
-                update_status_array: function(o){
+                update_status_array: function (o) {
                     let self = this;
-                    if (!o.OrderStatuses){
+                    if (!o.OrderStatuses) {
                         o.OrderStatuses = [];
                     }
 
 
                     o.OrderStatuses.forEach((os, j) => {
-                        if (os.FulfillmentStatus === 'CANCELLED' || os.FulfillmentStatus === 'RETURNED'){
+                        if (os.FulfillmentStatus === 'CANCELLED' || os.FulfillmentStatus === 'RETURNED') {
                             self.cancelled.push(o.Id);
-                        }else if (os.FulfillmentStatus === "DELIVERED"){
+                        } else if (os.FulfillmentStatus === "DELIVERED") {
                             self.delivered.push(o.Id);
-                        }else if (os.FulfillmentStatus === "SHIPPED"){
+                        } else if (os.FulfillmentStatus === "SHIPPED") {
                             self.shipped.push(o.Id);
-                        }else if (os.FulfillmentStatus === "PACKED"){
+                        } else if (os.FulfillmentStatus === "PACKED") {
                             self.packed.push(o.Id);
-                        }else if (os.FulfillmentStatus !== 'DOWNLOADED'){
+                        } else if (os.FulfillmentStatus !== 'DOWNLOADED') {
                             self.acknowledged.push(o.Id);
                         }
                     });
 
                 },
                 showApp: function () {
+                    // Manage Orders
+                    $("#pageTitle").html("Manage Orders");
                     $("#root").show();
                 },
                 message: function () {
@@ -166,12 +169,12 @@
                     });
                     return message;
                 },
-                autoClearMessage: function (message,order) {
+                autoClearMessage: function (message, order) {
                     let self = this;
-                    if (message){
+                    if (message) {
                         self.messages.push(message);
-                        if (order){
-                            var div = document.getElementById("Order-"+order.Id);
+                        if (order) {
+                            var div = document.getElementById("Order-" + order.Id);
                             var msg = self.$refs['message'];
                             div.appendChild(msg);
                         }
@@ -180,116 +183,116 @@
                         self.messages = [];
                     }, 1500);
                 },
-                pack: function(event,order){
-                    if (event){
+                pack: function (event, order) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
                     api().url("/orders/pack/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index,1,response.Order);
+                        self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
                     });
                 },
-                ship: function(event,order){
-                    if (event){
+                ship: function (event, order) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
                     api().url("/orders/ship/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index,1,response.Order);
+                        self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
                     });
                 },
-                deliver: function(event,order){
-                    if (event){
+                deliver: function (event, order) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
                     api().url("/orders/deliver/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index,1,response.Order);
+                        self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
                     });
                 },
-                cancel: function(event,order){
-                    if (event){
+                cancel: function (event, order) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
 
                     api().url("/orders/cancel/" + order.Id).get().then(function (response) {
-                        if (index >= 0 ){
-                            self.Orders.splice(index,1,response.Order);
+                        if (index >= 0) {
+                            self.Orders.splice(index, 1, response.Order);
                         }
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
                     });
                 },
-                cancel_order_line: function(event,order_line,order){
-                    if (event){
+                cancel_order_line: function (event, order_line, order) {
+                    if (event) {
                         event.preventDefault();
                     }
-                    order_lines=order.OrderLines;
+                    order_lines = order.OrderLines;
 
                     let self = this;
-                    let index  = order_lines.findIndex(function(ol){
+                    let index = order_lines.findIndex(function (ol) {
                         return ol.Id === order_line.Id;
                     });
                     api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
-                        api().url("/orders/show/" + order.Id).get().then(function(response){
+                        api().url("/orders/show/" + order.Id).get().then(function (response) {
                             //Refresh the order Status.
                             self.loadOrder(response.Order);
                         });
                     }).catch(function (err) {
-                        if (err.response){
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
-                        }else {
-                            self.autoClearMessage(err,order);
+                        if (err.response) {
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        } else {
+                            self.autoClearMessage(err, order);
                         }
                     });
                 },
 
-                initialize_payment:function(event,order){
+                initialize_payment: function (event, order) {
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
                     api().url("/orders/initialize_payment/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index,1,response.Order);
-                        self.autoClearMessage("Payment Initialized",order);
+                        self.Orders.splice(index, 1, response.Order);
+                        self.autoClearMessage("Payment Initialized", order);
                         /* 'upi://pay?pa=' + order.Facility.CreatorUser.VirtualPaymentAddress +
                                             '&pn='+order.Facility.CreatorUser.NameAsInBankAccount+
                                             '&tr=' + order.Id +
@@ -297,21 +300,21 @@
                                             '&am=' + order.AmountPendingPayment +
                                             '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' ; */
                         response.Order._phref = "#";
-                        if (self.Android){
-                            self.Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress,order.Facility.CreatorUser.NameAsInBankAccount,"O:"+order.Id,order.AmountPendingPayment * 1.0, 'HBO Txn ' + order.Id);
-                        }else if (navigator.userAgent.match(/Android/i) ){
+                        if (self.Android) {
+                            self.Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress, order.Facility.CreatorUser.NameAsInBankAccount, "O:" + order.Id, order.AmountPendingPayment * 1.0, 'HBO Txn ' + order.Id);
+                        } else if (navigator.userAgent.match(/Android/i)) {
                             let o = response.Order
                             o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
-                                                '&pn='+ o.Facility.CreatorUser.NameAsInBankAccount+
-                                                '&tr=O:' + o.Id +
-                                                '&tn=HBO Txn ' + o.Id +
-                                                '&am=' + o.AmountPendingPayment +
-                                                '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' );
+                                '&pn=' + o.Facility.CreatorUser.NameAsInBankAccount +
+                                '&tr=O:' + o.Id +
+                                '&tn=HBO Txn ' + o.Id +
+                                '&am=' + o.AmountPendingPayment +
+                                '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                         }
                     }).catch(function (err) {
-                        if (err.response){
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
-                        }else {
+                        if (err.response) {
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        } else {
                             self.autoClearMessage(err);
                             console.log(err);
                         }
@@ -319,118 +322,118 @@
 
                     return true;
                 },
-                reset_payment: function(event,order){
-                    if (event){
+                reset_payment: function (event, order) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
                     delete order._phref;
                     delete order._rhref;
                     api().url("/orders/reset_payment/" + order.Id).get().then(function (response) {
-                        if (index >= 0 ){
-                            self.Orders.splice(index,1,response.Order);
+                        if (index >= 0) {
+                            self.Orders.splice(index, 1, response.Order);
                         }
-                        self.autoClearMessage("Payment Reset",order);
+                        self.autoClearMessage("Payment Reset", order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
                     });
                 },
-                complete_payment: function(event,order){
-                    if (event){
+                complete_payment: function (event, order) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
                     delete order._phref;
                     delete order._rhref;
                     api().url("/orders/complete_payment/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index,1,response.Order);
-                        self.autoClearMessage("Verified Payment",order);
+                        self.Orders.splice(index, 1, response.Order);
+                        self.autoClearMessage("Verified Payment", order);
                     }).catch(function (err) {
-                        if (err.response){
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
-                        }else {
+                        if (err.response) {
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        } else {
                             console.log(err);
                         }
 
                     });
                 },
-                initialize_refund:function(event,order){
+                initialize_refund: function (event, order) {
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
                     delete order._phref;
                     delete order._rhref;
                     api().url("/orders/initialize_refund/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index,1,response.Order);
-                        self.autoClearMessage("Refund Initialized",order);
+                        self.Orders.splice(index, 1, response.Order);
+                        self.autoClearMessage("Refund Initialized", order);
                         response.Order._rhref = "#";
-                        if (self.Android){
+                        if (self.Android) {
                             // v-bind:href=
-                            self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress,order.CreatorUser.NameAsInBankAccount,"R:"+order.Id,order.AmountToRefund * 1.0, 'Return for HBO Txn ' + order.Id);
-                        }else if (navigator.userAgent.match(/Android/i) ){
-                            response.Order._rhref =  ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn='+o.CreatorUser.NameAsInBankAccount+'&tr=R:' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20');
+                            self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress, order.CreatorUser.NameAsInBankAccount, "R:" + order.Id, order.AmountToRefund * 1.0, 'Return for HBO Txn ' + order.Id);
+                        } else if (navigator.userAgent.match(/Android/i)) {
+                            response.Order._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn=' + o.CreatorUser.NameAsInBankAccount + '&tr=R:' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                         }
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
                     });
                     return true;
                 },
-                reset_refund: function(event,order){
-                    if (event){
+                reset_refund: function (event, order) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
                     delete order._phref;
                     delete order._rhref;
                     api().url("/orders/reset_refund/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index,1,response.Order);
-                        self.autoClearMessage("Payment Reset",order);
+                        self.Orders.splice(index, 1, response.Order);
+                        self.autoClearMessage("Payment Reset", order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error,order);
+                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
                     });
                 },
-                complete_refund: function(event,order){
-                    if (event){
+                complete_refund: function (event, order) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let index  = this.Orders.findIndex(function(o){
+                    let index = this.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
-                    if (index < 0){
+                    if (index < 0) {
                         return;
                     }
                     delete order._phref;
                     delete order._rhref;
                     api().url("/orders/complete_refund/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index,1,response.Order);
-                        self.autoClearMessage("Verified Payment",self.Orders[index]);
+                        self.Orders.splice(index, 1, response.Order);
+                        self.autoClearMessage("Verified Payment", self.Orders[index]);
                     }).catch(function (err) {
-                        if (err.response){
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,self.Orders[index]);
-                        }else {
+                        if (err.response) {
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, self.Orders[index]);
+                        } else {
                             console.log(err);
                         }
                     });
@@ -445,136 +448,151 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div id="message" ref="message" class=" row status-message " >
+        <div id="message" ref="message" class=" row status-message ">
             <div class="col-12 alert alert-danger" v-if="messages && messages.length > 0">
                 {{ message() }}
             </div>
         </div>
-        <div v-bind:id="'Order-' + o.Id" class="my-3 border border-primary rounded" v-for="(o,i) in Orders" >
+        <div v-bind:id="'Order-' + o.Id" class="my-3 container position-relative" v-for="(o,i) in Orders">
+            <button class="fas fa-times btn-order-cancel" v-on:click="cancel($event,o)"
+                v-if="cancelled.findIndex(x => x === o.Id) < 0">
+            </button>
             <div class="row">
-                <div class="col-6">
-                    <b>Order : {{o.Id}}</b>
-                </div>
-                <div class="col-6 d-flex justify-content-end">
-                    {{o.FulfillmentStatus}}
-                    <button class="fas fa-times  border-dark rounded-circle" v-on:click="cancel($event,o)" style="height:2em;width:2em;margin-top:-1em;margin-right:-0.1em"
-                        v-if="cancelled.findIndex(x => x === o.Id) < 0" >
-                    </button>
-                </div>
-                <div class="col-7" >
-                    <div class="row">
-                        <div class="col-12">
-                            <b>From: {{o.Facility.Name}}</b>
-                        </div>
-                        <div class="col-12 d-flex align-content-start text-muted" >
-                                {{o.Facility.AddressLine1}}
-                                {{(blank(o.Facility.AddressLine2)? "" : "," )}} {{o.Facility.AddressLine2}}
-                                {{(blank(o.Facility.AddressLine3)? "" : "," )}} {{o.Facility.AddressLine3}}
-                                {{(blank(o.Facility.AddressLine4)? "" : "," )}} {{o.Facility.AddressLine4}}
-                                , {{o.Facility.City.Name}}-{{o.Facility.State.Name}}, {{o.Facility.PinCode.PinCode}}
-                        </div>
-                    </div>
-                </div>
-                <div class="col-5">
-                    <div class="row text-muted">
-                        <div class="col-12 d-flex justify-content-end">
-                            <b>Total : &#x20B9; {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}</b>
-                        </div>
-                        <div class="small col-12 d-flex justify-content-end" v-if="o.AmountPendingPayment * 1.0 > 0">
-                            {{ o.PaymentInitialized  === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9; {{(o.AmountPendingPayment *1.0).toFixed(2)}}
-
-                        </div>
-                        <div class="small col-12 d-flex justify-content-end" v-if="o.AmountToRefund * 1.0 > 0">
-                            To Refund : &#x20B9; {{(o.AmountToRefund * 1.0).toFixed(2) }}
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12 d-flex justify-content-end">
-                            <a v-bind:href="o._phref ? o._phref : '#'" class="btn btn-primary" role="button"
-                                v-if="purchases && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
-                                v-on:click="initialize_payment($event,o)">
-                                Pay
-                            </a>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end">
-                            <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_payment($event,o)"
-                                v-if="o.AmountPendingPayment *1.0 > 0.0 && o.PaymentInitialized === 'Y' && sales">
-                                Reset
-                            </a>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end">
-                            <a href="#/" class="btn btn-primary" role="button" v-on:click="complete_payment($event,o)"
-                                v-if="sales && o.AmountPendingPayment * 1.0 > 0 && o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0" >
-                                Received
-                            </a>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end">
-                            <a v-bind:href="o._rhref ? o._rhref : '#'" class="btn btn-primary" role="button"
-                                v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y'"
-                                v-on:click="initialize_refund($event,o)" >
-                                Refund
-                            </a>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end">
-                            <a href="#/" class="btn btn-primary" role="button" v-on:click="reset_refund($event,o)"
-                                v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized === 'Y'">
-                                Reset
-                            </a>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end">
-                            <a href="#/" class="btn btn-primary" role="button" v-on:click="complete_refund($event,o)"
-                                v-if="purchases && o.AmountToRefund *1.0 > 0.0 && o.AmountRefunded * 1.0 < o.AmountToRefund * 1.0">
-                                Received
-                            </a>
+                <div class="col">
+                    <div class="content-box">
+                        <div class="form-row">
+                            <div class="col-8">
+                                <p class="mb-0 font-weight-bold">{{o.Facility.Name}}</p>
+                                <p class="mb-0">
+                                    <small class="text-muted">
+                                        {{o.Facility.AddressLine1}}
+                                        {{(blank(o.Facility.AddressLine2)? "" : "," )}} {{o.Facility.AddressLine2}}
+                                        {{(blank(o.Facility.AddressLine3)? "" : "," )}} {{o.Facility.AddressLine3}}
+                                        {{(blank(o.Facility.AddressLine4)? "" : "," )}} {{o.Facility.AddressLine4}}
+                                        , {{o.Facility.City.Name}}-{{o.Facility.State.Name}},
+                                        {{o.Facility.PinCode.PinCode}}
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="col text-right">
+                                <span class="font-weight-bold text-muted d-inline-block">Total</span> &#x20B9;
+                                {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
+                                <a v-bind:href="o._phref ? o._phref : '#'" class="btn btn-sm btn-primary mb-1 mt-1"
+                                    role="button"
+                                    v-if="purchases && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
+                                    v-on:click="initialize_payment($event,o)">
+                                    Pay
+                                </a>
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="reset_payment($event,o)"
+                                    v-if="o.AmountPendingPayment *1.0 > 0.0 && o.PaymentInitialized === 'Y' && sales">
+                                    Reset
+                                </a>
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="complete_payment($event,o)"
+                                    v-if="sales && o.AmountPendingPayment * 1.0 > 0 && o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
+                                    Received
+                                </a>
+                                <a v-bind:href="o._rhref ? o._rhref : '#'" class="btn btn-sm btn-primary mb-1"
+                                    role="button"
+                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y'"
+                                    v-on:click="initialize_refund($event,o)">
+                                    Refund
+                                </a>
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="reset_refund($event,o)"
+                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized === 'Y'">
+                                    Reset
+                                </a>
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="complete_refund($event,o)"
+                                    v-if="purchases && o.AmountToRefund *1.0 > 0.0 && o.AmountRefunded * 1.0 < o.AmountToRefund * 1.0">
+                                    Received
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-12">
-                    <b>To: {{o.CreatorUser.LongName}}</b>
-                </div>
-                <div class="col-8 text-muted" >
-                    {{o.CreatorUser.AddressLine1}}
-                        {{(blank(o.CreatorUser.AddressLine2)? "" : "," )}} {{o.CreatorUser.AddressLine2}}
-                        {{(blank(o.CreatorUser.AddressLine3)? "" : "," )}} {{o.CreatorUser.AddressLine3}}
-                        {{(blank(o.CreatorUser.AddressLine4)? "" : "," )}} {{o.CreatorUser.AddressLine4}}
-                        , {{o.CreatorUser.City.Name}}-{{o.CreatorUser.State.Name}}, {{o.CreatorUser.PinCode.PinCode}}
-                </div>
-                <div class="col-4" >
-
-                    <div class="d-flex flex-row justify-content-end" v-if="cancelled.findIndex(x => x === o.Id) < 0" >
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="pack($event,o)" v-if="sales &&
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="content-sub-box">
+                        <div class="form-row">
+                            <div class="col">
+                                <p class="mb-0 font-weight-bold">{{o.CreatorUser.LongName}}</p>
+                                <p class="m-0">
+                                    <small class="text-muted">{{o.CreatorUser.AddressLine1}}
+                                        {{(blank(o.CreatorUser.AddressLine2)? "" : "," )}}
+                                        {{o.CreatorUser.AddressLine2}}
+                                        {{(blank(o.CreatorUser.AddressLine3)? "" : "," )}}
+                                        {{o.CreatorUser.AddressLine3}}
+                                        {{(blank(o.CreatorUser.AddressLine4)? "" : "," )}}
+                                        {{o.CreatorUser.AddressLine4}}
+                                        , {{o.CreatorUser.City.Name}}-{{o.CreatorUser.State.Name}},
+                                        {{o.CreatorUser.PinCode.PinCode}}</small>
+                                </p>
+                            </div>
+                        </div>
+                        <hr class="my-2" />
+                        <div class="form-row">
+                            <div class="col">
+                                <p class="d-block mb-1">Order : {{o.Id}}</p>
+                                <p class="m-0">{{o.FulfillmentStatus}}</p>
+                            </div>
+                            <div class="col text-right">
+                                <p class="m-0">Payment status:</p>
+                                <small v-if="o.AmountPendingPayment * 1.0 > 0">
+                                    {{ o.PaymentInitialized  === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9;
+                                    {{(o.AmountPendingPayment *1.0).toFixed(2)}}
+                                </small>
+                                <small v-if="o.AmountToRefund * 1.0 > 0">
+                                    To Refund : &#x20B9; {{(o.AmountToRefund * 1.0).toFixed(2) }}
+                                </small>
+                                <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0">
+                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                        v-on:click="pack($event,o)" v-if="sales &&
                                     packed.findIndex(x => x === o.Id) < 0 &&
                                     shipped.findIndex(x=> x=== o.Id) < 0 &&
                                     delivered.findIndex(x=> x===o.Id) < 0">
-                             Pack
-                        </a>
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="ship($event,o)" v-else-if="sales &&
+                                        Pack
+                                    </a>
+                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                        v-on:click="ship($event,o)" v-else-if="sales &&
                                     shipped.findIndex(x => x === o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0" >
-                             Out For Delivery
-                        </a>
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="deliver($event,o)" v-else-if="sales &&
+                                    delivered.findIndex(x=> x===o.Id) < 0">
+                                        Out For Delivery
+                                    </a>
+                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                        v-on:click="deliver($event,o)" v-else-if="sales &&
                                     delivered.findIndex(x => x === o.Id) < 0">
-                             Deliver
-                        </a>
+                                        Deliver
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="form-row border-top py-2 mt-2" v-for="(ol,i) in o.OrderLines"
+                            v-bind:style="(ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 == 0) ? 'text-decoration:line-through' : ''">
+                            <div class="col d-flex align-items-center">
+                                {{ ol.Sku.Name}}
+                            </div>
+                            <div class="col-2 d-flex justify-content-center align-items-center">
+                                <div class="btn btn-outline-primary btn-sm w-75">
+                                    {{ (ol.OrderedQuantity * 1.0).toFixed(0) }}
+                                </div>
+                            </div>
+                            <div class="col-4 d-flex justify-content-center align-items-center">
+                                &#x20B9; {{ ol.SellingPrice}}
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
+                                <a class="fas fa-trash" v-on:click="cancel_order_line($event,ol,o)"
+                                    v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0"></a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="row p-1 m-1 border-dark border-top" v-for="(ol,i) in o.OrderLines" v-bind:style="(ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 == 0) ? 'text-decoration:line-through' : ''">
-                <div class="col-5 small d-flex justify-content-start">
-                    {{ ol.Sku.Name}}
-                </div>
-                <div class="col-1 d-flex justify-content-end">
-                    {{ (ol.OrderedQuantity * 1.0).toFixed(0) }}
-                </div>
-                <div class="col-4 d-flex justify-content-end">
-                     &#x20B9; {{ ol.SellingPrice}}
-                </div>
-                <div class="col-1" v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
-                    <button class="border-dark rounded-circle  fas fa-times p-1" v-on:click="cancel_order_line($event,ol,o)" style="height:2em;width:2em"></button>
-                </div>
-            </div>
-            <div class="row p-1 m-1 border-dark border-top">
+
+            <!-- <div class="row p-1 m-1 border-dark border-top">
                 <div class="col-5">
                     Total
                 </div>
@@ -587,7 +605,7 @@
                 <div class="col-1">
 
                 </div>
-            </div>
+            </div> -->
         </div>
 
 

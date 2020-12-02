@@ -11,19 +11,19 @@
             el: "#app",
             data: {
                 messages: [],
-                User : Lockr.get("User"),
-                Facilities : [] ,
-                current : {
-                    Facility : {} ,
-                    index : -1 ,
-                    Cities : [] ,
-                    PinCodes : [],
-                    lookupselectionIndex : -1,
+                User: Lockr.get("User"),
+                Facilities: [],
+                current: {
+                    Facility: {},
+                    index: -1,
+                    Cities: [],
+                    PinCodes: [],
+                    lookupselectionIndex: -1,
                 }
             },
             created: function () {
                 let self = this;
-                if (self.User.Verified === 'N'){
+                if (self.User.Verified === 'N') {
                     window.location.href = "/users/html/profile";
                 }
                 api().url("/facilities").get().then(function (response) {
@@ -31,15 +31,16 @@
                     self.showApp();
                 }).catch(function (err) {
                     self.showApp();
-                    if (err.response){
+                    if (err.response) {
                         self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
-                    }else {
+                    } else {
                         self.autoClearMessage(err);
                     }
                 })
             },
             methods: {
                 showApp: function () {
+                    $("#pageTitle").html("Manage Facilities");
                     $("#root").show();
                 },
                 message: function () {
@@ -50,12 +51,12 @@
                     });
                     return message;
                 },
-                autoClearMessage: function (message,index) {
+                autoClearMessage: function (message, index) {
                     let self = this;
-                    if (message){
+                    if (message) {
                         self.messages.push(message);
-                        var element = document.getElementById('facility-' + index) ;
-                        if (element){
+                        var element = document.getElementById('facility-' + index);
+                        if (element) {
                             var msg = self.$refs['message'];
                             element.appendChild(msg);
                         }
@@ -64,23 +65,24 @@
                         self.messages = [];
                     }, 1500);
                 },
-                create: function(event){
-                    if (event){
+                create: function (event) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    if (!self.Facilities){
+                    if (!self.Facilities) {
                         self.Facilities = [];
                     }
 
-                    var f = { Name :"" , AddressLine1 :"" , AddressLine2:"" , AddressLine3:"" ,AddressLine4:"" ,
-                                City :{ Name :"" , State :{ Name : "" , Country : {Name :"India"} } } ,
-                                PinCode : { PinCode :""},
-                                PhoneNumber :"" ,
-                                AlternatePhoneNumber : "",
-                                Company :self.User.Company
-                            };
-                    if (self.User.Verified && self.Facilities.length == 0){
+                    var f = {
+                        Name: "", AddressLine1: "", AddressLine2: "", AddressLine3: "", AddressLine4: "",
+                        City: { Name: "", State: { Name: "", Country: { Name: "India" } } },
+                        PinCode: { PinCode: "" },
+                        PhoneNumber: "",
+                        AlternatePhoneNumber: "",
+                        Company: self.User.Company
+                    };
+                    if (self.User.Verified && self.Facilities.length == 0) {
                         f.Name = "Residence of " + self.User.LongName;
                         f.AddressLine1 = self.User.AddressLine1;
                         f.AddressLine2 = self.User.AddressLine2;
@@ -91,62 +93,62 @@
                         f.PhoneNumber = self.User.PhoneNumber;
                         f.AlternatePhoneNumber = self.User.AlternatePhoneNumber;
                     }
-                    let last = self.Facilities.length > 0 ? self.Facilities[self.Facilities.length -1] : null ;
+                    let last = self.Facilities.length > 0 ? self.Facilities[self.Facilities.length - 1] : null;
 
-                    if (!last || last.Id){
+                    if (!last || last.Id) {
                         self.Facilities.push(f);
-                        self.edit(null,self.Facilities.length-1);
+                        self.edit(null, self.Facilities.length - 1);
                     }
 
                 },
-                edit: function(event,index){
-                    if (event){
+                edit: function (event, index) {
+                    if (event) {
                         event.preventDefault();
                     }
                     this.current.index = index;
-                    if (index >= 0 ){
+                    if (index >= 0) {
                         this.current.Facility = JSON.parse(JSON.stringify(this.Facilities[this.current.index]));
-                    }else {
+                    } else {
                         this.current.Facility = {};
                         let length = this.Facilities.length;
-                        let last = length >  0 ? this.Facilities[length - 1] : null ;
-                        if (last && !last.Id){
-                            this.Facilities.splice(length -1 , 1);
+                        let last = length > 0 ? this.Facilities[length - 1] : null;
+                        if (last && !last.Id) {
+                            this.Facilities.splice(length - 1, 1);
                         }
                     }
                 },
-                cancel: function(event){
-                    if (event){
+                cancel: function (event) {
+                    if (event) {
                         event.preventDefault();
                     }
-                    this.edit(event,-1);
+                    this.edit(event, -1);
                 },
-                save: function(event){
-                    if (event){
+                save: function (event) {
+                    if (event) {
                         event.preventDefault();
                     }
                     let self = this;
                     let index = self.current.index;
                     let f = self.current.Facility;
                     let newRecord = !f.Id;
-                    api().url("/facilities/save").parameters({"Facility" :f}).post().then(function (response) {
-                        if (newRecord){
-                            self.Facilities.splice(self.Facilities.length-1,1,response.Facilities[0]);
-                        }else {
-                            self.Facilities.splice(index,1,response.Facilities[0]);
+                    api().url("/facilities/save").parameters({ "Facility": f }).post().then(function (response) {
+                        if (newRecord) {
+                            self.Facilities.splice(self.Facilities.length - 1, 1, response.Facilities[0]);
+                        } else {
+                            self.Facilities.splice(index, 1, response.Facilities[0]);
                         }
                         self.cancel(null);
                     }).catch(function (err) {
-                        if (err.response){
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,index);
-                        }else {
-                            self.autoClearMessage(err.toString(),index);
+                        if (err.response) {
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
+                        } else {
+                            self.autoClearMessage(err.toString(), index);
                         }
                     });
 
                 },
-                remove: function(event,index){
-                    if (event){
+                remove: function (event, index) {
+                    if (event) {
                         event.preventDefault();
                     }
 
@@ -154,18 +156,18 @@
                     let f = self.Facilities[index];
 
                     let newRecord = !f.Id;
-                    if (!newRecord){
-                        api().url("/facilities/destroy/"+f.Id).get().then(function (response){
-                            self.Facilities.splice(index,1);
+                    if (!newRecord) {
+                        api().url("/facilities/destroy/" + f.Id).get().then(function (response) {
+                            self.Facilities.splice(index, 1);
                         }).catch(function (err) {
-                            if (err.response){
-                                self.autoClearMessage(err.response.data.SWFHttpResponse.Error,index);
-                            }else {
-                                self.autoClearMessage(err.toString(),index);
+                            if (err.response) {
+                                self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
+                            } else {
+                                self.autoClearMessage(err.toString(), index);
                             }
                         });
-                    }else {
-                        self.Facilities.splice(index,1);
+                    } else {
+                        self.Facilities.splice(index, 1);
                     }
                 },
                 isKeyTriggerable: function (e) {
@@ -222,7 +224,7 @@
                         }
                     });
                 },
-                onPinCodeSelect:function (e, item) {
+                onPinCodeSelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
                     self.current.Facility.PinCode = item;
@@ -242,46 +244,46 @@
                     }
                 },
 
-                navigate : function(e,index,length){
+                navigate: function (e, index, length) {
                     e && e.preventDefault();
                     let self = this;
                     this.current.lookupselectionIndex = (index % length);
                     let anchors = this.$refs['lookupEntries'].getElementsByTagName("a");
                     anchors[this.current.lookupselectionIndex].focus();
                 },
-                publish : function(e,index){
+                publish: function (e, index) {
                     let self = this;
-                    self.facility_player(e,index,"publish");
+                    self.facility_player(e, index, "publish");
                 },
-                unpublish : function(e,index){
+                unpublish: function (e, index) {
                     let self = this;
-                    self.facility_player(e,index,"unpublish");
+                    self.facility_player(e, index, "unpublish");
                 },
-                facility_player : function(e,index,apiName){
+                facility_player: function (e, index, apiName) {
                     e && e.preventDefault();
                     let self = this;
 
                     let f = self.Facilities[index];
                     let newRecord = !f.Id;
-                    if (newRecord){
-                        self.autoClearMessage("Facility not yet registered!",index);
+                    if (newRecord) {
+                        self.autoClearMessage("Facility not yet registered!", index);
                         return;
                     }
-                    api().url("/facilities/"+apiName+"/" +f.Id).get().then(function (response) {
-                        if (newRecord){
-                            self.Facilities.splice(self.Facilities.length-1,1,response.Facility);
-                        }else {
-                            self.Facilities.splice(index,1,response.Facility);
+                    api().url("/facilities/" + apiName + "/" + f.Id).get().then(function (response) {
+                        if (newRecord) {
+                            self.Facilities.splice(self.Facilities.length - 1, 1, response.Facility);
+                        } else {
+                            self.Facilities.splice(index, 1, response.Facility);
                         }
                     }).catch(function (err) {
-                        if (err.response){
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error,index);
-                        }else {
-                            self.autoClearMessage(err.toString(),index);
+                        if (err.response) {
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
+                        } else {
+                            self.autoClearMessage(err.toString(), index);
                         }
                     });
                 },
-                blank: function(s){
+                blank: function (s) {
                     return (!s || s.length === 0)
                 }
             }
@@ -293,118 +295,197 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div id="message" ref="message" class="row" >
+        <div id="message" ref="message" class="row">
             <div class="col-12 alert alert-danger " v-if="messages && messages.length > 0">
                 {{ message() }}
             </div>
         </div>
         <div id="lookupEntries" ref="lookupEntries" class="below">
             <div v-for="(city,index) in current.Cities" v-if="current.Cities.length > 0">
-                <a href="#" v-on:click="onCitySelect($event,city)"  v-on:keyup.enter="onCitySelect($event,city)" v-on:keyup.space="onCitySelect($event,city)"
-                v-on:keyup.up="navigate($event,index-1,current.Cities.length)" v-on:keyup.down="navigate($event,index+1,current.Cities.length)">{{city.Name}} - {{city.State.Name}}</a>
+                <a href="#" v-on:click="onCitySelect($event,city)" v-on:keyup.enter="onCitySelect($event,city)"
+                    v-on:keyup.space="onCitySelect($event,city)"
+                    v-on:keyup.up="navigate($event,index-1,current.Cities.length)"
+                    v-on:keyup.down="navigate($event,index+1,current.Cities.length)">{{city.Name}} -
+                    {{city.State.Name}}</a>
             </div>
             <div v-for="(pincode,index) in current.PinCodes" v-if="current.PinCodes.length > 0">
-                <a href="#"
-                v-on:click="onPinCodeSelect($event,pincode)" v-on:keyup.space="onPinCodeSelect($event,pincode)" v-on:keyup.enter="onPinCodeSelect($event,pincode)"
-                v-on:keyup.up="navigate($event,index-1,current.PinCodes.length)" v-on:keyup.down="navigate($event,index+1,current.PinCodes.length)" >{{pincode.PinCode}} </a>
+                <a href="#" v-on:click="onPinCodeSelect($event,pincode)"
+                    v-on:keyup.space="onPinCodeSelect($event,pincode)"
+                    v-on:keyup.enter="onPinCodeSelect($event,pincode)"
+                    v-on:keyup.up="navigate($event,index-1,current.PinCodes.length)"
+                    v-on:keyup.down="navigate($event,index+1,current.PinCodes.length)">{{pincode.PinCode}} </a>
             </div>
         </div>
-        <div class="container-fluid ">
-            <div class="row">
+        <div class="container-fluid">
+            <!-- Home Address -->
+            <div class="row mb-2">
+                <div class="col">
+                    <h6 class="mt-4 d-inline-block">Facilities</h6>
+                </div>
+                <div class="col d-flex justify-content-end align-items-end">
+                    <a href="#/" class="btn btn-sm btn-outline-primary" role="button" v-on:click="create($event)">
+                        + New Facility
+                    </a>
+                </div>
+            </div>
+            <div v-bind:id="'facility-' + i" class="row" v-for="(f,i) in Facilities">
                 <div class="col-12">
-                    <h2 class="my-3 mt-4">Facilities</h2>
+                    <div class="content-box mb-3">
+                        <div class="action-box">
+                            <!-- show status in the icon -->
+                            <span v-if="current.index != i">
+                                <a href="#" class="mr-2" v-if="(!f.Published || f.Published === 'N')"
+                                    v-on:click="publish($event,i)">
+                                    <small>
+                                        Publish
+                                    </small>
+                                </a>
+                                <a href="#" class="mr-2" v-if="(f.Published && f.Published === 'Y')"
+                                    v-on:click="unpublish($event,i)">
+                                    <small>
+                                        Un-Publish
+                                    </small>
+                                </a>
+                                <a href="#/" role="button" v-on:click="edit($event,i)">
+                                    <i class='fas fa-edit'></i>
+                                </a>
+                            </span>
+                        </div>
+                        <div class="form-row">
+                            <div class="col">
+                                <h6 class="mb-0">{{f.Name}}</h6>
+                                <p class="mb-0 text-muted" v-if="f.GSTIN && f.GSTIN.length > 0">
+                                    <small>
+                                        {{ (f.GSTIN && f.GSTIN.length > 0) ? "GSTIN: "+f.GSTIN :  "GSTIN"}}
+                                    </small>
+                                </p>
+                                <p class="mb-0 text-muted"><small>
+                                        {{f.AddressLine1}}
+                                        {{!blank(f.AddressLine2) ? "," : "" }} {{ f.AddressLine2}}
+                                        {{!blank(f.AddressLine3) ? "," : "" }} {{f.AddressLine3}}
+                                        {{!blank(f.AddressLine4) ? "," : "" }} {{f.AddressLine4}}
+                                        {{f.City.Name}}-{{f.City.State.Name}} ,{{f.PinCode.PinCode}}
+                                    </small></p>
+                            </div>
+                        </div>
+                        <div class="form-row mt-2">
+                            <div class="col d-flex align-items-center">
+                                <small>Items added :</small>
+                                {{f.Inventories.length }}
+                            </div>
+                            <!-- <div v-if="current.index == i">
+                                <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)">
+                                    <i class="fas fa-check"></i>
+                                </a>
+                                <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </div> -->
+                            <div class="col text-right">
+                                <a v-bind:href="'/sell/html/facility?id='+f.Id+'&includeMenu=N'"
+                                    class="btn btn-sm btn-primary" role="button" v-if="f.Published == 'Y'">
+                                    Edit Items
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div v-bind:id="'facility-' + i" v-bind:class="'my-3 px-3 border rounded border-dark '" v-for="(f,i) in Facilities">
-                <div class="d-flex flex-row justify-content-end py-2">
-                    <div>
-                        <!-- show status in the icon -->
-
-                        <div v-if="current.index == i">
-                            <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >
-                                <i class="fas fa-check"></i>
+                <div class="show-update" v-if="current.index == i">
+                    <div class="form-row">
+                        <div class="col">
+                            <h6>Facility Information</h6>
+                        </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col"><input class="form-control form-control-sm" v-bind:key="'name' + i"
+                                v-bind:id="'name' + i" v-model="current.Facility.Name"
+                                placeholder="Alias for the facility" /></div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col">
+                            <input class="form-control form-control-sm" v-bind:key="'address1' + i"
+                                v-bind:id="'address1' + i" v-model="current.Facility.AddressLine1"
+                                placeholder="Address Line 1" />
+                        </div>
+                        <div class="col">
+                            <input class="form-control form-control-sm" v-bind:key="'address2' + i"
+                                v-bind:id="'address2' + i" v-model="current.Facility.AddressLine2"
+                                placeholder="Address Line 2" />
+                        </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col">
+                            <input class="form-control form-control-sm" v-bind:key="'address3' + i"
+                                v-bind:id="'address3' + i" v-model="current.Facility.AddressLine3"
+                                placeholder="Address Line 3" />
+                        </div>
+                        <div class="col">
+                            <input class="form-control form-control-sm" v-bind:key="'address4' + i"
+                                v-bind:id="'address4' + i" v-model="current.Facility.AddressLine4"
+                                placeholder="Address Line 4" />
+                        </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col">
+                            <input v-bind:key="'city' + i" v-bind:id="'city' + i" class="form-control form-control-sm"
+                                placeholder="City Name" v-model="current.Facility.City.Name"
+                                v-on:input="onCityChange($event)"
+                                v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City" />
+                        </div>
+                        <div class="col">
+                            <input v-bind:key="'pincode' + i" v-bind:id="'pincode' + i"
+                                class="form-control form-control-sm" placeholder="Pin Code"
+                                v-model="current.Facility.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
+                                v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="f.PinCode" />
+                        </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col">
+                            <input v-bind:key="'gstin' + i" v-bind:id="'gstin' + i" class="form-control form-control-sm"
+                                placeholder="GSTIN" v-model="current.Facility.GSTIN" />
+                        </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col">
+                            <div class="form-check">
+                                <input class="form-check-input align-middle" type="checkbox"
+                                    v-bind:key="'DeliveryProvided' + i" v-bind:id="'DeliveryProvided' + i"
+                                    placeholder="Delivery Provided" v-model="current.Facility.DeliveryProvided"
+                                    true-value="Y" false-value="N">
+                                <label class="form-check-label align-middle"
+                                    v-bind:for="'DeliveryProvided' + i">Delivery
+                                    Provided</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row mb-2" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules' + i"
+                        v-if="current.Facility.DeliveryProvided === 'Y'">
+                        <div class="col">
+                            <label class="text-muted" v-bind:for="'DeliveryRadius' + i">Upto</label>
+                            <input class="form-control form-control-sm" v-bind:key="'DeliveryRadius' + i"
+                                v-bind:id="'DeliveryRadius' + i" placeholder="Upto how many Kms"
+                                v-model="current.Facility.DeliveryRadius" />
+                        </div>
+                        <div class="col">
+                            <label class="text-muted" v-bind:for="'DeliveryCharges' + i">Delivery Charges</label>
+                            &#x20B9 <input class="form-control form-control-sm" v-bind:key="'DeliveryCharges' + i"
+                                v-bind:id="'DeliveryCharges' + i" placeholder="0"
+                                v-model="current.Facility.DeliveryCharges" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="col text-right">
+                            <a href="#/" class="btn btn-light btn-sm" role="button" v-on:click="cancel($event)">
+                                cancel
                             </a>
-                            <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)" >
-                                <i class="fas fa-times"></i>
+                            <a href="#/" class="btn btn-primary btn-sm" role="button" v-on:click="save($event)">
+                                submit
                             </a>
                         </div>
-                        <div v-else>
-                            <a href="#" class="btn btn-primary small" v-if="(!f.Published || f.Published === 'N')" v-on:click="publish($event,i)">
-                                <i class="fas fa-lock"></i>
-                            </a>
-                            <a href="#" class="btn btn-primary small" v-if="(f.Published && f.Published === 'Y')" v-on:click="unpublish($event,i)">
-                                <i class="fas fa-lock-open"></i>
-                            </a>
-                            <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)"  >
-                                <i class='fas fa-edit'></i>
-                            </a>
-                        </div>
                     </div>
                 </div>
-                <div class="row py-2 px-2 " v-if="current.index != i">
-                    <h2>{{f.Name}} - {{ (f.GSTIN && f.GSTIN.length > 0) ? f.GSTIN :  "??GSTIN"}}</h2>
-                    {{f.AddressLine1}}
-                    {{!blank(f.AddressLine2) ? "," : "" }} {{ f.AddressLine2}}
-                    {{!blank(f.AddressLine3) ? "," : "" }}  {{f.AddressLine3}}
-                    {{!blank(f.AddressLine4) ? "," : "" }}  {{f.AddressLine4}}
-                    {{f.City.Name}}-{{f.City.State.Name}} ,{{f.PinCode.PinCode}}
-                </div>
-                <div class="row" v-else>
-                    <input class="form-control font-weight-bolder" v-bind:key="'name' + i"  v-bind:id="'name' + i"  v-model="current.Facility.Name" placeholder="Alias for the facility" />
-                    <input class="form-control" v-bind:key="'address1' + i"  v-bind:id="'address1' + i"  v-model="current.Facility.AddressLine1" placeholder="Address Line 1" />
-                    <input class="form-control"  v-bind:key="'address2' + i"  v-bind:id="'address2' + i"  v-model="current.Facility.AddressLine2" placeholder="Address Line 2" />
-                    <input class="form-control"  v-bind:key="'address3' + i"  v-bind:id="'address3' + i"   v-model="current.Facility.AddressLine3" placeholder="Address Line 3" />
-                    <input class="form-control"  v-bind:key="'address4' + i"  v-bind:id="'address4' + i"   v-model="current.Facility.AddressLine4" placeholder="Address Line 4"  />
-                    <input  v-bind:key="'city' + i"  v-bind:id="'city' + i"   class="form-control" placeholder="City Name" v-model="current.Facility.City.Name"
-                        v-on:input="onCityChange($event)" v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City"  />
-                    <input v-bind:key="'pincode' + i"  v-bind:id="'pincode' + i"  class="form-control" placeholder="Pin Code"
-                        v-model="current.Facility.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
-                        v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="f.PinCode"  />
-                    <input v-bind:key="'gstin' + i"  v-bind:id="'gstin' + i"  class="form-control" placeholder="GSTIN"
-                        v-model="current.Facility.GSTIN" />
-
-
-
-                    <div class="col-12">
-                        Delivery Provided
-                        <input type="checkbox" v-bind:key="'DeliveryProvided' + i"  v-bind:id="'DeliveryProvided' + i"  placeholder="Delivery Provided"
-                            v-model="current.Facility.DeliveryProvided" true-value="Y" false-value="N"/>
-                    </div>
-
-                    <div class="col-12" v-bind:id="'Deliveryrules' + i"  v-bind:id="'Deliveryrules' + i" v-if="current.Facility.DeliveryProvided === 'Y'">
-                        Upto
-                        <input  class="my-1" v-bind:key="'DeliveryRadius' + i"  v-bind:id="'DeliveryRadius' + i"  placeholder="Upto how many Kms"
-                            v-model="current.Facility.DeliveryRadius" style="width:5em"/>
-                        Kms for &#x20B9
-                        <input  class="my-1" v-bind:key="'DeliveryCharges' + i"  v-bind:id="'DeliveryCharges' + i"  placeholder="0"
-                            v-model="current.Facility.DeliveryCharges" style="width:5em"/>
-                    </div>
-
-                </div>
-
-                <div class="d-flex flex-row justify-content-end py-2">
-                    <div v-if="current.index == i">
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)" >
-                            <i class="fas fa-check"></i>
-                        </a>
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)" >
-                            <i class="fas fa-times"></i>
-                        </a>
-                    </div>
-                    <div v-else>
-                        <p>Items Added : {{f.Inventories.length }} </p>
-                        <a v-bind:href="'/sell/html/facility?id='+f.Id+'&includeMenu=N'" class="btn btn-primary" role="button"  v-if="f.Published == 'Y'">
-                            <i class="fas fa-boxes">Stock</i>
-                        </a>
-                    </div>
-                </div>
+                <div class="pop-overlay" v-if="current.index == i"></div>
             </div>
-            <div class="d-flex flex-row justify-content-end">
-                <a href="#/" class="btn btn-primary" role="button" v-on:click="create($event)" >
-                    <i class="fas fa-plus" >Add New Facility</i>
-                </a>
-            </div>
-
         </div>
     </div>
 </div>

@@ -10,18 +10,20 @@
 
     $(function () {
         $("#header").load("/fragments/html/header");
+
         new Vue({
-            el: '#edit',
+            el: '#profile',
             data: {
-                User: { VirtualPaymentAddress: ""  ,  DateOfBirth: "" , City : { Name : "" } , PinCode : { PinCode : "" } },
+                User: { VirtualPaymentAddress: "", DateOfBirth: "", City: { Name: "" }, PinCode: { PinCode: "" } },
                 errors: [],
                 userPhoneBeingEdited: false,
                 userEmailBeingEdited: false,
-                userAddressBeingEdited : false,
-                current : {
-                    Cities : [] ,
-                    PinCodes : [],
-                    lookupselectionIndex : -1,
+                userAddressBeingEdited: false,
+                userVpaBeingEdited: false,
+                current: {
+                    Cities: [],
+                    PinCodes: [],
+                    lookupselectionIndex: -1,
                 }
             },
             created: function () {
@@ -30,11 +32,11 @@
                 api().url("/users/show/" + Lockr.get("User").Id).get().then(function (response) {
                     Lockr.set("User", response.User);
                     self.User = response.User;
-                    if (!self.User.City){
-                        self.User.City = {} ;
+                    if (!self.User.City) {
+                        self.User.City = {};
                     }
-                    if (!self.User.PinCode){
-                        self.User.PinCode = {} ;
+                    if (!self.User.PinCode) {
+                        self.User.PinCode = {};
                     }
                     if (!self.User.UserPhones) {
                         self.User.UserPhones = [];
@@ -45,13 +47,14 @@
                     }
                     //self.vmprofile.User.UserEmails.push({ "Email": "" , Validated : "N"});
                     self.checkUserEmails();
-                    self.userAddressBeingEdited =  false; //!self.User.Verified || self.User.Verified === 'N' ;
+                    self.userAddressBeingEdited = false; //!self.User.Verified || self.User.Verified === 'N' ;
                     self.showApp();
                 });
+
             },
             methods: {
                 isKeyTriggerable: function (e) {
-                    return  (e && e.target.value.length > 3);
+                    return (e && e.target.value.length > 3);
                 },
                 onCityChange: function (e) {
                     e && e.preventDefault();
@@ -98,7 +101,7 @@
                         }
                     });
                 },
-                onPinCodeSelect:function (e, item) {
+                onPinCodeSelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
                     self.User.PinCode = item;
@@ -118,7 +121,7 @@
                     }
                 },
 
-                navigate : function(e,index,length){
+                navigate: function (e, index, length) {
                     e && e.preventDefault();
                     let self = this;
                     this.current.lookupselectionIndex = (index % length);
@@ -126,23 +129,24 @@
                     anchors[this.current.lookupselectionIndex].focus();
                 },
                 saveUser: function (e) {
-                    e.preventDefault();
+                    e && e.preventDefault();
                     self = this;
                     self.errors = [];
                     if (!self.User.LongName) {
                         self.errors.push("Let us know your full name.");
                     }
 
-                    if (self.errors.length === 0) {
+                    if (self.errors && self.errors.length === 0) {
                         api().url("/users/save").parameters({ "User": self.User }).post().then(function (response) {
                             self.User = response.Users[0];
                             Lockr.set("User", self.User);
                             self.userAddressBeingEdited = false;
+                            self.userVpaBeingEdited = false;
                         });
                     }
                 },
                 doAadharKyc: function (e) {
-                    if (e){
+                    if (e) {
                         e.preventDefault();
                     }
                     var files = $("#aadharzipfile")[0].files;
@@ -160,7 +164,7 @@
                         api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata" }).post().then(function (response) {
                             console.log(response);
                             self.User = response.User;
-                            Lockr.set("User",self.User);
+                            Lockr.set("User", self.User);
                         });
                     });
                 },
@@ -236,8 +240,11 @@
                         self.checkUserPhones();
                     });
                 },
-                viewAddPhone: function () {
-                    this.userPhoneBeingEdited = true;
+                viewAddPhone: function (status) {
+                    this.userPhoneBeingEdited = status;
+                },
+                viewAddVPA: function (status) {
+                    this.userVpaBeingEdited = status;
                 },
                 verifyEmail: function (userEmail) {
                     self = this;
@@ -293,246 +300,257 @@
                         self.checkUserEmails();
                     });
                 },
-                viewAddEmail: function () {
+                viewAddEmail: function (status) {
                     let self = this;
-                    if (!self.userEmailBeingEdited) {
-                        self.User.UserEmails.push({"Email" : "" , Validated:"N"});
-                        this.userEmailBeingEdited = true;
+                    if (!self.userEmailBeingEdited && status) {
+                        self.User.UserEmails.push({ "Email": "", Validated: "N" });
+                        this.userEmailBeingEdited = status;
+                    } else {
+                        self.User.UserEmails.pop();
+                        this.userEmailBeingEdited = status;
                     }
                 },
-                editAddress: function(event){
+                editAddress: function (event) {
                     let self = this;
-                    if (event){
+                    if (event) {
                         event.preventDefault();
                     }
                     self.userAddressBeingEdited = true;
                 },
-                cancelEditAddress: function(event){
+                cancelEditAddress: function (event) {
                     let self = this;
-                    if (event){
+                    if (event) {
                         event.preventDefault();
                     }
                     self.userAddressBeingEdited = false;
                 },
-                verify : function(event){
+                verify: function (event) {
                     let self = this;
-                    api().url("/users/verify/" + self.User.Id).get().then(function(response){
-                       self.User = response.User;
-                       Lockr.set("User",self.User);
+                    api().url("/users/verify/" + self.User.Id).get().then(function (response) {
+                        self.User = response.User;
+                        Lockr.set("User", self.User);
                     });
                 },
 
                 showApp: function () {
+                    $("#pageTitle").html("Manage Profile");
                     $("#root").show();
                 }
             }
         });
     });
 </script>
-<div id="root" style="display:none;" >
-
+<div id="root" style="display:none;">
+    <!-- Header fragrament -->
     <div id="header">
     </div>
-    <div id="edit" class="app-body" v-if="User.Id">
+    <!-- body content -->
+    <div id="profile" class="app-body" v-if="User.Id">
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-7" v-if="User.BalanceOrderLineCount <= 0">
-                     Zero Balance
-                </div>
-                <div class="col-7" v-else-if="User.BalanceOrderLineCount <= 10">
-                     Low Balance ({{User.BalanceOrderLineCount}})
-                </div>
-                <div class="col-7" v-else>
-                     Balance ({{User.BalanceOrderLineCount}})
-                </div>
-                <div class="col-5 d-flex flex-row justify-content-end">
-                    <a class="btn btn-primary" href="/dashboard?search=HBO Subscription">
-                        <i class="fas fa-rupee-sign">Recharge</i>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="container-fluid">
+            <!-- HBO Banlance -->
             <div class="row">
                 <div class="col">
-                    <h2 class="my-3 mt-4">Profile Information</h2>
-                    <p v-if="errors && errors.length > 0" v-for="(error,index) in errors">{{ error }}</p>
+                    <h6 class="mt-3">Humbhi Online Subscription</h6>
                 </div>
             </div>
-
-            <div id="lookupEntries" ref="lookupEntries" class="below">
-                <div v-for="(city,index) in current.Cities" v-if="current.Cities.length > 0">
-                    <a href="#" v-on:click="onCitySelect($event,city)"  v-on:keyup.enter="onCitySelect($event,city)" v-on:keyup.space="onCitySelect($event,city)"
-                    v-on:keyup.up="navigate($event,index-1,current.Cities.length)" v-on:keyup.down="navigate($event,index+1,current.Cities.length)">{{city.Name}} - {{city.State.Name}}</a>
-                </div>
-                <div v-for="(pincode,index) in current.PinCodes" v-if="current.PinCodes.length > 0">
-                    <a href="#"
-                    v-on:click="onPinCodeSelect($event,pincode)" v-on:keyup.space="onPinCodeSelect($event,pincode)" v-on:keyup.enter="onPinCodeSelect($event,pincode)"
-                    v-on:keyup.up="navigate($event,index-1,current.PinCodes.length)" v-on:keyup.down="navigate($event,index+1,current.PinCodes.length)" >{{pincode.PinCode}} </a>
-                </div>
-            </div>
-
-            <div class="border-top border-bottom py-3 kyc-block"  >
-
-
+            <div class="content-box">
                 <div class="row">
-                    <div class="col-4">
-                        <label for="name" class="d-block text-muted">Address</label>
+                    <div class="col-7  d-flex align-items-center">
+                        <span v-if="User.BalanceOrderLineCount <= 0">
+                            Zero Balance
+                        </span>
+                        <span v-else-if="User.BalanceOrderLineCount <= 10">
+                            Low Balance ({{User.BalanceOrderLineCount}})
+                        </span>
+                        <span v-else>
+                            Balance ({{User.BalanceOrderLineCount}})
+                        </span>
                     </div>
-                    <div class="col d-flex flex-row justify-content-end">
-                        <i class="fas fa-check" v-if="User.Verified && User.Verified === 'Y'">Verified</i>
-                        <a href="#" class="fas fa-edit" v-if="!userAddressBeingEdited" @click="editAddress($event)">Edit</a>
-                        <a href="#" class="fas fa-undo" @click="cancelEditAddress($event)" v-else>Cancel</a>
-
+                    <div class="col-5 d-flex justify-content-end">
+                        <a class="btn btn-primary btn-sm" href="/dashboard?search=HBO Subscription">
+                            Recharge
+                        </a>
                     </div>
                 </div>
-
-                <div class="row form-group" v-if="!User.Verified || User.Verified === 'N'">
+            </div>
+            <!-- Home Address -->
+            <div class="row">
+                <div class="col">
+                    <h6 class="mt-3">Home</h6>
+                </div>
+                <div class="col text-right" v-if="User.Verified && User.Verified === 'Y'">
+                    <span class="mt-3 d-inline-block"><i class="fas fa-check mr-2"></i>Verified</span>
+                </div>
+            </div>
+            <div class="content-box">
+                <div class="row">
                     <div class="col">
-                        <div class="row no-gutters">
-                            <div class="col-4">
+                        <a href="#" class="btn-close fas fa-edit" v-if="!userAddressBeingEdited"
+                            @click="editAddress($event)"></a>
+                        <h6 class="m-0">{{User.LongName}}</h6>
+                        <p class="m-0 text-muted">
+                            <span v-if="User.AddressLine1">{{User.AddressLine1}},</span>
+                            <span v-if="User.AddressLine2">{{User.AddressLine2}},</span>
+                            <span v-if="User.AddressLine3">{{User.AddressLine3}},</span>
+                            <span v-if="User.AddressLine4">{{User.AddressLine4}},</span>
+                            <span
+                                v-if="User.City.Name && User.State.Name">{{User.City.Name}}-{{User.State.Name}},</span>
+                            <span v-if="User.PinCode.PinCode">{{User.PinCode.PinCode}}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <!-- Kyc Option -->
+            <div class="row" v-if="!User.Verified || User.Verified === 'N'">
+                <div class="col">
+                    <h6 class="mt-4 d-inline-block">KYC : Aadhar Upload</h6>
+                </div>
+            </div>
+            <div class="content-box" v-if="!User.Verified || User.Verified === 'N'">
+                <div class="form-row">
+                    <div class="col">
+                        <div class="form-row no-gutters">
+                            <div class="col-12">
                                 <input type="file" class="file-upload" id="aadharzipfile" />
-                                <label class="btn btn-primary" for="aadharzipfile">Aadhar e-Kyc</label>
+                                <label class="btn btn-sm btn-primary" for="aadharzipfile">Click to Select Aadhar
+                                    KYC</label>
                             </div>
-                            <div class="col">
-                                <input id="aadharzippassword" class="form-control" type="password"
+                            <div class="col-8">
+                                <input id="aadharzippassword" class="form-control form-control-sm" type="password"
                                     placeholder="Password" />
                             </div>
                             <div class="col-4 text-right">
-                                <a href="#" class="btn btn-primary" role="button" title="Upload"
+                                <a href="#" class="btn btn-sm btn-block btn-primary" role="button" title="Upload"
                                     v-on:click="doAadharKyc($event)">
-                                    <i class="fas fa-upload">Upload</i>
+                                    Upload
                                 </a>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="row form-group" >
-                    <div class="col-9" v-if="userAddressBeingEdited">
-                        <input class="form-control" id="name" v-model="User.LongName" placeholder="Full Name."  />
-                    </div>
-                    <div class="col-9" v-else>
-                        <label>{{User.LongName}}</label>
-                    </div>
-                    <div class="col-3 d-flex flex-row justify-content-end" v-if="!User.Verified || User.Verified === 'N'">
-                         <a href="#" class="btn btn-primary" @click="verify($event)">Verify</a>
-                    </div>
-
-                    <div class="col-9" v-if="userAddressBeingEdited ">
-                        <input class="form-control" id="a1" v-model="User.AddressLine1" placeholder="House Number"  />
-                    </div>
-                    <div class="col-9" v-else>
-                        <label>{{User.AddressLine1}}</label>
-                    </div>
-
-                    <div class="col-9" v-if="userAddressBeingEdited">
-                        <input class="form-control" id="a2" v-model="User.AddressLine2" placeholder="Building Name"  />
-                    </div>
-                    <div class="col-9" v-else>
-                        <label>{{User.AddressLine2}}</label>
-                    </div>
-                    <div class="col-9" v-if="userAddressBeingEdited">
-                        <input class="form-control" id="a3" v-model="User.AddressLine3" placeholder="Locality"  />
-                    </div>
-                    <div class="col-9" v-else>
-                        <label>{{User.AddressLine3}}</label>
-                    </div>
-                    <div class="col-9" v-if="userAddressBeingEdited">
-                        <input class="form-control" id="a4" v-model="User.AddressLine4" placeholder="Locality"   />
-                    </div>
-                    <div class="col-9" v-else>
-                        <label>{{User.AddressLine4}}</label>
-                    </div>
-                    <div class="col-9" v-if="userAddressBeingEdited">
-                        <input id="city" class="form-control" placeholder="City Name" v-model="User.City.Name"
-                        v-on:input="onCityChange($event)" v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City"  />
-                    </div>
-                    <div class="col-9" v-else>
-                        <label>{{User.City.Name}}-{{User.State.Name}}</label>
-                    </div>
-
-                    <div class="col-9" v-if="userAddressBeingEdited">
-                        <input id="pincode" class="form-control" placeholder="Pin Code"
-                        v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
-                        v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="User.PinCode"  />
-                    </div>
-                    <div class="col-9" v-else>
-                        <label>{{User.PinCode.PinCode}}</label>
-                    </div>
-
-                    <div class="col-9">
-                        <label>VPA:</label>
-                    </div>
-                    <div class="col-12" >
-                        <input class="form-control" id="vpa" v-model="User.VirtualPaymentAddress" placeholder="UPI/Payment Address" />
-                    </div>
-                    <div class="col-12" >
-                        <input class="form-control" id="bankname" v-model="User.NameAsInBankAccount" placeholder="Name As In Bank" />
-                    </div>
-                    <div class="col-12 d-flex justify-content-end" >
-                        <a href="#/" class="btn btn-primary" role="button" v-on:click="saveUser($event)" >
-                            Save
-                        </a>
-                    </div>
-                    <div class="col-12 small" >
-                        <p>** Your virtual payment Address would be used to receive payments into your bank account. Please enter this correctly.
-                        Entering incorrectly can cause money to reach some one else's account. **</p>
-                    </div>
-                </div>
             </div>
-            <div class="row form-group">
+            <!-- Payment Option -->
+            <div class="row">
                 <div class="col">
-                    <label class="d-block text-muted">Mobile Number</label>
-                    {{User.PhoneNumber}}
+                    <h6 class="mt-4 d-inline-block">Payment Option</h6>
+                </div>
+                <div class="col d-flex justify-content-end align-items-end">
+                    <a href="#/" class="btn btn-sm btn-outline-primary mb-1" role="button" v-on:click="viewAddVPA(true)"
+                        v-if="!userVpaBeingEdited">
+                        Save
+                    </a>
                 </div>
             </div>
-            <div class="row form-group">
+            <div class="content-box">
+                <div class="row">
+                    <div class="col">
+                        <p class="mb-0 text-muted">UPI ID **</p>
+                        <p class="mb-0">{{User.VirtualPaymentAddress}}</p>
+                    </div>
+                    <div class="col">
+                        <p class="mb-0 text-muted">Name As In Bank</p>
+                        <p class="mb-0">{{User.NameAsInBankAccount}}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="row" v-if="userVpaBeingEdited">
                 <div class="col">
-                    <label class="d-block text-muted">Email Address</label>
-                    {{User.Email ? User.Email : 'Email not registered'}}
+                    <div class="content-sub-box">
+                        <div class="form-row mb-2">
+                            <div class="col">
+                                <label class="mb-0 text-muted" for="vpa">UPI ID **</label>
+                                <input class="form-control form-control-sm" id="vpa"
+                                    v-model="User.VirtualPaymentAddress" placeholder="UPI/Payment Address" />
+                            </div>
+                            <div class="col">
+                                <label class="mb-0 text-muted" for="bankname">Name As In Bank</label>
+                                <input class="form-control form-control-sm" id="bankname"
+                                    v-model="User.NameAsInBankAccount" placeholder="Name As In Bank" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col text-center">
+                                <button class="btn btn-light btn-sm" type="button"
+                                    v-on:click="viewAddVPA(false)">Cancel</button>
+                                <button class="btn btn-primary btn-sm" type="submit" v-on:click="saveUser($event)">
+                                    {{User.VirtualPaymentAddress && User.NameAsInBankAccount?"Update":"Submit"}}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div class="container-fluid">
-            <div class="row mb-3">
-                <div class="col-4">
-                    <h2>Mobile(s)</h2>
+            <p class="text-note text-muted mb-3">** Your virtual payment Address would be used to receive payments into
+                your
+                bank account.
+                Please enter this correctly.
+                Entering incorrectly can cause money to reach some one else's account.</p>
+            <!-- Mobile Update -->
+            <div class="row">
+                <div class="col">
+                    <h6 class="mt-3 d-inline-block">Mobile Number</h6>
                 </div>
-                <div class="col d-flex flex-row justify-content-end">
-                    <button class="btn btn-primary" v-if="!userPhoneBeingEdited" v-on:click="viewAddPhone()">Add New
+                <div class="col d-flex justify-content-end align-items-end">
+                    <button class="btn btn-sm btn-outline-primary mb-1" v-if="!userPhoneBeingEdited"
+                        v-on:click="viewAddPhone(true)">+ New
                         Mobile</button>
                 </div>
-                <div class="col-12">
-                    <div v-if="userPhoneBeingEdited">
+            </div>
+            <div class="content-box">
+                <div class="data-list user-list" v-if="User.UserPhones.length !== 0">
+                    <div class="form-row" v-if="userPhone.Id && userPhone.Validated && userPhone.Validated === 'Y'"
+                        v-for="(userPhone,index) in User.UserPhones">
+                        <div class="col">
+                            {{userPhone.PhoneNumber}}
+                        </div>
+                        <div class="col-4 text-right text-success" v-if="userPhone.PhoneNumber === User.PhoneNumber">
+                            <small class="text-success">
+                                Default
+                            </small>
+                        </div>
+                        <div class="col-8 text-right"
+                            v-if="(userPhone.Validated && userPhone.Validated === 'Y') && userPhone.PhoneNumber !== User.PhoneNumber">
+                            <small><a href="#" role="button" v-on:click="makePrimaryPhone(userPhone)">
+                                    Make as Default <i class="ml-2 fas fa-trash-alt"
+                                        v-on:click="destroyPhone(userPhone)"></i>
+                                </a></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-muted" v-if="User.UserPhones.length === 0">Mobile is not registered.</div>
+            </div>
+            <div class="row" v-if="userPhoneBeingEdited">
+                <div class="col">
+                    <div class="content-sub-box">
                         <div v-for="(userPhone,index) in User.UserPhones">
+                            <a class="btn-close fa fa-times" v-on:click="destroyPhone(userPhone)"></a>
                             <div v-if="userPhone.Id && userPhone.Validated && userPhone.Validated === 'N'">
                                 <p class="text-muted mb-1">OTP sent to {{userPhone.PhoneNumber}}</p>
-                                <div class="row no-gutters">
-                                    <div class="col-8">
-                                        <input v-bind:id="'otp-'+index" class="form-control" v-model="userPhone.Otp"
-                                            placeholder="Otp" />
+                                <div class="form-row">
+                                    <div class="col">
+                                        <input v-bind:id="'otp-'+index" class="form-control form-control-sm"
+                                            v-model="userPhone.Otp" placeholder="Otp" />
                                     </div>
-                                    <div class="col-4 verify-phone">
-                                        <a class="btn btn-primary" href="#" role="button"
+                                    <div class="col-3 verify-phone">
+                                        <a class="btn btn-block btn-sm btn-primary" href="#" role="button"
                                             v-on:click="verifyPhone(userPhone)">
                                             Verify
                                         </a>
-                                        <i class="fas fa-times" v-on:click="destroyPhone(userPhone)"></i>
                                     </div>
                                 </div>
                             </div>
                             <div v-if="!userPhone.Id">
+                                <a class="btn-close fa fa-times" v-on:click="viewAddPhone(false)"></a>
                                 <p class="text-muted mb-1">
                                     Enter Your Other Mobile No.
                                 </p>
-                                <div class="row no-gutters">
-                                    <div class="col-8 pr-2">
+                                <div class="form-row">
+                                    <div class="col">
                                         <input v-bind:id="'phone-'+index" class="form-control form-control-sm"
                                             v-model="userPhone.PhoneNumber" placeholder="Mobile number" />
                                     </div>
-                                    <div class="col-4 d-flex flex-row justify-content-end">
-                                        <a class="btn btn-sm btn-primary" href="#" role="button"
+                                    <div class="col-4">
+                                        <a class="btn btn-block btn-sm btn-primary" href="#" role="button"
                                             v-on:click="addPhone(userPhone)">
                                             Get OTP
                                         </a>
@@ -543,68 +561,73 @@
                     </div>
                 </div>
             </div>
-            <div class="data-list user-list">
-                <div class="row py-2 border-top"
-                    v-if="userPhone.Id && userPhone.Validated && userPhone.Validated === 'Y'"
-                    v-for="(userPhone,index) in User.UserPhones">
-                    <div class="col-4">
-                        {{userPhone.PhoneNumber}}
-                    </div>
-                    <div class="col-8 text-right text-success" v-if="userPhone.PhoneNumber === User.PhoneNumber">
-                        <small class="text-success">
-                            Default
-                        </small>
-                    </div>
-                    <div class="col-8 text-right"
-                        v-if="(userPhone.Validated && userPhone.Validated === 'Y') && userPhone.PhoneNumber !== User.PhoneNumber">
-                        <a href="#" role="button" v-on:click="makePrimaryPhone(userPhone)">
-                            Make as Default
-                        </a>
-                        <i class="fas fa-trash-alt" v-on:click="destroyPhone(userPhone)"></i>
-                    </div>
+            <!-- Email Update -->
+            <div class="row">
+                <div class="col">
+                    <h6 class="mt-4 d-inline-block">Email</h6>
                 </div>
-            </div>
-        </div>
-        <hr>
-        <div class="container-fluid">
-            <div class="row mb-3">
-                <div class="col-4">
-                    <h2>Emails(s)</h2>
-                </div>
-                <div class="col d-flex flex-row justify-content-end">
-                    <button class="btn btn-primary" v-if="!userEmailBeingEdited" v-on:click="viewAddEmail()">Add New
+                <div class="col d-flex justify-content-end align-items-end">
+                    <button class="btn mb-1 btn-sm btn-outline-primary" v-if="!userEmailBeingEdited"
+                        v-on:click="viewAddEmail(true)">+ New
                         Email</button>
                 </div>
-                <div class="col-12">
-                    <div v-if="userEmailBeingEdited">
+            </div>
+            <div class="content-box">
+                <div class="data-list user-list" v-if="User.UserEmails.length !== 0">
+                    <div class="row py-2 border-top"
+                        v-if="userEmail.Id && userEmail.Validated && userEmail.Validated === 'Y'"
+                        v-for="(userEmail,index) in User.UserEmails">
+                        <div class="col-4">
+                            {{userEmail.Email}}
+                        </div>
+                        <div class="col-8 text-right" v-if="userEmail.Email === User.Email">
+                            <small class="text-success">
+                                Default
+                            </small>
+                        </div>
+                        <div class="col-8 text-right"
+                            v-if="(userEmail.Validated && userEmail.Validated === 'Y') && userEmail.Email !== User.Email">
+                            <a href="#" role="button" v-on:click="makePrimaryEmail(userEmail)">
+                                Make as Default
+                            </a>
+                            <i class="fas fa-trash-alt" v-on:click="destroyEmail(userEmail)"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-muted"
+                    v-if="User.UserEmails.length === 0 || (User.UserEmails.length === 1 &&  User.UserEmails[0].Validated === 'N')">
+                    Email Address is not registered.</div>
+            </div>
+            <div class="row" v-if="userEmailBeingEdited">
+                <div class="col">
+                    <div class="content-sub-box">
                         <div v-for="(userEmail,index) in User.UserEmails">
-                            <div v-if="userEmail.Id && userEmail.Validated && userEmail.Validated === 'N'">
+                            <div v-if="userEmail.Id && (userEmail.Validated && userEmail.Validated === 'N')">
+                                <a class="btn-close fas fa-times" v-on:click="destroyEmail(userEmail)"></a>
                                 <p class="text-muted mb-1">OTP sent to {{userEmail.Email}}</p>
-                                <div class="row no-gutters">
-                                    <div class="col-8">
-                                        <input v-bind:id="'email-otp-'+index" class="form-control"
+                                <div class="form-row">
+                                    <div class="col">
+                                        <input v-bind:id="'email-otp-'+index" class="form-control form-control-sm"
                                             v-model="userEmail.Otp" placeholder="Otp" />
                                     </div>
-                                    <div class="col-4 verify-email">
-                                        <a class="btn btn-primary" href="#" role="button"
+                                    <div class="col-3 verify-email">
+                                        <a class="btn btn-block btn-sm btn-primary" href="#" role="button"
                                             v-on:click="verifyEmail(userEmail)">
                                             Verify
                                         </a>
-                                        <i class="fas fa-times" v-on:click="destroyEmail(userEmail)"></i>
                                     </div>
                                 </div>
                             </div>
                             <div v-if="!userEmail.Id">
-                                <p class="text-muted mb-1">
-                                    Enter Your Other Email.
-                                </p>
-                                <div class="row no-gutters">
-                                    <div class="col-8 pr-2">
+                                <a class="btn-close fa fa-times" v-on:click="viewAddEmail(false)"></a>
+                                <p class="text-muted mb-1">Enter Your Other Email.</p>
+                                <div class="form-row no-gutters">
+                                    <div class="col pr-2">
                                         <input v-bind:id="'email-'+index" class="form-control form-control-sm"
                                             v-model="userEmail.Email" placeholder="Email Id" />
                                     </div>
                                     <div class="col-4">
-                                        <a class="btn btn-sm btn-primary" href="#" role="button"
+                                        <a class="btn btn-block btn-sm btn-primary" href="#" role="button"
                                             v-on:click="addEmail(userEmail)">
                                             Get OTP
                                         </a>
@@ -615,27 +638,67 @@
                     </div>
                 </div>
             </div>
-            <div class="data-list user-list">
-                <div class="row py-2 border-top"
-                    v-if="userEmail.Id && userEmail.Validated && userEmail.Validated === 'Y'"
-                    v-for="(userEmail,index) in User.UserEmails">
-                    <div class="col-4">
-                        {{userEmail.Email}}
-                    </div>
-                    <div class="col-8 text-right" v-if="userEmail.Email === User.Email">
-                        <small class="text-success">
-                            Default
-                        </small>
-                    </div>
-                    <div class="col-8 text-right"
-                        v-if="(userEmail.Validated && userEmail.Validated === 'Y') && userEmail.Email !== User.Email">
-                        <a href="#" role="button" v-on:click="makePrimaryEmail(userEmail)">
-                            Make as Default
-                        </a>
-                        <i class="fas fa-trash-alt" v-on:click="destroyEmail(userEmail)"></i>
-                    </div>
+            <div class="mb-3"></div>
+            <div id="lookupEntries" ref="lookupEntries" class="below">
+                <div v-for="(city,index) in current.Cities" v-if="current.Cities.length > 0">
+                    <a href="#" v-on:click="onCitySelect($event,city)" v-on:keyup.enter="onCitySelect($event,city)"
+                        v-on:keyup.space="onCitySelect($event,city)"
+                        v-on:keyup.up="navigate($event,index-1,current.Cities.length)"
+                        v-on:keyup.down="navigate($event,index+1,current.Cities.length)">{{city.Name}} -
+                        {{city.State.Name}}</a>
+                </div>
+                <div v-for="(pincode,index) in current.PinCodes" v-if="current.PinCodes.length > 0">
+                    <a href="#" v-on:click="onPinCodeSelect($event,pincode)"
+                        v-on:keyup.space="onPinCodeSelect($event,pincode)"
+                        v-on:keyup.enter="onPinCodeSelect($event,pincode)"
+                        v-on:keyup.up="navigate($event,index-1,current.PinCodes.length)"
+                        v-on:keyup.down="navigate($event,index+1,current.PinCodes.length)">{{pincode.PinCode}} </a>
                 </div>
             </div>
         </div>
+        <div class="show-update" v-if="userAddressBeingEdited">
+            <div class="form-row">
+                <div class="col-12">
+                    <h6>Update Address</h6>
+                </div>
+                <div class="col-12 mb-2">
+                    <input class="form-control form-control-sm" id="name" v-model="User.LongName"
+                        placeholder="Full Name" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input class="form-control form-control-sm" id="a1" v-model="User.AddressLine1"
+                        placeholder="House Number" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input class="form-control form-control-sm" id="a2" v-model="User.AddressLine2"
+                        placeholder="Building Name" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input class="form-control form-control-sm" id="a3" v-model="User.AddressLine3"
+                        placeholder="Locality" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input class="form-control form-control-sm" id="a4" v-model="User.AddressLine4"
+                        placeholder="Locality" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input id="city" class="form-control form-control-sm" placeholder="City Name"
+                        v-model="User.City.Name" v-on:input="onCityChange($event)"
+                        v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input id="pincode" class="form-control form-control-sm" placeholder="Pin Code"
+                        v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
+                        v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="User.PinCode" />
+                </div>
+                <div class="col-12 text-right">
+                    <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditAddress($event)">Cancel</a>
+                    <a href="#/" v-if="!User.Verified || User.Verified === 'Y'" class="btn btn-sm btn-primary"
+                        @click="saveUser($event)">Submit</a>
+                    <a href="#" v-if="!User.Verified || User.Verified === 'N'" class="btn btn-sm btn-primary"
+                        @click="verify($event)">Verify</a>
+                </div>
+            </div>
+        </div>
+        <div class="pop-overlay" v-if="userAddressBeingEdited"></div>
     </div>
-</div>

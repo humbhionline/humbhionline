@@ -1,0 +1,31 @@
+.btn-primary {
+    background-color: var(--hbo-red);
+    border-color: var(--hbo-red);
+}
+.btn-outline-primary {
+    border-color: var(--hbo-red);
+    color: var(--hbo-red);
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+    border-color: var(--hbo-red);
+    box-shadow: none;
+    color: var(--hbo-red);
+    outline: none;
+    background-color: white;
+}
+.btn-outline-primary:not(:disabled):not(.disabled).active,
+.btn-outline-primary:not(:disabled):not(.disabled):active,
+.show > .btn-outline-primary.dropdown-toggle {
+    background-color: var(--hbo-red);
+    border-color: var(--hbo-red);
+    box-shadow: none;
+}
+.btn-group i {
+    font-size: 12px;
+}
+.btn-back {
+    box-shadow: var(--hbo-shadow);
+    color: rgba(0, 0, 0, 0.4);
+}
