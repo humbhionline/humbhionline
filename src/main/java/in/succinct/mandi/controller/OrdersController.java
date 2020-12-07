@@ -2,6 +2,7 @@ package in.succinct.mandi.controller;
 
 import com.venky.cache.Cache;
 import com.venky.core.date.DateUtils;
+import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
@@ -9,8 +10,6 @@ import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.db.model.reflection.ModelReflector;
-import com.venky.swf.db.model.reflection.ModelReflector.FieldMatcher;
-import com.venky.swf.db.table.Table.ColumnDescriptor;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
@@ -20,7 +19,9 @@ import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.UserFacility;
 import com.venky.swf.plugins.templates.controller.TemplateLoader;
+import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
+import com.venky.swf.routing.Config;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
@@ -38,7 +39,6 @@ import org.json.simple.JSONValue;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -347,12 +347,45 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     }
 
     public View processUpi() throws IOException {
-        JSONObject upiResponse = (JSONObject)JSONValue.parse(new InputStreamReader(getPath().getInputStream()));
+        String signature = getPath().getRequest().getHeader("X-Signature");
+        String payload = StringUtil.read(getPath().getInputStream());
+        User user = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
+
+        if (user.getDevices().isEmpty()){
+            throw new RuntimeException("Invalid api call");
+        }
+        if (ObjectUtil.isVoid(signature)){
+            throw new RuntimeException("Signature verification failed");
+        }
+        boolean verified = false;
+        for (Device device : user.getDevices()){
+            JSONObject keyJson = device.getSubscriptionJson();
+            String fmsToken = (String)keyJson.get("token");
+            String publicKey = (String)keyJson.get("key");
+            String client = (String)keyJson.get("client");
+            if (!ObjectUtil.equals(client,"android") || ObjectUtil.isVoid(fmsToken) || ObjectUtil.isVoid(publicKey)){
+                continue;
+            }
+            StringBuilder signedToVerify = new StringBuilder();
+            signedToVerify.append("JSESSIONID:"+getPath().getSession().getId()).append(",").append("fms.Token:" +fmsToken).append(",");
+            signedToVerify.append("/orders/processUpi").append("|").append(payload);
+            Config.instance().getLogger(getClass().getName()).info("Payload to verify:\n" + signedToVerify.toString());
+            verified = Crypt.getInstance().verifySignature(signedToVerify.toString(),signature,publicKey);
+            if (verified){
+                break;
+            }
+        }
+        if (!verified){
+            throw new RuntimeException("Signature verification failed.");
+        }
+
+
+        JSONObject upiResponse = (JSONObject)JSONValue.parse(payload);
         String txnRef = (String)upiResponse.get("txnRef");
         String[] orderInfo = txnRef.split(":");
         boolean isRefund = ObjectUtil.equals(orderInfo[0],"R");
         Long orderId = getReflector().getJdbcTypeHelper().getTypeRef(Long.class).getTypeConverter().valueOf(orderInfo[1]);
-        if (orderId != null){
+        if (orderId == null){
             throw new RuntimeException("Cannot Find order " + orderId);
         }
         Order order = Database.getTable(Order.class).lock(orderId);

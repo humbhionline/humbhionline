@@ -12,13 +12,11 @@ function sendSubscriptionToServer(subscription){
     let device = Lockr.get("device");
     let user = Lockr.get("User");
     if (subscription &&  user && user.Id) {
-        if (!device || device.DeviceId !== subscription ) {
-            api().url("/devices/save").parameters({ 'Device': { 'DeviceId': subscription, 'UserId': user.Id } }).post()
-            .then(function (response) {
-                if (response.Devices && response.Devices.length > 0){
-                    Lockr.set("device",response.Devices[0]);
-                }
-                if (device.Id && device.Id * 1.0 > 0) {
+        api().url("/devices/save").parameters({ 'Device': { 'DeviceId': subscription, 'UserId': user.Id } }).post()
+        .then(function (response) {
+            if (response.Devices && response.Devices.length > 0){
+                Lockr.set("device",response.Devices[0]);
+                if (device && device.Id && device.Id * 1.0 > 0 && device.Id !== Lockr.get("device").Id) {
                     api().url("/devices/destroy/"+device.Id).get().then(function(response) {
                         console.log("old subscription removed");
                     }).catch(function (err){
@@ -26,10 +24,8 @@ function sendSubscriptionToServer(subscription){
                     });
                 }
                 console.log("Subscription made on the server");
-            });
-        }else{
-            console.log("Subscription already present on the server");
-        }
+            }
+        });
     }else {
         console.log("Subscription not set on server");
     }

@@ -11,7 +11,8 @@
     function onUpiResponse(jsonresponse) {
         console.log("UPI Response got from webview: " + jsonresponse);
         if (hboViewModel) {
-            hboViewModel.onUpiResponse(JSON.parse(jsonresponse));
+            let signature = Android ? Android.sign("/orders/processUpi",jsonresponse) : "Manual";
+            hboViewModel.onUpiResponse(jsonresponse,signature);
         }
     }
 
@@ -114,23 +115,33 @@
                         }
                     }
                 },
-                onUpiResponse: function (r) {
-                    console.log(JSON.stringify(r));
+                onUpiResponse: function (upiresponsejsonString,signature) {
+                    let self = this;
+                    console.log(upiresponsejsonString);
+                    let r = JSON.parse(upiresponsejsonString)
+
+                    if (!r.txnRef){
+                        self.autoClearMessage("Transaction Cancelled",self.Orders[0]);
+                        return;
+                    }
                     var orderInfo = r.txnRef.split(":");
                     var orderId = orderInfo[1];
 
-                    let self = this;
                     let index = this.Orders.findIndex(function (o) {
                         return o.Id === orderId;
                     });
 
-                    api().url("/orders/processUpi").parameters(r).post().then(function (response) {
+                    api().url("/orders/processUpi").parameters(upiresponsejsonString).headers({"X-Signature":signature}).post().then(function (response) {
                         if (index >= 0) {
                             self.Orders.splice(index, 1, response.Order);
                         }
                         self.autoClearMessage("Payment Status : " + r.Status, self.Orders[index]);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, self.Orders[index]);
+                        if (err.response){
+                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, self.Orders[index]);
+                        }else {
+                            self.autoClearMessage(err, self.Orders[index]);
+                        }
                     });
 
                 },
