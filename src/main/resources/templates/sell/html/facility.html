@@ -2,7 +2,7 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/deepmerge/dist/umd.js"></script>
-<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<script type="text/javascript" src="/fragments/js/util.js"></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
 
 
@@ -59,7 +59,7 @@
             methods: {
                 showApp: function () {
                     $(".navbar").addClass("bg-clear");
-                    $(".body").css("padding-top", "280px");
+                    $(".body").css("padding-top", "300px");
                     $("#root").show();
                 },
                 message: function () {
@@ -601,11 +601,10 @@
     }
 
     .banner-edit {
-        bottom: 20pt;
-        right: 10pt;
+        bottom: 38px;
+        right: 23px;
         position: absolute;
-        z-index: 1;
-        color: #0f0;
+        z-index: 2;
     }
 </style>
 <div id="root" style="display:none;">
@@ -666,9 +665,8 @@
                 <a class="carousel-control-next" href="#banner-slider" data-slide="next">
                     <span class="carousel-control-next-icon"></span>
                 </a>
-                <a href="#" class="banner-edit fas fa-edit" @click="editBanner($event)"
-                    v-if="!facilityBannerBeingEdited">Banner</a>
-                <a href="#" class="banner-edit fas fa-times" @click="bannerEditComplete($event)" v-else>Cancel</a>
+                <a href="#" class="banner-edit text-decoration-none" @click="editBanner($event)"
+                    v-if="!facilityBannerBeingEdited"><i class="fas fa-edit"></i> Banner</a>
             </div>
             <div class="container facility-info">
                 <div class="row">
@@ -710,11 +708,24 @@
             </div>
         </div>
         <div class="container">
-            <div id="banners" class="row" v-if="facilityBannerBeingEdited">
-                <div class="col-12">
-                    <div class="d-flex flex-row justify-content-end">
-                        <a href="#" class="btn btn-primary" @click="addBanner($event)">Add New</a>
+            <div id="banners" class="show-update" v-if="facilityBannerBeingEdited">
+                <div class="form-row">
+                    <div class="col">
+                        <h6>Update/ Add New banner</h6>
                     </div>
+                    <div class="col-2 text-right">
+                        <a href="#" @click="bannerEditComplete($event)" v-if="facilityBannerBeingEdited"><i
+                                class="fas fa-times"></i></a>
+                    </div>
+                </div>
+                <div class="form-row mb-2">
+                    <div class="col text-right">
+                        <a href="#" class="btn btn-sm btn-primary" @click="addBanner($event)">Add New</a>
+                    </div>
+                </div>
+                <div class="form-row" v-for="(attachment,i) in Facility.Attachments">
+                    <div class="col-4"></div>
+                    <div class="col text-right"></div>
                 </div>
                 <div class="col-12" v-for="(attachment,i) in Facility.Attachments">
                     <div class="row">
@@ -751,131 +762,117 @@
                     </div>
                 </div>
             </div>
+            <div class="pop-overlay" v-if="facilityBannerBeingEdited"></div>
 
-            <div v-bind:id="'inventory-' + i " class="py-3 border-top border-dark"
-                v-for="(inv,i) in Facility.Inventories">
-                <!-- <div class="form-row">
-                    <div class="col-4">
-                        <img class="img-fluid w-100" v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
-                            v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0" />
-                    </div>
-                    <div class="col">
-                        <h6 class="m-0"></h6>
-                        <p class="mb-1">
-                            <small class="text-muted font-weight-bold">By: <a
-                                    v-bind:href="'/dashboard?facility_id=' +result.Facility.Id">{{result.Facility.Name}}</a>
-                            </small>
-                        </p>
-                        <small class="m-0"><a
-                                v-bind:href="'https://google.com/maps/place/'+result.Facility.Lat +',' + result.Facility.Lng">
-                                <i class="fa fa-map-pin mr-1 text-muted"></i>
-                                {{result.Facility.Distance}} Km
-                            </a>
-                        </small>
-                        <h5 class="mb-0 mt-3">&#x20B9; {{result.SellingPrice}}</h5>
-                    </div>
-                </div> -->
-                <div class="d-flex flex-row justify-content-end">
-                    <button class="btn btn-primary" role="button" v-if="inv.Infinite === 'Y'"
-                        v-on:click="zeroInventory($event,i)" :disabled="current.index === i">
-                        <i class="fas fa-stop-circle">Stop</i>
-                    </button>
-                    <button class="btn btn-primary" role="button" v-on:click="infiniteInventory($event,i)"
-                        :disabled="current.index === i" v-else>
-                        <i class="fas fa-play-circle">Start</i>
-                    </button>
-                </div>
-                <div class="row">
-                    <div class="col-3" @click="chooseSkuFile($event,i)">
-                        <div class="row " v-for="(attachment,ai) in inv.Sku.Attachments">
-                            <div class="col-12 " v-if="!attachment.Dirty">
-                                <img v-bind:src="attachment.AttachmentUrl" v-if="attachment.Id"
-                                    style="width:100%; "></img>
-                                <span v-else>Click to upload Image</span>
+            <div v-bind:id="'inventory-' + i " class="form-row" v-for="(inv,i) in Facility.Inventories">
+                <div class="col-12">
+                    <div class="item-list">
+                        <div class="form-row">
+                            <div class="col-4 img-holder">
+                                <img v-for="(attachment,ai) in inv.Sku.Attachments"
+                                    v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl : attachment.Attachment"
+                                    v-if="attachment.Id || attachment.Dirty" class="w-100"></img>
+                                <div class="default-img d-flex align-items-center justify-content-center border rounded-sm"
+                                    v-else>
+                                    <i class="fa fa-image text-muted"></i>
+                                </div>
+                                <span v-for="(attachment,ai) in inv.Sku.Attachments">
+                                    <label class="btn btn-camera btn-sm btn-outline-primary" v-if="!attachment.Dirty"
+                                        v-bind:for="'sku-attachment-'+i">
+                                        <i class="fa fa-camera"></i>
+                                    </label>
+                                    <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
+                                        v-bind:id="'sku-attachment-'+i"
+                                        v-on:input="onSkuBannerFileChange($event,i,ai)" />
+                                    <a href="#" class="btn btn-sm btn-block m-0 mt-2 btn-primary" role="button"
+                                        title="Upload" v-on:click="uploadSkuBannerFile($event,i,ai)"
+                                        v-if="attachment.Dirty">
+                                        Save
+                                    </a>
+                                    <!-- <a href="#" class="h-fill btn btn-primary" role="button" title="Remove"
+                                        v-on:click="removeSkuBannner($event,i,ai)">
+                                        <i class="small fas fa-trash"></i>
+                                    </a> -->
+                                </span>
                             </div>
-                            <div class="col-12 " v-else>
-                                <img v-bind:src="attachment.Attachment" style="width:100%; "
-                                    v-if="attachment.Attachment">
-                                <span v-else>Click to upload Image</span>
-                            </div>
-                            <div class="col-12 d-flex flex-row">
-                                <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
-                                    v-bind:id="'sku-attachment-'+i" v-on:input="onSkuBannerFileChange($event,i,ai)" />
-                                <a href="#" class="h-fill btn btn-primary" role="button" title="Upload"
-                                    v-on:click="uploadSkuBannerFile($event,i,ai)" v-if="attachment.Dirty">
-                                    <i class="small fas fa-check"></i>
-                                </a>
-                                <!--
-                                <a href="#" class="h-fill btn btn-primary" role="button" title="Remove"
-                                    v-on:click="removeSkuBannner($event,i,ai)">
-                                    <i class="small fas fa-trash"></i>
-                                </a>
-                                -->
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-9">
-                        <div class="row">
-                            <div class="col-7" v-if="current.index === i">
-                                <label v-bind:for="'item' + i" class="small">Product Name</label>
-                                <input v-bind:key="'item' + i" v-bind:id="'item' + i" class="form-control"
-                                    placeholder="Product Name" v-model="current.Inventory.Sku.Item.Name"
-                                    v-on:input="onItemChange($event)"
-                                    v-on:keyup.down="navigate($event,0,current.Items.length)" />
-                            </div>
-                            <div class="col-5" v-if="current.index === i">
-                                <label class="small" v-bind:for="'uom' + i">Package</label>
-                                <input v-bind:key="'uom' + i" v-bind:id="'uom' + i" class="form-control"
-                                    placeholder="Package" v-model="current.Inventory.Sku.PackagingUOM.Name"
-                                    v-on:input="onUnitOfMeasureChange($event)"
-                                    v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)" />
-                            </div>
-                            <div class="col-12" v-if="current.index !== i">
-                                {{inv.Sku.Item.Name}} - {{inv.Sku.PackagingUOM.Name}}
-                            </div>
-                        </div>
-                        <div class="row" v-if="current.index === i">
-                            <div class="col-7">
-                                <label class="small" v-bind:for="'mrp' + i">Max Retail Price</label>
-                                <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control"
-                                    placeholder="MRP" v-model="current.Inventory.Sku.MaxRetailPrice" />
-                            </div>
-                            <div class="col-5">
-                                <label class="small" v-bind:for="'price' + i">Selling Price</label>
-                                <input v-bind:key="'price' + i" v-bind:id="'price' + i" class="form-control"
-                                    placeholder="Price" v-model="current.Inventory.SellingPrice" />
-                            </div>
-                        </div>
-                        <div class="row" v-else>
-                            <div class="col-12">
+                            <div class="col">
+                                <div class="form-row mb-2">
+                                    <div class="col text-right">
+                                        <a href="#/" class="btn btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
+                                            v-on:click="zeroInventory($event,i)"
+                                            :disabled="current.index === i">Un-Publish</a>
+                                        <a href="#/" class="btn btn-sm btn-outline-primary"
+                                            v-on:click="infiniteInventory($event,i)" :disabled="current.index === i"
+                                            v-else>Publish</a>
+                                        <a href="#/" v-if="current.index !== i"
+                                            class="ml-2 btn btn-sm btn-outline-primary" v-on:click="edit($event,i)">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                    </div>
+                                </div>
+                                <h6 class="m-0">{{inv.Sku.Item.Name}} -
+                                    <small>{{inv.Sku.PackagingUOM.Name}}</small>
+                                </h6>
                                 <span v-if="inv.Sku.MaxRetailPrice * 1.0 === inv.SellingPrice * 1.0">
                                     <b>&#x20B9; {{inv.SellingPrice}}</b>
                                 </span>
                                 <span v-else>
-                                    <b>&#x20B9; {{inv.SellingPrice}}</b> <del class="font-weight-lighter">&#x20B9;
+                                    <b>&#x20B9; {{inv.SellingPrice}}</b> <del class="text-muted">&#x20B9;
                                         {{inv.Sku.MaxRetailPrice}} </del>
                                 </span>
                             </div>
                         </div>
-
-                        <div class="row" v-if="current.index === i">
-                            <div class="col-7">
-                                <!-- If item is new only then gst is enterable -->
-                                <label class="small" v-bind:for="'asset_code' + i">GST/SAC Code</label>
-                                <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i" class="form-control"
-                                    placeholder="GST/SAC Code" v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                                    v-on:input="onAssetCodeChange($event)"
-                                    v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
-                            </div>
-                            <div class="col-5">
-                                <label class="small">Tax Rate:</label>
-                                <br />
-                                <label>{{current.Inventory.Sku.Item.AssetCode.GstPct}}</label>
-
-                            </div>
+                    </div>
+                </div>
+                <div class="show-update" v-if="current.index === i">
+                    <h6 v-if="current.Inventory.Dirty">Modify Stock</h6>
+                    <h6 v-else>Add New Stock</h6>
+                    <div class="form-row mb-2">
+                        <div class="col-7">
+                            <label v-bind:for="'item' + i" class="small mb-0">Product Name</label>
+                            <input v-bind:key="'item' + i" v-bind:id="'item' + i" class="form-control form-control-sm"
+                                placeholder="Product Name" v-model="current.Inventory.Sku.Item.Name"
+                                v-on:input="onItemChange($event)"
+                                v-on:keyup.down="navigate($event,0,current.Items.length)" />
                         </div>
+                        <div class="col-5">
+                            <label class="small mb-0" v-bind:for="'uom' + i">Package</label>
+                            <input v-bind:key="'uom' + i" v-bind:id="'uom' + i" class="form-control form-control-sm"
+                                placeholder="Package" v-model="current.Inventory.Sku.PackagingUOM.Name"
+                                v-on:input="onUnitOfMeasureChange($event)"
+                                v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)" />
+                        </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col-7">
+                            <label class="small mb-0" v-bind:for="'mrp' + i">Max Retail Price</label>
+                            <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
+                                placeholder="MRP" v-model="current.Inventory.Sku.MaxRetailPrice" />
+                        </div>
+                        <div class="col-5">
+                            <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
+                            <input v-bind:key="'price' + i" v-bind:id="'price' + i" class="form-control form-control-sm"
+                                placeholder="Price" v-model="current.Inventory.SellingPrice" />
+                        </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col-7">
+                            <!-- If item is new only then gst is enterable -->
+                            <label class="small mb-0" v-bind:for="'asset_code' + i">GST/SAC Code</label>
+                            <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
+                                class="form-control form-control-sm" placeholder="GST/SAC Code"
+                                v-model="current.Inventory.Sku.Item.AssetCode.Code"
+                                v-on:input="onAssetCodeChange($event)"
+                                v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
+                        </div>
+                        <div class="col-5">
+                            <label class="small mb-0">Tax Rate:</label>
+                            <br />
+                            <label>{{current.Inventory.Sku.Item.AssetCode.GstPct}}</label>
+                        </div>
+                    </div>
 
-                        <!--
+                    <!--
                         <div class="row" v-else-if="inv.Sku.Item.AssetCode && inv.Sku.Item.AssetCode.LongDescription">
                             <div class="col-7" >
                                 <label class="small" >GST/SAC Code</label>
@@ -907,25 +904,19 @@
                             </div>
                         </div>
                         -->
-                        <div class="d-flex flex-row justify-content-end py-2">
-                            <div v-if="current.index !== i">
-                                <a href="#/" class="btn btn-primary" role="button" v-on:click="edit($event,i)">
-                                    <i class="fas fa-edit">Edit</i>
-                                </a>
-                            </div>
-                            <div v-else>
-                                <a href="#/" class="btn btn-primary" role="button" v-on:click="save($event)">
-                                    <i class="fas fa-check">Save</i>
-                                </a>
-                                <a href="#/" class="btn btn-primary" role="button" v-on:click="cancel($event)">
-                                    <i class="fas fa-times">Cancel</i>
-                                </a>
-                            </div>
-                        </div>
+                    <div class="text-right">
+                        <a href="#/" class="btn btn-sm btn-light mr-2" role="button" v-on:click="cancel($event)">
+                            Cancel
+                        </a>
+                        <a href="#/" class="btn btn-sm btn-primary" role="button" v-on:click="save($event)">
+                            Save
+                        </a>
                     </div>
                 </div>
+                <div class="pop-overlay" v-if="current.index === i"></div>
             </div>
         </div>
-
     </div>
-    <div>
+
+</div>
+<div>
