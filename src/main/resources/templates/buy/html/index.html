@@ -1,244 +1,246 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
-<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<script type="text/javascript" src="/fragments/js/util.js"></script>
 <script type="text/javascript">
-$(function () {
-    $("#header").load("/fragments/html/header");
-    new Vue({
-        el: "#app",
-        data: {
-            messages: [],
-            User : Lockr.get("User"),
-            OrderAmount : {},
-            facilityOrders : Lockr.get("facilityOrders") || {} ,
-            facilities : []
-        },
-        created: function () {
-            let self = this;
-            self.loadFacilities();
-            if (self.facilities.length > 0 ){
-                self.reloadCounts();
-                self.showApp();
-            }else {
-                window.location.replace("/index");
-            }
-        },
-        methods: {
-
-            loadFacilities: function(){
+    $(function () {
+        $("#header").load("/fragments/html/header");
+        new Vue({
+            el: "#app",
+            data: {
+                messages: [],
+                User: Lockr.get("User"),
+                OrderAmount: {},
+                facilityOrders: Lockr.get("facilityOrders") || {},
+                facilities: []
+            },
+            created: function () {
                 let self = this;
-                self.facilities = [];
-                for (key in self.facilityOrders) {
-                    if (self.facilityOrders.hasOwnProperty(key)) {
-                        self.facilities.push(self.facilityOrders[key].OrderLines[0].Inventory.Facility);
-                    }
+                self.loadFacilities();
+                if (self.facilities.length > 0) {
+                    self.reloadCounts();
+                    self.showApp();
+                } else {
+                    window.location.replace("/index");
                 }
             },
-            continueShopping: function(event){
-                if (event){
-                    event.preventDefault();
-                }
-                window.location.href= "/index";
-            },
-            showApp: function () {
-                $("#root").show();
-            },
-            message: function () {
-                var message = "";
-                let self = this;
-                self.messages.forEach(function (m) {
-                    message += " " + m;
-                });
-                return message;
-            },
-            autoClearMessage: function () {
-                let self = this;
-                setTimeout(function () {
-                    self.messages = [];
-                }, 1500);
-            },
-            addOrderToBook :function(f,orders){
-                let self = this;
-                let user = self.User;
-                var order = self.facilityOrders[f.Id];
+            methods: {
 
-                order.ShippingSellingPrice = f.DeliveryProvided === 'Y' ? f.DeliveryCharges  : 0;
-
-                order.OrderAddresses = [
-                { AddressType : "ST" ,
-                FirstName : user.FirstName,
-                LastName : user.LastName,
-                AddressLine1 : user.AddressLine1 ,
-                AddressLine2: user.AddressLine2  ,
-                AddressLine3 : user.AddressLine3,
-                AddressLine4 : user.AddressLine4,
-                City : user.City ,
-                PinCode : user.PinCode,
-                PhoneNumber :user.PhoneNumber,
-                Lat : user.Lat,
-                Lng : user.Lng
-                },
-                { AddressType : "BT" ,
-                FirstName : user.FirstName,
-                LastName : user.LastName,
-                AddressLine1 : user.AddressLine1 ,
-                AddressLine2: user.AddressLine2  ,
-                AddressLine3 : user.AddressLine3,
-                AddressLine4 : user.AddressLine4,
-                City : user.City ,
-                PinCode : user.PinCode,
-                PhoneNumber :user.PhoneNumber,
-                Lat : user.Lat,
-                Lng : user.Lng
-                }];
-                orders.push(order);
-
-            },
-            book: function (orders){
-                let self = this;
-                return api().url("/orders/book").parameters({Orders : orders}).post();
-            },
-            bookOrder :function(event,f){
-                if (event){
-                    event.preventDefault();
-                }
-                let self = this;
-                var Orders = [];
-                self.addOrderToBook(f,Orders);
-                self.book(Orders).then(function(response){
-                    delete self.facilityOrders[f.Id];
-                    if (self.facilityOrders.length == 0){
-                        Lockr.rm("facilityOrders");
-                    }
-                    let index = self.facilities.findIndex(function(facility){
-                        return facility.Id === f.Id
-                    });
-                    if (index >= 0) {
-                        self.facilities.splice(index,1);
-                    }
-                    Lockr.set("facilityOrders",self.facilityOrders);
-                    window.location.reload();
-                }).catch(function (err){
-                    self.messages.push(err.response.data.SWFHttpResponse.Error);
-                    self.autoClearMessage();
-                });
-
-
-            },
-            bookOrders :function(event){
-                if (event){
-                    event.preventDefault();
-                }
-                var Orders = [] ;
-                let self = this;
-                self.facilities.forEach((f, i) => {
-                    self.addOrderToBook(f,Orders);
-                });
-                self.book(Orders).then(function(response){
-                    self.facilities = [ ] ;
-                    self.facilityOrders = {};
-                    Lockr.rm("facilityOrders");
-                    window.location.reload();
-                }).catch(function (err){
-                    self.messages.push(err.response.data.SWFHttpResponse.Error);
-                    self.autoClearMessage();
-                });
-
-            },
-            onOrderLineQtyChange: function(event,f,index){
-                if (event){
-                    event.preventDefault();
-                }
-                let self = this;
-                let result = self.facilityOrders[f.Id].OrderLines[index];
-                var mayNeedToReload = false;
-                if (result.OrderedQuantity <= 0){
-                    let order = self.facilityOrders[f.Id];
-                    mayNeedToReload = true;
-                    order.OrderLines.splice(index,1);
-                    if (order.OrderLines.length === 0){
-                        delete self.facilityOrders[f.Id];
-                    }
-                }
-                Lockr.set("facilityOrders",self.facilityOrders);
-                if (mayNeedToReload) {
-                    self.loadFacilities();
-                    if (self.facilities.length === 0 ){
-                        window.location.reload();
-                        console.log("Line After Reload");
-                    }
-                }
-                self.reloadCounts();
-                self.$forceUpdate();
-            },
-            reduceOrderLine: function(event,f,index){
-                let self = this;
-                let result = self.facilityOrders[f.Id].OrderLines[index];
-                result.OrderedQuantity -=1 ;
-                self.onOrderLineQtyChange(event,f,index);
-            },
-            increaseOrderLine: function(event,f,index){
-                if (event){
-                    event.preventDefault();
-                }
-
-                let self = this;
-                let result = self.facilityOrders[f.Id].OrderLines[index];
-                if (!result.OrderedQuantity){
-                    result.OrderedQuantity = 0.0 ;
-                }
-
-                result.OrderedQuantity += 1.0;
-                self.onOrderLineQtyChange(event,f,index);
-            },
-            reloadCounts: function (){
-                let self = this;
-
-                var obj = self.facilityOrders;
-                self.OrderAmount = {};
-
-                for (key in obj) {
-                    if (obj.hasOwnProperty(key)) {
-                        self.OrderAmount[key] = 0 ;
-                        obj[key].OrderLines.forEach((ol, i) => {
-                            self.OrderAmount[key] += ol.OrderedQuantity * ol.Inventory.SellingPrice ;
-                        });
-                        if ( obj[key].OrderLines.length === 0){
-                            delete obj[key];
-                            delete self.OrderAmount[key];
+                loadFacilities: function () {
+                    let self = this;
+                    self.facilities = [];
+                    for (key in self.facilityOrders) {
+                        if (self.facilityOrders.hasOwnProperty(key)) {
+                            self.facilities.push(self.facilityOrders[key].OrderLines[0].Inventory.Facility);
                         }
                     }
-                }
-                Vue.set(self, "OrderAmount", self.OrderAmount);
-            },
-            totalAmount : function(){
-                let self = this;
-                var total = 0.0 ;
-                for (key in self.OrderAmount){
-                    total += self.OrderAmount[key];
-                }
-                return total;
-            },
-            deliveryAmount :function () {
-                let self = this;
-                var total = 0.0 ;
-                self.facilities.forEach((f, i) => {
-                    total += (f.DeliveryProvided === 'Y' ? f.DeliveryCharges * 1.0 : 0);
-                });
-                return total;
+                },
+                continueShopping: function (event) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    window.location.href = "/index";
+                },
+                showApp: function () {
+                    $("#pageTitle").html("Order Details");
+                    $("#root").show();
+                },
+                message: function () {
+                    var message = "";
+                    let self = this;
+                    self.messages.forEach(function (m) {
+                        message += " " + m;
+                    });
+                    return message;
+                },
+                autoClearMessage: function () {
+                    let self = this;
+                    setTimeout(function () {
+                        self.messages = [];
+                    }, 1500);
+                },
+                addOrderToBook: function (f, orders) {
+                    let self = this;
+                    let user = self.User;
+                    var order = self.facilityOrders[f.Id];
 
+                    order.ShippingSellingPrice = f.DeliveryProvided === 'Y' ? f.DeliveryCharges : 0;
+
+                    order.OrderAddresses = [
+                        {
+                            AddressType: "ST",
+                            FirstName: user.FirstName,
+                            LastName: user.LastName,
+                            AddressLine1: user.AddressLine1,
+                            AddressLine2: user.AddressLine2,
+                            AddressLine3: user.AddressLine3,
+                            AddressLine4: user.AddressLine4,
+                            City: user.City,
+                            PinCode: user.PinCode,
+                            PhoneNumber: user.PhoneNumber,
+                            Lat: user.Lat,
+                            Lng: user.Lng
+                        },
+                        {
+                            AddressType: "BT",
+                            FirstName: user.FirstName,
+                            LastName: user.LastName,
+                            AddressLine1: user.AddressLine1,
+                            AddressLine2: user.AddressLine2,
+                            AddressLine3: user.AddressLine3,
+                            AddressLine4: user.AddressLine4,
+                            City: user.City,
+                            PinCode: user.PinCode,
+                            PhoneNumber: user.PhoneNumber,
+                            Lat: user.Lat,
+                            Lng: user.Lng
+                        }];
+                    orders.push(order);
+
+                },
+                book: function (orders) {
+                    let self = this;
+                    return api().url("/orders/book").parameters({ Orders: orders }).post();
+                },
+                bookOrder: function (event, f) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    var Orders = [];
+                    self.addOrderToBook(f, Orders);
+                    self.book(Orders).then(function (response) {
+                        delete self.facilityOrders[f.Id];
+                        if (self.facilityOrders.length == 0) {
+                            Lockr.rm("facilityOrders");
+                        }
+                        let index = self.facilities.findIndex(function (facility) {
+                            return facility.Id === f.Id
+                        });
+                        if (index >= 0) {
+                            self.facilities.splice(index, 1);
+                        }
+                        Lockr.set("facilityOrders", self.facilityOrders);
+                        window.location.reload();
+                    }).catch(function (err) {
+                        self.messages.push(err.response.data.SWFHttpResponse.Error);
+                        self.autoClearMessage();
+                    });
+
+
+                },
+                bookOrders: function (event) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    var Orders = [];
+                    let self = this;
+                    self.facilities.forEach((f, i) => {
+                        self.addOrderToBook(f, Orders);
+                    });
+                    self.book(Orders).then(function (response) {
+                        self.facilities = [];
+                        self.facilityOrders = {};
+                        Lockr.rm("facilityOrders");
+                        window.location.reload();
+                    }).catch(function (err) {
+                        self.messages.push(err.response.data.SWFHttpResponse.Error);
+                        self.autoClearMessage();
+                    });
+
+                },
+                onOrderLineQtyChange: function (event, f, index) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let result = self.facilityOrders[f.Id].OrderLines[index];
+                    var mayNeedToReload = false;
+                    if (result.OrderedQuantity <= 0) {
+                        let order = self.facilityOrders[f.Id];
+                        mayNeedToReload = true;
+                        order.OrderLines.splice(index, 1);
+                        if (order.OrderLines.length === 0) {
+                            delete self.facilityOrders[f.Id];
+                        }
+                    }
+                    Lockr.set("facilityOrders", self.facilityOrders);
+                    if (mayNeedToReload) {
+                        self.loadFacilities();
+                        if (self.facilities.length === 0) {
+                            window.location.reload();
+                            console.log("Line After Reload");
+                        }
+                    }
+                    self.reloadCounts();
+                    self.$forceUpdate();
+                },
+                reduceOrderLine: function (event, f, index) {
+                    let self = this;
+                    let result = self.facilityOrders[f.Id].OrderLines[index];
+                    result.OrderedQuantity -= 1;
+                    self.onOrderLineQtyChange(event, f, index);
+                },
+                increaseOrderLine: function (event, f, index) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+
+                    let self = this;
+                    let result = self.facilityOrders[f.Id].OrderLines[index];
+                    if (!result.OrderedQuantity) {
+                        result.OrderedQuantity = 0.0;
+                    }
+
+                    result.OrderedQuantity += 1.0;
+                    self.onOrderLineQtyChange(event, f, index);
+                },
+                reloadCounts: function () {
+                    let self = this;
+
+                    var obj = self.facilityOrders;
+                    self.OrderAmount = {};
+
+                    for (key in obj) {
+                        if (obj.hasOwnProperty(key)) {
+                            self.OrderAmount[key] = 0;
+                            obj[key].OrderLines.forEach((ol, i) => {
+                                self.OrderAmount[key] += ol.OrderedQuantity * ol.Inventory.SellingPrice;
+                            });
+                            if (obj[key].OrderLines.length === 0) {
+                                delete obj[key];
+                                delete self.OrderAmount[key];
+                            }
+                        }
+                    }
+                    Vue.set(self, "OrderAmount", self.OrderAmount);
+                },
+                totalAmount: function () {
+                    let self = this;
+                    var total = 0.0;
+                    for (key in self.OrderAmount) {
+                        total += self.OrderAmount[key];
+                    }
+                    return total;
+                },
+                deliveryAmount: function () {
+                    let self = this;
+                    var total = 0.0;
+                    self.facilities.forEach((f, i) => {
+                        total += (f.DeliveryProvided === 'Y' ? f.DeliveryCharges * 1.0 : 0);
+                    });
+                    return total;
+
+                }
             }
-        }
+        });
     });
-});
 </script>
 <style media="screen">
-    .even {
+    .even {}
 
-    }
     .odd {
-        background-color : rgba(0,0,0,0.1);
+        background-color: rgba(0, 0, 0, 0.1);
     }
 </style>
 
@@ -246,92 +248,89 @@ $(function () {
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div v-if="facilities.length > 0" >
-            <div class="container border rounded my-2" v-for="(facility,index) in facilities" >
-                <div class="col-12 text-muted">
-                    Seller:  <a v-bind:href="'/dashboard?facility_id=' +facility.Id">{{facility.Name}}</a>
+        <div v-if="facilities.length > 0">
+            <div class="container my-3" v-for="(facility,index) in facilities">
+                <div class="content-box">
+                    <div class="form-row">
+                        <div class="col">By: <a
+                                v-bind:href="'/dashboard?facility_id=' +facility.Id">{{facility.Name}}</a></div>
+                        <div class="col-3 text-right"><i class="fas fa-drafting-compass"
+                                v-bind:href="'https://google.com/maps/place/'+facility.Lat +',' + facility.Lng"></i>
+                            {{Math.round(facility.Distance * 100 /100)}}
+                            Km</div>
+                    </div>
                 </div>
-                <div class="row" v-for="(ol,olindex) in facilityOrders[facility.Id].OrderLines">
-                    <div class="col-3">
-                        <div class="d-flex flex-row" style="height : 6em">
-                            <img v-bind:src="'/attachments/view/'+ol.Inventory.Sku.Attachments[0].Id" v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0" style="height:100%;"/>
+                <div class="content-sub-box">
+                    <div class="form-row mb-2 border-bottom py-2"
+                        v-for="(ol,olindex) in facilityOrders[facility.Id].OrderLines">
+                        <div class="col-4">
+                            <img v-bind:src="'/attachments/view/'+ol.Inventory.Sku.Attachments[0].Id"
+                                v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
+                                class="w-100" />
                         </div>
-                    </div>
-                    <div class="col-5">
-                        <div class="row">
-                            <div class="col-12">
-                                <b>{{ol.Inventory.Sku.Name}}</b>
-                            </div>
-                            <div class="col-12 text-muted">
-                                @ &#8377; {{ol.Inventory.SellingPrice}}
-                            </div>
-                            <div class="col-12 text-muted small">
-                                <i class="fas fa-drafting-compass" v-bind:href="'https://google.com/maps/place/'+facility.Lat +',' + facility.Lng">{{Math.round(facility.Distance * 100 /100)}} Km</i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="row">
-                            <div class="col-10 text-right">
-                                <b>&#8377; {{ (ol.OrderedQuantity * ol.Inventory.SellingPrice  *100 / 100).toFixed(2) }}</b>
-                            </div>
-                            <div class="col-2">
-
-                            </div>
-                            <div class="col-12">
-                                &nbsp;
-                            </div>
-                            <div class="col-12">
-                                <div class="d-flex flex-row justify-content-end" >
-                                    <button class="h-100 p-1 btn btn-primary fas fa-minus" v-on:click="reduceOrderLine($event,facility,olindex)" >
-                                    </button>
-                                    <div>
-                                        <input  v-bind:key="'quantity-' + facility.Id +'-'+ index"  v-bind:id="'quantity-' + facility.Id +'-'+ index"
-                                        class="h-100 p-0 form-control qty-box text-center" placeholder="0"
-                                        v-model="ol.OrderedQuantity" @change="onOrderLineQtyChange($event,facility,olindex)"/>
+                        <div class="col-8">
+                            <h6>{{ol.Inventory.Sku.Name}}</h6>
+                            <p>@ &#8377; {{ol.Inventory.SellingPrice}}</p>
+                            <div class="row">
+                                <div class="col-8">
+                                    <div class="btn-group" role="group" aria-label="Basic example">
+                                        <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
+                                            v-on:click="reduceOrderLine($event,facility,olindex)">
+                                            <i class="fa fa-minus"></i>
+                                        </button>
+                                        <input v-bind:key="'quantity-' + facility.Id +'-'+ index"
+                                            v-bind:id="'quantity-' + facility.Id +'-'+ index"
+                                            class="btn btn-sm btn-outline-primary w-100 border-left-0 border-right-0 m-0"
+                                            placeholder="0" v-model="ol.OrderedQuantity"
+                                            @change="onOrderLineQtyChange($event,facility,olindex)" />
+                                        <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
+                                            v-on:click="increaseOrderLine($event,facility,olindex)">
+                                            <i class="fa fa-plus"></i>
+                                        </button>
                                     </div>
-                                    <button class="h-100 p-1 btn btn-primary fas fa-plus" v-on:click="increaseOrderLine($event,facility,olindex)" >
-                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="row border-dark border-top border-bottom">
-                    <div class="col-8 d-flex flex-row text-muted text-bold">
-                        Item Total
-                    </div>
-                    <div class="col-4">
-                        <div class="row">
-                            <div class="col-10 d-flex flex-row justify-content-end">
-                                &#8377; {{OrderAmount[facility.Id].toFixed(2)}}
-                            </div>
+                    <div class="form-row">
+                        <div class="col d-flex align-items-center">
+                            Total : &#8377; {{(facility.DeliveryCharges * 1.0 + OrderAmount[facility.Id]).toFixed(2)}}
+                        </div>
+                        <div class="col text-right">
+                            <button class="btn btn-sm btn-primary" v-on:click="bookOrder($event,facility)">Place
+                                Order</button>
                         </div>
                     </div>
-                    <div class="col-8 d-flex flex-row text-muted text-bold">
+                </div>
+            </div>
+            <div class="container">
+                <div class="row">
+                    <div class="col">
+                        <h6>Bill Summary</h6>
+                    </div>
+                </div>
+                <div class="row text-muted">
+                    <div class="col-6 d-flex flex-row justify-content-start">
+                        Ordered Amount
+                    </div>
+                    <div class="col-6 d-flex flex-row justify-content-end">
+                        &#8377; {{totalAmount().toFixed(2)}}
+                    </div>
+                </div>
+                <div class="row text-muted">
+                    <div class="col-6 d-flex flex-row justify-content-start">
                         Delivery Charges
                     </div>
-                    <div class="col-4">
-                        <div class="row">
-                            <div class="col-10 d-flex flex-row justify-content-end">
-                                &#8377; {{(facility.DeliveryProvided === 'Y' ? (facility.DeliveryCharges * 1.0).toFixed(2) : 0.00.toFixed(2))}}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-8 d-flex flex-row text-muted text-bold">
-                        Total
-                    </div>
-                    <div class="col-4">
-                        <div class="row">
-                            <div class="col-10 d-flex flex-row justify-content-end">
-                                &#8377; {{(facility.DeliveryCharges * 1.0 + OrderAmount[facility.Id]).toFixed(2)}}
-                            </div>
-                        </div>
+                    <div class="col-6 d-flex flex-row justify-content-end">
+                        &#8377; {{deliveryAmount().toFixed(2)}}
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-12 d-flex flex-row justify-content-end">
-                        <button class="btn-primary" v-on:click="bookOrder($event,facility)">Book</button>
+                <div class="row text-muted">
+                    <div class="col-6 font-weight-bold">
+                        To Pay
+                    </div>
+                    <div class="col-6 text-right">
+                        &#8377; {{(deliveryAmount() + totalAmount()).toFixed(2)}}
                     </div>
                 </div>
             </div>
@@ -339,43 +338,16 @@ $(function () {
                 &nbsp;
             </div>
             <div class="container">
-                <div class="row  bottom-card border border-dark bg-light p-2">
-                    <div class="col-12">
-                        <div class="row">
-                            <div class="col-12 font-weight-bold">
-                                Bill Summary
-                            </div>
+                <div class="bottom-card">
+                    <h6>Almost there!</h6>
+                    <div class="form-row">
+                        <div class="col-6">
+                            <a href="#" class="btn btn-sm btn-block btn-outline-primary"
+                                v-on:click="continueShopping($event)">Continue Shopping</a>
                         </div>
-                        <div class="row text-muted">
-                            <div class="col-6 d-flex flex-row justify-content-start">
-                                Ordered Amount
-                            </div>
-                            <div class="col-6 d-flex flex-row justify-content-end">
-                                &#8377; {{totalAmount().toFixed(2)}}
-                            </div>
+                        <div class="col-6 text-right">
+                            <button class="btn btn-sm btn-block btn-primary" v-on:click="bookOrders($event)">Place Orders</button>
                         </div>
-                        <div class="row text-muted">
-                            <div class="col-6 d-flex flex-row justify-content-start">
-                                Delivery Charges
-                            </div>
-                            <div class="col-6 d-flex flex-row justify-content-end">
-                                &#8377; {{deliveryAmount().toFixed(2)}}
-                            </div>
-                        </div>
-                        <div class="row text-muted">
-                            <div class="col-6 d-flex flex-row justify-content-start">
-                                Total
-                            </div>
-                            <div class="col-6 d-flex flex-row justify-content-end">
-                                &#8377; {{(deliveryAmount() + totalAmount()).toFixed(2)}}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6 d-flex flex-row justify-content-start">
-                        <a href="#" class="w-100 float-left pt-1" v-on:click="continueShopping($event)">Continue Shopping</a>
-                    </div>
-                    <div class="col-6 d-flex flex-row justify-content-end">
-                        <button class="btn-primary" v-on:click="bookOrders($event)">Book Orders</button>
                     </div>
                 </div>
             </div>

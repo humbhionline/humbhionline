@@ -171,6 +171,19 @@
         margin-bottom: 0;
         bottom: 60px;
     }
+    .carousel-indicators li {
+        width: 10px;
+        height: 10px;
+        cursor: pointer;
+        background-color: #fff;
+        opacity: 1;
+        border-radius: 50%;
+    }
+
+    .carousel-indicators li.active {
+        background-color: var(--hbo-red);
+    }
+
     #banner-slider {
         height: 200px;
         background: rgba(0, 0, 0, 0.2);
@@ -365,10 +378,6 @@
     }
     h1 {
         width: 100%;
-    }
-
-    .btn {
-        width: auto;
     }
 
     .yvlogo {
