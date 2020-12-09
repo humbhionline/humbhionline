@@ -1,0 +1,230 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<link href="/fragments/css/mandi.css" rel="stylesheet"></link>
+
+
+<script type="text/javascript">
+    var login = null;
+    function onOtpReceipt(otp){
+        if (login){
+            login.onOtpReceipt(otp);
+        }
+    }
+
+    $(function(){
+        var searchParams = (new URL(window.location)).searchParams;
+        var redirect_to = searchParams.get("_redirect_to");
+        var phoneNumber = searchParams.get("phone_number");
+
+        if (!redirect_to) {
+            redirect_to = "/index"
+        }
+
+        login = new Vue({
+            el : "#app",
+            data : {
+                Android : undefined , //typeof Android == "undefined" ? undefined : Android,
+                params: { "SignUp": { "PhoneNumber": "" } , "OtpRequested" : "N"},
+                Otp : "",
+                message : "",
+                http: axios.create({
+                    baseURL: "/",
+                    timeout: 30000,
+                    headers: { 'Content-Type': 'application/json' },
+                    withCredentials: false,
+                }),
+            },
+            created : function(){
+                let self  = this;
+                if (phoneNumber){
+                    self.params.SignUp.PhoneNumber = phoneNumber;
+                }
+                self.signIn();
+            },
+            methods : {
+                waitForOtp : function(){
+                    if (this.Android){
+                        this.Android.waitForOtp();
+                    }else {
+                        this.showApp();
+                    }
+                },
+                onOtpReceipt: function(otp){
+                    this.Otp = otp;
+                    this.verifyPhoneOtp(null);
+                },
+                verifyPhoneOtp: function (event) {
+                    if (event){
+                        event.preventDefault();
+                    }
+                    var self = this;
+                    this.http.post("/sign_ups/validateOtp/" + this.params.SignUp.Id, { "Otp": self.Otp }).then(function (response) {
+                        if (response.data.SignUp.Validated === 'Y') {
+                            self.params.SignUp = response.data.SignUp;
+                            Lockr.set("SignUp",self.params.SignUp);
+                        } else {
+                            self.message = "Otp doesnot match" ;
+                        }
+                        self.hideUnHideOtpFields().then(function (home) {
+                            if (home) {
+                                window.location.replace(home);
+                            }
+                        })
+                    });
+                },
+                resendOtp: function () {
+                    var self = this;
+                    this.http.get("/sign_ups/sendOtp/" + this.params.SignUp.Id, { "data": {} }).then(function (response) {
+                        self.message = response.data.SWFHttpResponse.Message;
+                    });
+                },
+                resetPhoneNumber: function () {
+                    var self = this;
+                    self.params.SignUp.PhoneNumber = "";
+                    self.params.SignUp.Validated = "N";
+                    Lockr.rm("SignUp");
+                    window.location.reload();
+                },
+                hideUnHideOtpFields: function () {
+                    let self = this;
+                    return new Promise(function (resolve, reject) {
+                        if (self.params.SignUp && self.params.SignUp.Validated !== 'Y') {
+                            self.waitForOtp();
+                        }else {
+                            var user = self.params.SignUp.User;
+                            if (user) {
+                                setConfirmUnload(false);
+                                loadLocation().then(function(){
+                                   resolve(redirect_to);
+                                });
+                            } else {
+                                resolve(null);
+                            }
+                        }
+                    });
+                },
+                showApp : function(){
+                    $("#root").show();
+                },
+                hideApp : function(){
+                    $("#root").hide();
+
+                },
+                signIn: function () {
+                    var self = this;
+                    self.message = "" ;
+                    self.hideApp();
+                    var signUp = Lockr.get("SignUp");
+                    if (signUp) {
+                        self.params.SignUp = signUp;
+                    }
+                    if (self.params.SignUp.PhoneNumber) {
+                        self.params.OtpRequested = "Y";
+                        self.http.post("/sign_ups/register", self.params).then(function (response) {
+                            if (response.data.SignUp) {
+                                self.params.SignUp = response.data.SignUp;
+                                self.hideUnHideOtpFields().then(function (home) {
+                                    if (home) {
+                                        if (this.Android){
+                                            window.location.replace(home);
+                                        }else {
+                                            Notification.requestPermission(function(status) {
+                                                console.log('Notification permission status:', status);
+                                                window.location.replace(home);
+                                            });
+                                        }
+                                    }else {
+                                        self.showApp();
+                                    }
+                                });
+                            }else {
+                                self.message = "Unexpected Response : " + response.data;
+                            }
+                        }).catch(function (err) {
+                            //Lockr.rm("PhoneNumber");
+                            //self.params.SignUp.SignUpPhone.PhoneNumber = "";
+                            self.message = err.response ? err.response.data.SWFHttpResponse.Error : err.toString();
+                            self.showApp();
+                        });
+                    }else {
+                        self.showApp();
+                    }
+                },
+                signUp: function (event) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+
+                    Lockr.set("SignUp", self.params.SignUp);
+                    setConfirmUnload(false);
+                    self.signIn();
+                }
+            },
+
+        });
+
+    });
+
+</script>
+<link rel="stylesheet" href="/fragments/css/mandi.css">
+</link>
+<style>
+    html,
+    body {
+        height: 100%;
+    }
+</style>
+<div id="root" class="v-fill align-items-center" style="display : none;">
+    <div id="app"  class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-6 col-sm-2">
+                <div class="logo-holder mb-5">
+                    <img src="/resources/web_manifest/drawing.svg" alt="HumBhi Online">
+                    <div class="text-center font-weight-bold"  style="color: red;font-size: large;">
+                        HumBhi Online
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row justify-content-center" id="GetPhone" v-if="(!params.SignUp.PhoneNumber || params.SignUp.Validated !== 'Y' ) && params.OtpRequested === 'N'">
+            <div class="col-10 col-sm-4">
+                <form @submit.prevent="signUp()">
+                    <div class="form-group">
+                        <label for="PhoneNumber" class="text-center d-block">Mobile Number</label>
+                        <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.SignUp.PhoneNumber" />
+                    </div>
+                    <div class="form-group text-right">
+                        <button class="btn btn-primary" type="submit" id="btnSignUp">Next</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="text-center" id="divPhoneOtp" v-else-if="params.OtpRequested === 'Y'">
+            <p class="mb-0">
+                OTP has sent on your Mobile Number
+            </p>
+            <p id="OtpNumber" class="login-number mt-2 mb-4 py-2">{{params.SignUp.PhoneNumber}}</p>
+            <div class="row justify-content-center">
+                <div class="col-10 col-sm-4">
+                    <form @submit.prevent="verifyPhoneOtp()">
+                        <div class="form-group">
+                            <label for="PhoneOtp" class="text-left d-block">Enter your OTP</label>
+                            <input id="PhoneOtp" type="number" class="form-control" placeholder="OTP" v-model="Otp" />
+                            <p class="text-right">
+                                <a id="btnReset" v-on:click="resetPhoneNumber()">Reset Mobile</a> /
+                                <a id="btnResendPhoneOtp" v-on:click="resendOtp()">Resend OTP</a>
+                            </p>
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary" id="btnVerifyPhoneOtp">Validate Mobile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <p id="msg" class="mb-0" v-if="message && message.length > 0"> {{message}}</p>
+    </div>
+</div>

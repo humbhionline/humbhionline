@@ -4,6 +4,8 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
+import com.venky.swf.db.model.Model;
+import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
@@ -11,11 +13,13 @@ import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.config.PinCode;
 import com.venky.swf.plugins.collab.db.model.config.State;
+import com.venky.swf.plugins.collab.db.model.user.UserEmail;
+import com.venky.swf.plugins.collab.db.model.user.UserPhone;
+import com.venky.swf.plugins.mobilesignup.db.model.SignUp;
 import com.venky.swf.plugins.templates.controller.TemplateLoader;
 import com.venky.swf.routing.Config;
 import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
-import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.AadharEKyc;
 import org.json.simple.JSONObject;
@@ -29,6 +33,8 @@ import java.sql.Date;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 public class UsersController extends com.venky.swf.plugins.collab.controller.UsersController implements TemplateLoader {
     public UsersController(Path path) {
@@ -122,5 +128,11 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         }
         return IntegrationAdaptor.instance(User.class, FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).createResponse(getPath(),
                 user,user.getReflector().getFields(),new HashSet<>(),getIncludedModelFields());
+    }
+    @Override
+    protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
+        Map<Class<? extends Model>,List<String>> map = super.getIncludedModelFields();
+        map.put(SignUp.class, ModelReflector.instance(SignUp.class).getVisibleFields());
+        return map;
     }
 }

@@ -7,11 +7,6 @@
 
 <script type="text/javascript">
     var login = null;
-    function onOtpReceipt(otp){
-        if (login){
-            login.onOtpReceipt(otp);
-        }
-    }
 
     $(function(){
         var searchParams = (new URL(window.location)).searchParams;
@@ -24,8 +19,7 @@
             el : "#app",
             data : {
                 Android : undefined , //typeof Android == "undefined" ? undefined : Android,
-                params: { "SignUp": { "PhoneNumber": "" } , "OtpRequested" : "N"},
-                Otp : "",
+                params: { "User": { "PhoneNumber": "" , "Password":"" } },
                 message : "",
                 http: axios.create({
                     baseURL: "/",
@@ -39,110 +33,67 @@
                 self.signIn();
             },
             methods : {
-                waitForOtp : function(){
-                    if (this.Android){
-                        this.Android.waitForOtp();
-                    }else {
-                        this.showApp();
-                    }
-                },
-                onOtpReceipt: function(otp){
-                    this.Otp = otp;
-                    this.verifyPhoneOtp(null);
-                },
-                verifyPhoneOtp: function (event) {
+                login: function (event) {
                     if (event){
                         event.preventDefault();
                     }
                     var self = this;
-                    this.http.post("/sign_ups/validateOtp/" + this.params.SignUp.Id, { "Otp": self.Otp }).then(function (response) {
-                        if (response.data.SignUp.Validated === 'Y') {
-                            self.params.SignUp = response.data.SignUp;
-                            Lockr.set("SignUp",self.params.SignUp);
+                    this.http.post("/login", self.params).then(function (response) {
+                        if (response.data.User.SignUps[0].Validated === 'Y') {
+                            Lockr.set("SignUp",response.data.User.SignUps[0]);
+                            Lockr.set("User",response.data.User);
+                            loadLocation().then(function(){
+                                let home = _redirect_to;
+                                if (this.Android){
+                                    window.location.replace(home);
+                                }else {
+                                    Notification.requestPermission(function(status) {
+                                        console.log('Notification permission status:', status);
+                                        window.location.replace(home);
+                                    });
+                                }
+                            });
                         } else {
-                            self.message = "Otp doesnot match" ;
+                            self.message = "Password doesnot match." ;
                         }
-                        self.hideUnHideOtpFields().then(function (home) {
-                            if (home) {
-                                window.location.replace(home);
-                            }
-                        })
-                    });
-                },
-                resendOtp: function () {
-                    var self = this;
-                    this.http.get("/sign_ups/sendOtp/" + this.params.SignUp.Id, { "data": {} }).then(function (response) {
-                        self.message = response.data.SWFHttpResponse.Message;
+                    }).catch(function(err){
+                        self.showApp();
+                        if (err.response && err.response.data.SWFHttpResponse){
+                            self.message = err.response.data.SWFHttpResponse.Error
+                        }else {
+                            console.log(err);
+                        }
+                        //self.message = err.response.S
                     });
                 },
                 resetPhoneNumber: function () {
                     var self = this;
-                    self.params.SignUp.PhoneNumber = "";
-                    self.params.SignUp.Validated = "N";
+                    self.params.User.PhoneNumber = "";
+                    Lockr.rm("User");
                     Lockr.rm("SignUp");
                     window.location.reload();
                 },
-                hideUnHideOtpFields: function () {
-                    let self = this;
-                    return new Promise(function (resolve, reject) {
-                        if (self.params.SignUp && self.params.SignUp.Validated !== 'Y') {
-                            self.waitForOtp();
-                        }else {
-                            var user = self.params.SignUp.User;
-                            if (user) {
-                                setConfirmUnload(false);
-                                loadLocation().then(function(){
-                                   resolve(redirect_to);
-                                });
-                            } else {
-                                resolve(null);
-                            }
-                        }
-                    });
+                forgotPassword : function(){
+                    if (self.params.User.PhoneNumber){
+                        window.location.replace("/index_otp?phone_number="+self.params.User.PhoneNumber);
+                    }else {
+                        self.message = "Enter phone number";
+                    }
                 },
                 showApp : function(){
                     $("#root").show();
                 },
                 hideApp : function(){
                     $("#root").hide();
-
                 },
                 signIn: function () {
                     var self = this;
                     self.message = "" ;
                     self.hideApp();
-                    var signUp = Lockr.get("SignUp");
-                    if (signUp) {
-                        self.params.SignUp = signUp;
-                    }
-                    if (self.params.SignUp.PhoneNumber) {
-                        self.params.OtpRequested = "Y";
-                        self.http.post("/sign_ups/register", self.params).then(function (response) {
-                            if (response.data.SignUp) {
-                                self.params.SignUp = response.data.SignUp;
-                                self.hideUnHideOtpFields().then(function (home) {
-                                    if (home) {
-                                        if (this.Android){
-                                            window.location.replace(home);
-                                        }else {
-                                            Notification.requestPermission(function(status) {
-                                                console.log('Notification permission status:', status);
-                                                window.location.replace(home);
-                                            });
-                                        }
-                                    }else {
-                                        self.showApp();
-                                    }
-                                });
-                            }else {
-                                self.message = "Unexpected Response : " + response.data;
-                            }
-                        }).catch(function (err) {
-                            //Lockr.rm("PhoneNumber");
-                            //self.params.SignUp.SignUpPhone.PhoneNumber = "";
-                            self.message = err.response ? err.response.data.SWFHttpResponse.Error : err.toString();
-                            self.showApp();
-                        });
+                    self.params.User = Lockr.get("User") || self.params.User;
+
+                    if (self.params.User.PhoneNumber && self.params.User.Password) {
+                        self.login();
                     }else {
                         self.showApp();
                     }
@@ -152,8 +103,7 @@
                         event.preventDefault();
                     }
                     let self = this;
-
-                    Lockr.set("SignUp", self.params.SignUp);
+                    Lockr.set("User", self.params.User);
                     setConfirmUnload(false);
                     self.signIn();
                 }
@@ -184,40 +134,20 @@
                 </div>
             </div>
         </div>
-        <div class="row justify-content-center" id="GetPhone" v-if="(!params.SignUp.PhoneNumber || params.SignUp.Validated !== 'Y' ) && params.OtpRequested === 'N'">
+        <div class="row justify-content-center" id="GetPhone" >
             <div class="col-10 col-sm-4">
                 <form @submit.prevent="signUp()">
                     <div class="form-group">
-                        <label for="PhoneNumber" class="text-center d-block">Mobile Number</label>
-                        <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.SignUp.PhoneNumber" />
+                        <label for="PhoneNumber" class="text-left d-block">Mobile Number</label>
+                        <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.User.PhoneNumber" />
+
+                        <label for="PhonePassword" class="text-left d-block">Password</label>
+                        <input id="PhonePassword" class="form-control" type="password" placeholder="Password" v-model="params.User.Password" />
                     </div>
                     <div class="form-group text-right">
                         <button class="btn btn-primary" type="submit" id="btnSignUp">Next</button>
                     </div>
                 </form>
-            </div>
-        </div>
-        <div class="text-center" id="divPhoneOtp" v-else-if="params.OtpRequested === 'Y'">
-            <p class="mb-0">
-                OTP has sent on your Mobile Number
-            </p>
-            <p id="OtpNumber" class="login-number mt-2 mb-4 py-2">{{params.SignUp.PhoneNumber}}</p>
-            <div class="row justify-content-center">
-                <div class="col-10 col-sm-4">
-                    <form @submit.prevent="verifyPhoneOtp()">
-                        <div class="form-group">
-                            <label for="PhoneOtp" class="text-left d-block">Enter your OTP</label>
-                            <input id="PhoneOtp" type="number" class="form-control" placeholder="OTP" v-model="Otp" />
-                            <p class="text-right">
-                                <a id="btnReset" v-on:click="resetPhoneNumber()">Reset Mobile</a> /
-                                <a id="btnResendPhoneOtp" v-on:click="resendOtp()">Resend OTP</a>
-                            </p>
-                        </div>
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary" id="btnVerifyPhoneOtp">Validate Mobile</button>
-                        </div>
-                    </form>
-                </div>
             </div>
         </div>
         <p id="msg" class="mb-0" v-if="message && message.length > 0"> {{message}}</p>
