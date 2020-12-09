@@ -20,7 +20,10 @@ public class LoginController extends TemplatedController {
             return super.login();
         }
     }
-
+    @RequireLogin(false)
+    public View index_otp(){
+        return html("index_otp");
+    }
     @RequireLogin(false)
     public View admin(){
         return super.login();

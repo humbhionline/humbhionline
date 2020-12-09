@@ -7,6 +7,7 @@ import com.venky.extension.Registry;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.User;
 import com.venky.swf.path.Path;
+import com.venky.swf.plugins.collab.db.model.user.Phone;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -45,6 +46,7 @@ public class RequestAuthenticator extends com.venky.swf.extensions.RequestAuthen
         if (ObjectUtil.isVoid(phoneNumber)){
             return;
         }
+        phoneNumber = Phone.sanitizePhoneNumber(phoneNumber);
         String password = (String)input.get("Password");
         if (ObjectUtil.isVoid(password)){
             return;

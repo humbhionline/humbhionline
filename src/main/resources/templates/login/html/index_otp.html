@@ -85,7 +85,7 @@
                     self.params.SignUp.PhoneNumber = "";
                     self.params.SignUp.Validated = "N";
                     Lockr.rm("SignUp");
-                    window.location.reload();
+                    window.location.href = window.location.protocol +"//"+location.host + location.pathname;
                 },
                 hideUnHideOtpFields: function () {
                     let self = this;
@@ -197,7 +197,7 @@
                         <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.SignUp.PhoneNumber" />
                     </div>
                     <div class="form-group text-right">
-                        <button class="btn btn-primary" type="submit" id="btnSignUp">Next</button>
+                        <button class="btn btn-primary" type="submit" id="btnSignUp">Request OTP</button>
                     </div>
                 </form>
             </div>

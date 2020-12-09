@@ -21,41 +21,46 @@
                 Android : undefined , //typeof Android == "undefined" ? undefined : Android,
                 params: { "User": { "PhoneNumber": "" , "Password":"" } },
                 message : "",
-                http: axios.create({
-                    baseURL: "/",
-                    timeout: 30000,
-                    headers: { 'Content-Type': 'application/json' },
-                    withCredentials: false,
-                }),
+                phoneNumberEntered : false,
             },
             created : function(){
                 let self  = this;
                 self.signIn();
             },
             methods : {
+                http: function(withCredentials){
+                    return axios.create({
+                    baseURL: "/",
+                    timeout: 30000,
+                    headers: { 'Content-Type': 'application/json' , "KeepAlive" :"Y"},
+                    withCredentials: withCredentials,
+                    })
+                },
                 login: function (event) {
                     if (event){
                         event.preventDefault();
                     }
                     var self = this;
-                    this.http.post("/login", self.params).then(function (response) {
-                        if (response.data.User.SignUps[0].Validated === 'Y') {
-                            Lockr.set("SignUp",response.data.User.SignUps[0]);
-                            Lockr.set("User",response.data.User);
-                            loadLocation().then(function(){
-                                let home = _redirect_to;
-                                if (this.Android){
-                                    window.location.replace(home);
-                                }else {
-                                    Notification.requestPermission(function(status) {
-                                        console.log('Notification permission status:', status);
+                    self.http(false).post("/login", self.params).then(function (response) {
+                        self.http(true).get("/users/current", {data :{}}).then(function (response){
+                            if (response.data.User.SignUps[0].Validated === 'Y') {
+                                Lockr.set("SignUp",response.data.User.SignUps[0]);
+                                Lockr.set("User",response.data.User);
+                                loadLocation().then(function(){
+                                    let home = redirect_to;
+                                    if (this.Android){
                                         window.location.replace(home);
-                                    });
-                                }
-                            });
-                        } else {
-                            self.message = "Password doesnot match." ;
-                        }
+                                    }else {
+                                        Notification.requestPermission(function(status) {
+                                            console.log('Notification permission status:', status);
+                                            window.location.replace(home);
+                                        });
+                                    }
+                                });
+                            } else {
+                                self.message = "Password doesnot match." ;
+                            }
+                        });
                     }).catch(function(err){
                         self.showApp();
                         if (err.response && err.response.data.SWFHttpResponse){
@@ -73,13 +78,6 @@
                     Lockr.rm("SignUp");
                     window.location.reload();
                 },
-                forgotPassword : function(){
-                    if (self.params.User.PhoneNumber){
-                        window.location.replace("/index_otp?phone_number="+self.params.User.PhoneNumber);
-                    }else {
-                        self.message = "Enter phone number";
-                    }
-                },
                 showApp : function(){
                     $("#root").show();
                 },
@@ -91,9 +89,19 @@
                     self.message = "" ;
                     self.hideApp();
                     self.params.User = Lockr.get("User") || self.params.User;
-
-                    if (self.params.User.PhoneNumber && self.params.User.Password) {
-                        self.login();
+                    if (!blank(self.params.User.PhoneNumber)) {
+                        if (!blank(self.params.User.Password)){
+                            self.login();
+                        }else {
+                            self.showApp();
+                            if (Lockr.get("SignUp") ){
+                                self.login_via_otp(null);
+                            }else{
+                                self.checkPhoneNumberEntered();
+                            }
+                        }
+                    }else if (Lockr.get("SignUp") ){
+                        self.login_via_otp(null);
                     }else {
                         self.showApp();
                     }
@@ -106,6 +114,26 @@
                     Lockr.set("User", self.params.User);
                     setConfirmUnload(false);
                     self.signIn();
+                },
+                login_via_otp: function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    if (self.phoneNumberEntered && !blank(self.params.User.PhoneNumber)) {
+                        window.location.href = ("/login/index_otp?phone_number="+self.params.User.PhoneNumber);
+                    }else {
+                        window.location.href = ("/login/index_otp");
+                    }
+                },
+                checkPhoneNumberEntered: function(event){
+                    let self = this;
+                    if (!blank(self.params.User.PhoneNumber)){
+                        self.phoneNumberEntered = true;
+                    }else {
+                        self.phoneNumberEntered = false;
+                    }
+                    return !blank(self.params.User.PhoneNumber) && !blank(self.params.User.Password)
                 }
             },
 
@@ -137,15 +165,18 @@
         <div class="row justify-content-center" id="GetPhone" >
             <div class="col-10 col-sm-4">
                 <form @submit.prevent="signUp()">
-                    <div class="form-group">
-                        <label for="PhoneNumber" class="text-left d-block">Mobile Number</label>
+                    <div class="form-group" v-if="!phoneNumberEntered">
+                        <label for="PhoneNumber" class="text-center d-block">Mobile Number</label>
                         <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.User.PhoneNumber" />
-
-                        <label for="PhonePassword" class="text-left d-block">Password</label>
+                    </div>
+                    <div class="form-group" v-else>
+                        <label for="PhonePassword" class="text-center d-block" >Password</label>
                         <input id="PhonePassword" class="form-control" type="password" placeholder="Password" v-model="params.User.Password" />
                     </div>
+
                     <div class="form-group text-right">
-                        <button class="btn btn-primary" type="submit" id="btnSignUp">Next</button>
+                        <a href="#" @click="login_via_otp($event)">{{ phoneNumberEntered? "Forgot password ?" :"Create New Account ?"}}</a>
+                        <button class="btn btn-primary" @click="checkPhoneNumberEntered($event)" type="submit" id="btnSignUp">Next</button>
                     </div>
                 </form>
             </div>
