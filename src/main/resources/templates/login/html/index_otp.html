@@ -74,17 +74,31 @@
                         })
                     });
                 },
-                resendOtp: function () {
+                resendOtp: function (event) {
+                    if (event){
+                        event.preventDefault();
+                    }
                     var self = this;
                     this.http.get("/sign_ups/sendOtp/" + this.params.SignUp.Id, { "data": {} }).then(function (response) {
                         self.message = response.data.SWFHttpResponse.Message;
                     });
                 },
-                resetPhoneNumber: function () {
+                resetPhoneNumber: function (event) {
+                    if (event){
+                        event.preventDefault();
+                    }
                     var self = this;
                     self.params.SignUp.PhoneNumber = "";
                     self.params.SignUp.Validated = "N";
+
                     Lockr.rm("SignUp");
+                    Lockr.rm("User");
+                    /*
+                    let user = Lockr.get("User");
+                    if (user){
+                        user.PhoneNumber = "" ;
+                        Lockr.set("User",user);
+                    }*/
                     window.location.href = window.location.protocol +"//"+location.host + location.pathname;
                 },
                 hideUnHideOtpFields: function () {
@@ -161,6 +175,12 @@
                     Lockr.set("SignUp", self.params.SignUp);
                     setConfirmUnload(false);
                     self.signIn();
+                },
+                login_via_password: function (event){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    window.location.replace( "/login" );
                 }
             },
 
@@ -197,6 +217,7 @@
                         <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.SignUp.PhoneNumber" />
                     </div>
                     <div class="form-group text-right">
+                        <a href="#" @click="login_via_password($event)">{{ "Login with password"}}</a>
                         <button class="btn btn-primary" type="submit" id="btnSignUp">Request OTP</button>
                     </div>
                 </form>
@@ -214,11 +235,11 @@
                             <label for="PhoneOtp" class="text-left d-block">Enter your OTP</label>
                             <input id="PhoneOtp" type="number" class="form-control" placeholder="OTP" v-model="Otp" />
                             <p class="text-right">
-                                <a id="btnReset" v-on:click="resetPhoneNumber()">Reset Mobile</a> /
-                                <a id="btnResendPhoneOtp" v-on:click="resendOtp()">Resend OTP</a>
+                                <a id="btnReset" href="#" v-on:click="resetPhoneNumber($event)">Reset Mobile</a> /
+                                <a id="btnResendPhoneOtp" href="#"  v-on:click="resendOtp($event)">Resend OTP</a>
                             </p>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group text-right">
                             <button type="submit" class="btn btn-primary" id="btnVerifyPhoneOtp">Validate Mobile</button>
                         </div>
                     </form>
