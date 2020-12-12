@@ -1,4 +1,4 @@
-for i in 16 24 32 48 64 72 144 192 294  
+for i in 16 24 32 48 64 72 144 192 294 512
 do 
     convert -transparent yellow -scale ${i}x${i} drawing-final.svg "${i}x${i}.png" ;
     convert -transparent white -scale ${i}x${i} drawing-round.svg "${i}x${i}-round.png" ;

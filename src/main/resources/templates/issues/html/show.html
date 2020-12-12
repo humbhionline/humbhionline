@@ -1,0 +1,136 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+
+<link href="/fragments/css/mandi.css" rel="stylesheet">
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<script type="text/javascript">
+    $(function () {
+        $("#header").load("/fragments/html/header");
+        let user = Lockr.get("User");
+        let id = (new URL(window.location)).searchParams.get("id");
+        new Vue({
+            el: "#app",
+            data : {
+                message : "",
+                User: user,
+                Issue : { Company : { Id: user.Company.Id } , Title : "" , Priority :"" , Description : "" , } ,
+                Resolutions : ["","FIXED","DUPLICATE","WONTFIX","WORKSFORME","BEHAVIOUR_EXPLAINED"],
+                Priorities : [ "P1" , "P2" , "P3" ],
+                Statuses : ["OPEN","WIP","CLOSED"],
+                Assignees : [],
+            },
+            created: function(){
+                let self = this;
+                api().url("/issues/show/"+id).get().then(function(response){
+                    self.Issue = response.Issue;
+                })
+                this.showApp();
+            },
+            methods : {
+                showApp : function(){
+                    $("#root").show();
+                },
+                showMessage: function(m){
+                    let self = this;
+                    self.message = m ;
+                    setTimeout(function(){
+                        self.message = "";
+                    },1500);
+                },
+                save : function(){
+                    let self = this;
+                    api().url("/issues/save").parameters({Issue: self.Issue}).post().then(function(response){
+                        self.Issue = response.Issues[0];
+                        self.Issue.Description = "";
+                        self.showMessage("Issue Saved");
+                        //window.location.replace("/issues/show/" + response.Issues[0].Id);
+                    }).catch(function(err){
+                        if (err.response){
+                            self.showMessage(err.response.data.SWFHttpResponse.Error);
+                        }else {
+                            self.showMessage(err.toString());
+                        }
+                    });
+                },
+                destroy_note: function(event,note){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    api().url("/notes/destroy/"+note.Id).get().then(function(response){
+                        self.showMessage("Note Deleted");
+                        let index = self.Issue.Notes.findIndex(function(n){
+                           return n.Id == note.Id;
+                        });
+                        self.Issue.Notes.splice(index,1);
+                    }).catch(function(err){
+                        if (err.response){
+                            self.showMessage(err.response.data.SWFHttpResponse.Error);
+                        }else {
+                            self.showMessage(err.toString());
+                        }
+                    })
+                }
+            }
+        });
+    });
+</script>
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+        <form @submit.prevent="save()">
+            <div class="form-group">
+                <label for="Title" class="text-left d-block">Title</label>
+                <input class="form-control" id="Title" placeholder="Summary of the Issue" v-model="Issue.Title" />
+            </div>
+            <div class="form-group">
+                <label for="'p'+i" class="text-left d-block">Priority</label>
+                <div class="form-check-inline align-middle mr-1" v-for="(p,i) in Priorities" >
+                    <input class="form-check-input mb-0" type="radio" v-model="Issue.Priority"
+                        name="Priority" v-bind:id="'p'+i" v-bind:value="p"/>
+                    <label class="form-check-label small" v-bind:for="'p'+i">{{p}}</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="'s'+i" class="text-left d-block">Status</label>
+                <div class="form-check-inline align-middle mr-1" v-for="(s,i) in Statuses" >
+                    <input class="form-check-input mb-0" type="radio" v-model="Issue.Status"
+                        name="Status" v-bind:id="'s'+i" v-bind:value="s"/>
+                    <label class="form-check-label small" v-bind:for="'s'+i">{{s}}</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="'r'+i" class="text-left d-block">Resolution</label>
+                <div class="form-check-inline align-middle mr-1" v-for="(r,i) in Resolutions" >
+                    <input class="form-check-input mb-0" type="radio" v-model="Issue.Resolution"
+                        name="Resolution" v-bind:id="'r'+i" v-bind:value="r"/>
+                    <label class="form-check-label small" v-bind:for="'r'+i">{{r !== "" ? r  : "NOT RESOLVED"}}</label>
+                </div>
+            </div>
+            <div>
+                <b>Notes History</b>
+                <div class="row border-top border-dark" v-for="(n,i) in Issue.Notes">
+                    <div class="col-10">{{n.CreatedAt}}</div>
+                    <div class="col-2"><a class="fas fa-times btn" href="#" @click="destroy_note($event,n)"></a></div>
+                    <div class="col-12">{{n.CreatorUser.LongName}}</div>
+                    <div class="col-12">{{n.Notes}}</div>
+                </div>
+            </div>
+
+            <div class="form-group border-top border-dark">
+                <label for="Description" class="text-left d-block"><b>Add New Note</b></label>
+                <textarea name="Description" rows="4" cols="80" class="form-control" id="Description"
+                    placeholder="Enter notes." v-model="Issue.Description">
+                </textarea>
+            </div>
+            <div class="form-group text-right">
+                <button type="submit" class="btn btn-primary" id="btnSubmit">Submit</button>
+            </div>
+        </form>
+        <p id="msg" class="mb-0" v-if="message && message.length > 0"> {{message}}</p>
+
+    </div>
+</div>
