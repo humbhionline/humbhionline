@@ -165,18 +165,17 @@
         <div class="row justify-content-center" id="GetPhone" >
             <div class="col-10 col-sm-4">
                 <form @submit.prevent="signUp()">
-                    <div class="form-group" v-if="!phoneNumberEntered">
-                        <label for="PhoneNumber" class="text-center d-block">Mobile Number</label>
+                    <div class="form-group mb-2" v-if="!phoneNumberEntered">
+                        <label for="PhoneNumber" class="mb-0 d-block">Mobile Number</label>
                         <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.User.PhoneNumber" />
                     </div>
-                    <div class="form-group" v-else>
-                        <label for="PhonePassword" class="text-center d-block" >Password</label>
+                    <div class="form-group mb-2" v-else>
+                        <label for="PhonePassword" class="mb-0 d-block" >Password</label>
                         <input id="PhonePassword" class="form-control" type="password" placeholder="Password" v-model="params.User.Password" />
                     </div>
-
                     <div class="form-group text-right">
-                        <a href="#" @click="login_via_otp($event)">{{ phoneNumberEntered? "Forgot password ?" :"Create New Account ?"}}</a>
-                        <button class="btn btn-primary" @click="checkPhoneNumberEntered($event)" type="submit" id="btnSignUp">Next</button>
+                        <button class="btn btn-block btn-primary" @click="checkPhoneNumberEntered($event)" type="submit" id="btnSignUp">Submit</button>
+                        <a href="#" class="mt-2 d-block" @click="login_via_otp($event)">{{ phoneNumberEntered? "Forgot password ?" :"Create New Account ?"}}</a>
                     </div>
                 </form>
             </div>

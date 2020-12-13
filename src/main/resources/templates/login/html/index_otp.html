@@ -232,15 +232,16 @@
                 <div class="col-10 col-sm-4">
                     <form @submit.prevent="verifyPhoneOtp()">
                         <div class="form-group">
-                            <label for="PhoneOtp" class="text-left d-block">Enter your OTP</label>
+                            <label for="PhoneOtp" class="text-left d-block mb-0">Enter your OTP</label>
                             <input id="PhoneOtp" type="number" class="form-control" placeholder="OTP" v-model="Otp" />
-                            <p class="text-right">
+                            <p class="text-right mb-0 mt-1">
                                 <a id="btnReset" href="#" v-on:click="resetPhoneNumber($event)">Reset Mobile</a> /
                                 <a id="btnResendPhoneOtp" href="#"  v-on:click="resendOtp($event)">Resend OTP</a>
                             </p>
                         </div>
-                        <div class="form-group text-right">
-                            <button type="submit" class="btn btn-primary" id="btnVerifyPhoneOtp">Validate Mobile</button>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-block btn-primary" id="btnVerifyPhoneOtp">Validate Mobile</button>
+                            
                         </div>
                     </form>
                 </div>

@@ -464,7 +464,7 @@
                 {{ message() }}
             </div>
         </div>
-        <div v-bind:id="'Order-' + o.Id" class="my-3 container position-relative" v-for="(o,i) in Orders">
+        <div v-bind:id="'Order-' + o.Id" class="my-4 container position-relative" v-for="(o,i) in Orders">
             <button class="fas fa-times btn-order-cancel" v-on:click="cancel($event,o)"
                 v-if="cancelled.findIndex(x => x === o.Id) < 0">
             </button>
