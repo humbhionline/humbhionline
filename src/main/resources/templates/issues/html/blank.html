@@ -5,6 +5,14 @@
 
 <link href="/fragments/css/mandi.css" rel="stylesheet">
 <script type="text/javascript" src="/fragments/js/util.js" ></script>
+
+<script type="text/javascript">
+    $(function () {
+        let id = (new URL(window.location)).searchParams.get("id");
+        window.location.replace("/issues/show/" + 0);
+    });
+</script>
+<!--
 <script type="text/javascript">
     $(function () {
         $("#header").load("/fragments/html/header");
@@ -71,3 +79,4 @@
 
     </div>
 </div>
+-->

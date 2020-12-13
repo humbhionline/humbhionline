@@ -15,7 +15,7 @@
             data : {
                 message : "",
                 User: user,
-                Issue : { Company : { Id: user.Company.Id } , Title : "" , Priority :"" , Description : "" , } ,
+                Issue : { Company : { Id: user.Company.Id } , Title : "" , Priority :"" , Description : "" , Attachment : ""} ,
                 Resolutions : ["","FIXED","DUPLICATE","WONTFIX","WORKSFORME","BEHAVIOUR_EXPLAINED"],
                 Priorities : [ "P1" , "P2" , "P3" ],
                 Statuses : ["OPEN","WIP","CLOSED"],
@@ -23,10 +23,14 @@
             },
             created: function(){
                 let self = this;
-                api().url("/issues/show/"+id).get().then(function(response){
-                    self.Issue = response.Issue;
-                })
-                this.showApp();
+                if (id && id*1> 0){
+                    api().url("/issues/show/"+id).get().then(function(response){
+                        self.Issue = response.Issue;
+                        this.showApp();
+                    });
+                }else{
+                    this.showApp();
+                }
             },
             methods : {
                 showApp : function(){
@@ -41,10 +45,43 @@
                 },
                 save : function(){
                     let self = this;
-                    api().url("/issues/save").parameters({Issue: self.Issue}).post().then(function(response){
-                        self.Issue = response.Issues[0];
+                    var files = $('#attachment')[0].files;
+
+                    let formData = new FormData();
+
+                    self.Issue.Attachment && formData.append("ATTACHMENT", $('#attachment')[0].files[0]);
+                    self.Issue.Description && formData.append("DESCRIPTION", self.Issue.Description);
+                    self.Issue.Title && formData.append("TITLE", self.Issue.Title);
+                    self.Issue.Priority && formData.append("PRIORITY", self.Issue.Priority);
+                    self.Issue.Resolution && formData.append("RESOLUTION", self.Issue.Resolution);
+                    self.Issue.Status && formData.append("STATUS", self.Issue.Status);
+                    self.Issue.Id && self.Issue.Id *1.0 > 0 && formData.append("ID", self.Issue.Id);
+                    self.Issue.Company.Id && formData.append("COMPANY_ID",self.Issue.Company.Id);
+
+                    api().url("/issues/save").parameters(formData).headers({ "Content-Type": "multipart/form-data" , "Accept" : "application/json" }).post().then(function (response) {
+                        console.log(response);
+                        self.Issue = response.Issue;
                         self.Issue.Description = "";
+                        Vue.set(self,"Issue",self.Issue);
+                        //Vue.$forceUpdate();
                         self.showMessage("Issue Saved");
+                    }).catch(function(err){
+                        if (err.response){
+                            self.showMessage(err.response.data.SWFHttpResponse.Error);
+                        }else {
+                            self.showMessage(err.toString());
+                        }
+                    });
+                },
+                yank : function(event){
+                    if (event){
+                        event.preventDefault();
+                    }
+
+                    let self = this;
+                    api().url("/issues/yank/" + self.Issue.Id).get().then(function(response){
+                        self.Issue = response.Issue;
+                        self.showMessage("Issue Yanked");
                         //window.location.replace("/issues/show/" + response.Issues[0].Id);
                     }).catch(function(err){
                         if (err.response){
@@ -72,7 +109,28 @@
                             self.showMessage(err.toString());
                         }
                     })
-                }
+                },
+                readDataFile: function (file, callback) {
+                    var reader = new FileReader();
+                    reader.onload = (e) => {
+                        callback(e.target.result);
+                    }
+                    reader.readAsDataURL(file);
+                },
+                onAttachmentFileChange: function (e) {
+                    e.preventDefault();
+                    let self = this;
+                    self.Issue.AttachmentContentName = e.target.files[0].name;
+                    self.readDataFile(e.target.files[0],function(content){
+                        self.Issue.Attachment = content;
+                        Vue.set(self,"Issue",self.Issue);
+                        self.$forceUpdate();
+                    });
+                },
+                chooseAttachmentFile: function (e) {
+                    let fileinput = $("#attachment");
+                    fileinput.click();
+                },
             }
         });
     });
@@ -103,6 +161,9 @@
                 </div>
             </div>
             <div class="form-group">
+                <label for="'s'+i" class="text-left d-block">Assigned To {{Issue.AssignedTo ? Issue.AssignedTo.LongName : ""}}</label>
+            </div>
+            <div class="form-group">
                 <label for="'r'+i" class="text-left d-block">Resolution</label>
                 <div class="form-check-inline align-middle mr-1" v-for="(r,i) in Resolutions" >
                     <input class="form-check-input mb-0" type="radio" v-model="Issue.Resolution"
@@ -117,6 +178,9 @@
                     <div class="col-2"><a class="fas fa-times btn" href="#" @click="destroy_note($event,n)"></a></div>
                     <div class="col-12">{{n.CreatorUser.LongName}}</div>
                     <div class="col-12">{{n.Notes}}</div>
+                    <div class="col-12" v-if="n.AttachmentUrl">
+                        <img v-bind:src="n.AttachmentUrl" >
+                    </div>
                 </div>
             </div>
 
@@ -125,8 +189,21 @@
                 <textarea name="Description" rows="4" cols="80" class="form-control" id="Description"
                     placeholder="Enter notes." v-model="Issue.Description">
                 </textarea>
+
+                <img v-bind:src="Issue.Attachment"  class="w-100" v-if="Issue.Attachment"></img>
+                <div class="default-img d-flex align-items-center justify-content-center border rounded-sm" v-else>
+                    <i class="fa fa-image text-muted"></i>
+                </div>
+
+                <span>
+                    <label class="btn btn-camera btn-sm btn-outline-primary"  for="attachment">
+                        <i class="fa fa-camera"></i>
+                    </label>
+                    <input type="file" class="file-upload" key="attachment" id="attachment" v-on:input="onAttachmentFileChange($event)" />
+                </span>
             </div>
             <div class="form-group text-right">
+                <a href="#" @click="yank($event)">Yank</a>
                 <button type="submit" class="btn btn-primary" id="btnSubmit">Submit</button>
             </div>
         </form>
