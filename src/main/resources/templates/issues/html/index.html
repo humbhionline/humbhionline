@@ -44,7 +44,11 @@
                 show : function(event,id){
                     event.preventDefault();
                     let self = this;
-                    window.location.href = "/issues/show/" + id;
+                    window.location.href = ("/issues/show/" + id);
+                },
+                blank :function(event){
+                    event.preventDefault();
+                    window.location.href = ("/issues/blank");
                 }
             }
         });
@@ -55,12 +59,12 @@
     </div>
     <div id="app" class="app-body">
         <div>
+            <div class="d-flex flex-row justify-content-end mx-1">
+                <a href="#" class="m-1 btn btn-primary" @click="blank($event)">New</a>
+            </div>
             <div class="row content-box mx-1" v-for="(issue,index) in Issues">
                 <div class="col-12">{{issue.Priority}} - {{issue.Id}} ( {{ issue.Status }} )</div>
                 <div class="col-12"><a href="#" @click="show($event,issue.Id)">{{issue.Title}}</a></div>
-            </div>
-            <div class="d-flex flex-row justify-content-end mx-1">
-                <a href="#" class="btn btn-primary" @click="close($event)">Close</a>
             </div>
         </div>
         <p id="msg" class="mb-0" v-if="message && message.length > 0"> {{message}}</p>
