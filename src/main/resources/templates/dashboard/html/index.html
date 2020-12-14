@@ -7,279 +7,284 @@
 
 
 <script type="text/javascript">
+    window.addEventListener('load', function() {
+        $(function () {
 
-    $(function () {
 
 
-        $("#header").load("/fragments/html/header");
+            var params = (new URL(window.location)).searchParams;
+            var term = params.get("search");
+            var facility_id = params.get("facility_id");
 
-        var params = (new URL(window.location)).searchParams;
-        var term = params.get("search");
-        var facility_id = params.get("facility_id");
+            let PreferredMaxDistance = Lockr.get("PreferredMaxDistance");
+            if (!PreferredMaxDistance) {
+                Lockr.set("PreferredMaxDistance", 10);
+            }
 
-        let PreferredMaxDistance = Lockr.get("PreferredMaxDistance");
-        if (!PreferredMaxDistance) {
-            Lockr.set("PreferredMaxDistance", 10);
-        }
-
-        new Vue({
-            el: "#app",
-            data: {
-                messages: [],
-                User : {},
-                sendSubscriptionToServer: sendSubscriptionToServer,
-                ShipmentCount : 0,
-                OrderLineCount : 0,
-                OrderAmount : 0,
-                DeliveryAmount : 0,
-                search : {
-                    MaxDistance : Lockr.get("PreferredMaxDistance") || 10 ,
-                    facility_id : facility_id,
-                    Facility : {},
-                    term : term || "",
-                    results : [] ,
-                    termLengthTrigger : 1,
+            new Vue({
+                el: "#app",
+                data: {
+                    messages: [],
+                    User : {},
+                    sendSubscriptionToServer: sendSubscriptionToServer,
+                    ShipmentCount : 0,
+                    OrderLineCount : 0,
+                    OrderAmount : 0,
+                    DeliveryAmount : 0,
+                    search : {
+                        MaxDistance : Lockr.get("PreferredMaxDistance") || 10 ,
+                        facility_id : facility_id,
+                        Facility : {},
+                        term : term || "",
+                        results : [] ,
+                        termLengthTrigger : 1,
+                    },
+                    facilityOrders: {},
                 },
-                facilityOrders: {},
-            },
-            created: function () {
-                let self = this;
-                api().url("/users/current").get().then(function (response) {
-                    self.User = response.User;
-                    Lockr.set("User", self.User);
-                    Lockr.set("SignUp",self.User.SignUps[0]);
-                    subscribe(sendSubscriptionToServer); //Do Subscription only after setting User.
-                    let  validated = self.User.UserPhones.length > 0 ;
-                    if (validated){
-                        self.User.UserPhones.forEach((item, i) => {
-                            if (item.Validated === 'N') {
-                                validated = false;
-                            }
-                        });
-                    }
-                    if (!validated) {
-                        window.location.href = "/users/html/profile";
-                    } else {
-                        self.loadFacility().then(function (f) {
-                            self.search.Facility = f;
-                            if (f.Id) {
-                                self.search.termLengthTrigger = 0;
-                            }
-                            self.find(null);
-                            self.showApp();
-                        });
-                    }
-                }).catch(function (err) {
-                    if (err.response) {
-                        self.messages.push(err.response.data.SWFHttpResponse.Error);
-                    } else {
-                        self.messages.push(err);
-                    }
-                    self.showApp();
-                    self.autoClearMessage();
-                });
-                let fo = Lockr.get("facilityOrders");
-                if (fo) {
-                    self.facilityOrders = fo;
-                    self.reloadCounts();
-                }
-            },
-            methods: {
-                reloadCounts: function () {
+                created: function () {
                     let self = this;
+                    api().url("/users/current").get().then(function (response) {
+                        self.User = response.User;
+                        Lockr.set("User", self.User);
+                        Lockr.set("SignUp",self.User.SignUps[0]);
+                        subscribe(sendSubscriptionToServer); //Do Subscription only after setting User.
 
-                    var obj = self.facilityOrders;
-                    self.ShipmentCount = 0;
-                    self.OrderLineCount = 0;
-                    self.OrderAmount = 0;
-                    self.DeliveryAmount = 0;
-
-                    for (key in obj) {
-                        if (obj.hasOwnProperty(key)) {
-                            self.ShipmentCount += 1;
-                            self.OrderLineCount += obj[key].OrderLines.length;
-                            var facility = null;
-                            obj[key].OrderLines.forEach((ol, i) => {
-                                self.OrderAmount += ol.OrderedQuantity * ol.Inventory.SellingPrice
-                                if (!facility) {
-                                    facility = ol.Inventory.Facility;
+                        let  validated = self.User.UserPhones.length > 0 ;
+                        if (validated){
+                            self.User.UserPhones.forEach((item, i) => {
+                                if (item.Validated === 'N') {
+                                    validated = false;
                                 }
                             });
-                            if (obj[key].OrderLines.length === 0) {
-                                delete obj[key];
-                            }
-
-                            if (facility) {
-                                self.DeliveryAmount += (facility.DeliveryProvided === 'Y' ? facility.DeliveryCharges * 1.0 : 0);
-                            }
                         }
-                    }
-                },
-                loadFacility: function () {
-                    let self = this;
-                    return new Promise(function (resolve, reject) {
-                        if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
-                            api().url("facilities/show/" + self.search.facility_id).get().then(function (response) {
-                                resolve(response.Facility);
-                            }).catch(function (err) {
-                                reject(err);
-                            });
+                        if (!validated) {
+                            window.location.href = "/users/html/profile";
                         } else {
-                            resolve({});
-                        }
-                    });
-                },
-                showApp: function () {
-                    $(".body").css("padding-top", "148px");
-                    $("#root").show();
-                    $("#search").focus();
-                },
-                message: function () {
-                    var message = "";
-                    let self = this;
-                    self.messages.forEach(function (m) {
-                        message += " " + m;
-                    });
-                    return message;
-                },
-                autoClearMessage: function () {
-                    let self = this;
-                    setTimeout(function () {
-                        self.messages = [];
-                    }, 1500);
-                },
-                headers: function () {
-                    let location = Lockr.get("Location");
-                    if (location && location.latitude && location.longitude) {
-                        return { Lat: location.latitude, Lng: location.longitude };
-                    } else {
-                        return {};
-                    }
-                },
-                isKeyTriggerable: function (length = this.search.termLengthTrigger) {
-                    let self = this;
-                    return self.search.term.length >= length;
-                },
-                find: function (e) {
-                    let self = this;
-                    if (e) {
-                        e.preventDefault();
-                        self.search.term = e.target.value;
-                    }
-                    self.search.results = [];
-                    if (!self.isKeyTriggerable()) {
-                        return;
-                    }
-                    let term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
-                    if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
-                        term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND SKU:" + term + "*" : "") + ")";
-                    }
-                    api().url("/inventories/search/" + term).get({ "MaxDistance": self.search.MaxDistance }).then(function (response) {
-                        if (!response) {
-                            return
-                        }
-                        self.search.results = response.Inventories.sort(function (o1, o2) {
-                            return o1.Facility.Distance - o2.Facility.Distance;
-                        });
-                        if (self.search.results.length === 0) {
-                            return;
-                        }
-
-                        self.search.results.forEach((result, i) => {
-                            var order = self.facilityOrders[result.Facility.Id];
-                            result.OrderedQuantity = 0;
-                            result.OrderedAmount = (0.00).toFixed(2);
-                            if (result.Facility.DeliveryProvided === 'Y') {
-                                if (result.Facility.DeliveryRadius * 1 < result.Facility.Distance * 1) {
-                                    result.Facility.DeliveryProvided = 'N';
+                            self.loadFacility().then(function (f) {
+                                self.search.Facility = f;
+                                if (f.Id) {
+                                    self.search.termLengthTrigger = 0;
                                 }
-                            }
-                            if (order) {
-                                order.OrderLines.forEach((orderLine, i) => {
-                                    if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id) {
-                                        result.OrderedQuantity = orderLine.OrderedQuantity
-                                        result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
+                                self.find(null);
+                                self.showApp();
+                            });
+                        }
+                    }).catch(function (err) {
+                        if (err.response) {
+                            self.messages.push(err.response.data.SWFHttpResponse.Error);
+                        } else {
+                            self.messages.push(err);
+                        }
+                        self.showApp();
+                        self.autoClearMessage();
+                    });
+                    let fo = Lockr.get("facilityOrders");
+                    if (fo) {
+                        self.facilityOrders = fo;
+                        self.reloadCounts();
+                    }
+                },
+                methods: {
+                    reloadCounts: function () {
+                        let self = this;
+
+                        var obj = self.facilityOrders;
+                        self.ShipmentCount = 0;
+                        self.OrderLineCount = 0;
+                        self.OrderAmount = 0;
+                        self.DeliveryAmount = 0;
+
+                        for (key in obj) {
+                            if (obj.hasOwnProperty(key)) {
+                                self.ShipmentCount += 1;
+                                self.OrderLineCount += obj[key].OrderLines.length;
+                                var facility = null;
+                                obj[key].OrderLines.forEach((ol, i) => {
+                                    self.OrderAmount += ol.OrderedQuantity * ol.Inventory.SellingPrice
+                                    if (!facility) {
+                                        facility = ol.Inventory.Facility;
                                     }
                                 });
-                            }
-                        });
+                                if (obj[key].OrderLines.length === 0) {
+                                    delete obj[key];
+                                }
 
-                    });
-                },
-                onQtyChange: function (event, index) {
-                    let self = this;
-                    let result = self.search.results[index];
-                    result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
-                    Vue.set(self.search.results, index, result);
-                    self.addToCart(event, result);
-                },
-                reduce: function (event, index) {
-                    let self = this;
-                    let result = self.search.results[index];
-                    result.OrderedQuantity -= 1;
-                    result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
-                    result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
-                    Vue.set(self.search.results, index, result);
-                    self.addToCart(event, result);
-                },
-                increase: function (event, index) {
-                    let self = this;
-                    let result = self.search.results[index];
-
-                    if (!result.OrderedQuantity) {
-                        result.OrderedQuantity = 0.0;
-                    }
-                    result.OrderedQuantity += 1.0;
-                    result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
-                    Vue.set(self.search.results, index, result);
-                    self.addToCart(event, result);
-                },
-                addToCart: function (event, result) {
-                    if (event) {
-                        event.preventDefault();
-                    }
-                    let self = this;
-                    if (!self.facilityOrders[result.Facility.Id]) {
-                        self.facilityOrders[result.Facility.Id] = {
-                            OrderLines: [],
-                            OrderAddresses: []
-                        };
-                        Vue.set(self.facilityOrders, result.Facility.Id, self.facilityOrders[result.Facility.Id]);
-                    }
-                    var order = self.facilityOrders[result.Facility.Id];
-                    if (order) {
-                        let index = order.OrderLines.findIndex(function (ol) {
-                            return ol.Inventory.Sku.Id === result.Sku.Id && ol.Inventory.Facility.Id === result.Facility.Id;
-                        });
-                        let ol = {
-                            Inventory: result,
-                            OrderedQuantity: result.OrderedQuantity
-                        };
-                        if (index < 0) {
-                            if (ol.OrderedQuantity * 1 > 0) {
-                                order.OrderLines.push(ol);
-                            }
-                        } else {
-                            if (ol.OrderedQuantity * 1 > 0) {
-                                order.OrderLines.splice(index, 1, ol);
-                            } else {
-                                order.OrderLines.splice(index, 1);
+                                if (facility) {
+                                    self.DeliveryAmount += (facility.DeliveryProvided === 'Y' ? facility.DeliveryCharges * 1.0 : 0);
+                                }
                             }
                         }
-                    }
-                    self.reloadCounts();
-                    Lockr.set("facilityOrders", self.facilityOrders);
-                },
-                setPreferredDistance: function (distance) {
-                    let oldValue = Lockr.get("PreferredMaxDistance");
-                    if (oldValue != distance) {
-                        Lockr.set("PreferredMaxDistance", distance);
-                        this.find(null);
-                    }
-                }
+                    },
+                    loadFacility: function () {
+                        let self = this;
+                        return new Promise(function (resolve, reject) {
+                            if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
+                                api().url("facilities/show/" + self.search.facility_id).get().then(function (response) {
+                                    resolve(response.Facility);
+                                }).catch(function (err) {
+                                    reject(err);
+                                });
+                            } else {
+                                resolve({});
+                            }
+                        });
+                    },
+                    showApp: function () {
+                        $("#header").load("/fragments/html/header",{}, function(){
+                            $("#pageTitle").html("Hum Bhi Online");
+                        });
+                        $(".body").css("padding-top", "148px");
+                        $("#root").show();
+                        $("#search").focus();
+                    },
+                    message: function () {
+                        var message = "";
+                        let self = this;
+                        self.messages.forEach(function (m) {
+                            message += " " + m;
+                        });
+                        return message;
+                    },
+                    autoClearMessage: function () {
+                        let self = this;
+                        setTimeout(function () {
+                            self.messages = [];
+                        }, 1500);
+                    },
+                    headers: function () {
+                        let location = Lockr.get("Location");
+                        if (location && location.latitude && location.longitude) {
+                            return { Lat: location.latitude, Lng: location.longitude };
+                        } else {
+                            return {};
+                        }
+                    },
+                    isKeyTriggerable: function (length = this.search.termLengthTrigger) {
+                        let self = this;
+                        return self.search.term.length >= length;
+                    },
+                    find: function (e) {
+                        let self = this;
+                        if (e) {
+                            e.preventDefault();
+                            self.search.term = e.target.value;
+                        }
+                        self.search.results = [];
+                        if (!self.isKeyTriggerable()) {
+                            return;
+                        }
+                        let term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
+                        if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
+                            term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND SKU:" + term + "*" : "") + ")";
+                        }
+                        api().url("/inventories/search/" + term).get({ "MaxDistance": self.search.MaxDistance }).then(function (response) {
+                            if (!response) {
+                                return
+                            }
+                            self.search.results = response.Inventories.sort(function (o1, o2) {
+                                return o1.Facility.Distance - o2.Facility.Distance;
+                            });
+                            if (self.search.results.length === 0) {
+                                return;
+                            }
 
-            }
+                            self.search.results.forEach((result, i) => {
+                                var order = self.facilityOrders[result.Facility.Id];
+                                result.OrderedQuantity = 0;
+                                result.OrderedAmount = (0.00).toFixed(2);
+                                if (result.Facility.DeliveryProvided === 'Y') {
+                                    if (result.Facility.DeliveryRadius * 1 < result.Facility.Distance * 1) {
+                                        result.Facility.DeliveryProvided = 'N';
+                                    }
+                                }
+                                if (order) {
+                                    order.OrderLines.forEach((orderLine, i) => {
+                                        if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id) {
+                                            result.OrderedQuantity = orderLine.OrderedQuantity
+                                            result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
+                                        }
+                                    });
+                                }
+                            });
+
+                        });
+                    },
+                    onQtyChange: function (event, index) {
+                        let self = this;
+                        let result = self.search.results[index];
+                        result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
+                        Vue.set(self.search.results, index, result);
+                        self.addToCart(event, result);
+                    },
+                    reduce: function (event, index) {
+                        let self = this;
+                        let result = self.search.results[index];
+                        result.OrderedQuantity -= 1;
+                        result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
+                        result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
+                        Vue.set(self.search.results, index, result);
+                        self.addToCart(event, result);
+                    },
+                    increase: function (event, index) {
+                        let self = this;
+                        let result = self.search.results[index];
+
+                        if (!result.OrderedQuantity) {
+                            result.OrderedQuantity = 0.0;
+                        }
+                        result.OrderedQuantity += 1.0;
+                        result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
+                        Vue.set(self.search.results, index, result);
+                        self.addToCart(event, result);
+                    },
+                    addToCart: function (event, result) {
+                        if (event) {
+                            event.preventDefault();
+                        }
+                        let self = this;
+                        if (!self.facilityOrders[result.Facility.Id]) {
+                            self.facilityOrders[result.Facility.Id] = {
+                                OrderLines: [],
+                                OrderAddresses: []
+                            };
+                            Vue.set(self.facilityOrders, result.Facility.Id, self.facilityOrders[result.Facility.Id]);
+                        }
+                        var order = self.facilityOrders[result.Facility.Id];
+                        if (order) {
+                            let index = order.OrderLines.findIndex(function (ol) {
+                                return ol.Inventory.Sku.Id === result.Sku.Id && ol.Inventory.Facility.Id === result.Facility.Id;
+                            });
+                            let ol = {
+                                Inventory: result,
+                                OrderedQuantity: result.OrderedQuantity
+                            };
+                            if (index < 0) {
+                                if (ol.OrderedQuantity * 1 > 0) {
+                                    order.OrderLines.push(ol);
+                                }
+                            } else {
+                                if (ol.OrderedQuantity * 1 > 0) {
+                                    order.OrderLines.splice(index, 1, ol);
+                                } else {
+                                    order.OrderLines.splice(index, 1);
+                                }
+                            }
+                        }
+                        self.reloadCounts();
+                        Lockr.set("facilityOrders", self.facilityOrders);
+                    },
+                    setPreferredDistance: function (distance) {
+                        let oldValue = Lockr.get("PreferredMaxDistance");
+                        if (oldValue != distance) {
+                            Lockr.set("PreferredMaxDistance", distance);
+                            this.find(null);
+                        }
+                    }
+
+                }
+            });
         });
+
     });
 </script>
 
@@ -300,7 +305,7 @@
             </div>
         </div>
         <div class="container-fluid">
-            <div class="form-row search-holder">
+            <div id="search-holder" class="form-row search-holder">
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
                         <input key="search" id="search" class="search-control" placeholder="Search for Items or Store"

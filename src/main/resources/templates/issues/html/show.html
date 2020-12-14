@@ -6,13 +6,14 @@
 <link href="/fragments/css/mandi.css" rel="stylesheet">
 <script type="text/javascript" src="/fragments/js/util.js" ></script>
 <script type="text/javascript">
-    $(function () {
-        $("#header").load("/fragments/html/header");
+    window.addEventListener ( 'load', function() {
+
         let user = Lockr.get("User");
         let id = (new URL(window.location)).searchParams.get("id");
         new Vue({
             el: "#app",
             data : {
+                id_parameter : id,
                 message : "",
                 User: user,
                 Issue : { Company : { Id: user.Company.Id } , Title : "" , Priority :"" , Description : "" , Attachment : ""} ,
@@ -20,20 +21,32 @@
                 Priorities : [ "P1" , "P2" , "P3" ],
                 Statuses : ["OPEN","WIP","CLOSED"],
                 Assignees : [],
+                updated : false,
+
             },
             created: function(){
                 let self = this;
                 if (id && id*1> 0){
                     api().url("/issues/show/"+id).get().then(function(response){
                         self.Issue = response.Issue;
-                        this.showApp();
+                        self.showApp();
                     });
                 }else{
-                    this.showApp();
+                    self.showApp();
                 }
             },
             methods : {
                 showApp : function(){
+                    let self = this;
+                    $("#header").load("/fragments/html/header", {}, function(){
+                        console.log("Fragment Loaded");
+                        var title = "New Issue";
+                        if (self.Issue.Id){
+                            title = "Issue #" + self.Issue.Id;
+                        }
+                        $("#pageTitle").html(title);
+                        console.log("PageTitle Set");
+                    });
                     $("#root").show();
                 },
                 showMessage: function(m){
@@ -63,8 +76,9 @@
                         self.Issue = response.Issue;
                         self.Issue.Description = "";
                         Vue.set(self,"Issue",self.Issue);
+                        self.showMessage("Issue Updated Thanks.");
+                        self.updated = true;
                         //Vue.$forceUpdate();
-                        self.showMessage("Issue Saved");
                     }).catch(function(err){
                         if (err.response){
                             self.showMessage(err.response.data.SWFHttpResponse.Error);
@@ -131,6 +145,15 @@
                     let fileinput = $("#attachment");
                     fileinput.click();
                 },
+                close : function(event){
+                    event.preventDefault();
+                    history.back();
+                },
+                edit : function(event){
+                    event.preventDefault();
+                    let self = this;
+                    window.location.replace("/issues/show/" + self.Issue.Id);
+                }
             }
         });
     });
@@ -139,29 +162,35 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <form @submit.prevent="save()">
+        <div class="text-center" v-if="updated">
+            <h5>Issue#<a href="#" @click="edit($event)">{{Issue.Id}}</a>{{id_parameter *1 > 0 ? "Updated" : "Created"}}</h5>
+
+            <div class="d-flex flex-row justify-content-center">
+                <a href="#" class="btn btn-primary" @click="close($event)">Close</a>
+            </div>
+        </div>
+        <form @submit.prevent="save()" v-else>
             <div class="form-group">
                 <label for="Title" class="text-left d-block">Title</label>
                 <input class="form-control" id="Title" placeholder="Summary of the Issue" v-model="Issue.Title" />
             </div>
-            <div class="form-group">
-                <label for="'p'+i" class="text-left d-block">Priority</label>
-                <div class="form-check-inline align-middle mr-1" v-for="(p,i) in Priorities" >
-                    <input class="form-check-input mb-0" type="radio" v-model="Issue.Priority"
-                        name="Priority" v-bind:id="'p'+i" v-bind:value="p"/>
-                    <label class="form-check-label small" v-bind:for="'p'+i">{{p}}</label>
+            <div class="row form-group">
+                <div class="col-6">
+                    <label for="'p'+i" class="text-left d-block">Priority</label>
+                    <div class="form-check-inline align-middle mr-1" v-for="(p,i) in Priorities" >
+                        <input class="form-check-input mb-0" type="radio" v-model="Issue.Priority"
+                            name="Priority" v-bind:id="'p'+i" v-bind:value="p"/>
+                        <label class="form-check-label small" v-bind:for="'p'+i">{{p}}</label>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="'s'+i" class="text-left d-block">Status</label>
-                <div class="form-check-inline align-middle mr-1" v-for="(s,i) in Statuses" >
-                    <input class="form-check-input mb-0" type="radio" v-model="Issue.Status"
-                        name="Status" v-bind:id="'s'+i" v-bind:value="s"/>
-                    <label class="form-check-label small" v-bind:for="'s'+i">{{s}}</label>
+                <div class="col-6">
+                    <label for="'s'+i" class="text-left d-block">Status</label>
+                    <div class="form-check-inline align-middle mr-1" v-for="(s,i) in Statuses" >
+                        <input class="form-check-input mb-0" type="radio" v-model="Issue.Status"
+                            name="Status" v-bind:id="'s'+i" v-bind:value="s"/>
+                        <label class="form-check-label small" v-bind:for="'s'+i">{{s}}</label>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="'s'+i" class="text-left d-block">Assigned To {{Issue.AssignedTo ? Issue.AssignedTo.LongName : ""}}</label>
             </div>
             <div class="form-group">
                 <label for="'r'+i" class="text-left d-block">Resolution</label>
@@ -169,6 +198,31 @@
                     <input class="form-check-input mb-0" type="radio" v-model="Issue.Resolution"
                         name="Resolution" v-bind:id="'r'+i" v-bind:value="r"/>
                     <label class="form-check-label small" v-bind:for="'r'+i">{{r !== "" ? r  : "NOT RESOLVED"}}</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="'s'+i" class="text-left d-block">Assigned To {{Issue.AssignedTo ? Issue.AssignedTo.LongName : ""}}</label>
+            </div>
+            <div class="form-group border-top border-dark">
+                <label for="Description" class="text-left d-block"><b>Add New Note</b></label>
+                <textarea name="Description" rows="4" cols="80" class="form-control" id="Description"
+                    placeholder="Enter notes." v-model="Issue.Description">
+                </textarea>
+            </div>
+            <div class="form-row ">
+                <div class="col-12 image-holder">
+                    <img v-bind:src="Issue.Attachment"  class="w-100" v-if="Issue.Attachment"></img>
+                    <div class="default-img d-flex align-items-center justify-content-center border rounded-sm"
+                        v-else>
+                        <i class="fa fa-image text-muted"></i>
+                    </div>
+                    <span>
+                        <label class="btn btn-camera btn-sm btn-outline-primary" for="attachment">
+                            <i class="fa fa-camera"></i>
+                        </label>
+                        <input type="file" class="file-upload" key="attachment" id="attachment"
+                            v-on:input="onAttachmentFileChange($event,i,ai)" />
+                    </span>
                 </div>
             </div>
             <div>
@@ -183,31 +237,15 @@
                     </div>
                 </div>
             </div>
-
-            <div class="form-group border-top border-dark">
-                <label for="Description" class="text-left d-block"><b>Add New Note</b></label>
-                <textarea name="Description" rows="4" cols="80" class="form-control" id="Description"
-                    placeholder="Enter notes." v-model="Issue.Description">
-                </textarea>
-
-                <img v-bind:src="Issue.Attachment"  class="w-100" v-if="Issue.Attachment"></img>
-                <div class="default-img d-flex align-items-center justify-content-center border rounded-sm" v-else>
-                    <i class="fa fa-image text-muted"></i>
-                </div>
-
-                <span>
-                    <label class="btn btn-camera btn-sm btn-outline-primary"  for="attachment">
-                        <i class="fa fa-camera"></i>
-                    </label>
-                    <input type="file" class="file-upload" key="attachment" id="attachment" v-on:input="onAttachmentFileChange($event)" />
-                </span>
-            </div>
             <div class="form-group text-right">
                 <a href="#" @click="yank($event)">Yank</a>
                 <button type="submit" class="btn btn-primary" id="btnSubmit">Submit</button>
             </div>
-        </form>
-        <p id="msg" class="mb-0" v-if="message && message.length > 0"> {{message}}</p>
 
+        </form>
+
+
+
+        <p id="msg" class="mb-0" v-if="message && message.length > 0"> {{message}}</p>
     </div>
 </div>

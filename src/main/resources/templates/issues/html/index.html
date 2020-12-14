@@ -1,0 +1,68 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+
+<link href="/fragments/css/mandi.css" rel="stylesheet">
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<script type="text/javascript">
+    $(function () {
+        $("#header").load("/fragments/html/header");
+        let user = Lockr.get("User");
+        new Vue({
+            el: "#app",
+            data : {
+                message : "",
+                User: user,
+                Issues :[] ,
+            },
+            created: function(){
+                let self = this;
+
+                api().url("/issues/search").parameters({"q":"STATUS:OPEN OR STATUS:WIP"}).get().then(function(response){
+                    self.Issues = response.Issues;
+                }).finally(function(){
+                    self.showApp();
+                })
+            },
+            methods : {
+                showApp : function(){
+                    $("#pageTitle").html("Issues")
+                    $("#root").show();
+                },
+                showMessage: function(m){
+                    let self = this;
+                    self.message = m ;
+                    setTimeout(function(){
+                        self.message = "";
+                    },1500);
+                },
+                close : function(event){
+                    event.preventDefault();
+                    history.back();
+                },
+                show : function(event,id){
+                    event.preventDefault();
+                    let self = this;
+                    window.location.href = "/issues/show/" + id;
+                }
+            }
+        });
+    });
+</script>
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+        <div>
+            <div class="row content-box mx-1" v-for="(issue,index) in Issues">
+                <div class="col-12">{{issue.Priority}} - {{issue.Id}} ( {{ issue.Status }} )</div>
+                <div class="col-12"><a href="#" @click="show($event,issue.Id)">{{issue.Title}}</a></div>
+            </div>
+            <div class="d-flex flex-row justify-content-end mx-1">
+                <a href="#" class="btn btn-primary" @click="close($event)">Close</a>
+            </div>
+        </div>
+        <p id="msg" class="mb-0" v-if="message && message.length > 0"> {{message}}</p>
+    </div>
+</div>

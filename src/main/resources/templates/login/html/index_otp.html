@@ -25,7 +25,7 @@
         login = new Vue({
             el : "#app",
             data : {
-                Android : undefined , //typeof Android == "undefined" ? undefined : Android,
+                Android : undefined , //TODO Uncomment this . typeof Android == "undefined" ? undefined : Android,
                 params: { "SignUp": { "PhoneNumber": "" } , "OtpRequested" : "N"},
                 Otp : "",
                 message : "",
@@ -141,14 +141,7 @@
                                 self.params.SignUp = response.data.SignUp;
                                 self.hideUnHideOtpFields().then(function (home) {
                                     if (home) {
-                                        if (this.Android){
-                                            window.location.replace(home);
-                                        }else {
-                                            Notification.requestPermission(function(status) {
-                                                console.log('Notification permission status:', status);
-                                                window.location.replace(home);
-                                            });
-                                        }
+                                        window.location.replace(home);
                                     }else {
                                         self.showApp();
                                     }
@@ -241,7 +234,7 @@
                         </div>
                         <div class="form-group">
                             <button type="submit" class="btn btn-block btn-primary" id="btnVerifyPhoneOtp">Validate Mobile</button>
-                            
+
                         </div>
                     </form>
                 </div>

@@ -48,14 +48,7 @@
                                 Lockr.set("User",response.data.User);
                                 loadLocation().then(function(){
                                     let home = redirect_to;
-                                    if (this.Android){
-                                        window.location.replace(home);
-                                    }else {
-                                        Notification.requestPermission(function(status) {
-                                            console.log('Notification permission status:', status);
-                                            window.location.replace(home);
-                                        });
-                                    }
+                                    window.location.replace(home);
                                 });
                             } else {
                                 self.message = "Password doesnot match." ;
