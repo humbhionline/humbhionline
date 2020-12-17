@@ -20,6 +20,7 @@
                 userEmailBeingEdited: false,
                 userAddressBeingEdited: false,
                 userVpaBeingEdited: false,
+                kycSelectedFileName : "",
                 current: {
                     Cities: [],
                     PinCodes: [],
@@ -30,8 +31,16 @@
                 self = this;
                 self.User = {};
                 api().url("/users/show/" + Lockr.get("User").Id).get().then(function (response) {
-                    Lockr.set("User", response.User);
                     self.User = response.User;
+                    self.fixUserAttributes();
+                     //!self.User.Verified || self.User.Verified === 'N' ;
+                    self.showApp();
+                });
+
+            },
+            methods: {
+                fixUserAttributes : function(){
+                    let self = this;
                     if (!self.User.City) {
                         self.User.City = {};
                     }
@@ -47,12 +56,10 @@
                     }
                     //self.vmprofile.User.UserEmails.push({ "Email": "" , Validated : "N"});
                     self.checkUserEmails();
-                    self.userAddressBeingEdited = false; //!self.User.Verified || self.User.Verified === 'N' ;
-                    self.showApp();
-                });
-
-            },
-            methods: {
+                    self.userAddressBeingEdited = false;
+                    self.userVpaBeingEdited = false;
+                    Lockr.set("User",self.User);
+                },
                 isKeyTriggerable: function (e) {
                     return (e && e.target.value.length > 3);
                 },
@@ -72,6 +79,7 @@
                         } else {
                             self.loadLookupEntries(e.target);
                         }
+                        Vue.set(self.current,"Cities",self.current.Cities);
                     });
                 },
                 onCitySelect: function (e, item) {
@@ -93,8 +101,14 @@
                         if (!response) {
                             return
                         }
-                        self.current.PinCodes = response.PinCodes;
-                        if (response.PinCodes.length === 1) {
+                        if (self.User.City && self.User.City.Id){
+                            self.current.PinCodes = response.PinCodes.filter(function(pc){
+                                return !pc.City || pc.City.Id === self.User.City.Id
+                            });
+                        }else {
+                            self.current.PinCodes = response.PinCodes;
+                        }
+                        if (self.current.PinCodes.length === 1) {
                             self.onPinCodeSelect(null, self.current.PinCodes[0]);
                         } else {
                             self.loadLookupEntries(e.target);
@@ -139,11 +153,14 @@
                     if (self.errors && self.errors.length === 0) {
                         api().url("/users/save").parameters({ "User": self.User }).post().then(function (response) {
                             self.User = response.Users[0];
-                            Lockr.set("User", self.User);
-                            self.userAddressBeingEdited = false;
-                            self.userVpaBeingEdited = false;
+                            self.fixUserAttributes();
                         });
                     }
+                },
+                onAadharKycFileChange: function (e) {
+                    e.preventDefault();
+                    let self = this;
+                    self.kycSelectedFileName = e.target.files[0].name;
                 },
                 doAadharKyc: function (e) {
                     if (e) {
@@ -164,7 +181,7 @@
                         api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata" }).post().then(function (response) {
                             console.log(response);
                             self.User = response.User;
-                            Lockr.set("User", self.User);
+                            self.fixUserAttributes();
                         });
                     });
                 },
@@ -202,8 +219,7 @@
                     if (self.errors.length === 0) {
                         api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "PhoneNumber": userPhone.PhoneNumber } }).post().then(function (response) {
                             self.User = response.Users[0];
-                            self.checkUserPhones();
-                            self.checkUserEmails();
+                            self.fixUserAttributes();
                         }).catch(function (err) {
                             self.errors.push(err.response.data.SWFHttpResponse.Error)
                         });
@@ -270,8 +286,7 @@
                     if (self.errors.length === 0) {
                         api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "Email": userEmail.Email } }).post().then(function (response) {
                             self.User = response.Users[0];
-                            self.checkUserEmails();
-                            self.checkUserPhones();
+                            self.fixUserAttributes();
                         });
                     }
                 },
@@ -394,7 +409,7 @@
                             <span v-if="User.AddressLine3">{{User.AddressLine3}},</span>
                             <span v-if="User.AddressLine4">{{User.AddressLine4}},</span>
                             <span
-                                v-if="User.City.Name && User.State.Name">{{User.City.Name}}-{{User.State.Name}},</span>
+                                v-if="User.City && User.State && User.City.Name && User.State.Name">{{User.City.Name}}-{{User.State.Name}},</span>
                             <span v-if="User.PinCode.PinCode">{{User.PinCode.PinCode}}</span>
                         </p>
                     </div>
@@ -411,9 +426,11 @@
                     <div class="col">
                         <div class="form-row no-gutters">
                             <div class="col-12">
-                                <input type="file" class="file-upload" id="aadharzipfile" />
-                                <label class="btn btn-sm btn-primary" for="aadharzipfile">Click to Select Aadhar
-                                    KYC</label>
+                                <input type="file" class="file-upload" id="aadharzipfile" v-on:input="onAadharKycFileChange($event)"/>
+                                <label class="btn btn-sm btn-primary" for="aadharzipfile">
+                                    {{ kycSelectedFileName && kycSelectedFileName.length > 0 ? kycSelectedFileName :
+                                        "Click to Select Aadhar KYC"}}
+                                </label>
                             </div>
                             <div class="col-8">
                                 <input id="aadharzippassword" class="form-control form-control-sm" type="password"
@@ -435,9 +452,9 @@
                     <h6 class="mt-4 d-inline-block">Payment Option</h6>
                 </div>
                 <div class="col d-flex justify-content-end align-items-end">
-                    <a href="#/" class="btn btn-sm btn-outline-primary mb-1" role="button" v-on:click="viewAddVPA(true)"
+                    <a href="#/" class="btn-close fas fa-edit mb-3" role="button" v-on:click="viewAddVPA(true)"
                         v-if="!userVpaBeingEdited">
-                        Save
+
                     </a>
                 </div>
             </div>
@@ -458,12 +475,12 @@
                     <div class="content-sub-box">
                         <div class="form-row mb-2">
                             <div class="col">
-                                <label class="mb-0 text-muted" for="vpa">UPI ID **</label>
+                                <!-- <label class="mb-0 text-muted" for="vpa">UPI ID **</label> -->
                                 <input class="form-control form-control-sm" id="vpa"
                                     v-model="User.VirtualPaymentAddress" placeholder="UPI/Payment Address" />
                             </div>
                             <div class="col">
-                                <label class="mb-0 text-muted" for="bankname">Name As In Bank</label>
+                                <!-- <label class="mb-0 text-muted" for="bankname">Name As In Bank</label> -->
                                 <input class="form-control form-control-sm" id="bankname"
                                     v-model="User.NameAsInBankAccount" placeholder="Name As In Bank" />
                             </div>
@@ -693,9 +710,9 @@
                 </div>
                 <div class="col-12 text-right">
                     <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditAddress($event)">Cancel</a>
-                    <a href="#/" v-if="!User.Verified || User.Verified === 'Y'" class="btn btn-sm btn-primary"
+                    <a href="#/" v-if="!User.Verified || User.Verified === 'Y' || User.Staff === 'N'" class="btn btn-sm btn-primary"
                         @click="saveUser($event)">Submit</a>
-                    <a href="#" v-if="!User.Verified || User.Verified === 'N'" class="btn btn-sm btn-primary"
+                    <a href="#" v-if="!User.Verified || User.Verified === 'N' && User.Staff === 'Y'" class="btn btn-sm btn-primary"
                         @click="verify($event)">Verify</a>
                 </div>
             </div>

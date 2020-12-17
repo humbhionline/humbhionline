@@ -277,11 +277,12 @@
                 },
                 onItemChange: function (e) {
                     e && e.preventDefault();
-                    if (!this.isKeyTriggerable(e)) {
+                    let self = this;
+
+                    if (!self.isKeyTriggerable(e)) {
                         self.current.Items = [];
                         return;
                     }
-                    let self = this;
                     new Autocomplete("items", e.target).search().then(function (response) {
                         if (!response) {
                             return
@@ -524,10 +525,11 @@
                     let self = this;
                     let skuAttachment = self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex];
 
-                    skuAttachment.AttachmentContentName = e.target.files[0].name;
-                    skuAttachment.Dirty = true;
-
-                    self.readSkuBannerUrl(e.target.files[0], inventoryIndex, attachmentIndex);
+                    if (e.target.files.length > 0){
+                        skuAttachment.AttachmentContentName = e.target.files[0].name;
+                        skuAttachment.Dirty = true;
+                        self.readSkuBannerUrl(e.target.files[0], inventoryIndex, attachmentIndex);
+                    }
 
                 },
                 readSkuBannerUrl: function (file, inventoryIndex, attachmentIndex) {
@@ -571,6 +573,10 @@
                         }
 
                         inv.Sku.Attachments.splice(attachmentIndex, 1, response.Attachment);
+                    }).catch(function(err){
+                       if (err.response.headers.status === "413"){
+                            self.autoClearMessage("Size too Big!",inventoryIndex);
+                       }
                     });
                 },
                 chooseSkuFile: function (e, inventoryIndex) {
@@ -636,9 +642,7 @@
         </div>
         <div id="default-error-div" class="container">
             <div id="message" ref="message" class="row">
-                <div class="col-12 alert alert-danger " v-if="messages && messages.length > 0">
-                    {{ message() }}
-                </div>
+                <p id="msg" v-if="messages && messages.length">{{ message() }}</p>
             </div>
         </div>
         <div class="facility-header">
@@ -729,11 +733,11 @@
                             v-on:click="removeBannner($event,i)">
                             <i class="small fas fa-trash"></i>
                         </a>
-                        <span v-if="" @click="chooseBannerFile($event,i)">
+                        <span v-if="attachment.AttachmentUrl || attachment.Attachment" @click="chooseBannerFile($event,i)">
                             <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
                                 style="width:100%; height:100px;"></img>
-                            <span v-else>Click to upload Image</span>
                         </span>
+                        <span v-else @click="chooseBannerFile($event,i)">Click to upload Image</span>
                         <input type="file" class="file-upload" v-bind:key="'attachment-'+i" v-bind:id="'attachment-'+i"
                             v-on:input="onFacilityBannerFileChange($event,i)" />
                         <a href="#" class="btn btn-sm btn-block btn-outline-primary mt-2" role="button" title="Upload"
@@ -763,7 +767,7 @@
                                     <i class="fa fa-image text-muted"></i>
                                 </div>
                                 <span v-for="(attachment,ai) in inv.Sku.Attachments">
-                                    <label class="btn btn-camera btn-sm btn-outline-primary" v-if="!attachment.Dirty"
+                                    <label class="btn btn-camera btn-sm btn-outline-primary"
                                         v-bind:for="'sku-attachment-'+i">
                                         <i class="fa fa-camera"></i>
                                     </label>

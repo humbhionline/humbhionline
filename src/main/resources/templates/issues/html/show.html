@@ -80,6 +80,7 @@
                         self.updated = true;
                         //Vue.$forceUpdate();
                     }).catch(function(err){
+                        console.log(err);
                         if (err.response){
                             self.showMessage(err.response.data.SWFHttpResponse.Error);
                         }else {
@@ -221,7 +222,7 @@
                             <i class="fa fa-camera"></i>
                         </label>
                         <input type="file" class="file-upload" key="attachment" id="attachment"
-                            v-on:input="onAttachmentFileChange($event,i,ai)" />
+                            v-on:input="onAttachmentFileChange($event)" accept="image/*;capture=camera" />
                     </span>
                 </div>
             </div>

@@ -27,6 +27,7 @@
                     window.location.href = "/users/html/profile";
                 }
                 api().url("/facilities").get().then(function (response) {
+                    self.fixFacilities(response.Facilities);
                     self.Facilities = response.Facilities;
                     self.showApp();
                 }).catch(function (err) {
@@ -39,6 +40,17 @@
                 })
             },
             methods: {
+                fixFacilities: function(facilities){
+                    let self = this;
+                    facilities.forEach((f, i) => {
+                        self.fixFacility(f);
+                    });
+                },
+                fixFacility : function(f){
+                    if (!f.Inventories){
+                        f.Inventories = [];
+                    }
+                },
                 showApp: function () {
                     $("#pageTitle").html("Manage Facilities");
                     $("#root").show();
@@ -133,6 +145,7 @@
                     let f = self.current.Facility;
                     let newRecord = !f.Id;
                     api().url("/facilities/save").parameters({ "Facility": f }).post().then(function (response) {
+                        self.fixFacilities(response.Facilities);
                         if (newRecord) {
                             self.Facilities.splice(self.Facilities.length - 1, 1, response.Facilities[0]);
                         } else {
@@ -271,6 +284,7 @@
                         return;
                     }
                     api().url("/facilities/" + apiName + "/" + f.Id).get().then(function (response) {
+                        self.fixFacility(response.Facility);
                         if (newRecord) {
                             self.Facilities.splice(self.Facilities.length - 1, 1, response.Facility);
                         } else {
@@ -384,7 +398,7 @@
                             </div> -->
                             <div class="col text-right">
                                 <a v-bind:href="'/sell/html/facility?id='+f.Id+'&includeMenu=N'"
-                                    class="btn btn-sm btn-primary" role="button" v-if="f.Published == 'Y'">
+                                    class="btn btn-sm btn-primary" role="button" >
                                     Edit Items
                                 </a>
                             </div>
@@ -477,7 +491,7 @@
                     <div class="form-row">
                         <div class="col text-right">
                             <a href="#/" class="btn btn-light btn-sm" role="button" v-on:click="cancel($event)">
-                                cancel
+                                Cancel
                             </a>
                             <a href="#/" class="btn btn-primary btn-sm" role="button" v-on:click="save($event)">
                                 submit

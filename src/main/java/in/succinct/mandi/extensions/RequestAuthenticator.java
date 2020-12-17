@@ -52,7 +52,7 @@ public class RequestAuthenticator extends com.venky.swf.extensions.RequestAuthen
             return;
         }
         user = path.getUser("PHONE_NUMBER",phoneNumber);
-        if (!user.authenticate(password)){
+        if (user != null && !user.authenticate(password)){
             user = null;
         }
         if (user != null){

@@ -75,7 +75,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         if (!request.getMethod().equalsIgnoreCase("POST")) {
             throw new RuntimeException("Cannot call save in any other method other than POST");
         }
-        JSONObject formFields = (JSONObject) JSONValue.parse(new InputStreamReader(getPath().getInputStream()));
+        Map<String,Object> formFields = getPath().getFormFields();
         User user = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
 
         if (!formFields.isEmpty()) {
