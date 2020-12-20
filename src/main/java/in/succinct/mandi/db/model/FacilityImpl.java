@@ -70,4 +70,14 @@ public class FacilityImpl extends ModelImpl<Facility> {
     public void setDistance(Double distance){
 
     }
+
+    boolean atLocation  = false;
+    public boolean isCurrentlyAtLocation() {
+        return atLocation;
+    }
+    public void setCurrentlyAtLocation(boolean currentlyAtLocation){
+        this.atLocation = currentlyAtLocation;
+    }
+
+
 }

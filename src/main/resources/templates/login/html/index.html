@@ -46,7 +46,7 @@
                             if (response.data.User.SignUps[0].Validated === 'Y') {
                                 Lockr.set("SignUp",response.data.User.SignUps[0]);
                                 Lockr.set("User",response.data.User);
-                                loadLocation().then(function(){
+                                loadLocation(true).then(function(){
                                     let home = redirect_to;
                                     window.location.replace(home);
                                 });

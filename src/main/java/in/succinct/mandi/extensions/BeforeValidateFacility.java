@@ -49,5 +49,10 @@ public class BeforeValidateFacility extends BeforeModelValidateExtension<Facilit
         }
         model.setPhoneNumber(Phone.sanitizePhoneNumber(model.getPhoneNumber()));
         model.setAlternatePhoneNumber(Phone.sanitizePhoneNumber(model.getAlternatePhoneNumber()));
+        com.venky.swf.db.model.User currentUser = Database.getInstance().getCurrentUser();
+        if (currentUser != null && model.isCurrentlyAtLocation()){
+            model.setLat(currentUser.getCurrentLat());
+            model.setLng(currentUser.getCurrentLng());
+        }
     }
 }

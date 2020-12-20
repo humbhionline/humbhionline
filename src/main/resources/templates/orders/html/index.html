@@ -38,6 +38,8 @@
                 packed: [],
                 acknowledged: [],
                 blank: blank,
+                orderInitiatedForPayment : {},
+                orderInitiatedForReturn : {},
             },
 
             created: function () {
@@ -122,6 +124,11 @@
 
                     if (!r.txnRef){
                         self.autoClearMessage("Transaction Cancelled",self.Orders[0]);
+                        if (self.orderInitiatedForPayment.Id){
+                            self.reset_payment(null,self.orderInitiatedForPayment)
+                        }else if (self.orderInitiatedForReturn.Id){
+                            self.reset_refund(null,self.orderInitiatedForReturn);
+                        }
                         return;
                     }
                     var orderInfo = r.txnRef.split(":");
@@ -312,6 +319,7 @@
                                             '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' ; */
                         response.Order._phref = "#";
                         if (self.Android) {
+                            self.orderInitiatedForPayment = response.Order;
                             self.Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress, order.Facility.CreatorUser.NameAsInBankAccount, "O:" + order.Id, order.AmountPendingPayment * 1.0, 'HBO Txn ' + order.Id);
                         } else if (navigator.userAgent.match(/Android/i)) {
                             let o = response.Order
@@ -396,6 +404,7 @@
                         response.Order._rhref = "#";
                         if (self.Android) {
                             // v-bind:href=
+                            self.orderInitiatedForReturn = response.Order;
                             self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress, order.CreatorUser.NameAsInBankAccount, "R:" + order.Id, order.AmountToRefund * 1.0, 'Return for HBO Txn ' + order.Id);
                         } else if (navigator.userAgent.match(/Android/i)) {
                             response.Order._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn=' + o.CreatorUser.NameAsInBankAccount + '&tr=R:' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');

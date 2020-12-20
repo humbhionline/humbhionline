@@ -45,11 +45,14 @@
                     let self = this;
                     api().url("/users/current").get().then(function (response) {
                         self.User = response.User;
+                        if (!self.User.UserPhones){
+                            self.User.UserPhones = [];
+                        }
                         Lockr.set("User", self.User);
                         Lockr.set("SignUp",self.User.SignUps[0]);
                         subscribe(sendSubscriptionToServer); //Do Subscription only after setting User.
 
-                        let  validated = self.User.UserPhones.length > 0 ;
+                        let  validated = self.User.Id == 1 || self.User.UserPhones.length > 0 ;
                         if (validated){
                             self.User.UserPhones.forEach((item, i) => {
                                 if (item.Validated === 'N') {

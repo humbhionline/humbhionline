@@ -204,11 +204,7 @@
                             return
                         }
                         self.current.Cities = response.Cities;
-                        if (self.current.Cities.length === 1) {
-                            self.onCitySelect(null, self.current.Cities[0]);
-                        } else {
-                            self.loadLookupEntries(e.target);
-                        }
+                        self.loadLookupEntries(e.target);
                     });
                 },
                 onCitySelect: function (e, item) {
@@ -231,11 +227,7 @@
                             return
                         }
                         self.current.PinCodes = response.PinCodes;
-                        if (response.PinCodes.length === 1) {
-                            self.onPinCodeSelect(null, self.current.PinCodes[0]);
-                        } else {
-                            self.loadLookupEntries(e.target);
-                        }
+                        self.loadLookupEntries(e.target);
                     });
                 },
                 onPinCodeSelect: function (e, item) {
@@ -470,6 +462,18 @@
                                 <label class="form-check-label align-middle"
                                     v-bind:for="'DeliveryProvided' + i">Delivery
                                     Provided</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col">
+                            <div class="form-check">
+                                <input class="form-check-input align-middle" type="checkbox"
+                                    v-bind:key="'AtLocation' + i" v-bind:id="'AtLocation' + i"
+                                    placeholder="At Location" v-model="current.Facility.CurrentlyAtLocation"
+                                    true-value="Y" false-value="N">
+                                <label class="form-check-label align-middle"
+                                    v-bind:for="'AtLocation' + i">I'm currently at this facility</label>
                             </div>
                         </div>
                     </div>

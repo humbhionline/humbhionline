@@ -21,6 +21,7 @@
                 User: Lockr.get("User"),
                 Facility: { Inventories: [] },
                 facilityBannerBeingEdited: false,
+                timer :  -1,
                 current: {
                     index: -1,
                     Items: [],
@@ -391,6 +392,16 @@
                     if (div) {
                         div.appendChild(this.$refs['lookupEntries']);
                     }
+                    let self = this;
+                    if (self.timer !== -1){
+                        clearTimeout(self.timer);
+                    }
+                    self.timer = setTimeout(function () {
+                        self.current.Items = [] ;
+                        self.current.UnitOfMeasures = [] ;
+                        self.current.AssetCodes = [] ;
+                        self.timer = -1;
+                    }, 3000);
                 },
 
                 navigate: function (e, index, length) {

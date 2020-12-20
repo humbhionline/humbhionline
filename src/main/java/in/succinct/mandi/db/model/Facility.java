@@ -55,4 +55,7 @@ public interface Facility extends in.succinct.plugins.ecommerce.db.model.partici
     public void unpublish();
 
 
+    @IS_VIRTUAL
+    boolean isCurrentlyAtLocation();
+    void setCurrentlyAtLocation(boolean currentlyAtLocation);
 }

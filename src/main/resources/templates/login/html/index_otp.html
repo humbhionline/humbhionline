@@ -110,7 +110,7 @@
                             var user = self.params.SignUp.User;
                             if (user) {
                                 setConfirmUnload(false);
-                                loadLocation().then(function(){
+                                loadLocation(true).then(function(){
                                    resolve(redirect_to);
                                 });
                             } else {
