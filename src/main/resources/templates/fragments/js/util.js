@@ -8,6 +8,36 @@ function logout(ev){
     return true;
 }
 
+function showError(err){
+    if (err.response ){
+        if (err.response.headers && err.response.headers.status === 401){
+            window.location.replace("/login");
+        }else if (err.response.headers && err.response.headers.status === "413"){
+             showErrorMessage("Size Uploaded Too Big");
+        }else if (err.response.data && err.response.data.SWFHttpResponse.Error) {
+            showErrorMessage(err.response.data.SWFHttpResponse.Error)
+        }else {
+            showErrorMessage(err.response.toString());
+        }
+    }else {
+        showErrorMessage(err.toString());
+    }
+}
+
+var errorTimeOut = undefined;
+function showErrorMessage(msg,duration){
+    let time = duration || 1500;
+    $("#msg").removeClass("invisible");
+    $("#msg").html(msg);
+    if (errorTimeOut){
+        clearTimeout(errorTimeOut);
+        errorTimeOut = undefined;
+    }
+    errorTimeOut = setTimeout(function(){
+        $("#msg").addClass("invisible");
+    },time);
+}
+
 function sendSubscriptionToServer(subscription){
     let device = Lockr.get("device");
     let user = Lockr.get("User");

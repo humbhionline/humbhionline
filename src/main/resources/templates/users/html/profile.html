@@ -15,7 +15,6 @@
             el: '#profile',
             data: {
                 User: { VirtualPaymentAddress: "", DateOfBirth: "", City: { Name: "" }, PinCode: { PinCode: "" } },
-                errors: [],
                 userPhoneBeingEdited: false,
                 userEmailBeingEdited: false,
                 userAddressBeingEdited: false,
@@ -145,15 +144,14 @@
                 saveUser: function (e) {
                     e && e.preventDefault();
                     self = this;
-                    self.errors = [];
                     if (!self.User.LongName) {
-                        self.errors.push("Let us know your full name.");
-                    }
-
-                    if (self.errors && self.errors.length === 0) {
+                        showErrorMessage("Let us know your full name.");
+                    }else{
                         api().url("/users/save").parameters({ "User": self.User }).post().then(function (response) {
                             self.User = response.Users[0];
                             self.fixUserAttributes();
+                        }).catch(function(err){
+                            showError(err);
                         });
                     }
                 },
@@ -182,6 +180,8 @@
                             console.log(response);
                             self.User = response.User;
                             self.fixUserAttributes();
+                        }).catch(function(err){
+                            showError(err);
                         });
                     });
                 },
@@ -195,7 +195,6 @@
 
                 verifyPhone: function (userPhone) {
                     self = this;
-                    self.errors = [];
                     api().url("/user_phones/validateOtp/" + userPhone.Id).parameters({ "Otp": userPhone.Otp }).post().then(function (response) {
                         if (response.UserPhone.Validated === 'Y') {
                             index = self.User.UserPhones.findIndex(function (currentValue) {
@@ -204,7 +203,7 @@
                             self.User.UserPhones.splice(index, 1, response.UserPhone);
                             self.checkUserPhones();
                         } else {
-                            self.errors.push("Otp doesnot match");
+                            showErrorMessage("Otp doesnot match");
                         }
 
                     });
@@ -212,16 +211,14 @@
 
                 makePrimaryPhone: function (userPhone) {
                     self = this;
-                    self.errors = [];
                     if (!userPhone.Validated || userPhone.Validated !== 'Y') {
-                        self.errors.push("Only validated phone numbers can be made as primary phone number.");
-                    }
-                    if (self.errors.length === 0) {
+                        showErrorMessage("Only validated phone numbers can be made as primary phone number.");
+                    }else {
                         api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "PhoneNumber": userPhone.PhoneNumber } }).post().then(function (response) {
                             self.User = response.Users[0];
                             self.fixUserAttributes();
                         }).catch(function (err) {
-                            self.errors.push(err.response.data.SWFHttpResponse.Error)
+                            showError(err);
                         });
                     }
                 },
@@ -233,6 +230,8 @@
                         });
                         self.User.UserPhones.splice(index, 1);
                         self.checkUserPhones();
+                    }).catch(function(err){
+                        showError(err);
                     });
 
                 },
@@ -264,7 +263,6 @@
                 },
                 verifyEmail: function (userEmail) {
                     self = this;
-                    self.errors = [];
                     api().url("/user_emails/validateOtp/" + userEmail.Id).parameters({ "Otp": userEmail.Otp }).post().then(function (response) {
                         if (response.UserEmail.Validated === 'Y') {
                             index = self.User.UserEmails.findIndex(function (currentValue) {
@@ -273,20 +271,20 @@
                             self.User.UserEmails.splice(index, 1, response.UserEmail);
                             self.checkUserEmails();
                         } else {
-                            self.errors.push("Otp doesnot match");
+                            showErrorMessage("Otp doesnot match");
                         }
                     });
                 },
                 makePrimaryEmail: function (userEmail) {
                     self = this;
-                    self.errors = [];
                     if (!userEmail.Validated || userEmail.Validated !== 'Y') {
-                        self.errors.push("Only validated emails can be made as primary email.");
-                    }
-                    if (self.errors.length === 0) {
+                        showErrorMessage("Only validated emails can be made as primary email.");
+                    }else{
                         api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "Email": userEmail.Email } }).post().then(function (response) {
                             self.User = response.Users[0];
                             self.fixUserAttributes();
+                        }).catch(function(err){
+                            showError(err);
                         });
                     }
                 },

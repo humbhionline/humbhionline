@@ -17,7 +17,6 @@
         new Vue({
             el: "#app",
             data: {
-                messages: [],
                 User: Lockr.get("User"),
                 Facility: { Inventories: [] },
                 facilityBannerBeingEdited: false,
@@ -54,7 +53,7 @@
                     self.showApp();
                 }).catch(function (err) {
                     self.showApp();
-                    self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                    showError(err);
                 })
             },
             methods: {
@@ -63,33 +62,7 @@
                     $(".body").css("padding-top", "300px");
                     $("#root").show();
                 },
-                message: function () {
-                    var message = "";
-                    let self = this;
-                    self.messages.forEach(function (m) {
-                        message += " " + m;
-                    });
-                    return message;
-                },
-                autoClearMessage: function (message, index) {
-                    let self = this;
-                    if (message) {
-                        self.messages.push(message);
-                        var element = document.getElementById('inventory-' + index);
-                        if (element) {
-                            var msg = self.$refs['message'];
-                            element.appendChild(msg);
-                        }
-                    }
-                    setTimeout(function () {
-                        self.messages = [];
-                        var element = document.getElementById('default-error-div');
-                        if (element) {
-                            var msg = self.$refs['message'];
-                            element.appendChild(msg);
-                        }
-                    }, 1500);
-                },
+
                 create: function (event) {
                     if (event) {
                         event.preventDefault();
@@ -181,11 +154,7 @@
                         }
                         self.cancel(null);
                     }).catch(function (err) {
-                        if (err.response) {
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
-                        } else {
-                            self.autoClearMessage(err.toString(), index);
-                        }
+                        showError(err);
                     });
 
                 },
@@ -207,11 +176,7 @@
                             }
                             self.Facility.Inventories.splice(index, 1, inv);
                         }).catch(function (err) {
-                            if (err.response) {
-                                self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
-                            } else {
-                                self.autoClearMessage(err.toString(), index);
-                            }
+                            showError(err);
                         });
                     } else {
                         self.Facility.Inventories.splice(index, 1);
@@ -235,11 +200,7 @@
                             }
                             self.Facility.Inventories.splice(index, 1, inv);
                         }).catch(function (err) {
-                            if (err.response) {
-                                self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
-                            } else {
-                                self.autoClearMessage(err.toString(), index);
-                            }
+                            showError(err);
                         });
                     } else {
                         self.Facility.Inventories.splice(index, 1);
@@ -445,12 +406,7 @@
                         api().url("/attachments/destroy/" + self.Facility.Attachments[index].Id).get().then(function (response) {
                             self.Facility.Attachments.splice(index, 1);
                         }).catch(function (err) {
-                            if (err.response) {
-                                self.messages.push(err.response.data.SWFHttpResponse.Error);
-                            } else {
-                                self.messages.push(err);
-                            }
-                            self.autoClearMessage();
+                            showError(err);
                         });
                     } else {
                         self.Facility.Attachments.splice(index, 1);
@@ -520,12 +476,7 @@
                         api().url("/attachments/destroy/" + skuAttachment.Id).get().then(function (response) {
                             self.Facility.Inventories[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
                         }).catch(function (err) {
-                            if (err.response) {
-                                self.messages.push(err.response.data.SWFHttpResponse.Error);
-                            } else {
-                                self.messages.push(err);
-                            }
-                            self.autoClearMessage();
+                            showError(err);
                         });
                     } else {
                         self.Facility.Inventories[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
@@ -585,9 +536,7 @@
 
                         inv.Sku.Attachments.splice(attachmentIndex, 1, response.Attachment);
                     }).catch(function(err){
-                       if (err.response.headers.status === "413"){
-                            self.autoClearMessage("Size too Big!",inventoryIndex);
-                       }
+                       showError(err);
                     });
                 },
                 chooseSkuFile: function (e, inventoryIndex) {
@@ -649,11 +598,6 @@
                     v-on:keyup.enter="onUnitOfMeasuresSelect($event,code)"
                     v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)"
                     v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)">{{code.Name}} </a>
-            </div>
-        </div>
-        <div id="default-error-div" class="container">
-            <div id="message" ref="message" class="row">
-                <p id="msg" v-if="messages && messages.length">{{ message() }}</p>
             </div>
         </div>
         <div class="facility-header">

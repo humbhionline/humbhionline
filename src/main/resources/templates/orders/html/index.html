@@ -29,7 +29,6 @@
                 Android: typeof Android == "undefined" ? undefined : Android,
                 purchases: purchases,
                 sales: sales,
-                messages: [],
                 User: Lockr.get("User"),
                 Orders: [],
                 cancelled: [],
@@ -51,7 +50,7 @@
                         self.loadOrders(response.Facilities);
                     }).catch(function (err) {
                         self.showApp();
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                        showError(err);
                     });
                 }
 
@@ -80,7 +79,7 @@
                             self.showApp();
                         }).catch(function (err) {
                             self.showApp();
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
+                            showError(err);
                         });
                     }
 
@@ -123,7 +122,7 @@
                     let r = JSON.parse(upiresponsejsonString)
 
                     if (!r.txnRef){
-                        self.autoClearMessage("Transaction Cancelled",self.Orders[0]);
+                        showErrorMessage("Transaction Cancelled");
                         if (self.orderInitiatedForPayment.Id){
                             self.reset_payment(null,self.orderInitiatedForPayment)
                         }else if (self.orderInitiatedForReturn.Id){
@@ -142,13 +141,9 @@
                         if (index >= 0) {
                             self.Orders.splice(index, 1, response.Order);
                         }
-                        self.autoClearMessage("Payment Status : " + r.Status, self.Orders[index]);
+                        showErrorMessage("Payment Status : " + r.Status);
                     }).catch(function (err) {
-                        if (err.response){
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, self.Orders[index]);
-                        }else {
-                            self.autoClearMessage(err, self.Orders[index]);
-                        }
+                        showError(err);
                     });
 
                 },
@@ -179,28 +174,6 @@
                     $("#pageTitle").html("Manage Orders");
                     $("#root").show();
                 },
-                message: function () {
-                    var message = "";
-                    let self = this;
-                    self.messages.forEach(function (m) {
-                        message += " " + m;
-                    });
-                    return message;
-                },
-                autoClearMessage: function (message, order) {
-                    let self = this;
-                    if (message) {
-                        self.messages.push(message);
-                        if (order) {
-                            var div = document.getElementById("Order-" + order.Id);
-                            var msg = self.$refs['message'];
-                            div.appendChild(msg);
-                        }
-                    }
-                    setTimeout(function () {
-                        self.messages = [];
-                    }, 1500);
-                },
                 pack: function (event, order) {
                     if (event) {
                         event.preventDefault();
@@ -216,7 +189,7 @@
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        showError(err);
                     });
                 },
                 ship: function (event, order) {
@@ -234,7 +207,7 @@
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        showError(err);
                     });
                 },
                 deliver: function (event, order) {
@@ -252,7 +225,7 @@
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        showError(err);
                     });
                 },
                 cancel: function (event, order) {
@@ -273,7 +246,7 @@
                         }
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        showError(err);
                     });
                 },
                 cancel_order_line: function (event, order_line, order) {
@@ -292,11 +265,7 @@
                             self.loadOrder(response.Order);
                         });
                     }).catch(function (err) {
-                        if (err.response) {
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
-                        } else {
-                            self.autoClearMessage(err, order);
-                        }
+                        showError(err);
                     });
                 },
 
@@ -310,13 +279,7 @@
                     }
                     api().url("/orders/initialize_payment/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
-                        self.autoClearMessage("Payment Initialized", order);
-                        /* 'upi://pay?pa=' + order.Facility.CreatorUser.VirtualPaymentAddress +
-                                            '&pn='+order.Facility.CreatorUser.NameAsInBankAccount+
-                                            '&tr=' + order.Id +
-                                            '&tn=HBO Txn ' + order.Id +
-                                            '&am=' + order.AmountPendingPayment +
-                                            '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g,'%20' ; */
+                        showErrorMessage("Payment Initialized");
                         response.Order._phref = "#";
                         if (self.Android) {
                             self.orderInitiatedForPayment = response.Order;
@@ -331,12 +294,7 @@
                                 '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                         }
                     }).catch(function (err) {
-                        if (err.response) {
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
-                        } else {
-                            self.autoClearMessage(err);
-                            console.log(err);
-                        }
+                        showError(err);
                     });
 
                     return true;
@@ -358,9 +316,9 @@
                         if (index >= 0) {
                             self.Orders.splice(index, 1, response.Order);
                         }
-                        self.autoClearMessage("Payment Reset", order);
+                        showErrorMessage("Payment Reset");
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        showError(err);
                     });
                 },
                 complete_payment: function (event, order) {
@@ -378,14 +336,9 @@
                     delete order._rhref;
                     api().url("/orders/complete_payment/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
-                        self.autoClearMessage("Verified Payment", order);
+                        showErrorMessage("Verified Payment");
                     }).catch(function (err) {
-                        if (err.response) {
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
-                        } else {
-                            console.log(err);
-                        }
-
+                        showError(err);
                     });
                 },
                 initialize_refund: function (event, order) {
@@ -400,7 +353,7 @@
                     delete order._rhref;
                     api().url("/orders/initialize_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
-                        self.autoClearMessage("Refund Initialized", order);
+                        showErrorMessage("Refund Initialized");
                         response.Order._rhref = "#";
                         if (self.Android) {
                             // v-bind:href=
@@ -410,7 +363,7 @@
                             response.Order._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn=' + o.CreatorUser.NameAsInBankAccount + '&tr=R:' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                         }
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        showError(err);
                     });
                     return true;
                 },
@@ -429,9 +382,9 @@
                     delete order._rhref;
                     api().url("/orders/reset_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
-                        self.autoClearMessage("Payment Reset", order);
+                        showErrorMessage("Payment Reset");
                     }).catch(function (err) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error, order);
+                        showError(err);
                     });
                 },
                 complete_refund: function (event, order) {
@@ -449,13 +402,9 @@
                     delete order._rhref;
                     api().url("/orders/complete_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
-                        self.autoClearMessage("Verified Payment", self.Orders[index]);
+                        showErrorMessage("Verified Payment");
                     }).catch(function (err) {
-                        if (err.response) {
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, self.Orders[index]);
-                        } else {
-                            console.log(err);
-                        }
+                        showError(err);
                     });
                 },
 
@@ -468,11 +417,6 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div id="message" ref="message" class=" row status-message ">
-            <div class="col-12 alert alert-danger" v-if="messages && messages.length > 0">
-                {{ message() }}
-            </div>
-        </div>
         <div v-bind:id="'Order-' + o.Id" class="my-4 container position-relative" v-for="(o,i) in Orders">
             <button class="fas fa-times btn-order-cancel" v-on:click="cancel($event,o)"
                 v-if="cancelled.findIndex(x => x === o.Id) < 0">

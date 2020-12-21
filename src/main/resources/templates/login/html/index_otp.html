@@ -65,7 +65,7 @@
                             self.params.SignUp = response.data.SignUp;
                             Lockr.set("SignUp",self.params.SignUp);
                         } else {
-                            self.message = "Otp doesnot match" ;
+                            showErrorMessage( "Otp doesnot match" );
                         }
                         self.hideUnHideOtpFields().then(function (home) {
                             if (home) {
@@ -80,7 +80,7 @@
                     }
                     var self = this;
                     this.http.get("/sign_ups/sendOtp/" + this.params.SignUp.Id, { "data": {} }).then(function (response) {
-                        self.message = response.data.SWFHttpResponse.Message;
+                        showErrorMessage(response.data.SWFHttpResponse.Message);
                     });
                 },
                 resetPhoneNumber: function (event) {
@@ -150,9 +150,7 @@
                                 self.message = "Unexpected Response : " + response.data;
                             }
                         }).catch(function (err) {
-                            //Lockr.rm("PhoneNumber");
-                            //self.params.SignUp.SignUpPhone.PhoneNumber = "";
-                            self.message = err.response ? err.response.data.SWFHttpResponse.Error : err.toString();
+                            showError(err);
                             self.showApp();
                         });
                     }else {
@@ -191,6 +189,7 @@
     }
 </style>
 <div id="root" class="v-fill align-items-center" style="display : none;">
+    <p id="msg" class="mb-0 invisible"></p>
     <div id="app"  class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-6 col-sm-2">

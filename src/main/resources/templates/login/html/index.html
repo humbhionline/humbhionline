@@ -20,7 +20,6 @@
             data : {
                 Android : undefined , //typeof Android == "undefined" ? undefined : Android,
                 params: { "User": { "PhoneNumber": "" , "Password":"" } },
-                message : "",
                 phoneNumberEntered : false,
             },
             created : function(){
@@ -51,17 +50,12 @@
                                     window.location.replace(home);
                                 });
                             } else {
-                                self.message = "Password doesnot match." ;
+                                showErrorMessage("Password doesnot match.") ;
                             }
                         });
                     }).catch(function(err){
                         self.showApp();
-                        if (err.response && err.response.data.SWFHttpResponse){
-                            self.message = err.response.data.SWFHttpResponse.Error
-                        }else {
-                            console.log(err);
-                        }
-                        //self.message = err.response.S
+                        showError(err);
                     });
                 },
                 resetPhoneNumber: function () {
@@ -79,7 +73,6 @@
                 },
                 signIn: function () {
                     var self = this;
-                    self.message = "" ;
                     self.hideApp();
                     self.params.User = Lockr.get("User") || self.params.User;
                     if (!blank(self.params.User.PhoneNumber)) {
@@ -144,6 +137,7 @@
     }
 </style>
 <div id="root" class="v-fill align-items-center" style="display : none;">
+    <p id="msg" class="mb-0 invisible" ></p>
     <div id="app"  class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-6 col-sm-2">
@@ -173,6 +167,5 @@
                 </form>
             </div>
         </div>
-        <p id="msg" class="mb-0" v-if="message && message.length > 0"> {{message}}</p>
     </div>
 </div>

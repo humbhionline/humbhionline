@@ -8,7 +8,6 @@
         new Vue({
             el: "#app",
             data: {
-                messages: [],
                 User: Lockr.get("User"),
                 OrderAmount: {},
                 facilityOrders: Lockr.get("facilityOrders") || {},
@@ -44,20 +43,6 @@
                 showApp: function () {
                     $("#pageTitle").html("Order Details");
                     $("#root").show();
-                },
-                message: function () {
-                    var message = "";
-                    let self = this;
-                    self.messages.forEach(function (m) {
-                        message += " " + m;
-                    });
-                    return message;
-                },
-                autoClearMessage: function () {
-                    let self = this;
-                    setTimeout(function () {
-                        self.messages = [];
-                    }, 1500);
                 },
                 addOrderToBook: function (f, orders) {
                     let self = this;
@@ -123,11 +108,8 @@
                         Lockr.set("facilityOrders", self.facilityOrders);
                         window.location.reload();
                     }).catch(function (err) {
-                        self.messages.push(err.response.data.SWFHttpResponse.Error);
-                        self.autoClearMessage();
+                        showError(err);
                     });
-
-
                 },
                 bookOrders: function (event) {
                     if (event) {
@@ -144,8 +126,7 @@
                         Lockr.rm("facilityOrders");
                         window.location.reload();
                     }).catch(function (err) {
-                        self.messages.push(err.response.data.SWFHttpResponse.Error);
-                        self.autoClearMessage();
+                        showError(err);
                     });
 
                 },
@@ -356,12 +337,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="container-fluid mb-5 pb-4">
-            <div id="message" ref="message" class="alert alert-danger mb-0" v-if="messages && messages.length > 0">
-                {{ message() }}
             </div>
         </div>
     </div>

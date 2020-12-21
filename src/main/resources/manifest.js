@@ -3,7 +3,7 @@ const staticCacheName = 'mandi-v1';
 self.addEventListener('fetch', function(event){
     event.respondWith(
         caches.match(event.request).then(function (response) {
-            let cacheable = event.request.method.toUpperCase() === 'GET' &&
+            let cacheable = event.request.method.toUpperCase() === 'GET' && event.request.url.startsWith("http") &&
                 (  /^(.*)\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js)/.test(event.request.url) )  
             if (response !== undefined){
                 console.log("Found in cache" + event.request.url );

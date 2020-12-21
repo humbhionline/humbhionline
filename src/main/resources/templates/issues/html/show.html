@@ -14,7 +14,6 @@
             el: "#app",
             data : {
                 id_parameter : id,
-                message : "",
                 User: user,
                 Issue : { Company : { Id: user.Company.Id } , Title : "" , Priority :"" , Description : "" , Attachment : ""} ,
                 Resolutions : ["","FIXED","DUPLICATE","WONTFIX","WORKSFORME","BEHAVIOUR_EXPLAINED"],
@@ -49,13 +48,6 @@
                     });
                     $("#root").show();
                 },
-                showMessage: function(m){
-                    let self = this;
-                    self.message = m ;
-                    setTimeout(function(){
-                        self.message = "";
-                    },1500);
-                },
                 save : function(){
                     let self = this;
                     var files = $('#attachment')[0].files;
@@ -76,16 +68,11 @@
                         self.Issue = response.Issue;
                         self.Issue.Description = "";
                         Vue.set(self,"Issue",self.Issue);
-                        self.showMessage("Issue Updated Thanks.");
+                        showErrorMessage("Issue Updated Thanks.");
                         self.updated = true;
                         //Vue.$forceUpdate();
                     }).catch(function(err){
-                        console.log(err);
-                        if (err.response){
-                            self.showMessage(err.response.data.SWFHttpResponse.Error);
-                        }else {
-                            self.showMessage(err.toString());
-                        }
+                        showError(err);
                     });
                 },
                 yank : function(event){
@@ -96,14 +83,10 @@
                     let self = this;
                     api().url("/issues/yank/" + self.Issue.Id).get().then(function(response){
                         self.Issue = response.Issue;
-                        self.showMessage("Issue Yanked");
+                        showErrorMessage("Issue Yanked");
                         //window.location.replace("/issues/show/" + response.Issues[0].Id);
                     }).catch(function(err){
-                        if (err.response){
-                            self.showMessage(err.response.data.SWFHttpResponse.Error);
-                        }else {
-                            self.showMessage(err.toString());
-                        }
+                        showError(err);
                     });
                 },
                 destroy_note: function(event,note){
@@ -112,17 +95,13 @@
                     }
                     let self = this;
                     api().url("/notes/destroy/"+note.Id).get().then(function(response){
-                        self.showMessage("Note Deleted");
+                        showErrorMessage("Note Deleted");
                         let index = self.Issue.Notes.findIndex(function(n){
                            return n.Id == note.Id;
                         });
                         self.Issue.Notes.splice(index,1);
                     }).catch(function(err){
-                        if (err.response){
-                            self.showMessage(err.response.data.SWFHttpResponse.Error);
-                        }else {
-                            self.showMessage(err.toString());
-                        }
+                        showError(err);
                     })
                 },
                 readDataFile: function (file, callback) {
@@ -247,6 +226,5 @@
 
 
 
-        <p id="msg" class="mb-0" v-if="message && message.length > 0"> {{message}}</p>
     </div>
 </div>

@@ -10,7 +10,6 @@
         new Vue({
             el: "#app",
             data: {
-                messages: [],
                 User: Lockr.get("User"),
                 Facilities: [],
                 current: {
@@ -32,11 +31,7 @@
                     self.showApp();
                 }).catch(function (err) {
                     self.showApp();
-                    if (err.response) {
-                        self.autoClearMessage(err.response.data.SWFHttpResponse.Error);
-                    } else {
-                        self.autoClearMessage(err);
-                    }
+                    showError(err);
                 })
             },
             methods: {
@@ -54,28 +49,6 @@
                 showApp: function () {
                     $("#pageTitle").html("Manage Facilities");
                     $("#root").show();
-                },
-                message: function () {
-                    var message = "";
-                    let self = this;
-                    self.messages.forEach(function (m) {
-                        message += " " + m;
-                    });
-                    return message;
-                },
-                autoClearMessage: function (message, index) {
-                    let self = this;
-                    if (message) {
-                        self.messages.push(message);
-                        var element = document.getElementById('facility-' + index);
-                        if (element) {
-                            var msg = self.$refs['message'];
-                            element.appendChild(msg);
-                        }
-                    }
-                    setTimeout(function () {
-                        self.messages = [];
-                    }, 1500);
                 },
                 create: function (event) {
                     if (event) {
@@ -153,11 +126,8 @@
                         }
                         self.cancel(null);
                     }).catch(function (err) {
-                        if (err.response) {
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
-                        } else {
-                            self.autoClearMessage(err.toString(), index);
-                        }
+                        showError(err);
+
                     });
 
                 },
@@ -174,11 +144,7 @@
                         api().url("/facilities/destroy/" + f.Id).get().then(function (response) {
                             self.Facilities.splice(index, 1);
                         }).catch(function (err) {
-                            if (err.response) {
-                                self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
-                            } else {
-                                self.autoClearMessage(err.toString(), index);
-                            }
+                            showError(err);
                         });
                     } else {
                         self.Facilities.splice(index, 1);
@@ -272,7 +238,7 @@
                     let f = self.Facilities[index];
                     let newRecord = !f.Id;
                     if (newRecord) {
-                        self.autoClearMessage("Facility not yet registered!", index);
+                        showErrorMessage("Facility not yet registered!");
                         return;
                     }
                     api().url("/facilities/" + apiName + "/" + f.Id).get().then(function (response) {
@@ -283,11 +249,7 @@
                             self.Facilities.splice(index, 1, response.Facility);
                         }
                     }).catch(function (err) {
-                        if (err.response) {
-                            self.autoClearMessage(err.response.data.SWFHttpResponse.Error, index);
-                        } else {
-                            self.autoClearMessage(err.toString(), index);
-                        }
+                        showError(err);
                     });
                 },
                 blank: function (s) {
@@ -302,11 +264,6 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div id="message" ref="message" class="row">
-            <div class="col-12 alert alert-danger " v-if="messages && messages.length > 0">
-                {{ message() }}
-            </div>
-        </div>
         <div id="lookupEntries" ref="lookupEntries" class="below">
             <div v-for="(city,index) in current.Cities" v-if="current.Cities.length > 0">
                 <a href="#" v-on:click="onCitySelect($event,city)" v-on:keyup.enter="onCitySelect($event,city)"
@@ -341,19 +298,15 @@
                         <div class="action-box">
                             <!-- show status in the icon -->
                             <span v-if="current.index != i">
-                                <a href="#" class="mr-2" v-if="(!f.Published || f.Published === 'N')"
+                                <a href="#" class="btn btn-sm" v-if="(!f.Published || f.Published === 'N')"
                                     v-on:click="publish($event,i)">
-                                    <small>
-                                        Publish
-                                    </small>
+                                    <i class="fas fa-toggle-off"></i>
                                 </a>
-                                <a href="#" class="mr-2" v-if="(f.Published && f.Published === 'Y')"
+                                <a href="#" class="btn btn-sm" v-if="(f.Published && f.Published === 'Y')"
                                     v-on:click="unpublish($event,i)">
-                                    <small>
-                                        Un-Publish
-                                    </small>
+                                     <i class="fas fa-toggle-on"></i>
                                 </a>
-                                <a href="#/" role="button" v-on:click="edit($event,i)">
+                                <a href="#/" class="btn btn-sm" role="button" v-on:click="edit($event,i)">
                                     <i class='fas fa-edit'></i>
                                 </a>
                             </span>
