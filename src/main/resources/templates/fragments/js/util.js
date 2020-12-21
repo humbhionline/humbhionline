@@ -11,6 +11,7 @@ function logout(ev){
 function showError(err){
     if (err.response ){
         if (err.response.headers && err.response.headers.status === 401){
+            logout();
             window.location.replace("/login");
         }else if (err.response.headers && err.response.headers.status === "413"){
              showErrorMessage("Size Uploaded Too Big");
