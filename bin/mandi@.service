@@ -1,10 +1,10 @@
 [Unit]
-Description=mandi server
+Description=Hum Bhi Online Server
 After=network.target
 
 [Service]
 Type=forking
-PidFile=/home/ubuntu/mandi-%i/tmp/pid
+PIDFile=/home/venky/mandi-%i/tmp/pid
 
 User=ubuntu
 Group=ubuntu
