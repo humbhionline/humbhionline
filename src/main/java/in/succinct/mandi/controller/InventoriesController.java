@@ -52,21 +52,18 @@ public class InventoriesController extends ModelController<Inventory> {
     protected ResultFilter<Inventory> getFilter() {
         final ResultFilter<Inventory> superFilter = super.getFilter();
 
-        return new ResultFilter<Inventory>() {
-            @Override
-            public boolean pass(Inventory record) {
-                boolean pass = true;
-                Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
+        return record -> {
+            boolean pass = true;
+            Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
 
-                pass = pass && facility.isPublished();
-                pass = pass && facility.getDistance() < getMaxDistance() ;
-                pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
-                        || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem() );
-                pass = pass && (record.isInfinite() || record.getQuantity() > 0);
-                pass = pass &&  superFilter.pass(record);
+            pass = pass && facility.isPublished();
+            pass = pass && facility.getDistance() < getMaxDistance() ;
+            pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
+                    || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem() );
+            pass = pass && (record.isInfinite() || record.getQuantity() > 0);
+            pass = pass &&  superFilter.pass(record);
 
-                return pass;
-            }
+            return pass;
         };
 
     }
