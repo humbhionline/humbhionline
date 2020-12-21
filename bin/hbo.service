@@ -1,0 +1,27 @@
+[Unit]
+Description=Hum Bhi Online Server
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/home/venky/mandi/tmp/pid
+
+User=ubuntu
+Group=ubuntu
+
+ExecStart=/bin/bash -c /home/venky/mandi/bin/swfstart
+SuccessExitStatus=SIGKILL
+
+StartLimitBust=2
+StartLimitIntervalSec=300
+
+
+TimeoutSec=300
+
+Restart=always
+
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
