@@ -171,7 +171,9 @@
                     if (event){
                         event.preventDefault();
                     }
-                    window.location.replace( "/login" );
+                    let self = this;
+                    var url = "/login" + ((self.params.SignUp.PhoneNumber && self.params.SignUp.PhoneNumber.length >= 10) ? "?phone_number=" + self.params.SignUp.PhoneNumber : "");
+                    window.location.replace( url );
                 }
             },
 
@@ -209,8 +211,8 @@
                         <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.SignUp.PhoneNumber" />
                     </div>
                     <div class="form-group text-right">
-                        <a href="#" @click="login_via_password($event)">{{ "Login with password"}}</a>
-                        <button class="btn btn-primary" type="submit" id="btnSignUp">Request OTP</button>
+                        <button class="btn btn-primary btn-block" type="submit" id="btnSignUp">Request OTP</button>
+                        <a href="#" class="small" @click="login_via_password($event)">{{ "Login with password?"}}</a>
                     </div>
                 </form>
             </div>
@@ -226,14 +228,13 @@
                         <div class="form-group">
                             <label for="PhoneOtp" class="text-left d-block mb-0">Enter your OTP</label>
                             <input id="PhoneOtp" type="number" class="form-control" placeholder="OTP" v-model="Otp" />
-                            <p class="text-right mb-0 mt-1">
-                                <a id="btnReset" href="#" v-on:click="resetPhoneNumber($event)">Reset Mobile</a> /
-                                <a id="btnResendPhoneOtp" href="#"  v-on:click="resendOtp($event)">Resend OTP</a>
-                            </p>
                         </div>
                         <div class="form-group">
                             <button type="submit" class="btn btn-block btn-primary" id="btnVerifyPhoneOtp">Validate Mobile</button>
-
+                            <p class="text-right mb-0 mt-1">
+                                <a id="btnReset" href="#" v-on:click="resetPhoneNumber($event)" class="small">Reset Mobile</a> /
+                                <a id="btnResendPhoneOtp" href="#"  v-on:click="resendOtp($event)" class="small" >Resend OTP</a>
+                            </p>
                         </div>
                     </form>
                 </div>

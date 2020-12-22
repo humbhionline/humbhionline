@@ -23,7 +23,17 @@
             created: function () {
                 let self = this;
                 if (self.User.Verified === 'N') {
-                    window.location.href = "/users/html/profile";
+                    if (self.User.Seller !== "Y" ){
+                        self.User.Seller = "Y";
+                        api().url("/users/save").parameters({"User" : self.User}).post().then(function(response){
+                            self.User = response.Users[0];
+                            Lockr.set("User",self.User);
+                            window.location.href = "/users/html/profile";
+                        });
+                    }else {
+                        window.location.href = "/users/html/profile";
+                    }
+                    return;
                 }
                 api().url("/facilities").get().then(function (response) {
                     self.fixFacilities(response.Facilities);

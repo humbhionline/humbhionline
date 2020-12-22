@@ -17,6 +17,7 @@ import com.venky.swf.plugins.collab.db.model.user.UserEmail;
 import com.venky.swf.plugins.collab.db.model.user.UserPhone;
 import com.venky.swf.plugins.mobilesignup.db.model.SignUp;
 import com.venky.swf.plugins.templates.controller.TemplateLoader;
+import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;
 import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
@@ -52,16 +53,6 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         return html(path, false);
     }
 
-    @Override
-    public String getTemplateDirectory() {
-        StringBuilder dir = new StringBuilder();
-        String templateDirectory = Config.instance().getProperty("swf.ftl.dir");
-        if (!ObjectUtil.isVoid(templateDirectory)) {
-            dir.append(templateDirectory);
-        }
-        dir.append("/users");
-        return dir.toString();
-    }
     public View verify(long id) {
         User user = Database.getTable(User.class).get(id);
         user.setVerified(true);
@@ -134,5 +125,64 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         Map<Class<? extends Model>,List<String>> map = super.getIncludedModelFields();
         map.put(SignUp.class, ModelReflector.instance(SignUp.class).getVisibleFields());
         return map;
+    }
+
+
+
+    @Override
+    public String getTemplateDirectory() {
+        return getTemplateDirectory(getReflector().getTableName().toLowerCase());
+    }
+
+
+    @Override
+    public View index() {
+        if (getReturnIntegrationAdaptor() != null){
+            return super.index();
+        }else {
+            if (TemplateEngine.getInstance(getTemplateDirectory()).exists("/html/index.html")){
+                return html("index");
+            }else {
+                return super.index();
+            }
+        }
+
+    }
+
+    @Override
+    public View show(long id) {
+        if (getReturnIntegrationAdaptor() != null){
+            return super.show(id);
+        }else {
+            if (TemplateEngine.getInstance(getTemplateDirectory()).exists("/html/show.html")){
+                return redirectTo("html/show?id="+id);
+            }else {
+                return super.show(id);
+            }
+        }
+
+    }
+
+    @Override
+    public View edit(long id) {
+        if (TemplateEngine.getInstance(getTemplateDirectory()).exists("/html/edit.html")){
+            return redirectTo("html/edit?id="+id);
+        }else {
+            return super.edit(id);
+        }
+
+    }
+
+    @Override
+    public View blank() {
+        if (getReturnIntegrationAdaptor() != null){
+            return super.blank();
+        }else {
+            if (TemplateEngine.getInstance(getTemplateDirectory()).exists("/html/blank.html")){
+                return redirectTo("html/blank");
+            }else {
+                return super.blank();
+            }
+        }
     }
 }

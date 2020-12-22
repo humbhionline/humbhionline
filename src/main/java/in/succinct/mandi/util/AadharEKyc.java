@@ -95,7 +95,7 @@ public class AadharEKyc {
                     hash = Encryptor.encrypt(hash,"SHA-256");
                 }
                 if (!ObjectUtil.isVoid(get(MOBILE_NUMBER_HASH)) && !ObjectUtil.equals(hash,get(MOBILE_NUMBER_HASH))){
-                    throw new RuntimeException(phoneNumber + "is not the phone registered with aadhar.");
+                    throw new RuntimeException(phoneNumber + " is not the phone registered with aadhar.");
                 }
             }
 

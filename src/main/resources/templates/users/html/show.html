@@ -1,0 +1,13 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+
+<link href="/fragments/css/mandi.css" rel="stylesheet">
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<script type="text/javascript">
+    $(function () {
+        let id = (new URL(window.location)).searchParams.get("id");
+        window.location.replace("/users/html/profile?id=" + id);
+    });
+</script>

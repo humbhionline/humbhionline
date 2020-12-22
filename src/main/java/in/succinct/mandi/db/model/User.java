@@ -1,6 +1,7 @@
 package in.succinct.mandi.db.model;
 
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
+import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 
 import java.sql.Date;
@@ -28,7 +29,12 @@ public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     public boolean isBalanceBelowThresholdAlertSent();
     public void setBalanceBelowThresholdAlertSent(boolean balanceBelowThresholdAlertSent);
 
+    @IS_VIRTUAL
+    public boolean isPasswordSet();
+    public void setPasswordSet(boolean passwordSet);
 
-
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isSeller();
+    public void setSeller(boolean seller);
 
 }

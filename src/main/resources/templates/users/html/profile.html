@@ -10,6 +10,8 @@
 
     $(function () {
         $("#header").load("/fragments/html/header");
+        var searchParams = (new URL(window.location)).searchParams;
+        var user_id = searchParams.get("id");
 
         new Vue({
             el: '#profile',
@@ -18,6 +20,7 @@
                 userPhoneBeingEdited: false,
                 userEmailBeingEdited: false,
                 userAddressBeingEdited: false,
+                userPasswordBeingEdited : false,
                 userVpaBeingEdited: false,
                 kycSelectedFileName : "",
                 current: {
@@ -28,8 +31,8 @@
             },
             created: function () {
                 self = this;
-                self.User = {};
-                api().url("/users/show/" + Lockr.get("User").Id).get().then(function (response) {
+                self.User = { Id : user_id || Lockr.get("User").Id };
+                api().url("/users/show/" + self.User.Id).get().then(function (response) {
                     self.User = response.User;
                     self.fixUserAttributes();
                      //!self.User.Verified || self.User.Verified === 'N' ;
@@ -57,7 +60,13 @@
                     self.checkUserEmails();
                     self.userAddressBeingEdited = false;
                     self.userVpaBeingEdited = false;
-                    Lockr.set("User",self.User);
+                    self.userPasswordBeingEdited = false;
+                    if ( !self.User.AddressLine1 || !self.User.City || !self.User.City.Name ){
+                        self.User.LongName = "" ;
+                    }
+                    if (!user_id || Lockr.get("User").Id  === userId){
+                        Lockr.set("User",self.User);
+                    }
                 },
                 isKeyTriggerable: function (e) {
                     return (e && e.target.value.length > 3);
@@ -176,7 +185,7 @@
                         let formData = new FormData();
                         formData.append('zipfile', datafile);
                         formData.append('password', password);
-                        api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata" }).post().then(function (response) {
+                        api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata", "Accept" :"application/json" }).post().then(function (response) {
                             console.log(response);
                             self.User = response.User;
                             self.fixUserAttributes();
@@ -337,16 +346,31 @@
                     }
                     self.userAddressBeingEdited = false;
                 },
+                editPassword: function (event){
+                    let self = this;
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    self.userPasswordBeingEdited = true;
+                },
+                cancelEditPassword: function (event) {
+                    let self = this;
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    self.userPasswordBeingEdited = false;
+                },
                 verify: function (event) {
                     let self = this;
                     api().url("/users/verify/" + self.User.Id).get().then(function (response) {
                         self.User = response.User;
-                        Lockr.set("User", self.User);
+                        fixUserAttributes();
                     });
                 },
 
                 showApp: function () {
-                    $("#pageTitle").html("Manage Profile");
+                    let self = this;
+                    $("#pageTitle").html(self.User.LongName.length > 0 ? "Manage Profile" : "Let us know you a bit.");
                     $("#root").show();
                 }
             }
@@ -359,14 +383,45 @@
     </div>
     <!-- body content -->
     <div id="profile" class="app-body" v-if="User.Id">
-        <div class="container-fluid">
-            <!-- HBO Banlance -->
+        <div class="container-fluid" >
+            <!-- Seller Flag -->
             <div class="row">
+                <div class="col">
+                    <h6 class="mt-3">Seller</h6>
+                </div>
+            </div>
+            <div class="content-box">
+                <div class="form-row mb-2">
+                    <div class="col">
+                        <div class="form-check">
+                            <input value="N" class="form-check-input align-middle" type="checkbox"
+                                id="seller" v-model="User.Seller" @change="saveUser($event)"
+                                true-value="Y" false-value="N">
+                            <label class="form-check-label align-middle"
+                                for="seller">Do you wish to Sell?</label>
+                        </div>
+                        <div class="col">
+                        <span class="small" v-if="User.Verified !== 'Y' ">Your KYC process needs to be completed before you can start selling on Hum bhi online.
+                            <br>To complete KYC, you need to do one of the following:
+                            <ul>
+                                <li>Upload your offline-ekyc aadhar zip file (you can download from the official uidai
+                                    <a href="https://resident.uidai.gov.in/offline-kyc">website</a>). </li>
+                                <li>Send an email to <a href="mailto:support@humbhionline.in">support@humbhionline.in</a> and request for a physical Verification appointment.
+                                    (this would be chargable @ 50 Rs as we will need to send an agent to verify your home location.)</li>
+                            </ul>
+                        </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HBO Balance -->
+            <div class="row" v-if="User.Seller === 'Y'">
                 <div class="col">
                     <h6 class="mt-3">Humbhi Online Subscription</h6>
                 </div>
             </div>
-            <div class="content-box">
+            <div class="content-box" v-if="User.Seller === 'Y'">
                 <div class="row">
                     <div class="col-7  d-flex align-items-center">
                         <span v-if="User.BalanceOrderLineCount <= 0">
@@ -386,13 +441,46 @@
                     </div>
                 </div>
             </div>
+            <!-- Kyc Option -->
+            <div id="kyc" v-if="User.Seller === 'Y'">
+                <div class="row" v-if="!User.Verified || User.Verified === 'N'">
+                    <div class="col">
+                        <h6 class="mt-4 d-inline-block">KYC : Aadhar Upload</h6>
+                    </div>
+                </div>
+                <div class="content-box" v-if="!User.Verified || User.Verified === 'N'">
+                    <div class="form-row">
+                        <div class="col">
+                            <div class="form-row no-gutters">
+                                <div class="col-12">
+                                    <input type="file" class="file-upload" id="aadharzipfile" v-on:input="onAadharKycFileChange($event)"/>
+                                    <label class="btn btn-sm btn-primary" for="aadharzipfile">
+                                        {{ kycSelectedFileName && kycSelectedFileName.length > 0 ? kycSelectedFileName :
+                                            "Click to Select Aadhar KYC"}}
+                                    </label>
+                                </div>
+                                <div class="col-8">
+                                    <input id="aadharzippassword" class="form-control form-control-sm" type="password"
+                                        placeholder="Zipfile security code?" />
+                                </div>
+                                <div class="col-4 text-right">
+                                    <a href="#" class="btn btn-sm btn-block btn-primary" role="button" title="Upload"
+                                        v-on:click="doAadharKyc($event)">
+                                        Upload
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!-- Home Address -->
             <div class="row">
                 <div class="col">
-                    <h6 class="mt-3">Home</h6>
+                    <h6 class="mt-3">Address</h6>
                 </div>
-                <div class="col text-right" v-if="User.Verified && User.Verified === 'Y'">
-                    <span class="mt-3 d-inline-block"><i class="fas fa-check mr-2"></i>Verified</span>
+                <div class="col text-right" v-if="User.Verified && User.Verified === 'Y' && User.Seller === 'Y'">
+                    <span class="mt-3 d-inline-block"><i class="fas fa-check mr-2"></i>KYC Complete</span>
                 </div>
             </div>
             <div class="content-box">
@@ -400,7 +488,7 @@
                     <div class="col">
                         <a href="#" class="btn-close fas fa-edit" v-if="!userAddressBeingEdited"
                             @click="editAddress($event)"></a>
-                        <h6 class="m-0">{{User.LongName}}</h6>
+                        <h6 class="m-0">&nbsp;{{ User.LongName }}</h6>
                         <p class="m-0 text-muted">
                             <span v-if="User.AddressLine1">{{User.AddressLine1}},</span>
                             <span v-if="User.AddressLine2">{{User.AddressLine2}},</span>
@@ -413,49 +501,18 @@
                     </div>
                 </div>
             </div>
-            <!-- Kyc Option -->
-            <div class="row" v-if="!User.Verified || User.Verified === 'N'">
-                <div class="col">
-                    <h6 class="mt-4 d-inline-block">KYC : Aadhar Upload</h6>
-                </div>
-            </div>
-            <div class="content-box" v-if="!User.Verified || User.Verified === 'N'">
-                <div class="form-row">
-                    <div class="col">
-                        <div class="form-row no-gutters">
-                            <div class="col-12">
-                                <input type="file" class="file-upload" id="aadharzipfile" v-on:input="onAadharKycFileChange($event)"/>
-                                <label class="btn btn-sm btn-primary" for="aadharzipfile">
-                                    {{ kycSelectedFileName && kycSelectedFileName.length > 0 ? kycSelectedFileName :
-                                        "Click to Select Aadhar KYC"}}
-                                </label>
-                            </div>
-                            <div class="col-8">
-                                <input id="aadharzippassword" class="form-control form-control-sm" type="password"
-                                    placeholder="Password" />
-                            </div>
-                            <div class="col-4 text-right">
-                                <a href="#" class="btn btn-sm btn-block btn-primary" role="button" title="Upload"
-                                    v-on:click="doAadharKyc($event)">
-                                    Upload
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
             <!-- Payment Option -->
             <div class="row">
                 <div class="col">
-                    <h6 class="mt-4 d-inline-block">Payment Option</h6>
+                    <h6 class="mt-4 d-inline-block">UPI (Optional)</h6>
                 </div>
                 <div class="col d-flex justify-content-end align-items-end">
                     <a href="#/" class="btn-close fas fa-edit mb-3" role="button" v-on:click="viewAddVPA(true)"
                         v-if="!userVpaBeingEdited">
-
                     </a>
                 </div>
             </div>
+
             <div class="content-box">
                 <div class="row">
                     <div class="col">
@@ -495,11 +552,9 @@
                     </div>
                 </div>
             </div>
-            <p class="text-note text-muted mb-3">** Your virtual payment Address would be used to receive payments into
-                your
-                bank account.
-                Please enter this correctly.
-                Entering incorrectly can cause money to reach some one else's account.</p>
+            <p class="text-note text-muted mb-3">Your virtual payment Address would be used to receive payments/refunds into
+                your bank account. Please enter this correctly.
+                Entering incorrectly can cause money to reach some one else's account when you are supposed to receive money.</p>
             <!-- Mobile Update -->
             <div class="row">
                 <div class="col">
@@ -653,6 +708,25 @@
                     </div>
                 </div>
             </div>
+            <!-- Set Password -->
+            <div class="row">
+                <div class="col">
+                    <h6 class="mt-4 d-inline-block">Set Password</h6>
+                </div>
+            </div>
+            <div class="content-box">
+                <div class="row">
+                    <div class="col"  v-if="!userPasswordBeingEdited">
+                        <a href="#" class="btn-close fas fa-edit"
+                            @click="editPassword($event)"></a>
+                        <p class="m-0 text-muted" >
+                            <span v-if="User.PasswordSet === 'Y'">******</span>
+                            <span v-else>Not Set</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <div class="mb-3"></div>
             <div id="lookupEntries" ref="lookupEntries" class="below">
                 <div v-for="(city,index) in current.Cities" v-if="current.Cities.length > 0">
@@ -715,5 +789,23 @@
                 </div>
             </div>
         </div>
-        <div class="pop-overlay" v-if="userAddressBeingEdited"></div>
+        <div class="show-update" v-if="userPasswordBeingEdited">
+            <form action="#" @submit.prevent="saveUser($event)" method="post">
+                <div class="form-row">
+                    <div class="col-12 mb-2">
+                        <input class="form-control form-control-sm" id="password" v-model="User.Password"
+                            placeholder="Password" type="password" autocomplete="new-password"/>
+                    </div>
+                    <div class="col-12 text-right">
+                        <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditPassword($event)">Cancel</a>
+                        <button v-if="!User.Verified || User.Verified === 'Y' || User.Staff === 'N'" class="btn btn-sm btn-primary"
+                            type="submit">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+
+
+        <div class="pop-overlay" v-if="userAddressBeingEdited || userPasswordBeingEdited"></div>
     </div>

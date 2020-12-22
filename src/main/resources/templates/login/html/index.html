@@ -11,6 +11,7 @@
     $(function(){
         var searchParams = (new URL(window.location)).searchParams;
         var redirect_to = searchParams.get("_redirect_to");
+        var phoneNumber = searchParams.get("phone_number");
         if (!redirect_to) {
             redirect_to = "/index"
         }
@@ -24,6 +25,9 @@
             },
             created : function(){
                 let self  = this;
+                if (phoneNumber){
+                    self.params.User.PhoneNumber = phoneNumber;
+                }
                 self.signIn();
             },
             methods : {
@@ -120,7 +124,26 @@
                         self.phoneNumberEntered = false;
                     }
                     return !blank(self.params.User.PhoneNumber) && !blank(self.params.User.Password)
-                }
+                },
+                resetPhoneNumber: function (event) {
+                    if (event){
+                        event.preventDefault();
+                    }
+                    var self = this;
+                    self.params.User.PhoneNumber = "";
+                    self.params.User.Validated = "N";
+
+                    Lockr.rm("SignUp");
+                    Lockr.rm("User");
+                    /*
+                    let user = Lockr.get("User");
+                    if (user){
+                        user.PhoneNumber = "" ;
+                        Lockr.set("User",user);
+                    }*/
+                    window.location.href = window.location.protocol +"//"+location.host + location.pathname;
+                },
+
             },
 
         });
@@ -154,15 +177,18 @@
                 <form @submit.prevent="signUp()">
                     <div class="form-group mb-2" v-if="!phoneNumberEntered">
                         <label for="PhoneNumber" class="mb-0 d-block">Mobile Number</label>
-                        <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.User.PhoneNumber" />
+                        <input class="form-control" autocomplete="username" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.User.PhoneNumber" />
                     </div>
                     <div class="form-group mb-2" v-else>
                         <label for="PhonePassword" class="mb-0 d-block" >Password</label>
-                        <input id="PhonePassword" class="form-control" type="password" placeholder="Password" v-model="params.User.Password" />
+                        <input id="PhonePassword" autocomplete="current-password" class="form-control" type="password" placeholder="Password" v-model="params.User.Password" />
                     </div>
                     <div class="form-group text-right">
                         <button class="btn btn-block btn-primary" @click="checkPhoneNumberEntered($event)" type="submit" id="btnSignUp">Submit</button>
-                        <a href="#" class="mt-2 d-block" @click="login_via_otp($event)">{{ phoneNumberEntered? "Forgot password ?" :"Create New Account ?"}}</a>
+                        <p class="text-right mb-0 mt-1">
+                            <a href="#" class="mt-2 d-block small" @click="login_via_otp($event)">{{ phoneNumberEntered? "Forgot password? /Login with OTP?" :"Create New Account ?"}}</a>
+                            <a id="btnReset" href="#" v-on:click="resetPhoneNumber($event)" class="small" v-if="phoneNumberEntered" >Reset Mobile</a>
+                        </p>
                     </div>
                 </form>
             </div>
