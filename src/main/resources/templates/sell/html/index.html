@@ -35,7 +35,7 @@
                     }
                     return;
                 }
-                api().url("/facilities").get().then(function (response) {
+                api().url("/facilities/search/CREATOR_USER_ID:"+self.User.Id).get().then(function (response) {
                     self.fixFacilities(response.Facilities);
                     self.Facilities = response.Facilities;
                     self.showApp();

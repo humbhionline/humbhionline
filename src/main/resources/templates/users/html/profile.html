@@ -16,6 +16,7 @@
         new Vue({
             el: '#profile',
             data: {
+                Lockr : Lockr,
                 User: { VirtualPaymentAddress: "", DateOfBirth: "", City: { Name: "" }, PinCode: { PinCode: "" } },
                 userPhoneBeingEdited: false,
                 userEmailBeingEdited: false,
@@ -32,6 +33,7 @@
             created: function () {
                 self = this;
                 self.User = { Id : user_id || Lockr.get("User").Id };
+                self.fixUserAttributes();
                 api().url("/users/show/" + self.User.Id).get().then(function (response) {
                     self.User = response.User;
                     self.fixUserAttributes();
@@ -64,7 +66,7 @@
                     if ( !self.User.AddressLine1 || !self.User.City || !self.User.City.Name ){
                         self.User.LongName = "" ;
                     }
-                    if (!user_id || Lockr.get("User").Id  === userId){
+                    if (!user_id || Lockr.get("User").Id  === user_id){
                         Lockr.set("User",self.User);
                     }
                 },
@@ -364,7 +366,7 @@
                     let self = this;
                     api().url("/users/verify/" + self.User.Id).get().then(function (response) {
                         self.User = response.User;
-                        fixUserAttributes();
+                        self.fixUserAttributes();
                     });
                 },
 
@@ -496,7 +498,7 @@
                             <span v-if="User.AddressLine4">{{User.AddressLine4}},</span>
                             <span
                                 v-if="User.City && User.State && User.City.Name && User.State.Name">{{User.City.Name}}-{{User.State.Name}},</span>
-                            <span v-if="User.PinCode.PinCode">{{User.PinCode.PinCode}}</span>
+                            <span v-if="User.PinCode && User.PinCode.PinCode">{{User.PinCode.PinCode}}</span>
                         </p>
                     </div>
                 </div>
@@ -782,9 +784,9 @@
                 </div>
                 <div class="col-12 text-right">
                     <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditAddress($event)">Cancel</a>
-                    <a href="#/" v-if="!User.Verified || User.Verified === 'Y' || User.Staff === 'N'" class="btn btn-sm btn-primary"
+                    <a href="#/" v-if="!User.Verified || User.Verified === 'Y' || Lockr.get('User').Staff === 'N'" class="btn btn-sm btn-primary"
                         @click="saveUser($event)">Submit</a>
-                    <a href="#" v-if="!User.Verified || User.Verified === 'N' && User.Staff === 'Y'" class="btn btn-sm btn-primary"
+                    <a href="#" v-if="!User.Verified || User.Verified === 'N' && Lockr.get('User').Staff === 'Y'" class="btn btn-sm btn-primary"
                         @click="verify($event)">Verify</a>
                 </div>
             </div>

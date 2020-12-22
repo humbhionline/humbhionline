@@ -5,6 +5,7 @@ import com.venky.swf.db.annotations.column.COLUMN_NAME;
 import com.venky.swf.db.annotations.column.HOUSEKEEPING;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
+import com.venky.swf.db.annotations.column.indexing.Index;
 import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
 import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import com.venky.swf.db.annotations.column.ui.PROTECTION;
@@ -58,4 +59,7 @@ public interface Facility extends in.succinct.plugins.ecommerce.db.model.partici
     @IS_VIRTUAL
     boolean isCurrentlyAtLocation();
     void setCurrentlyAtLocation(boolean currentlyAtLocation);
+
+    @Index
+    public Long getCreatorUserId();
 }
