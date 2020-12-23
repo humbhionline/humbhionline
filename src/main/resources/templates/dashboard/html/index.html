@@ -133,11 +133,17 @@
                     },
                     showApp: function () {
                         $("#header").load("/fragments/html/header",{}, function(){
+                            new Vue({
+                                el: "#header",
+                                data  : {
+                                    User : Lockr.get("User"),
+                                }
+                            });
                             $("#pageTitle").html("Hum Bhi Online");
+                            $(".body").css("padding-top", "148px");
+                            $("#root").show();
+                            $("#search").focus();
                         });
-                        $(".body").css("padding-top", "148px");
-                        $("#root").show();
-                        $("#search").focus();
                     },
                     headers: function () {
                         let location = Lockr.get("Location");

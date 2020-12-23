@@ -4,7 +4,6 @@
 <script type="text/javascript" src="/fragments/js/util.js"></script>
 <script type="text/javascript">
     $(function () {
-        $("#header").load("/fragments/html/header");
         new Vue({
             el: "#app",
             data: {
@@ -41,8 +40,16 @@
                     window.location.href = "/index";
                 },
                 showApp: function () {
-                    $("#pageTitle").html("Order Details");
-                    $("#root").show();
+                    $("#header").load("/fragments/html/header",{}, function(){
+                        new Vue({
+                            el: "#header",
+                            data  : {
+                                User : Lockr.get("User"),
+                            }
+                        });
+                        $("#pageTitle").html("Order Details");
+                        $("#root").show();
+                    });
                 },
                 addOrderToBook: function (f, orders) {
                     let self = this;

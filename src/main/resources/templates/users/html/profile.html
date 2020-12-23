@@ -9,7 +9,6 @@
     var profile = null;
 
     $(function () {
-        $("#header").load("/fragments/html/header");
         var searchParams = (new URL(window.location)).searchParams;
         var user_id = searchParams.get("id");
 
@@ -372,8 +371,16 @@
 
                 showApp: function () {
                     let self = this;
-                    $("#pageTitle").html(self.User.LongName.length > 0 ? "Manage Profile" : "Let us know you a bit.");
-                    $("#root").show();
+                    $("#header").load("/fragments/html/header", {}, function(){
+                        $("#pageTitle").html(self.User.LongName.length > 0 ? "Manage Profile" : "Let us know you a bit.");
+                        $("#root").show();
+                        new Vue({
+                            el: "#header",
+                            data  : {
+                                User : Lockr.get("User"),
+                            }
+                        });
+                    });
                 }
             }
         });

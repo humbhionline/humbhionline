@@ -17,7 +17,7 @@
     }
 
     $(function () {
-        $("#header").load("/fragments/html/header");
+        //$("#header").load("/fragments/html/header");
         var params = (new URL(window.location)).searchParams;
         let type = params.get("type");
         let purchases = !type || (type === "purchases");
@@ -171,8 +171,16 @@
                 },
                 showApp: function () {
                     // Manage Orders
-                    $("#pageTitle").html("Manage Orders");
-                    $("#root").show();
+                    $("#header").load("/fragments/html/header", {}, function(){
+                        new Vue({
+                            el: "#header",
+                            data  : {
+                                User : Lockr.get("User"),
+                            }
+                        });
+                        $("#pageTitle").html("Manage Orders");
+                        $("#root").show();
+                    });
                 },
                 pack: function (event, order) {
                     if (event) {
@@ -417,6 +425,7 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
+        <h6 v-if="Orders.length === 0" class="text-center">No Orders</h6>
         <div v-bind:id="'Order-' + o.Id" class="my-4 container position-relative" v-for="(o,i) in Orders">
             <button class="fas fa-times btn-order-cancel" v-on:click="cancel($event,o)"
                 v-if="cancelled.findIndex(x => x === o.Id) < 0">

@@ -7,7 +7,6 @@
 <script type="text/javascript" src="/fragments/js/util.js" ></script>
 <script type="text/javascript">
     $(function () {
-        $("#header").load("/fragments/html/header");
         let user = Lockr.get("User");
         new Vue({
             el: "#app",
@@ -26,8 +25,18 @@
             },
             methods : {
                 showApp : function(){
-                    $("#pageTitle").html("Issues")
-                    $("#root").show();
+                    $("#header").load("/fragments/html/header",{}, function(){
+                        new Vue({
+                            el: "#header",
+                            data  : {
+                                User : Lockr.get("User"),
+                            }
+                        });
+                        $("#pageTitle").html("Issues");
+                        $("#root").show();
+                        
+                    });
+
                 },
                 close : function(event){
                     event.preventDefault();

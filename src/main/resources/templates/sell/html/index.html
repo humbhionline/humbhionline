@@ -6,7 +6,6 @@
 <link href="/fragments/css/mandi.css" rel="stylesheet"></link>
 <script type="text/javascript">
     $(function () {
-        $("#header").load("/fragments/html/header");
         new Vue({
             el: "#app",
             data: {
@@ -57,8 +56,16 @@
                     }
                 },
                 showApp: function () {
-                    $("#pageTitle").html("Manage Facilities");
-                    $("#root").show();
+                    $("#header").load("/fragments/html/header", {}, function(){
+                        $("#pageTitle").html("Manage Facilities");
+                        $("#root").show();
+                        new Vue({
+                            el: "#header",
+                            data  : {
+                                User : Lockr.get("User"),
+                            }
+                        });
+                    });
                 },
                 create: function (event) {
                     if (event) {

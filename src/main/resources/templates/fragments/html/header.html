@@ -41,7 +41,7 @@
             <li class="nav-item border-bottom">
                 <a class="nav-link" href="/users/html/profile"><i class="fa fa-user-circle"></i> Profile</a>
             </li>
-            <li class="nav-item border-bottom dropdown-submenu">
+            <li class="nav-item border-bottom dropdown-submenu" v-if="User.Seller === 'Y'">
                 <a class="nav-link dropdown-toggle" href="" id="navbarSellingMenuLink" data-toggle="dropdown"
                     aria-haspopup="true" aria-expanded="false">
                     <i class="fa fa-coins"></i>
@@ -61,17 +61,24 @@
                     </li>
                 </ul>
             </li>
+
+
             <li class="nav-item border-bottom">
                 <a class="nav-link" href="/orders?type=purchases">
                     <i class="fa fa-list"></i> Purchases</a>
             </li>
             <li class="nav-item border-bottom">
-                <a class=" nav-link" onclick="logout(event)" href="/logout">
-                    <i class="fa fa-power-off"></i> Logout</a>
-            </li>
-            <li class="nav-item border-bottom">
                 <a class=" nav-link"  href="/issues">
                     <i class="fa fa-comment-dots"></i>Message Support</a>
+            </li>
+            <li class="nav-item border-bottom" v-if="User.Staff">
+                <a class=" nav-link"  href="/users/search/VERIFIED:N">
+                    <i class="fa fa-user"></i>Pending Kyc</a>
+            </li>
+
+            <li class="nav-item border-bottom">
+                <a class=" nav-link" onclick="logout(event)" href="/logout">
+                    <i class="fa fa-power-off"></i> Logout</a>
             </li>
 
         </ul>

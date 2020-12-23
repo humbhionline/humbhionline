@@ -3,11 +3,13 @@ package in.succinct.mandi.db.model;
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
+import com.venky.swf.db.annotations.column.indexing.Index;
 
 import java.sql.Date;
 
 public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    @Index
     public boolean isVerified();
     public void setVerified(boolean kycComplete);
 
@@ -34,6 +36,7 @@ public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     public void setPasswordSet(boolean passwordSet);
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    @Index
     public boolean isSeller();
     public void setSeller(boolean seller);
 

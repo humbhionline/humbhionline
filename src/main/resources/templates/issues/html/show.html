@@ -38,15 +38,19 @@
                 showApp : function(){
                     let self = this;
                     $("#header").load("/fragments/html/header", {}, function(){
-                        console.log("Fragment Loaded");
+                        new Vue({
+                            el: "#header",
+                            data  : {
+                                User : Lockr.get("User"),
+                            }
+                        });
                         var title = "New Issue";
                         if (self.Issue.Id){
                             title = "Issue #" + self.Issue.Id;
                         }
                         $("#pageTitle").html(title);
-                        console.log("PageTitle Set");
+                        $("#root").show();
                     });
-                    $("#root").show();
                 },
                 save : function(){
                     let self = this;

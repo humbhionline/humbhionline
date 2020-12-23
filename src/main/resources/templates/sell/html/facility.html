@@ -10,7 +10,6 @@
 </link>
 <script type="text/javascript">
     $(function () {
-        $("#header").load("/fragments/html/header");
         var params = (new URL(window.location)).searchParams;
         let id = params.get("id");
 
@@ -58,9 +57,18 @@
             },
             methods: {
                 showApp: function () {
-                    $(".navbar").addClass("bg-clear");
-                    $(".body").css("padding-top", "300px");
-                    $("#root").show();
+                    $("#header").load("/fragments/html/header", {}, function(){
+                        new Vue({
+                            el: "#header",
+                            data  : {
+                                User : Lockr.get("User"),
+                            }
+                        });
+                        $(".navbar").addClass("bg-clear");
+                        $(".body").css("padding-top", "300px");
+                        $("#root").show();
+                        $("#pageTitle").html("Sales-Facilities");
+                    });
                 },
 
                 create: function (event) {
