@@ -115,7 +115,9 @@
                             self.facilities.splice(index, 1);
                         }
                         Lockr.set("facilityOrders", self.facilityOrders);
-                        window.location.reload();
+                        showErrorMessage("Order " + response.Orders[0].Id + " Booked Successfully!").then(function(){
+                            window.location.reload();
+                        });
                     }).catch(function (err) {
                         showError(err);
                     });
@@ -133,7 +135,9 @@
                         self.facilities = [];
                         self.facilityOrders = {};
                         Lockr.rm("facilityOrders");
-                        window.location.reload();
+                        showErrorMessage("Order " + response.Orders.map(o => o.Id) + " Booked Successfully!").then(function(){
+                            window.location.reload();
+                        });
                     }).catch(function (err) {
                         showError(err);
                     });

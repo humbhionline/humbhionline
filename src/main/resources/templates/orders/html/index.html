@@ -2,6 +2,8 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.2/jquery-confirm.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.2/jquery-confirm.min.js"></script>
 
 <link href="/fragments/css/mandi.css" rel="stylesheet">
 </link>
@@ -101,7 +103,7 @@
                                 o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
                                     '&pn=' + o.Facility.CreatorUser.NameAsInBankAccount +
                                     '&tr=O:' + o.Id +
-                                    '&tn=HBO Txn ' + o.Id +
+                                    '&tn=Humbhionline Txn ' + o.Id +
                                     '&am=' + o.AmountPendingPayment +
                                     '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                             }
@@ -109,7 +111,7 @@
                                 o._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress +
                                     '&pn=' + o.CreatorUser.NameAsInBankAccount +
                                     '&tr=R:' + o.Id +
-                                    '&tn=Return for HBO Txn ' + o.Id +
+                                    '&tn=Return for Humbhionline Txn ' + o.Id +
                                     '&am=' + o.AmountToRefund +
                                     '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                             }
@@ -242,20 +244,31 @@
                         event.preventDefault();
                     }
                     let self = this;
-                    let index = this.Orders.findIndex(function (o) {
+                    let index = self.Orders.findIndex(function (o) {
                         return o.Id === order.Id;
                     });
                     if (index < 0) {
                         return;
                     }
 
-                    api().url("/orders/cancel/" + order.Id).get().then(function (response) {
-                        if (index >= 0) {
-                            self.Orders.splice(index, 1, response.Order);
+                    $.confirm({
+                        title : "Confirmation",
+                        content :"Do you really want to cancel order "  + order.Id,
+                        buttons : {
+                            confirm : function() {
+                                api().url("/orders/cancel/" + order.Id).get().then(function (response) {
+                                    if (index >= 0) {
+                                        self.Orders.splice(index, 1, response.Order);
+                                    }
+                                    self.update_status_array(response.Order);
+                                }).catch(function (err) {
+                                    showError(err);
+                                });
+                            },
+                            cancel : function(){
+
+                            }
                         }
-                        self.update_status_array(response.Order);
-                    }).catch(function (err) {
-                        showError(err);
                     });
                 },
                 cancel_order_line: function (event, order_line, order) {
@@ -268,14 +281,30 @@
                     let index = order_lines.findIndex(function (ol) {
                         return ol.Id === order_line.Id;
                     });
-                    api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
-                        api().url("/orders/show/" + order.Id).get().then(function (response) {
-                            //Refresh the order Status.
-                            self.loadOrder(response.Order);
-                        });
-                    }).catch(function (err) {
-                        showError(err);
+                    if (index < 0 ){
+                        return;
+                    }
+
+                    $.confirm({
+                        title : "Confirmation",
+                        content :"Do you really want to cancel order line for "  + order_line.Sku.Name + "?",
+                        buttons : {
+                            confirm : function() {
+                                api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
+                                    api().url("/orders/show/" + order.Id).get().then(function (response) {
+                                        //Refresh the order Status.
+                                        self.loadOrder(response.Order);
+                                    });
+                                }).catch(function (err) {
+                                    showError(err);
+                                });
+                            },
+                            cancel : function(){
+
+                            }
+                        }
                     });
+
                 },
 
                 initialize_payment: function (event, order) {
@@ -292,13 +321,13 @@
                         response.Order._phref = "#";
                         if (self.Android) {
                             self.orderInitiatedForPayment = response.Order;
-                            self.Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress, order.Facility.CreatorUser.NameAsInBankAccount, "O:" + order.Id, order.AmountPendingPayment * 1.0, 'HBO Txn ' + order.Id);
+                            self.Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress, order.Facility.CreatorUser.NameAsInBankAccount, "O:" + order.Id, order.AmountPendingPayment * 1.0, 'Humbhionline Txn ' + order.Id);
                         } else if (navigator.userAgent.match(/Android/i)) {
                             let o = response.Order
                             o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
                                 '&pn=' + o.Facility.CreatorUser.NameAsInBankAccount +
                                 '&tr=O:' + o.Id +
-                                '&tn=HBO Txn ' + o.Id +
+                                '&tn=Humbhionline Txn ' + o.Id +
                                 '&am=' + o.AmountPendingPayment +
                                 '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                         }
@@ -367,9 +396,9 @@
                         if (self.Android) {
                             // v-bind:href=
                             self.orderInitiatedForReturn = response.Order;
-                            self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress, order.CreatorUser.NameAsInBankAccount, "R:" + order.Id, order.AmountToRefund * 1.0, 'Return for HBO Txn ' + order.Id);
+                            self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress, order.CreatorUser.NameAsInBankAccount, "R:" + order.Id, order.AmountToRefund * 1.0, 'Return for Humbhionline Txn ' + order.Id);
                         } else if (navigator.userAgent.match(/Android/i)) {
-                            response.Order._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn=' + o.CreatorUser.NameAsInBankAccount + '&tr=R:' + o.Id + '&tn=Return for HBO Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
+                            response.Order._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn=' + o.CreatorUser.NameAsInBankAccount + '&tr=R:' + o.Id + '&tn=Return for Humbhionline Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                         }
                     }).catch(function (err) {
                         showError(err);
@@ -467,22 +496,6 @@
                                     v-if="sales && o.AmountPendingPayment * 1.0 > 0 && o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
                                     Received
                                 </a>
-                                <a v-bind:href="o._rhref ? o._rhref : '#'" class="btn btn-sm btn-primary mb-1"
-                                    role="button"
-                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y'"
-                                    v-on:click="initialize_refund($event,o)">
-                                    Refund
-                                </a>
-                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
-                                    v-on:click="reset_refund($event,o)"
-                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized === 'Y'">
-                                    Reset
-                                </a>
-                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
-                                    v-on:click="complete_refund($event,o)"
-                                    v-if="purchases && o.AmountToRefund *1.0 > 0.0 && o.AmountRefunded * 1.0 < o.AmountToRefund * 1.0">
-                                    Received
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -519,8 +532,11 @@
                                     {{ o.PaymentInitialized  === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9;
                                     {{(o.AmountPendingPayment *1.0).toFixed(2)}}
                                 </small>
-                                <small v-if="o.AmountToRefund * 1.0 > 0">
+                                <small v-else-if="o.AmountToRefund * 1.0 > 0">
                                     To Refund : &#x20B9; {{(o.AmountToRefund * 1.0).toFixed(2) }}
+                                </small>
+                                <small v-else>
+                                    Settled
                                 </small>
                                 <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0">
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
@@ -542,6 +558,26 @@
                                         Deliver
                                     </a>
                                 </p>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col text-right">
+                                <a v-bind:href="o._rhref ? o._rhref : '#'" class="btn btn-sm btn-primary mb-1"
+                                    role="button"
+                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y'"
+                                    v-on:click="initialize_refund($event,o)">
+                                    Refund
+                                </a>
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="reset_refund($event,o)"
+                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized === 'Y'">
+                                    Reset
+                                </a>
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="complete_refund($event,o)"
+                                    v-if="purchases && o.AmountToRefund *1.0 > 0.0 && o.AmountRefunded * 1.0 < o.AmountToRefund * 1.0">
+                                    Received
+                                </a>
                             </div>
                         </div>
                         <div class="form-row border-top py-2 mt-2" v-for="(ol,i) in o.OrderLines"

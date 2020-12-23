@@ -34,9 +34,13 @@ function showErrorMessage(msg,duration){
         clearTimeout(errorTimeOut);
         errorTimeOut = undefined;
     }
-    errorTimeOut = setTimeout(function(){
-        $("#msg").addClass("invisible");
-    },time);
+    return new Promise(function(resolve,reject){
+        errorTimeOut = setTimeout(function(){
+            $("#msg").addClass("invisible");
+            resolve();
+        },time);
+    });
+
 }
 
 function sendSubscriptionToServer(subscription){
