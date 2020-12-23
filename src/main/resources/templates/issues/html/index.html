@@ -26,6 +26,7 @@
             methods : {
                 showApp : function(){
                     $("#header").load("/fragments/html/header",{}, function(){
+                        fixMenu();
                         new Vue({
                             el: "#header",
                             data  : {
@@ -34,7 +35,7 @@
                         });
                         $("#pageTitle").html("Issues");
                         $("#root").show();
-                        
+
                     });
 
                 },

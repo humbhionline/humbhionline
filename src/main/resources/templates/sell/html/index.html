@@ -57,6 +57,7 @@
                 },
                 showApp: function () {
                     $("#header").load("/fragments/html/header", {}, function(){
+                        fixMenu();
                         $("#pageTitle").html("Manage Facilities");
                         $("#root").show();
                         new Vue({

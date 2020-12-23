@@ -17,7 +17,7 @@ public interface Facility extends in.succinct.plugins.ecommerce.db.model.partici
     @PROTECTION
     @HIDDEN
     @HOUSEKEEPING
-    @PARTICIPANT
+    @PARTICIPANT(redundant = true)
     public long getSelfFacilityId();
     public void setSelfFacilityId(long id);
 

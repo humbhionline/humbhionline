@@ -368,10 +368,15 @@
                         self.fixUserAttributes();
                     });
                 },
-
+                close : function(event){
+                    let self = this;
+                    event && event.preventDefault();
+                    history.back();
+                },
                 showApp: function () {
                     let self = this;
                     $("#header").load("/fragments/html/header", {}, function(){
+                        fixMenu();
                         $("#pageTitle").html(self.User.LongName.length > 0 ? "Manage Profile" : "Let us know you a bit.");
                         $("#root").show();
                         new Vue({
@@ -735,6 +740,13 @@
                     </div>
                 </div>
             </div>
+            <div class="content-box">
+                <div class="row">
+                    <div class="col d-flex flex-row justify-content-end">
+                        <button class="btn btn-block btn-primary btn-sm" @click="close($event)">Done</button>
+                    </div>
+                </div>
+            </div>
 
             <div class="mb-3"></div>
             <div id="lookupEntries" ref="lookupEntries" class="below">
@@ -818,3 +830,4 @@
 
         <div class="pop-overlay" v-if="userAddressBeingEdited || userPasswordBeingEdited"></div>
     </div>
+</div>

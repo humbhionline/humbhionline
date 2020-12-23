@@ -1,16 +1,25 @@
 <link rel="stylesheet" href="/fragments/css/mandi.css">
 <script type="application/javascript">
+    function fixMenu(){
+        $(function(){
+            let path = window.location.pathname;
+            console.log('Path', path);
+            path === "/dashboard" ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show()
 
-
-    $(function () {
-        let path = window.location.pathname;
-        console.log('Path', path);
-        path === "/dashboard" ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show()
-        $("#backbutton").on("click", function (e) {
-            history.back();
+            $("#backbutton").on("click", function (e) {
+                console.log("Calling back");
+                if (window.history.length === 1){
+                    window.location.replace("/index");
+                }else {
+                    window.history.back();
+                }
+            });
         });
-
-    })
+    }
+    function hideMenu(){
+        $("#navbarTogglerDemo03").removeClass("show");
+        return true;
+    }
 </script>
 <nav class="navbar navbar-expand-lg navbar-light">
     <button id="appmenu" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03"
@@ -48,13 +57,13 @@
                     Sales</a>
                 <ul class="dropdown-menu ml-auto mr-auto">
                     <li class="dropdown-item border-bottom">
-                        <a class=" nav-link" href="/sell">
+                        <a class=" nav-link" href="/sell" onclick="hideMenu()">
                             <i class="fa fa-coins"></i>
                             Facilities
                         </a>
                     </li>
                     <li class="dropdown-item border-bottom">
-                        <a class="nav-link" href="/orders?type=sales">
+                        <a class="nav-link" href="/orders?type=sales" onclick="hideMenu()">
                             <i class="fa fa-list"></i>
                             Orders
                         </a>
@@ -64,20 +73,20 @@
 
 
             <li class="nav-item border-bottom">
-                <a class="nav-link" href="/orders?type=purchases">
+                <a class="nav-link" href="/orders?type=purchases" onclick="hideMenu()">
                     <i class="fa fa-list"></i> Purchases</a>
             </li>
             <li class="nav-item border-bottom">
-                <a class=" nav-link"  href="/issues">
+                <a class=" nav-link"  href="/issues" onclick="hideMenu()">
                     <i class="fa fa-comment-dots"></i>Message Support</a>
             </li>
-            <li class="nav-item border-bottom" v-if="User.Staff">
-                <a class=" nav-link"  href="/users/search/VERIFIED:N">
+            <li class="nav-item border-bottom" v-if="User.Staff === 'Y'">
+                <a class=" nav-link"  href="/users/search/VERIFIED:N" onclick="hideMenu()">
                     <i class="fa fa-user"></i>Pending Kyc</a>
             </li>
 
             <li class="nav-item border-bottom">
-                <a class=" nav-link" onclick="logout(event)" href="/logout">
+                <a class=" nav-link" onclick="logout(event)" href="/logout" onclick="hideMenu()">
                     <i class="fa fa-power-off"></i> Logout</a>
             </li>
 
