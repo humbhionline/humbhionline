@@ -19,7 +19,7 @@
                 User: Lockr.get("User"),
                 Facility: { Inventories: [] },
                 facilityBannerBeingEdited: false,
-                timer :  -1,
+                timer: -1,
                 current: {
                     index: -1,
                     Items: [],
@@ -57,12 +57,12 @@
             },
             methods: {
                 showApp: function () {
-                    $("#header").load("/fragments/html/header", {}, function(){
+                    $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
                         new Vue({
                             el: "#header",
-                            data  : {
-                                User : Lockr.get("User"),
+                            data: {
+                                User: Lockr.get("User"),
                             }
                         });
                         $(".navbar").addClass("bg-clear");
@@ -359,19 +359,33 @@
                 },
                 loadLookupEntries: function (element) {
                     var div = this.getParentDiv(element);
+                    var InputId = div.getElementsByTagName("input")[0].id;
+                    var offset = document.getElementById("lookupEntries").offsetTop;
+                    console.log("asdfasdf", document.getElementById(InputId).offsetTop, offset);
                     if (div) {
                         div.appendChild(this.$refs['lookupEntries']);
                     }
                     let self = this;
-                    if (self.timer !== -1){
-                        clearTimeout(self.timer);
+                    if ($(".lookups-list").offset().top > 600) {
+                        $(".lookups-list").addClass("offsetTop");
                     }
-                    self.timer = setTimeout(function () {
-                        self.current.Items = [] ;
-                        self.current.UnitOfMeasures = [] ;
-                        self.current.AssetCodes = [] ;
-                        self.timer = -1;
-                    }, 5000);
+                    // if (self.timer !== -1) {
+                    //     clearTimeout(self.timer);
+                    // }
+                    // self.timer = setTimeout(function () {
+                    //     self.current.Items = [];
+                    //     self.current.UnitOfMeasures = [];
+                    //     self.current.AssetCodes = [];
+                    //     self.timer = -1;
+                    // }, 5000);
+                },
+
+                removeList: function (e) {
+                    let self = this;
+                    self.current.Items = [];
+                    self.current.UnitOfMeasures = [];
+                    self.current.AssetCodes = [];
+                    $(".lookups-list").removeClass("offsetTop");
                 },
 
                 navigate: function (e, index, length) {
@@ -496,7 +510,7 @@
                     let self = this;
                     let skuAttachment = self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex];
 
-                    if (e.target.files.length > 0){
+                    if (e.target.files.length > 0) {
                         skuAttachment.AttachmentContentName = e.target.files[0].name;
                         skuAttachment.Dirty = true;
                         self.readSkuBannerUrl(e.target.files[0], inventoryIndex, attachmentIndex);
@@ -544,8 +558,8 @@
                         }
 
                         inv.Sku.Attachments.splice(attachmentIndex, 1, response.Attachment);
-                    }).catch(function(err){
-                       showError(err);
+                    }).catch(function (err) {
+                        showError(err);
                     });
                 },
                 chooseSkuFile: function (e, inventoryIndex) {
@@ -586,28 +600,29 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div id="lookupEntries" ref="lookupEntries" class="below">
-            <div v-for="(item,index) in current.Items" v-if="current.Items.length > 0">
-                <a href="#" v-on:click="onItemSelect($event,item)" v-on:keyup.enter="onItemSelect($event,item)"
-                    v-on:keyup.space="onItemSelect($event,item)"
-                    v-on:keyup.up="navigate($event,index-1,current.Items.length)"
-                    v-on:keyup.down="navigate($event,index+1,current.Items.length)">{{item.Name}}
-                    {{ item.AssetCode ? ' - ' + item.AssetCode.LongDescription : ""}}</a>
-            </div>
-            <div v-for="(code,index) in current.AssetCodes" v-if="current.AssetCodes.length > 0">
-                <a href="#" v-on:click="onAssetCodeSelect($event,code)"
-                    v-on:keyup.space="onAssetCodeSelect($event,code)" v-on:keyup.enter="onAssetCodeSelect($event,code)"
-                    v-on:keyup.up="navigate($event,index-1,current.AssetCodes.length)"
-                    v-on:keyup.down="navigate($event,index+1,current.AssetCodes.length)">{{code.Code}} -
-                    {{code.Description}} </a>
-            </div>
-            <div v-for="(code,index) in current.UnitOfMeasures" v-if="current.UnitOfMeasures.length > 0">
-                <a href="#" v-on:click="onUnitOfMeasuresSelect($event,code)"
-                    v-on:keyup.space="onUnitOfMeasuresSelect($event,code)"
-                    v-on:keyup.enter="onUnitOfMeasuresSelect($event,code)"
-                    v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)"
-                    v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)">{{code.Name}} </a>
-            </div>
+        <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
+            <a href="#" v-for="(item,index) in current.Items" v-if="current.Items.length > 0"
+                v-on:click="onItemSelect($event,item)" v-on:keyup.enter="onItemSelect($event,item)"
+                v-on:keyup.space="onItemSelect($event,item)"
+                v-on:keyup.up="navigate($event,index-1,current.Items.length)"
+                v-on:keyup.down="navigate($event,index+1,current.Items.length)">
+                <span>{{item.Name}}{{item.AssetCode ? "-" + item.AssetCode.Code:""}}</span>
+                <span v-bind:alt="item.AssetCode.Description"
+                    class="small d-block text-truncate">{{ item.AssetCode ? item.AssetCode.Description : ""}}</span>
+            </a>
+            <a href="#" v-for="(code,index) in current.AssetCodes" v-if="current.AssetCodes.length > 0"
+                v-on:click="onAssetCodeSelect($event,code)" v-on:keyup.space="onAssetCodeSelect($event,code)"
+                v-on:keyup.enter="onAssetCodeSelect($event,code)"
+                v-on:keyup.up="navigate($event,index-1,current.AssetCodes.length)"
+                v-on:keyup.down="navigate($event,index+1,current.AssetCodes.length)">
+                <span class="d-block">{{code.Code}}</span>
+                <span class="small d-block text-truncate">{{code.Description}}</span>
+            </a>
+            <a href="#" v-for="(code,index) in current.UnitOfMeasures" v-if="current.UnitOfMeasures.length > 0"
+                v-on:click="onUnitOfMeasuresSelect($event,code)" v-on:keyup.space="onUnitOfMeasuresSelect($event,code)"
+                v-on:keyup.enter="onUnitOfMeasuresSelect($event,code)"
+                v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)"
+                v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)">{{code.Name}} </a>
         </div>
         <div class="facility-header">
             <div id="banner-slider" class="carousel slide" data-ride="carousel">
@@ -697,7 +712,8 @@
                             v-on:click="removeBannner($event,i)">
                             <i class="small fas fa-trash"></i>
                         </a>
-                        <span v-if="attachment.AttachmentUrl || attachment.Attachment" @click="chooseBannerFile($event,i)">
+                        <span v-if="attachment.AttachmentUrl || attachment.Attachment"
+                            @click="chooseBannerFile($event,i)">
                             <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
                                 style="width:100%; height:100px;"></img>
                         </span>
@@ -786,14 +802,14 @@
                             <label v-bind:for="'item' + i" class="small mb-0">Product Name</label>
                             <input v-bind:key="'item' + i" v-bind:id="'item' + i" class="form-control form-control-sm"
                                 placeholder="Product Name" v-model="current.Inventory.Sku.Item.Name"
-                                v-on:input="onItemChange($event)"
+                                v-on:input="onItemChange($event)" v-on:blur="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.Items.length)" />
                         </div>
                         <div class="col-5">
                             <label class="small mb-0" v-bind:for="'uom' + i">Package</label>
                             <input v-bind:key="'uom' + i" v-bind:id="'uom' + i" class="form-control form-control-sm"
                                 placeholder="Package" v-model="current.Inventory.Sku.PackagingUOM.Name"
-                                v-on:input="onUnitOfMeasureChange($event)"
+                                v-on:blur="removeList($event)" v-on:input="onUnitOfMeasureChange($event)"
                                 v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)" />
                         </div>
                     </div>
@@ -816,7 +832,7 @@
                             <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
                                 class="form-control form-control-sm" placeholder="GST/SAC Code"
                                 v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                                v-on:input="onAssetCodeChange($event)"
+                                v-on:input="onAssetCodeChange($event)" v-on:blur="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
                         </div>
                         <div class="col-5">

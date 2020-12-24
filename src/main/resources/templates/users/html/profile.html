@@ -4,7 +4,7 @@
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
 
 <link href="/fragments/css/mandi.css" rel="stylesheet">
-<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<script type="text/javascript" src="/fragments/js/util.js"></script>
 <script type="text/javascript">
     var profile = null;
 
@@ -15,14 +15,14 @@
         new Vue({
             el: '#profile',
             data: {
-                Lockr : Lockr,
+                Lockr: Lockr,
                 User: { VirtualPaymentAddress: "", DateOfBirth: "", City: { Name: "" }, PinCode: { PinCode: "" } },
                 userPhoneBeingEdited: false,
                 userEmailBeingEdited: false,
                 userAddressBeingEdited: false,
-                userPasswordBeingEdited : false,
+                userPasswordBeingEdited: false,
                 userVpaBeingEdited: false,
-                kycSelectedFileName : "",
+                kycSelectedFileName: "",
                 current: {
                     Cities: [],
                     PinCodes: [],
@@ -31,18 +31,19 @@
             },
             created: function () {
                 self = this;
-                self.User = { Id : user_id || Lockr.get("User").Id };
+                self.User = { Id: user_id || Lockr.get("User").Id };
                 self.fixUserAttributes();
                 api().url("/users/show/" + self.User.Id).get().then(function (response) {
                     self.User = response.User;
                     self.fixUserAttributes();
-                     //!self.User.Verified || self.User.Verified === 'N' ;
+                    self.User.LongName.length <= 0 && self.editAddress(null);
+                    //!self.User.Verified || self.User.Verified === 'N' ;
                     self.showApp();
                 });
 
             },
             methods: {
-                fixUserAttributes : function(){
+                fixUserAttributes: function () {
                     let self = this;
                     if (!self.User.City) {
                         self.User.City = {};
@@ -62,11 +63,11 @@
                     self.userAddressBeingEdited = false;
                     self.userVpaBeingEdited = false;
                     self.userPasswordBeingEdited = false;
-                    if ( !self.User.AddressLine1 || !self.User.City || !self.User.City.Name ){
-                        self.User.LongName = "" ;
+                    if (!self.User.AddressLine1 || !self.User.City || !self.User.City.Name) {
+                        self.User.LongName = "";
                     }
-                    if (!user_id || Lockr.get("User").Id  === user_id){
-                        Lockr.set("User",self.User);
+                    if (!user_id || Lockr.get("User").Id === user_id) {
+                        Lockr.set("User", self.User);
                     }
                 },
                 isKeyTriggerable: function (e) {
@@ -83,12 +84,8 @@
                             return
                         }
                         self.current.Cities = response.Cities;
-                        if (self.current.Cities.length === 1) {
-                            self.onCitySelect(null, self.current.Cities[0]);
-                        } else {
-                            self.loadLookupEntries(e.target);
-                        }
-                        Vue.set(self.current,"Cities",self.current.Cities);
+                        self.loadLookupEntries(e.target);
+                        Vue.set(self.current, "Cities", self.current.Cities);
                     });
                 },
                 onCitySelect: function (e, item) {
@@ -110,11 +107,11 @@
                         if (!response) {
                             return
                         }
-                        if (self.User.City && self.User.City.Id){
-                            self.current.PinCodes = response.PinCodes.filter(function(pc){
+                        if (self.User.City && self.User.City.Id) {
+                            self.current.PinCodes = response.PinCodes.filter(function (pc) {
                                 return !pc.City || pc.City.Id === self.User.City.Id
                             });
-                        }else {
+                        } else {
                             self.current.PinCodes = response.PinCodes;
                         }
                         if (self.current.PinCodes.length === 1) {
@@ -156,11 +153,11 @@
                     self = this;
                     if (!self.User.LongName) {
                         showErrorMessage("Let us know your full name.");
-                    }else{
+                    } else {
                         api().url("/users/save").parameters({ "User": self.User }).post().then(function (response) {
                             self.User = response.Users[0];
                             self.fixUserAttributes();
-                        }).catch(function(err){
+                        }).catch(function (err) {
                             showError(err);
                         });
                     }
@@ -186,11 +183,11 @@
                         let formData = new FormData();
                         formData.append('zipfile', datafile);
                         formData.append('password', password);
-                        api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata", "Accept" :"application/json" }).post().then(function (response) {
+                        api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata", "Accept": "application/json" }).post().then(function (response) {
                             console.log(response);
                             self.User = response.User;
                             self.fixUserAttributes();
-                        }).catch(function(err){
+                        }).catch(function (err) {
                             showError(err);
                         });
                     });
@@ -223,7 +220,7 @@
                     self = this;
                     if (!userPhone.Validated || userPhone.Validated !== 'Y') {
                         showErrorMessage("Only validated phone numbers can be made as primary phone number.");
-                    }else {
+                    } else {
                         api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "PhoneNumber": userPhone.PhoneNumber } }).post().then(function (response) {
                             self.User = response.Users[0];
                             self.fixUserAttributes();
@@ -240,7 +237,7 @@
                         });
                         self.User.UserPhones.splice(index, 1);
                         self.checkUserPhones();
-                    }).catch(function(err){
+                    }).catch(function (err) {
                         showError(err);
                     });
 
@@ -289,11 +286,11 @@
                     self = this;
                     if (!userEmail.Validated || userEmail.Validated !== 'Y') {
                         showErrorMessage("Only validated emails can be made as primary email.");
-                    }else{
+                    } else {
                         api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "Email": userEmail.Email } }).post().then(function (response) {
                             self.User = response.Users[0];
                             self.fixUserAttributes();
-                        }).catch(function(err){
+                        }).catch(function (err) {
                             showError(err);
                         });
                     }
@@ -347,7 +344,7 @@
                     }
                     self.userAddressBeingEdited = false;
                 },
-                editPassword: function (event){
+                editPassword: function (event) {
                     let self = this;
                     if (event) {
                         event.preventDefault();
@@ -368,21 +365,21 @@
                         self.fixUserAttributes();
                     });
                 },
-                close : function(event){
+                close: function (event) {
                     let self = this;
                     event && event.preventDefault();
                     history.back();
                 },
                 showApp: function () {
                     let self = this;
-                    $("#header").load("/fragments/html/header", {}, function(){
+                    $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
                         $("#pageTitle").html(self.User.LongName.length > 0 ? "Manage Profile" : "Let us know you a bit.");
                         $("#root").show();
                         new Vue({
                             el: "#header",
-                            data  : {
-                                User : Lockr.get("User"),
+                            data: {
+                                User: Lockr.get("User"),
                             }
                         });
                     });
@@ -397,7 +394,7 @@
     </div>
     <!-- body content -->
     <div id="profile" class="app-body" v-if="User.Id">
-        <div class="container-fluid" >
+        <div class="container-fluid">
             <!-- Seller Flag -->
             <div class="row">
                 <div class="col">
@@ -408,22 +405,25 @@
                 <div class="form-row mb-2">
                     <div class="col">
                         <div class="form-check">
-                            <input value="N" class="form-check-input align-middle" type="checkbox"
-                                id="seller" v-model="User.Seller" @change="saveUser($event)"
-                                true-value="Y" false-value="N">
-                            <label class="form-check-label align-middle"
-                                for="seller">Do you wish to Sell?</label>
+                            <input value="N" class="form-check-input align-middle" type="checkbox" id="seller"
+                                v-model="User.Seller" @change="saveUser($event)" true-value="Y" false-value="N">
+                            <label class="form-check-label align-middle" for="seller">Do you wish to Sell?</label>
                         </div>
                         <div class="col">
-                        <span class="small" v-if="User.Verified !== 'Y' ">Your KYC process needs to be completed before you can start selling on Hum bhi online.
-                            <br>To complete KYC, you need to do one of the following:
-                            <ul>
-                                <li>Upload your offline-ekyc aadhar zip file (you can download from the official uidai
-                                    <a href="https://resident.uidai.gov.in/offline-kyc">website</a>). </li>
-                                <li>Send an email to <a href="mailto:support@humbhionline.in">support@humbhionline.in</a> and request for a physical Verification appointment.
-                                    (this would be chargable @ 50 Rs as we will need to send an agent to verify your home location.)</li>
-                            </ul>
-                        </span>
+                            <span class="small" v-if="User.Verified !== 'Y' ">Your KYC process needs to be completed
+                                before you can start selling on Hum bhi online.
+                                <br>To complete KYC, you need to do one of the following:
+                                <ul>
+                                    <li>Upload your offline-ekyc aadhar zip file (you can download from the official
+                                        uidai
+                                        <a href="https://resident.uidai.gov.in/offline-kyc">website</a>). </li>
+                                    <li>Send an email to <a
+                                            href="mailto:support@humbhionline.in">support@humbhionline.in</a> and
+                                        request for a physical Verification appointment.
+                                        (this would be chargable @ 50 Rs as we will need to send an agent to verify your
+                                        home location.)</li>
+                                </ul>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -467,7 +467,8 @@
                         <div class="col">
                             <div class="form-row no-gutters">
                                 <div class="col-12">
-                                    <input type="file" class="file-upload" id="aadharzipfile" v-on:input="onAadharKycFileChange($event)"/>
+                                    <input type="file" class="file-upload" id="aadharzipfile"
+                                        v-on:input="onAadharKycFileChange($event)" />
                                     <label class="btn btn-sm btn-primary" for="aadharzipfile">
                                         {{ kycSelectedFileName && kycSelectedFileName.length > 0 ? kycSelectedFileName :
                                             "Click to Select Aadhar KYC"}}
@@ -566,9 +567,11 @@
                     </div>
                 </div>
             </div>
-            <p class="text-note text-muted mb-3">Your virtual payment Address would be used to receive payments/refunds into
+            <p class="text-note text-muted mb-3">Your virtual payment Address would be used to receive payments/refunds
+                into
                 your bank account. Please enter this correctly.
-                Entering incorrectly can cause money to reach some one else's account when you are supposed to receive money.</p>
+                Entering incorrectly can cause money to reach some one else's account when you are supposed to receive
+                money.</p>
             <!-- Mobile Update -->
             <div class="row">
                 <div class="col">
@@ -584,7 +587,7 @@
                 <div class="data-list user-list" v-if="User.UserPhones.length !== 0">
                     <div class="form-row" v-if="userPhone.Id && userPhone.Validated && userPhone.Validated === 'Y'"
                         v-for="(userPhone,index) in User.UserPhones">
-                        <div class="col">
+                        <div class="col-8">
                             {{userPhone.PhoneNumber}}
                         </div>
                         <div class="col-4 text-right text-success" v-if="userPhone.PhoneNumber === User.PhoneNumber">
@@ -592,12 +595,15 @@
                                 Default
                             </small>
                         </div>
-                        <div class="col-8 text-right"
+                        <div class="col-4 text-right"
                             v-if="(userPhone.Validated && userPhone.Validated === 'Y') && userPhone.PhoneNumber !== User.PhoneNumber">
-                            <small><a href="#" role="button" v-on:click="makePrimaryPhone(userPhone)">
-                                    Make as Default <i class="ml-2 fas fa-trash-alt"
+                            <small>
+                                <a href="#" role="button" v-on:click="makePrimaryPhone(userPhone)">
+                                    Make as Default 
+                                </a>
+                                <i class="ml-1 fas fa-trash-alt"
                                         v-on:click="destroyPhone(userPhone)"></i>
-                                </a></small>
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -658,23 +664,24 @@
             </div>
             <div class="content-box">
                 <div class="data-list user-list" v-if="User.UserEmails.length !== 0">
-                    <div class="row py-2 border-top"
-                        v-if="userEmail.Id && userEmail.Validated && userEmail.Validated === 'Y'"
+                    <div class="form-row" v-if="userEmail.Id && userEmail.Validated && userEmail.Validated === 'Y'"
                         v-for="(userEmail,index) in User.UserEmails">
-                        <div class="col-4">
+                        <div class="col-8 text-truncate">
                             {{userEmail.Email}}
                         </div>
-                        <div class="col-8 text-right" v-if="userEmail.Email === User.Email">
+                        <div class="col-4 text-right" v-if="userEmail.Email === User.Email">
                             <small class="text-success">
                                 Default
                             </small>
                         </div>
-                        <div class="col-8 text-right"
+                        <div class="col-4 text-right"
                             v-if="(userEmail.Validated && userEmail.Validated === 'Y') && userEmail.Email !== User.Email">
-                            <a href="#" role="button" v-on:click="makePrimaryEmail(userEmail)">
-                                Make as Default
-                            </a>
-                            <i class="fas fa-trash-alt" v-on:click="destroyEmail(userEmail)"></i>
+                            <small>
+                                <a href="#" role="button" v-on:click="makePrimaryEmail(userEmail)">
+                                    Make as Default
+                                </a>
+                                <i class="ml-1 fas fa-trash-alt" v-on:click="destroyEmail(userEmail)"></i>
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -730,10 +737,9 @@
             </div>
             <div class="content-box">
                 <div class="row">
-                    <div class="col"  v-if="!userPasswordBeingEdited">
-                        <a href="#" class="btn-close fas fa-edit"
-                            @click="editPassword($event)"></a>
-                        <p class="m-0 text-muted" >
+                    <div class="col" v-if="!userPasswordBeingEdited">
+                        <a href="#" class="btn-close fas fa-edit" @click="editPassword($event)"></a>
+                        <p class="m-0 text-muted">
                             <span v-if="User.PasswordSet === 'Y'">******</span>
                             <span v-else>Not Set</span>
                         </p>
@@ -749,21 +755,19 @@
             </div>
 
             <div class="mb-3"></div>
-            <div id="lookupEntries" ref="lookupEntries" class="below">
-                <div v-for="(city,index) in current.Cities" v-if="current.Cities.length > 0">
-                    <a href="#" v-on:click="onCitySelect($event,city)" v-on:keyup.enter="onCitySelect($event,city)"
-                        v-on:keyup.space="onCitySelect($event,city)"
-                        v-on:keyup.up="navigate($event,index-1,current.Cities.length)"
-                        v-on:keyup.down="navigate($event,index+1,current.Cities.length)">{{city.Name}} -
-                        {{city.State.Name}}</a>
-                </div>
-                <div v-for="(pincode,index) in current.PinCodes" v-if="current.PinCodes.length > 0">
-                    <a href="#" v-on:click="onPinCodeSelect($event,pincode)"
-                        v-on:keyup.space="onPinCodeSelect($event,pincode)"
-                        v-on:keyup.enter="onPinCodeSelect($event,pincode)"
-                        v-on:keyup.up="navigate($event,index-1,current.PinCodes.length)"
-                        v-on:keyup.down="navigate($event,index+1,current.PinCodes.length)">{{pincode.PinCode}} </a>
-                </div>
+            <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
+                <a href="#" class="text-truncate" v-for="(city,index) in current.Cities"
+                    v-if="current.Cities.length > 0" v-on:click="onCitySelect($event,city)"
+                    v-on:keyup.enter="onCitySelect($event,city)" v-on:keyup.space="onCitySelect($event,city)"
+                    v-on:keyup.up="navigate($event,index-1,current.Cities.length)"
+                    v-on:keyup.down="navigate($event,index+1,current.Cities.length)">{{city.Name}} -
+                    {{city.State.Name}}</a>
+                <a href="#" class="text-truncate" v-for="(pincode,index) in current.PinCodes"
+                    v-if="current.PinCodes.length > 0" v-on:click="onPinCodeSelect($event,pincode)"
+                    v-on:keyup.space="onPinCodeSelect($event,pincode)"
+                    v-on:keyup.enter="onPinCodeSelect($event,pincode)"
+                    v-on:keyup.up="navigate($event,index-1,current.PinCodes.length)"
+                    v-on:keyup.down="navigate($event,index+1,current.PinCodes.length)">{{pincode.PinCode}} </a>
             </div>
         </div>
         <div class="show-update" v-if="userAddressBeingEdited">
@@ -803,10 +807,10 @@
                 </div>
                 <div class="col-12 text-right">
                     <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditAddress($event)">Cancel</a>
-                    <a href="#/" v-if="!User.Verified || User.Verified === 'Y' || Lockr.get('User').Staff === 'N'" class="btn btn-sm btn-primary"
-                        @click="saveUser($event)">Submit</a>
-                    <a href="#" v-if="!User.Verified || User.Verified === 'N' && Lockr.get('User').Staff === 'Y'" class="btn btn-sm btn-primary"
-                        @click="verify($event)">Verify</a>
+                    <a href="#/" v-if="!User.Verified || User.Verified === 'Y' || Lockr.get('User').Staff === 'N'"
+                        class="btn btn-sm btn-primary" @click="saveUser($event)">Submit</a>
+                    <a href="#" v-if="!User.Verified || User.Verified === 'N' && Lockr.get('User').Staff === 'Y'"
+                        class="btn btn-sm btn-primary" @click="verify($event)">Verify</a>
                 </div>
             </div>
         </div>
@@ -815,12 +819,12 @@
                 <div class="form-row">
                     <div class="col-12 mb-2">
                         <input class="form-control form-control-sm" id="password" v-model="User.Password"
-                            placeholder="Password" type="password" autocomplete="new-password"/>
+                            placeholder="Password" type="password" autocomplete="new-password" />
                     </div>
                     <div class="col-12 text-right">
                         <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditPassword($event)">Cancel</a>
-                        <button v-if="!User.Verified || User.Verified === 'Y' || User.Staff === 'N'" class="btn btn-sm btn-primary"
-                            type="submit">Submit</button>
+                        <button v-if="!User.Verified || User.Verified === 'Y' || User.Staff === 'N'"
+                            class="btn btn-sm btn-primary" type="submit">Submit</button>
                     </div>
                 </div>
             </form>

@@ -282,7 +282,7 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <div id="lookupEntries" ref="lookupEntries" class="below">
+        <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
             <div v-for="(city,index) in current.Cities" v-if="current.Cities.length > 0">
                 <a href="#" v-on:click="onCitySelect($event,city)" v-on:keyup.enter="onCitySelect($event,city)"
                     v-on:keyup.space="onCitySelect($event,city)"
