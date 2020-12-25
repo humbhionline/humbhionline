@@ -267,7 +267,7 @@
                     let self = this;
                     self.hideKeyboard().then(function(){
                         self.current.Inventory.Sku.Item = item;
-                        self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
+                        //self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
                         if (!item.AssetCode) {
                             item.AssetCode = { Code: "" };
                         }
@@ -377,21 +377,14 @@
                     }
                 },
 
-                removeList: function (e,otherThan) {
+                removeList: function (e) {
                     let elem = e.target;
                     let self = this;
                     self.hideKeyboard().then(function(){
-                        if (otherThan !== "Items"){
-                            self.current.Items = [];
-                        }
-                        if (otherThan !== "UnitOfMeasures"){
-                            self.current.UnitOfMeasures = [];
-                        }
-                        if (otherThan !== "AssetCodes") {
-                            self.current.AssetCodes = [];
-                        }
+                        self.current.Items = [];
+                        self.current.UnitOfMeasures = [];
+                        self.current.AssetCodes = [];
                         $(".lookups-list").removeClass("offsetTop");
-                        elem.focus();
                     });
                 },
                 hideKeyboard: function(){
@@ -822,14 +815,14 @@
                             <label v-bind:for="'item' + i" class="small mb-0">Product Name</label>
                             <input v-bind:key="'item' + i" v-bind:id="'item' + i" class="form-control form-control-sm"
                                 placeholder="Product Name" v-model="current.Inventory.Sku.Item.Name"
-                                v-on:input="onItemChange($event)" v-on:focus="removeList($event,'Items')"
+                                v-on:input="onItemChange($event)" v-on:blur="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.Items.length)" />
                         </div>
                         <div class="col-5">
                             <label class="small mb-0" v-bind:for="'uom' + i">Package</label>
                             <input v-bind:key="'uom' + i" v-bind:id="'uom' + i" class="form-control form-control-sm"
                                 placeholder="Package" v-model="current.Inventory.Sku.PackagingUOM.Name"
-                                v-on:input="onUnitOfMeasureChange($event)" v-on:focus="removeList($event,'UnitOfMeasures')"
+                                v-on:input="onUnitOfMeasureChange($event)" v-on:blur="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)" />
                         </div>
                     </div>
@@ -852,7 +845,7 @@
                             <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
                                 class="form-control form-control-sm" placeholder="GST/SAC Code"
                                 v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                                v-on:input="onAssetCodeChange($event)" v-on:focus="removeList($event,'AssetCodes')"
+                                v-on:input="onAssetCodeChange($event)" v-on:blur="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
                         </div>
                         <div class="col-5">
