@@ -1,5 +1,6 @@
 package in.succinct.mandi.controller;
 
+import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
@@ -8,17 +9,20 @@ import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
+import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.config.PinCode;
 import com.venky.swf.plugins.collab.db.model.config.State;
+import com.venky.swf.plugins.collab.db.model.user.Phone;
 import com.venky.swf.plugins.collab.db.model.user.UserEmail;
 import com.venky.swf.plugins.collab.db.model.user.UserPhone;
 import com.venky.swf.plugins.mobilesignup.db.model.SignUp;
 import com.venky.swf.plugins.templates.controller.TemplateLoader;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;
+import com.venky.swf.views.BytesView;
 import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.User;
@@ -28,8 +32,10 @@ import org.json.simple.JSONValue;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.util.Arrays;
 import java.util.Base64;
@@ -184,5 +190,22 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
                 return super.blank();
             }
         }
+    }
+
+    @RequireLogin(false)
+    public View hasPassword() throws IOException {
+        ensureIntegrationMethod(HttpMethod.POST);
+        JSONObject object = (JSONObject)JSONValue.parse(StringUtil.read(getPath().getInputStream()));
+        String phoneNumber = null;
+        if (object != null){
+            phoneNumber = Phone.sanitizePhoneNumber((String)object.get("PhoneNumber"));
+        }
+        com.venky.swf.db.model.User user = getPath().getUser("PHONE_NUMBER",phoneNumber);
+        boolean hasPassword = false;
+        if (user != null){
+            hasPassword = user.getRawRecord().getAsProxy(User.class).isPasswordSet();
+        }
+        object.put("PasswordSet",getReflector().getJdbcTypeHelper().getTypeRef(boolean.class).getTypeConverter().toString(hasPassword));
+        return new BytesView(getPath(),object.toJSONString().getBytes(StandardCharsets.UTF_8));
     }
 }

@@ -71,7 +71,7 @@
                     }
                 },
                 isKeyTriggerable: function (e) {
-                    return (e && e.target.value.length > 3);
+                    return (e && e.target.value.length > 1);
                 },
                 onCityChange: function (e) {
                     e && e.preventDefault();
@@ -91,10 +91,12 @@
                 onCitySelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
-                    self.User.City = item;
-                    self.User.State = item.State;
-                    self.User.Country = item.State.Country;
-                    self.current.Cities = [];
+                    self.hideKeyboard().then(function(){
+                        self.User.City = item;
+                        self.User.State = item.State;
+                        self.User.Country = item.State.Country;
+                        self.current.Cities = [];
+                    });
                 },
                 onPinCodeChange: function (e) {
                     e && e.preventDefault();
@@ -107,25 +109,20 @@
                         if (!response) {
                             return
                         }
-                        if (self.User.City && self.User.City.Id) {
-                            self.current.PinCodes = response.PinCodes.filter(function (pc) {
-                                return !pc.City || pc.City.Id === self.User.City.Id
-                            });
-                        } else {
-                            self.current.PinCodes = response.PinCodes;
-                        }
-                        if (self.current.PinCodes.length === 1) {
-                            self.onPinCodeSelect(null, self.current.PinCodes[0]);
-                        } else {
-                            self.loadLookupEntries(e.target);
-                        }
+                        self.current.PinCodes = response.PinCodes;
+                        self.loadLookupEntries(e.target);
                     });
                 },
                 onPinCodeSelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
-                    self.User.PinCode = item;
-                    self.current.PinCodes = [];
+                    self.hideKeyboard().then(function(){
+                        self.User.PinCode = item;
+                        if (self.User.PinCode.City && self.User.PinCode.City.Id){
+                            self.User.City = self.User.PinCode.City;
+                        }
+                        self.current.PinCodes = [];
+                    });
                 },
                 getParentDiv: function (element) {
                     var div = element;
@@ -383,7 +380,33 @@
                             }
                         });
                     });
-                }
+                },
+                removeList: function (e,otherThan) {
+                    let elem = e.target;
+                    let self = this;
+                    self.hideKeyboard().then(function(){
+                        if (otherThan !== "Cities"){
+                            self.current.Cities = [];
+                        }
+                        if (otherThan !== "PinCodes"){
+                            self.current.PinCodes = [];
+                        }
+                        $(".lookups-list").removeClass("offsetTop");
+                        elem.focus();
+                    });
+                },
+                hideKeyboard: function(){
+                    return new Promise(function(resolve,reject){
+                        let dummy = $("#dummy");
+                        setTimeout(function(){
+                            dummy.focus();
+                            setTimeout(function(){
+                                dummy.hide();
+                                resolve();
+                            },50);
+                        },50);
+                    })
+                },
             }
         });
     });
@@ -599,7 +622,7 @@
                             v-if="(userPhone.Validated && userPhone.Validated === 'Y') && userPhone.PhoneNumber !== User.PhoneNumber">
                             <small>
                                 <a href="#" role="button" v-on:click="makePrimaryPhone(userPhone)">
-                                    Make as Default 
+                                    Make as Default
                                 </a>
                                 <i class="ml-1 fas fa-trash-alt"
                                         v-on:click="destroyPhone(userPhone)"></i>
@@ -666,15 +689,15 @@
                 <div class="data-list user-list" v-if="User.UserEmails.length !== 0">
                     <div class="form-row" v-if="userEmail.Id && userEmail.Validated && userEmail.Validated === 'Y'"
                         v-for="(userEmail,index) in User.UserEmails">
-                        <div class="col-8 text-truncate">
+                        <div class="col-7 text-truncate">
                             {{userEmail.Email}}
                         </div>
-                        <div class="col-4 text-right" v-if="userEmail.Email === User.Email">
+                        <div class="col-5 text-right" v-if="userEmail.Email === User.Email">
                             <small class="text-success">
                                 Default
                             </small>
                         </div>
-                        <div class="col-4 text-right"
+                        <div class="col-5 text-right"
                             v-if="(userEmail.Validated && userEmail.Validated === 'Y') && userEmail.Email !== User.Email">
                             <small>
                                 <a href="#" role="button" v-on:click="makePrimaryEmail(userEmail)">
@@ -797,12 +820,12 @@
                 </div>
                 <div class="col-6 mb-2">
                     <input id="city" class="form-control form-control-sm" placeholder="City Name"
-                        v-model="User.City.Name" v-on:input="onCityChange($event)"
+                        v-model="User.City.Name" v-on:input="onCityChange($event)" v-on:focus="removeList($event,'Cities')"
                         v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City" />
                 </div>
                 <div class="col-6 mb-2">
                     <input id="pincode" class="form-control form-control-sm" placeholder="Pin Code"
-                        v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
+                        v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)" v-on:focus="removeList($event,'PinCodes')"
                         v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="User.PinCode" />
                 </div>
                 <div class="col-12 text-right">
@@ -812,6 +835,7 @@
                     <a href="#" v-if="!User.Verified || User.Verified === 'N' && Lockr.get('User').Staff === 'Y'"
                         class="btn btn-sm btn-primary" @click="verify($event)">Verify</a>
                 </div>
+                <input id="dummy" style="display:none" type="text"/>
             </div>
         </div>
         <div class="show-update" v-if="userPasswordBeingEdited">

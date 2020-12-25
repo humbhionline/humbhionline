@@ -87,7 +87,7 @@
                             if (Lockr.get("SignUp") ){
                                 self.login_via_otp(null);
                             }else{
-                                self.checkPhoneNumberEntered();
+                                self.checkPhoneAndPasswordEntered();
                             }
                         }
                     }else if (Lockr.get("SignUp") ){
@@ -116,10 +116,22 @@
                         window.location.href = ("/login/index_otp");
                     }
                 },
-                checkPhoneNumberEntered: function(event){
+                checkPhoneAndPasswordEntered: function(event){
                     let self = this;
                     if (!blank(self.params.User.PhoneNumber)){
-                        self.phoneNumberEntered = true;
+                        self.hideApp();
+                        api().url("/users/hasPassword").parameters(self.params.User).post().then(function(response){
+                            self.phoneNumberEntered = true;
+                            if (!response.PasswordSet || response.PasswordSet !== "Y" ){
+                                self.login_via_otp();
+                            }else {
+                                self.showApp();
+                            }
+                        }).catch(function(err){
+                            self.showApp();
+                            self.phoneNumberEntered =false;
+                            showError(err);
+                        })
                     }else {
                         self.phoneNumberEntered = false;
                     }
@@ -175,16 +187,16 @@
         <div class="row justify-content-center" id="GetPhone" >
             <div class="col-10 col-sm-4">
                 <form @submit.prevent="signUp()">
-                    <div class="form-group mb-2" v-if="!phoneNumberEntered">
-                        <label for="PhoneNumber" class="mb-0 d-block">Mobile Number</label>
+                    <div class="form-group" v-if="!phoneNumberEntered">
+                        <label for="PhoneNumber" class="d-block text-center">Enter Your Mobile Number</label>
                         <input class="form-control" autocomplete="username" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.User.PhoneNumber" />
                     </div>
-                    <div class="form-group mb-2" v-else>
-                        <label for="PhonePassword" class="mb-0 d-block" >Password</label>
+                    <div class="form-group" v-else>
+                        <label for="PhonePassword" class="d-block text-left" >Enter Password</label>
                         <input id="PhonePassword" autocomplete="current-password" class="form-control" type="password" placeholder="Password" v-model="params.User.Password" />
                     </div>
                     <div class="form-group text-right">
-                        <button class="btn btn-block btn-primary" @click="checkPhoneNumberEntered($event)" type="submit" id="btnSignUp">Submit</button>
+                        <button class="btn btn-block btn-primary" @click="checkPhoneAndPasswordEntered($event)" type="submit" id="btnSignUp">Submit</button>
                         <p class="text-right mb-0 mt-1">
                             <a href="#" class="mt-2 d-block small" @click="login_via_otp($event)">{{ phoneNumberEntered? "Forgot password? /Login with OTP?" :"Create New Account ?"}}</a>
                             <a id="btnReset" href="#" v-on:click="resetPhoneNumber($event)" class="small" v-if="phoneNumberEntered" >Reset Mobile</a>

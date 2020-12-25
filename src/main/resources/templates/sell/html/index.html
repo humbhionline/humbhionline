@@ -3,7 +3,10 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
 <script type="text/javascript" src="/fragments/js/util.js" ></script>
+<link rel="stylesheet" href="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.css"></link>
+<script type="text/javascript" src="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.js" ></script>
 <link href="/fragments/css/mandi.css" rel="stylesheet"></link>
+
 <script type="text/javascript">
     $(function () {
         new Vue({
@@ -132,9 +135,25 @@
                         event.preventDefault();
                     }
                     let self = this;
+
+
                     let index = self.current.index;
                     let f = self.current.Facility;
                     let newRecord = !f.Id;
+                    if (newRecord){
+                        $.confirm({
+                            title : "Confirmation",
+                            content :"Are you at this location right now?" ,
+                            buttons : {
+                                yes : function(){
+                                    self.current.Facility.CurrentlyAtLocation = "Y";
+                                },
+                                no : function(){
+                                    self.current.Facility.CurrentlyAtLocation = "N";
+                                }
+                            }
+                        });
+                    }
                     api().url("/facilities/save").parameters({ "Facility": f }).post().then(function (response) {
                         self.fixFacilities(response.Facilities);
                         if (newRecord) {
@@ -194,10 +213,12 @@
                 onCitySelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
-                    self.current.Facility.City = item;
-                    self.current.Facility.State = item.State;
-                    self.current.Facility.Country = item.State.Country;
-                    self.current.Cities = [];
+                    self.hideKeyboard().then(function(){
+                        self.current.Facility.City = item;
+                        self.current.Facility.State = item.State;
+                        self.current.Facility.Country = item.State.Country;
+                        self.current.Cities = [];
+                    });
                 },
                 onPinCodeChange: function (e) {
                     e && e.preventDefault();
@@ -217,8 +238,10 @@
                 onPinCodeSelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
-                    self.current.Facility.PinCode = item;
-                    self.current.PinCodes = [];
+                    self.hideKeyboard().then(function(){
+                        self.current.Facility.PinCode = item;
+                        self.current.PinCodes = [];
+                    });
                 },
                 getParentDiv: function (element) {
                     var div = element;
@@ -272,7 +295,34 @@
                 },
                 blank: function (s) {
                     return (!s || s.length === 0)
-                }
+                },
+                removeList: function (e,otherThan) {
+                    let elem = e.target;
+                    let self = this;
+                    self.hideKeyboard().then(function(){
+                        if (otherThan !== "Cities"){
+                            self.current.Cities = [];
+                        }
+                        if (otherThan !== "PinCodes"){
+                            self.current.PinCodes = [];
+                        }
+                        $(".lookups-list").removeClass("offsetTop");
+                        elem.focus();
+                    });
+                },
+                hideKeyboard: function(){
+                    return new Promise(function(resolve,reject){
+                        let dummy = $("#dummy");
+                        setTimeout(function(){
+                            dummy.focus();
+                            setTimeout(function(){
+                                dummy.hide();
+                                resolve();
+                            },50);
+                        },50);
+                    })
+                },
+
             }
         });
     });
@@ -407,12 +457,12 @@
                         <div class="col">
                             <input v-bind:key="'city' + i" v-bind:id="'city' + i" class="form-control form-control-sm"
                                 placeholder="City Name" v-model="current.Facility.City.Name"
-                                v-on:input="onCityChange($event)"
+                                v-on:input="onCityChange($event)" v-on:focus="removeList($event,'Cities')"
                                 v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City" />
                         </div>
                         <div class="col">
                             <input v-bind:key="'pincode' + i" v-bind:id="'pincode' + i"
-                                class="form-control form-control-sm" placeholder="Pin Code"
+                                class="form-control form-control-sm" placeholder="Pin Code" v-on:focus="removeList($event,'PinCodes')"
                                 v-model="current.Facility.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
                                 v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="f.PinCode" />
                         </div>
@@ -436,6 +486,7 @@
                             </div>
                         </div>
                     </div>
+                    <!--
                     <div class="form-row mb-2">
                         <div class="col">
                             <div class="form-check">
@@ -444,10 +495,11 @@
                                     placeholder="At Location" v-model="current.Facility.CurrentlyAtLocation"
                                     true-value="Y" false-value="N">
                                 <label class="form-check-label align-middle"
-                                    v-bind:for="'AtLocation' + i">I'm currently at this facility</label>
+                                    v-bind:for="'AtLocation' + i">I'm currently at this location</label>
                             </div>
                         </div>
                     </div>
+                    -->
                     <div class="form-row mb-2" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules' + i"
                         v-if="current.Facility.DeliveryProvided === 'Y'">
                         <div class="col">
@@ -473,6 +525,7 @@
                             </a>
                         </div>
                     </div>
+                    <input id="dummy" style="display:none" type="text"/>
                 </div>
                 <div class="pop-overlay" v-if="current.index == i"></div>
             </div>

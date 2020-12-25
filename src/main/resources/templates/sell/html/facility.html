@@ -265,15 +265,17 @@
                 onItemSelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
-                    self.current.Inventory.Sku.Item = item;
-                    self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
-                    if (!item.AssetCode) {
-                        item.AssetCode = { Code: "" };
-                    }
-                    if (item.AssetCode.Code.length > 0) {
-                        self.current.Inventory.Sku.TaxRate = item.AssetCode.GstPct
-                    }
-                    self.current.Items = [];
+                    self.hideKeyboard().then(function(){
+                        self.current.Inventory.Sku.Item = item;
+                        self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
+                        if (!item.AssetCode) {
+                            item.AssetCode = { Code: "" };
+                        }
+                        if (item.AssetCode.Code.length > 0) {
+                            self.current.Inventory.Sku.TaxRate = item.AssetCode.GstPct
+                        }
+                        self.current.Items = [];
+                    });
                 },
                 onAssetCodeChange: function (e) {
                     e && e.preventDefault();
@@ -299,9 +301,11 @@
                 onAssetCodeSelect: function (e, ac) {
                     e && e.preventDefault();
                     let self = this;
-                    self.current.Inventory.Sku.Item.AssetCode = ac;
-                    self.current.Inventory.Sku.TaxRate = ac.GstPct
-                    self.current.AssetCodes = [];
+                    self.hideKeyboard().then(function(){
+                        self.current.Inventory.Sku.Item.AssetCode = ac;
+                        self.current.Inventory.Sku.TaxRate = ac.GstPct
+                        self.current.AssetCodes = [];
+                    });
                 },
                 onUnitOfMeasureChange: function (e) {
                     e && e.preventDefault();
@@ -333,22 +337,24 @@
                 onUnitOfMeasuresSelect: function (e, uom) {
                     e && e.preventDefault();
                     let self = this;
-                    delete uom.Id;
+                    self.hideKeyboard().then(function(){
+                        delete uom.Id;
 
-                    self.current.Inventory.Sku.PackagingUOM = uom;
-                    api().url("/skus/search/ITEM:\'" + self.current.Inventory.Sku.Item.Name + "\' AND PACKAGING_U_O_M:\'" + uom.Name + "\'").get().then(function (response) {
-                        if (response.Skus.length === 1) {
-                            self.current.Inventory.Sku = response.Skus[0];
-                            self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
-                            if (!self.current.Inventory.Sku.Item.AssetCode) {
-                                self.current.Inventory.Sku.Item.AssetCode = { Code: "" };
+                        self.current.Inventory.Sku.PackagingUOM = uom;
+                        self.current.UnitOfMeasures = [];
+                        api().url("/skus/search/ITEM:\'" + self.current.Inventory.Sku.Item.Name + "\' AND PACKAGING_U_O_M:\'" + uom.Name + "\'").get().then(function (response) {
+                            if (response.Skus.length === 1) {
+                                self.current.Inventory.Sku = response.Skus[0];
+                                self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
+                                if (!self.current.Inventory.Sku.Item.AssetCode) {
+                                    self.current.Inventory.Sku.Item.AssetCode = { Code: "" };
+                                }
+                                if (self.current.Inventory.Sku.Item.AssetCode.GstPct) {
+                                    self.current.Inventory.Sku.TaxRate = self.current.Inventory.Sku.Item.AssetCode.GstPct
+                                }
                             }
-                            if (self.current.Inventory.Sku.Item.AssetCode.GstPct) {
-                                self.current.Inventory.Sku.TaxRate = self.current.Inventory.Sku.Item.AssetCode.GstPct
-                            }
-                        }
-                    });
-                    self.current.UnitOfMeasures = [];
+                        });
+                    })
                 },
                 getParentDiv: function (element) {
                     var div = element;
@@ -369,23 +375,36 @@
                     if ($(".lookups-list").offset().top > 600) {
                         $(".lookups-list").addClass("offsetTop");
                     }
-                    // if (self.timer !== -1) {
-                    //     clearTimeout(self.timer);
-                    // }
-                    // self.timer = setTimeout(function () {
-                    //     self.current.Items = [];
-                    //     self.current.UnitOfMeasures = [];
-                    //     self.current.AssetCodes = [];
-                    //     self.timer = -1;
-                    // }, 5000);
                 },
 
-                removeList: function (e) {
+                removeList: function (e,otherThan) {
+                    let elem = e.target;
                     let self = this;
-                    self.current.Items = [];
-                    self.current.UnitOfMeasures = [];
-                    self.current.AssetCodes = [];
-                    $(".lookups-list").removeClass("offsetTop");
+                    self.hideKeyboard().then(function(){
+                        if (otherThan !== "Items"){
+                            self.current.Items = [];
+                        }
+                        if (otherThan !== "UnitOfMeasures"){
+                            self.current.UnitOfMeasures = [];
+                        }
+                        if (otherThan !== "AssetCodes") {
+                            self.current.AssetCodes = [];
+                        }
+                        $(".lookups-list").removeClass("offsetTop");
+                        elem.focus();
+                    });
+                },
+                hideKeyboard: function(){
+                    return new Promise(function(resolve,reject){
+                        let dummy = $("#dummy");
+                        setTimeout(function(){
+                            dummy.focus();
+                            setTimeout(function(){
+                                dummy.hide();
+                                resolve();
+                            },50);
+                        },50);
+                    })
                 },
 
                 navigate: function (e, index, length) {
@@ -600,6 +619,7 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
+        <input id="dummy" style="display:none" type="text"/>
         <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
             <a href="#" v-for="(item,index) in current.Items" v-if="current.Items.length > 0"
                 v-on:click="onItemSelect($event,item)" v-on:keyup.enter="onItemSelect($event,item)"
@@ -802,14 +822,14 @@
                             <label v-bind:for="'item' + i" class="small mb-0">Product Name</label>
                             <input v-bind:key="'item' + i" v-bind:id="'item' + i" class="form-control form-control-sm"
                                 placeholder="Product Name" v-model="current.Inventory.Sku.Item.Name"
-                                v-on:input="onItemChange($event)" v-on:blur="removeList($event)"
+                                v-on:input="onItemChange($event)" v-on:focus="removeList($event,'Items')"
                                 v-on:keyup.down="navigate($event,0,current.Items.length)" />
                         </div>
                         <div class="col-5">
                             <label class="small mb-0" v-bind:for="'uom' + i">Package</label>
                             <input v-bind:key="'uom' + i" v-bind:id="'uom' + i" class="form-control form-control-sm"
                                 placeholder="Package" v-model="current.Inventory.Sku.PackagingUOM.Name"
-                                v-on:blur="removeList($event)" v-on:input="onUnitOfMeasureChange($event)"
+                                v-on:input="onUnitOfMeasureChange($event)" v-on:focus="removeList($event,'UnitOfMeasures')"
                                 v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)" />
                         </div>
                     </div>
@@ -832,7 +852,7 @@
                             <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
                                 class="form-control form-control-sm" placeholder="GST/SAC Code"
                                 v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                                v-on:input="onAssetCodeChange($event)" v-on:blur="removeList($event)"
+                                v-on:input="onAssetCodeChange($event)" v-on:focus="removeList($event,'AssetCodes')"
                                 v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
                         </div>
                         <div class="col-5">

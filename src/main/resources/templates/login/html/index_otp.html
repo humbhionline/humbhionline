@@ -99,7 +99,7 @@
                         user.PhoneNumber = "" ;
                         Lockr.set("User",user);
                     }*/
-                    window.location.href = window.location.protocol +"//"+location.host + location.pathname;
+                    window.location.href = window.location.protocol +"//"+location.host ;
                 },
                 hideUnHideOtpFields: function () {
                     let self = this;
@@ -207,7 +207,7 @@
             <div class="col-10 col-sm-4">
                 <form @submit.prevent="signUp()">
                     <div class="form-group">
-                        <label for="PhoneNumber" class="text-center d-block">Mobile Number</label>
+                        <label for="PhoneNumber" class="text-center d-block">Enter your Mobile Number</label>
                         <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.SignUp.PhoneNumber" />
                     </div>
                     <div class="form-group text-right">
