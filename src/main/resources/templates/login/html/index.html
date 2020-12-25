@@ -111,9 +111,9 @@
                     }
                     let self = this;
                     if (self.phoneNumberEntered && !blank(self.params.User.PhoneNumber)) {
-                        window.location.href = ("/login/index_otp?phone_number="+self.params.User.PhoneNumber);
+                        window.location.replace("/login/index_otp?phone_number="+self.params.User.PhoneNumber);
                     }else {
-                        window.location.href = ("/login/index_otp");
+                        window.location.replace("/login/index_otp");
                     }
                 },
                 checkPhoneAndPasswordEntered: function(event){
@@ -197,8 +197,8 @@
                     </div>
                     <div class="form-group text-right">
                         <button class="btn btn-block btn-primary" @click="checkPhoneAndPasswordEntered($event)" type="submit" id="btnSignUp">Submit</button>
-                        <p class="text-right mb-0 mt-1">
-                            <a href="#" class="mt-2 d-block small" @click="login_via_otp($event)">{{ phoneNumberEntered? "Forgot password? /Login with OTP?" :"Create New Account ?"}}</a>
+                        <p class="text-right  mb-0 mt-1">
+                            <a href="#" class="d-block small" @click="login_via_otp($event)">{{ phoneNumberEntered? "Forgot password? /Login with OTP?" :"Create New Account ?"}}</a>
                             <a id="btnReset" href="#" v-on:click="resetPhoneNumber($event)" class="small" v-if="phoneNumberEntered" >Reset Mobile</a>
                         </p>
                     </div>
