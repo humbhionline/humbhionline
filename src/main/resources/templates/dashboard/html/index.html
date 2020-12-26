@@ -2,7 +2,7 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/fragments/js/util.js" ></script>
-<!--script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script!-->
+<link rel="stylesheet" href="/fragments/css/mandi.css">
 
 
 
@@ -49,8 +49,12 @@
                     Lockr.set("User", self.User);
                     Lockr.set("SignUp",self.User.SignUps[0]);
                     subscribe(sendSubscriptionToServer); //Do Subscription only after setting User.
+                    if (self.User.TermsAccepted !== 'Y'){
+                        window.location.replace("/dashboard/html/terms");
+                        return;
+                    }
                     if (self.User.PasswordSet !== 'Y'){
-                        window.location.href = "/users/html/profile";
+                        window.location.replace("/users/html/profile");
                         return;
                     }
 
@@ -64,7 +68,7 @@
                     }
 
                     if (!validated) {
-                        window.location.href = "/users/html/profile";
+                        window.location.replace("/users/html/profile");
                     } else {
                         self.loadFacility().then(function (f) {
                             self.search.Facility = f;
@@ -137,6 +141,7 @@
                             el: "#header",
                             data  : {
                                 User : Lockr.get("User"),
+                                navbar : { hide : false },
                             }
                         });
                         $("#pageTitle").html("Hum Bhi Online");

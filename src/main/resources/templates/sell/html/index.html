@@ -2,9 +2,9 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
-<script type="text/javascript" src="/fragments/js/util.js" ></script>
 <link rel="stylesheet" href="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.css"></link>
 <script type="text/javascript" src="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.js" ></script>
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
 <link href="/fragments/css/mandi.css" rel="stylesheet"></link>
 
 <script type="text/javascript">
@@ -67,6 +67,7 @@
                             el: "#header",
                             data  : {
                                 User : Lockr.get("User"),
+                                navbar : { hide : false },
                             }
                         });
                     });

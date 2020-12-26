@@ -1,0 +1,92 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+<link rel="stylesheet" href="/fragments/css/mandi.css">
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
+
+<script type="text/javascript">
+    $(function () {
+        new Vue({
+            el: "#app",
+            data : {
+                User: Lockr.get("User"),
+            },
+            created : function(){
+                let self = this;
+                self.showApp();
+            },
+            methods : {
+                showApp : function(){
+                    $("#header").load("/fragments/html/header",{}, function(){
+                        fixMenu();
+                        new Vue({
+                            el: "#header",
+                            data  : {
+                                User : Lockr.get("User"),
+                                navbar : { hide : true },
+                            },
+                        });
+                        $("#terms").load("/dashboard/html/actual_terms", {},function(){
+                            $("#root").show();
+                        })
+                    });
+                },
+                accept : function(event){
+                    let self = this;
+                    self.User.TermsAccepted = 'Y';
+                    self.save(event);
+                },
+                reject : function(event){
+                    let self = this;
+                    self.User.TermsAccepted = 'N';
+                    self.save(event);
+                },
+                dashboard : function(event){
+                    let self = this;
+                    event && event.preventDefault();
+                    window.location.replace("/dashboard");
+                },
+                save : function(event){
+                    let self = this;
+                    event.preventDefault();
+                    api().url("/users/save").parameters({User: self.User}).post().then(function(response){
+                        if (response.Users[0].TermsAccepted === 'N'){
+                            logout();
+                        }else {
+                            dashboard();
+                        }
+                    });
+                }
+
+            }
+        });
+    });
+</script>
+<style>
+    body,
+    .body {
+        padding: 0px;
+    }
+</style>
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+
+        <div class="container">
+            <div id="terms">
+            </div>
+            <div class="col-12 d-flex justify-content-center text-center" v-if="User.TermsAccepted === 'Y'">
+                Thank you for accepting the Terms.
+            </div>
+            <div class="col-12 d-flex justify-content-center" v-if="User.TermsAccepted === 'N'">
+                <a href="#" class="btn btn-primary" @click="accept($event)">I Accept</a>
+                <a href="#" class="btn btn-primary" @click="reject($event)">No I Don't Accept</a>
+            </div>
+            <div class="col-12 d-flex justify-content-center" v-else>
+                <a href="#" class="btn btn-primary" @click="dashboard($event)">Close</a>
+            </div>
+        </div>
+    </div>
+</div>

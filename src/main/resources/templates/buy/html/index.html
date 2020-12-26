@@ -2,6 +2,8 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/fragments/js/util.js"></script>
+<link rel="stylesheet" href="/fragments/css/mandi.css">
+
 <script type="text/javascript">
     $(function () {
         //$("#header").load("/fragments/html/header");
@@ -47,6 +49,7 @@
                             el: "#header",
                             data  : {
                                 User : Lockr.get("User"),
+                                navbar : { hide : false },
                             }
                         });
                         $("#pageTitle").html("Order Details");

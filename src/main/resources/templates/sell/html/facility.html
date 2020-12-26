@@ -2,12 +2,11 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/deepmerge/dist/umd.js"></script>
-<script type="text/javascript" src="/fragments/js/util.js"></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+<link href="/fragments/css/mandi.css" rel="stylesheet"></link>
+<script type="text/javascript" src="/fragments/js/util.js"></script>
 
 
-<link href="/fragments/css/mandi.css" rel="stylesheet">
-</link>
 <script type="text/javascript">
     $(function () {
         var params = (new URL(window.location)).searchParams;
@@ -63,6 +62,7 @@
                             el: "#header",
                             data: {
                                 User: Lockr.get("User"),
+                                navbar : { hide : false },
                             }
                         });
                         $(".navbar").addClass("bg-clear");

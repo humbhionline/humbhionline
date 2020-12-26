@@ -40,4 +40,9 @@ public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     public boolean isSeller();
     public void setSeller(boolean seller);
 
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    @Index
+    public boolean isTermsAccepted();
+    public void setTermsAccepted(boolean termsAccepted);
+
 }

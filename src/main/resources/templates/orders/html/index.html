@@ -177,6 +177,7 @@
                             el: "#header",
                             data  : {
                                 User : Lockr.get("User"),
+                                navbar : { hide : false },
                             }
                         });
                         $("#pageTitle").html("Manage Orders");
@@ -494,6 +495,7 @@
                                     v-if="sales && o.AmountPendingPayment * 1.0 > 0 && o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
                                     Received
                                 </a>
+
                             </div>
                         </div>
                     </div>
@@ -521,8 +523,12 @@
                         <hr class="my-2" />
                         <div class="form-row">
                             <div class="col">
-                                <p class="d-block mb-1">Order : {{o.Id}}</p>
-                                <p class="m-0">{{o.FulfillmentStatus}}</p>
+                                <p class="d-block mb-1">Order : {{o.Id}}
+                                </p>
+                                <p class="m-0">{{o.FulfillmentStatus}}
+                                    <a class="fas fa-print btn" v-bind:href="'/orders/print/' + o.Id" v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
+                                    </a>
+                                </p>
                             </div>
                             <div class="col text-right">
                                 <p class="m-0">Payment status:</p>

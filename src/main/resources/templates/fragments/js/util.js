@@ -5,14 +5,13 @@ function blank(s){
 function logout(ev){
     Lockr.rm("SignUp");
     Lockr.rm("User");
-    return true;
+    window.location.replace("/logout"); //Remove session cookie
 }
 
 function showError(err){
     if (err.response ){
         if (err.response.headers && err.response.headers.status === 401){
             logout();
-            window.location.replace("/logout"); //Remove session cookie
         }else if (err.response.headers && err.response.headers.status === "413"){
              showErrorMessage("Size Uploaded Too Big");
         }else if (err.response.data && err.response.data.SWFHttpResponse.Error) {

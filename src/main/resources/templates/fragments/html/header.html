@@ -1,5 +1,9 @@
-<link rel="stylesheet" href="/fragments/css/mandi.css">
 <script type="application/javascript">
+
+    function hideMenu(){
+        $("#navbarTogglerDemo03").removeClass("show");
+        return true;
+    }
     function fixMenu(){
         $(function(){
             let path = window.location.pathname;
@@ -16,12 +20,9 @@
             });
         });
     }
-    function hideMenu(){
-        $("#navbarTogglerDemo03").removeClass("show");
-        return true;
-    }
 </script>
-<nav class="navbar navbar-expand-lg navbar-light">
+
+<nav class="navbar navbar-expand-lg navbar-light" v-if="User.TermsAccepted === 'Y' && !(navbar && navbar.hide)">
     <button id="appmenu" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03"
         aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -48,7 +49,7 @@
                 <a class="nav-link" href="/dashboard"><i class="fa fa-home"></i> Home</a>
             </li>
             <li class="nav-item border-bottom">
-                <a class="nav-link" href="/users/html/profile"><i class="fa fa-user-circle"></i> Profile</a>
+                <a class="nav-link" href="/users/html/profile" ><i class="fa fa-user-circle"></i> Profile</a>
             </li>
             <li class="nav-item border-bottom dropdown-submenu" v-if="User.Seller === 'Y'">
                 <a class="nav-link dropdown-toggle" href="" id="navbarSellingMenuLink" data-toggle="dropdown"
@@ -80,13 +81,13 @@
                 <a class=" nav-link"  href="/issues" onclick="hideMenu()">
                     <i class="fa fa-comment-dots"></i>Message Support</a>
             </li>
-            <li class="nav-item border-bottom" v-if="User.Staff === 'Y'">
+            <li class="nav-item border-bottom" v-if="User.Staff === 'Y'" ">
                 <a class=" nav-link"  href="/users/search/VERIFIED:N" onclick="hideMenu()">
                     <i class="fa fa-user"></i>Pending Kyc</a>
             </li>
 
             <li class="nav-item border-bottom">
-                <a class=" nav-link" onclick="logout(event)" href="/logout" onclick="hideMenu()">
+                <a class=" nav-link" onclick="logout(event)" href="#" onclick="hideMenu()">
                     <i class="fa fa-power-off"></i> Logout</a>
             </li>
 
