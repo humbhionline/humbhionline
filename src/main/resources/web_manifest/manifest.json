@@ -1,7 +1,7 @@
 {
-  "name": "mandi",
-  "short_name": "mandi",
-  "description": "mandi",
+  "name": "Hum Bhi Online",
+  "short_name": "Hum Bhi Online",
+  "description": "Hum Bhi Online",
   "lang": "en-US",
   "start_url": "/",
   "display": "standalone",

@@ -195,7 +195,7 @@
                     }
                     return false;
                     */
-                    return e && e.target.value.length > 3;
+                    return e && e.inputType && e.target.value.length > 3;
                 },
                 onCityChange: function (e) {
                     e && e.preventDefault();
@@ -311,16 +311,17 @@
                 },
                 hideKeyboard: function(){
                     return new Promise(function(resolve,reject){
-                        let dummy = $("#dummy");
+                        //let dummy = $("#dummy");
+                        let dummy = $(document.documentElement);
                         setTimeout(function(){
                             dummy.focus();
                             setTimeout(function(){
-                                dummy.hide();
                                 resolve();
-                            },50);
-                        },50);
-                    })
+                            },10);
+                        },10);
+                    });
                 },
+
 
             }
         });
@@ -524,7 +525,6 @@
                             </a>
                         </div>
                     </div>
-                    <input id="dummy" style="display:none" type="text"/>
                 </div>
                 <div class="pop-overlay" v-if="current.index == i"></div>
             </div>

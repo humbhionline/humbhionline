@@ -64,3 +64,12 @@ function sendSubscriptionToServer(subscription){
         console.log("Subscription not set on server");
     }
 }
+
+function showSpinner(){
+    let a = typeof Android == "undefined" ? undefined : Android ;
+    a && a.showSpinner();
+}
+function hideSpinner(){
+    let a = typeof Android == "undefined" ? undefined : Android ;
+    a && a.hideSpinner();
+}

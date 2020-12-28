@@ -69,6 +69,7 @@
                     self.Issue.Id && self.Issue.Id *1.0 > 0 && formData.append("ID", self.Issue.Id);
                     self.Issue.Company.Id && formData.append("COMPANY_ID",self.Issue.Company.Id);
 
+                    showSpinner();
                     api().url("/issues/save").parameters(formData).headers({ "Content-Type": "multipart/form-data" , "Accept" : "application/json" }).post().then(function (response) {
                         console.log(response);
                         self.Issue = response.Issue;
@@ -79,6 +80,8 @@
                         //Vue.$forceUpdate();
                     }).catch(function(err){
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 yank : function(event){

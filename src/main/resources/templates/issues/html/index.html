@@ -17,7 +17,7 @@
             created: function(){
                 let self = this;
 
-                api().url("/issues/search").parameters({"q":"STATUS:OPEN OR STATUS:WIP"}).get().then(function(response){
+                api().url("/issues/search").get({"q":"STATUS:OPEN OR STATUS:WIP"}).then(function(response){
                     self.Issues = response.Issues;
                 }).finally(function(){
                     self.showApp();

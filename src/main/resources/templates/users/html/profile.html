@@ -23,6 +23,8 @@
                 userPasswordBeingEdited: false,
                 userVpaBeingEdited: false,
                 kycSelectedFileName: "",
+                Password1 : "",
+                Password2 : "",
                 current: {
                     Cities: [],
                     PinCodes: [],
@@ -36,8 +38,7 @@
                 api().url("/users/show/" + self.User.Id).get().then(function (response) {
                     self.User = response.User;
                     self.fixUserAttributes();
-                    self.User.LongName.length <= 0 && self.editAddress(null);
-                    //!self.User.Verified || self.User.Verified === 'N' ;
+
                     self.showApp();
                 });
 
@@ -45,6 +46,8 @@
             methods: {
                 fixUserAttributes: function () {
                     let self = this;
+                    self.Password1 = "" ;
+                    self.Password2 = "" ;
                     if (!self.User.City) {
                         self.User.City = {};
                     }
@@ -68,6 +71,11 @@
                     }
                     if (!user_id || Lockr.get("User").Id === user_id) {
                         Lockr.set("User", self.User);
+                    }
+                    if (self.User.LongName.length <= 0 ){
+                        self.editAddress(null) ;
+                    }else if (self.User.PasswordSet !== 'Y'){
+                        self.editPassword(null);
                     }
                 },
                 isKeyTriggerable: function (e) {
@@ -365,7 +373,7 @@
                 close: function (event) {
                     let self = this;
                     event && event.preventDefault();
-                    history.back();
+                    back();
                 },
                 showApp: function () {
                     let self = this;
@@ -393,16 +401,27 @@
                 },
                 hideKeyboard: function(){
                     return new Promise(function(resolve,reject){
-                        let dummy = $("#dummy");
+                        //let dummy = $("#dummy");
+                        let dummy = $(document.documentElement);
                         setTimeout(function(){
                             dummy.focus();
                             setTimeout(function(){
-                                dummy.hide();
                                 resolve();
-                            },50);
-                        },50);
-                    })
+                            },10);
+                        },10);
+                    });
                 },
+                savePassword: function(event){
+                    event && event.preventDefault();
+                    let self = this;
+                    if (self.chk_passsword_equals()){
+                        self.User.Password = self.Password1;
+                        self.saveUser(event)
+                    }
+                },
+                chk_passsword_equals : function(){
+                    return this.Password1.length >= 6 && this.Password1 === this.Password2   ;
+                }
             }
         });
     });
@@ -457,15 +476,17 @@
             <div class="content-box" v-if="User.Seller === 'Y'">
                 <div class="row">
                     <div class="col-7  d-flex align-items-center">
-                        <span v-if="User.BalanceOrderLineCount <= 0">
-                            Zero Balance
-                        </span>
-                        <span v-else-if="User.BalanceOrderLineCount <= 10">
-                            Low Balance ({{User.BalanceOrderLineCount}})
-                        </span>
-                        <span v-else>
-                            Balance ({{User.BalanceOrderLineCount}})
-                        </span>
+                        <small>
+                            <span v-if="User.BalanceOrderLineCount <= 0">
+                                Zero Balance
+                            </span>
+                            <span v-else-if="User.BalanceOrderLineCount <= 10">
+                                Low Balance ({{User.BalanceOrderLineCount}})
+                            </span>
+                            <span v-else>
+                                Current Balance ({{User.BalanceOrderLineCount}})
+                            </span>
+                        </small>
                     </div>
                     <div class="col-5 d-flex justify-content-end">
                         <a class="btn btn-primary btn-sm" href="/dashboard?search=HBO Subscription">
@@ -490,7 +511,7 @@
                                         v-on:input="onAadharKycFileChange($event)" />
                                     <label class="btn btn-sm btn-primary" for="aadharzipfile">
                                         {{ kycSelectedFileName && kycSelectedFileName.length > 0 ? kycSelectedFileName :
-                                            "Click to Select Aadhar KYC"}}
+                                            "Click to Select Aadhar e-KYC zipfile"}}
                                     </label>
                                 </div>
                                 <div class="col-8">
@@ -792,7 +813,7 @@
         <div class="show-update" v-if="userAddressBeingEdited">
             <div class="form-row">
                 <div class="col-12">
-                    <h6>Update Address</h6>
+                    <h6>Update Your Name and Address</h6>
                 </div>
                 <div class="col-12 mb-2">
                     <input class="form-control form-control-sm" id="name" v-model="User.LongName"
@@ -831,20 +852,26 @@
                     <a href="#" v-if="!User.Verified || User.Verified === 'N' && Lockr.get('User').Staff === 'Y'"
                         class="btn btn-sm btn-primary" @click="verify($event)">Verify</a>
                 </div>
-                <input id="dummy" style="display:none" type="text"/>
             </div>
         </div>
         <div class="show-update" v-if="userPasswordBeingEdited">
-            <form action="#" @submit.prevent="saveUser($event)" method="post">
+            <form action="#" @submit.prevent="savePassword($event)" method="post">
+                <div class="col-12">
+                    Set Password (min 6 characters)
+                </div>
                 <div class="form-row">
                     <div class="col-12 mb-2">
-                        <input class="form-control form-control-sm" id="password" v-model="User.Password"
-                            placeholder="Password" type="password" autocomplete="new-password" />
+                        <input class="form-control form-control-sm" id="password" v-model="Password1"
+                            placeholder="Enter New Password" type="password" autocomplete="new-password" />
+                    </div>
+                    <div class="col-12 mb-2">
+                        <input class="form-control form-control-sm" id="password" v-model="Password2"
+                            placeholder="Enter Password Again" type="password" autocomplete="new-password" />
                     </div>
                     <div class="col-12 text-right">
                         <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditPassword($event)">Cancel</a>
-                        <button v-if="!User.Verified || User.Verified === 'Y' || User.Staff === 'N'"
-                            class="btn btn-sm btn-primary" type="submit">Submit</button>
+                        <button :disabled="!chk_passsword_equals()"
+                            class="btn btn-sm btn-primary" type="submit">Update</button>
                     </div>
                 </div>
             </form>

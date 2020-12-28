@@ -60,6 +60,7 @@
                     let self = this;
                     let user = self.User;
                     var order = self.facilityOrders[f.Id];
+                    order.Facility = { Id : f.Id };
 
                     order.ShippingSellingPrice = f.DeliveryProvided === 'Y' ? f.DeliveryCharges : 0;
 

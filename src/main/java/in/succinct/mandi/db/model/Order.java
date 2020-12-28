@@ -2,6 +2,7 @@ package in.succinct.mandi.db.model;
 
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.COLUMN_SIZE;
+import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.indexing.Index;
@@ -16,8 +17,8 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
 
     @PARTICIPANT
     @Index
-    public Long getFacilityId();
-    public void setFacilityId(Long facilityId);
+    public long getFacilityId();
+    public void setFacilityId(long facilityId);
     public Facility getFacility();
 
     @COLUMN_SIZE(2048)

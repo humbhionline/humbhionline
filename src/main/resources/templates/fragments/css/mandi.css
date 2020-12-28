@@ -214,6 +214,19 @@
         border-radius: 50%;
         box-shadow: var(--hbo-shadow);
     }
+    .btn-inv-remove {
+        position: absolute;
+        height: 1.5em;
+        width: 1.5em;
+        z-index: 2;
+        right: -5px;
+        background: white;
+        border: 0;
+        top: -5px;
+        border-radius: 50%;
+        box-shadow: var(--hbo-shadow);
+    }
+
     .content-sub-box {
         background-color: white;
         border-radius: 0 0 6px 6px;
@@ -639,4 +652,7 @@
         background-color: cyan !important;
     }
     /* Profile Css */
+    #terms ol,ul {
+        padding-left: 15px;
+    }
 }

@@ -41,7 +41,7 @@
                             inv.Sku.Item.AssetCode = { Code: "" };
                         }
                         if (!inv.Sku.Attachments) {
-                            inv.Sku.Attachments = [{ SkuId: inv.Sku.Id }];
+                            inv.Sku.Attachments = [{ Sku :{ Id : inv.Sku.Id }}];
                         }
                     });
                     if (!response.Facility.Attachments) {
@@ -153,7 +153,10 @@
                             inv.Sku.Item.AssetCode = { Code: "" };
                         }
                         if (!inv.Sku.Attachments) {
-                            inv.Sku.Attachments = [{ SkuId: inv.Sku.Id }];
+                            inv.Sku.Attachments = [{ Sku : { Id: inv.Sku.Id} }];
+                            api().url("/skus/show/"+inv.Sku.Id).get().then(function(sku_response){
+                                inv.Sku.Attachments = sku_response.Sku.Attachments  ||  [{ Sku : { Id: inv.Sku.Id} }];
+                            });
                         }
 
                         if (newRecord) {
@@ -184,6 +187,26 @@
                                 inv.Sku.Item.AssetCode = { Code: "" };
                             }
                             self.Facility.Inventories.splice(index, 1, inv);
+                        }).catch(function (err) {
+                            showError(err);
+                        });
+                    } else {
+                        self.Facility.Inventories.splice(index, 1);
+                    }
+                },
+                destroy : function(event, index){
+                    if (event) {
+                        event.preventDefault();
+                    }
+
+                    let self = this;
+                    let i = self.Facility.Inventories[index];
+
+                    let newRecord = !i.Id;
+                    if (!newRecord) {
+                        i.Infinite = "Y";
+                        api().url("/inventories/destroy/"+i.Id).get().then(function (response) {
+                            self.Facility.Inventories.splice(index, 1);
                         }).catch(function (err) {
                             showError(err);
                         });
@@ -389,15 +412,15 @@
                 },
                 hideKeyboard: function(){
                     return new Promise(function(resolve,reject){
-                        let dummy = $("#dummy");
+                        //let dummy = $("#dummy");
+                        let dummy = $(document.documentElement);
                         setTimeout(function(){
                             dummy.focus();
                             setTimeout(function(){
-                                dummy.hide();
                                 resolve();
-                            },50);
-                        },50);
-                    })
+                            },10);
+                        },10);
+                    });
                 },
 
                 navigate: function (e, index, length) {
@@ -453,7 +476,7 @@
                     self.Facility.Attachments[index].Dirty = true;
                     Vue.set(self.Facility.Attachments, index, self.Facility.Attachments[index]);
                     self.readFacilityBannerUrl(e.target.files[0], index);
-
+                    self.uploadFacilityBannerFile(e,index);
                 },
                 readFacilityBannerUrl: function (file, index) {
                     var reader = new FileReader();
@@ -612,7 +635,6 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
-        <input id="dummy" style="display:none" type="text"/>
         <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
             <a href="#" v-for="(item,index) in current.Items" v-if="current.Items.length > 0"
                 v-on:click="onItemSelect($event,item)" v-on:keyup.enter="onItemSelect($event,item)"
@@ -661,8 +683,8 @@
                 <a class="carousel-control-next" href="#banner-slider" data-slide="next">
                     <span class="carousel-control-next-icon"></span>
                 </a>
-                <a href="#" class="banner-edit text-decoration-none" @click="editBanner($event)"
-                    v-if="!facilityBannerBeingEdited"><i class="fas fa-edit"></i> Banner</a>
+                <a href="#" class="banner-edit btn btn-camera btn-sm btn-outline-primary" @click="editBanner($event)"
+                    v-if="!facilityBannerBeingEdited"><i class="fas fa-camera"></i> Banner</a>
             </div>
             <div class="container facility-info">
                 <div class="row">
@@ -721,27 +743,23 @@
                 </div>
                 <div class="form-row">
                     <div class="col-4 my-1" v-for="(attachment,i) in Facility.Attachments">
-                        <a href="#" class="btn btn-link btn-sm position-absolute" role="button" title="Remove"
+                        <span v-if="attachment.AttachmentUrl || attachment.Attachment"
+                            @click="chooseBannerFile($event,i)" style="width:100%; width:100px;">
+                            <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
+                                style="width:100%; width:100%;"></img>
+                        </span>
+                        <span v-else @click="chooseBannerFile($event,i)" style="width:100%; width:100px;">
+                            Click to upload Image
+                        </span>
+
+                        <a href="#" class="btn btn-sm btn-block btn-outline-primary" role="button" title="Remove"
                             v-on:click="removeBannner($event,i)">
                             <i class="small fas fa-trash"></i>
                         </a>
-                        <span v-if="attachment.AttachmentUrl || attachment.Attachment"
-                            @click="chooseBannerFile($event,i)">
-                            <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
-                                style="width:100%; height:100px;"></img>
-                        </span>
-                        <span v-else @click="chooseBannerFile($event,i)">Click to upload Image</span>
+
                         <input type="file" class="file-upload" v-bind:key="'attachment-'+i" v-bind:id="'attachment-'+i"
-                            v-on:input="onFacilityBannerFileChange($event,i)" />
-                        <a href="#" class="btn btn-sm btn-block btn-outline-primary mt-2" role="button" title="Upload"
-                            v-on:click="uploadFacilityBannerFile($event,i)" v-if="attachment.Dirty">
-                            {{ !attachment.Id ? "Upload" : "Update" }}
-                        </a>
-                        <!-- v-if="attachment.Id" -->
-                        <!-- <span @click="chooseBannerFile($event,i)" v-else>
-                            <img v-bind:src="" style="width:100%; height:100px;" v-if="attachment.Attachment"></img>
-                            <span v-else>Click to upload Image</span>
-                        </span> -->
+                            v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*" capture="camera"/>
+
                     </div>
                 </div>
             </div>
@@ -751,10 +769,15 @@
                 <div class="col-12">
                     <div class="item-list">
                         <div class="form-row">
+                            <button v-if="current.index !== i"
+                                class="btn-sm btn-inv-remove btn-outline-primary d-flex align-contents-center justify-content-center" v-on:click="destroy($event,i)">
+                                <i class="fas fa-times"></i>
+                            </button>
                             <div class="col-4 img-holder">
                                 <img v-for="(attachment,ai) in inv.Sku.Attachments"
                                     v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl : attachment.Attachment"
-                                    v-if="attachment.Id || attachment.Dirty" class="w-100"></img>
+                                    v-if="attachment.Id || attachment.Dirty" class="w-100">
+                                </img>
                                 <div class="default-img d-flex align-items-center justify-content-center border rounded-sm"
                                     v-else>
                                     <i class="fa fa-image text-muted"></i>
@@ -765,7 +788,7 @@
                                         <i class="fa fa-camera"></i>
                                     </label>
                                     <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
-                                        v-bind:id="'sku-attachment-'+i"
+                                            v-bind:id="'sku-attachment-'+i" accept="image/*" capture="camera"
                                         v-on:input="onSkuBannerFileChange($event,i,ai)" />
                                     <a href="#" class="btn btn-sm btn-block m-0 mt-2 btn-primary" role="button"
                                         title="Upload" v-on:click="uploadSkuBannerFile($event,i,ai)"
@@ -780,16 +803,16 @@
                             </div>
                             <div class="col">
                                 <div class="form-row mb-2">
+
                                     <div class="col text-right">
-                                        <a href="#/" class="btn btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
+                                        <a href="#/" class="fas fa-toggle-on btn btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
                                             v-on:click="zeroInventory($event,i)"
-                                            :disabled="current.index === i">Un-Publish</a>
-                                        <a href="#/" class="btn btn-sm btn-outline-primary"
+                                            :disabled="current.index === i"></a>
+                                        <a href="#/" class="fas fa-toggle-off btn btn-sm btn-outline-primary"
                                             v-on:click="infiniteInventory($event,i)" :disabled="current.index === i"
-                                            v-else>Publish</a>
+                                            v-else></a>
                                         <a href="#/" v-if="current.index !== i"
-                                            class="ml-2 btn btn-sm btn-outline-primary" v-on:click="edit($event,i)">
-                                            <i class="fas fa-edit"></i> Edit
+                                            class="ml-2 btn btn-sm btn-outline-primary fas fa-edit" v-on:click="edit($event,i)">
                                         </a>
                                     </div>
                                 </div>

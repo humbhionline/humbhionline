@@ -12,13 +12,16 @@
 
             $("#backbutton").on("click", function (e) {
                 console.log("Calling back");
-                if (window.history.length === 1){
-                    window.location.replace("/index");
-                }else {
-                    window.history.back();
-                }
+                back();
             });
         });
+    }
+    function back(){
+        if (window.history.length === 1){
+            window.location.replace("/index");
+        }else {
+            window.history.back();
+        }
     }
 </script>
 
@@ -51,8 +54,8 @@
             <li class="nav-item border-bottom">
                 <a class="nav-link" href="/users/html/profile" ><i class="fa fa-user-circle"></i> Profile</a>
             </li>
-            <li class="nav-item border-bottom dropdown-submenu" v-if="User.Seller === 'Y'">
-                <a class="nav-link dropdown-toggle" href="" id="navbarSellingMenuLink" data-toggle="dropdown"
+            <li class="nav-item border-bottom dropdown-submenu" v-if="User.Seller === 'Y' && User.Verified === 'Y'">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarSellingMenuLink" data-toggle="dropdown"
                     aria-haspopup="true" aria-expanded="false">
                     <i class="fa fa-coins"></i>
                     Sales</a>
@@ -81,7 +84,7 @@
                 <a class=" nav-link"  href="/issues" onclick="hideMenu()">
                     <i class="fa fa-comment-dots"></i>Message Support</a>
             </li>
-            <li class="nav-item border-bottom" v-if="User.Staff === 'Y'" ">
+            <li class="nav-item border-bottom" v-if="User.Staff === 'Y'">
                 <a class=" nav-link"  href="/users/search/VERIFIED:N" onclick="hideMenu()">
                     <i class="fa fa-user"></i>Pending Kyc</a>
             </li>

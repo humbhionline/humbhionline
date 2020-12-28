@@ -1,15 +1,20 @@
 package in.succinct.mandi.controller;
 
+import com.venky.extension.Registry;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
+import com.venky.swf.sql.Expression;
+import com.venky.swf.sql.Operator;
+import com.venky.swf.sql.Select;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
+import in.succinct.mandi.extensions.FacilityParticipantExtension;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
@@ -37,6 +42,13 @@ public class FacilitiesController extends ModelController<Facility> {
         Facility f = Database.getTable(Facility.class).get(id);
         f.unpublish();
         return show(f);
+    }
+
+    @RequireLogin
+    public View mine(){
+        User user = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
+        List<Facility> facilityList = new Select().from(Facility.class).where(new Expression(getReflector().getPool(),"ID", Operator.IN,user.getOperatingFacilityIds().toArray())).execute();
+        return list(facilityList,true);
     }
 
 

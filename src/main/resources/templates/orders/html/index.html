@@ -46,7 +46,7 @@
                 if (purchases) {
                     self.loadOrders();
                 } else {
-                    api().url("/facilities").get().then(function (response) {
+                    api().url("/facilities/mine").get().then(function (response) {
                         self.loadOrders(response.Facilities);
                     }).catch(function (err) {
                         self.showApp();
@@ -481,7 +481,7 @@
                                 {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
                                 <a v-bind:href="o._phref ? o._phref : '#'" class="btn btn-sm btn-primary mb-1 mt-1"
                                     role="button"
-                                    v-if="purchases && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
+                                    v-if="purchases && o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
                                     v-on:click="initialize_payment($event,o)">
                                     Pay
                                 </a>
