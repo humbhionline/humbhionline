@@ -15,6 +15,9 @@ public class BeforeValidateSku  extends BeforeModelValidateExtension<Sku> {
         if (item == null){
             return;
         }
+        if (item.getAssetCodeId() != null){
+            model.setTaxRate(item.getAssetCode().getGstPct());
+        }
         UnitOfMeasure uom= model.getPackagingUOM();
 
         if (model.getReflector().isVoid(model.getName()) && uom != null){

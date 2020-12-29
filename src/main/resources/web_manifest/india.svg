@@ -8,17 +8,17 @@
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    sodipodi:docname="india.svg"
-   inkscape:version="1.0 (unknown)"
+   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)"
    id="svg8"
    version="1.1"
-   viewBox="0 0 210 297"
-   height="297mm"
-   width="210mm">
+   viewBox="0 0 270.93335 132.29167"
+   height="500"
+   width="1024.0001">
   <defs
      id="defs2" />
   <sodipodi:namedview
      inkscape:window-maximized="1"
-     inkscape:window-y="27"
+     inkscape:window-y="0"
      inkscape:window-x="0"
      inkscape:window-height="704"
      inkscape:window-width="1366"
@@ -34,7 +34,12 @@
      borderopacity="1.0"
      bordercolor="#666666"
      pagecolor="#ffffff"
-     id="base" />
+     id="base"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     units="px" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -51,55 +56,58 @@
      id="layer1"
      inkscape:groupmode="layer"
      inkscape:label="Layer 1">
-    <rect
-       y="0.33015242"
-       x="-0.58438206"
-       height="57.618114"
-       width="210.42184"
-       id="rect833"
-       style="fill:#ff9933;stroke-width:2;stroke-linecap:round;fill-opacity:1" />
-    <rect
-       style="fill:#ffffff;fill-opacity:1;stroke-width:2;stroke-linecap:round"
-       id="rect833-3"
-       width="210.42184"
-       height="57.618114"
-       x="-0.58438492"
-       y="57.948265" />
-    <rect
-       y="115.56638"
-       x="-0.58438492"
-       height="57.618114"
-       width="210.42184"
-       id="rect833-3-6"
-       style="fill:#138808;fill-opacity:1;stroke-width:2;stroke-linecap:round" />
-    <text
-       transform="matrix(5.9611347,0,0,4.340551,-111.70416,-43.420556)"
-       id="text867"
-       y="20.247564"
-       x="24.207594"
-       style="font-size:10.5833px;line-height:1.25;font-family:'Droid Serif';-inkscape-font-specification:'Droid Serif';white-space:pre;inline-size:154.622;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
-       xml:space="preserve"><tspan
+    <g
+       id="g886">
+      <rect
+         y="6.0117955e-10"
+         x="3.6605452e-06"
+         height="44.097221"
+         width="270.93335"
+         id="rect833"
+         style="fill:#ff9933;fill-opacity:1;stroke-width:1.98537;stroke-linecap:round" />
+      <rect
+         style="fill:#ffffff;fill-opacity:1;stroke-width:1.98537;stroke-linecap:round"
+         id="rect833-3"
+         width="270.93335"
+         height="44.097221"
+         x="-2.3228683e-08"
+         y="44.097221" />
+      <rect
+         y="88.194443"
+         x="-2.3228683e-08"
+         height="44.097221"
+         width="270.93335"
+         id="rect833-3-6"
+         style="fill:#138808;fill-opacity:1;stroke-width:1.98537;stroke-linecap:round" />
+      <text
+         transform="matrix(7.6753919,0,0,3.3219803,-143.07474,-33.483996)"
+         id="text867"
+         y="20.247564"
          x="24.207594"
-         y="20.247564"><tspan
-           style="fill:#ffffff;fill-opacity:1;stroke-width:0.264583">Hum</tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:10.5833px;line-height:1.25;font-family:'Droid Serif';-inkscape-font-specification:'Droid Serif';white-space:pre;inline-size:154.622;fill:#000080;fill-opacity:1;stroke-width:0.264583"
-       x="24.207594"
-       y="20.247564"
-       id="text867-7"
-       transform="matrix(5.9611347,0,0,4.340551,-87.755597,17.004402)"><tspan
+         style="font-size:10.5833px;line-height:1.25;font-family:'Droid Serif';-inkscape-font-specification:'Droid Serif';white-space:pre;inline-size:154.622;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
+         xml:space="preserve"><tspan
+           x="24.207594"
+           y="20.247564"><tspan
+             style="fill:#ffffff;fill-opacity:1;stroke-width:0.264583">Hum</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:10.5833px;line-height:1.25;font-family:'Droid Serif';-inkscape-font-specification:'Droid Serif';white-space:pre;inline-size:154.622;fill:#000080;fill-opacity:1;stroke-width:0.264583"
          x="24.207594"
-         y="20.247564"><tspan
-           style="fill:#000080;fill-opacity:1">Bhi</tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:10.5833px;line-height:1.25;font-family:'Droid Serif';-inkscape-font-specification:'Droid Serif';white-space:pre;inline-size:154.622;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
-       x="24.207594"
-       y="20.247564"
-       id="text867-5"
-       transform="matrix(5.9611347,0,0,4.340551,-140.80851,73.886901)"><tspan
+         y="20.247564"
+         id="text867-7"
+         transform="matrix(7.6753919,0,0,3.3219803,-112.23924,12.761405)"><tspan
+           x="24.207594"
+           y="20.247564"><tspan
+             style="fill:#000080;fill-opacity:1">Bhi</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:10.5833px;line-height:1.25;font-family:'Droid Serif';-inkscape-font-specification:'Droid Serif';white-space:pre;inline-size:154.622;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
          x="24.207594"
-         y="20.247564"><tspan>Online</tspan></tspan></text>
+         y="20.247564"
+         id="text867-5"
+         transform="matrix(7.6753919,0,0,3.3219803,-180.5487,56.295634)"><tspan
+           x="24.207594"
+           y="20.247564"><tspan>Online</tspan></tspan></text>
+    </g>
   </g>
 </svg>

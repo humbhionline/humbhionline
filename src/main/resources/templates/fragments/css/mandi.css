@@ -655,4 +655,8 @@
     #terms ol,ul {
         padding-left: 15px;
     }
+    .img-holder{
+        display: inline-block;
+        width: 100px;
+    }
 }

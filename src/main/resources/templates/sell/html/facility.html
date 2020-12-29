@@ -239,7 +239,7 @@
                     }
                 },
                 isKeyTriggerable: function (e, length = 3) {
-                    return e.target.value.length >= length;
+                    return e.inputType && e.target.value.length >= length;
                     /*
                     if (e && e.keyCode >= 48 && e.keyCode <= 90) {
                         return true;
@@ -294,9 +294,6 @@
                         if (!item.AssetCode) {
                             item.AssetCode = { Code: "" };
                         }
-                        if (item.AssetCode.Code.length > 0) {
-                            self.current.Inventory.Sku.TaxRate = item.AssetCode.GstPct
-                        }
                         self.current.Items = [];
                     });
                 },
@@ -326,19 +323,19 @@
                     let self = this;
                     self.hideKeyboard().then(function(){
                         self.current.Inventory.Sku.Item.AssetCode = ac;
-                        self.current.Inventory.Sku.TaxRate = ac.GstPct
                         self.current.AssetCodes = [];
                     });
                 },
                 onUnitOfMeasureChange: function (e) {
                     e && e.preventDefault();
                     let self = this;
-                    delete self.current.Inventory.Sku.PackagingUOM.Id;
 
                     if (!this.isKeyTriggerable(e, 1) && self.current.UnitOfMeasures.length == 0) {
                         return;
                     }
 
+                    delete self.current.Inventory.Sku.Id; //An Sku's modification is a change of Sku and not update of SKU.!!
+                    delete self.current.Inventory.Sku.PackagingUOM.Id;
                     new Autocomplete("unit_of_measures", e.target, 1).search("NAME", "MEASURES:Packaging").then(function (response) {
 
                         if (response) {
@@ -362,18 +359,16 @@
                     let self = this;
                     self.hideKeyboard().then(function(){
                         delete uom.Id;
-
+                        delete self.current.Inventory.Sku.Id ;
                         self.current.Inventory.Sku.PackagingUOM = uom;
                         self.current.UnitOfMeasures = [];
-                        api().url("/skus/search/ITEM:\'" + self.current.Inventory.Sku.Item.Name + "\' AND PACKAGING_U_O_M:\'" + uom.Name + "\'").get().then(function (response) {
+                        let q = {q : "ITEM:" + self.current.Inventory.Sku.Item.Name  + " AND PACKAGING_U_O_M:" + uom.Name };
+                        api().url("/skus/search").get(q).then(function (response) {
                             if (response.Skus.length === 1) {
                                 self.current.Inventory.Sku = response.Skus[0];
-                                self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
+                                self.current.Inventory.SellingPrice = 0;// self.current.Inventory.Sku.MaxRetailPrice;
                                 if (!self.current.Inventory.Sku.Item.AssetCode) {
                                     self.current.Inventory.Sku.Item.AssetCode = { Code: "" };
-                                }
-                                if (self.current.Inventory.Sku.Item.AssetCode.GstPct) {
-                                    self.current.Inventory.Sku.TaxRate = self.current.Inventory.Sku.Item.AssetCode.GstPct
                                 }
                             }
                         });
@@ -390,7 +385,7 @@
                     var div = this.getParentDiv(element);
                     var InputId = div.getElementsByTagName("input")[0].id;
                     var offset = document.getElementById("lookupEntries").offsetTop;
-                    console.log("asdfasdf", document.getElementById(InputId).offsetTop, offset);
+                    //console.log("asdfasdf", document.getElementById(InputId).offsetTop, offset);
                     if (div) {
                         div.appendChild(this.$refs['lookupEntries']);
                     }
@@ -403,12 +398,12 @@
                 removeList: function (e) {
                     let elem = e.target;
                     let self = this;
-                    self.hideKeyboard().then(function(){
+                    //self.hideKeyboard().then(function(){
                         self.current.Items = [];
                         self.current.UnitOfMeasures = [];
                         self.current.AssetCodes = [];
                         $(".lookups-list").removeClass("offsetTop");
-                    });
+                    //});
                 },
                 hideKeyboard: function(){
                     return new Promise(function(resolve,reject){
@@ -541,24 +536,26 @@
                     }
                 },
                 onSkuBannerFileChange: function (e, inventoryIndex, attachmentIndex) {
-                    e.preventDefault();
+                    //e.preventDefault();
                     let self = this;
                     let skuAttachment = self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex];
 
                     if (e.target.files.length > 0) {
                         skuAttachment.AttachmentContentName = e.target.files[0].name;
                         skuAttachment.Dirty = true;
-                        self.readSkuBannerUrl(e.target.files[0], inventoryIndex, attachmentIndex);
+                        self.readSkuBannerUrl(e,inventoryIndex, attachmentIndex);
                     }
 
                 },
-                readSkuBannerUrl: function (file, inventoryIndex, attachmentIndex) {
+                readSkuBannerUrl: function (event, inventoryIndex, attachmentIndex) {
+                    file = event.target.files[0];
                     var reader = new FileReader();
                     let self = this;
 
                     reader.onload = function (e) {
                         self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex].Attachment = e.target.result;
                         Vue.set(self.Facility.Inventories[inventoryIndex].Sku.Attachments, attachmentIndex, self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex]);
+                        self.uploadSkuBannerFile(e,inventoryIndex,attachmentIndex);
                     }
 
                     reader.readAsDataURL(file);
@@ -744,11 +741,11 @@
                 <div class="form-row">
                     <div class="col-4 my-1" v-for="(attachment,i) in Facility.Attachments">
                         <span v-if="attachment.AttachmentUrl || attachment.Attachment"
-                            @click="chooseBannerFile($event,i)" style="width:100%; width:100px;">
+                            @click="chooseBannerFile($event,i)" class="img-holder">
                             <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
-                                style="width:100%; width:100%;"></img>
+                                class="w-100"></img>
                         </span>
-                        <span v-else @click="chooseBannerFile($event,i)" style="width:100%; width:100px;">
+                        <span v-else @click="chooseBannerFile($event,i)" class="img-holder">
                             Click to upload Image
                         </span>
 
@@ -765,7 +762,7 @@
             </div>
             <div class="pop-overlay" v-if="facilityBannerBeingEdited"></div>
 
-            <div v-bind:id="'inventory-' + i " class="form-row" v-for="(inv,i) in Facility.Inventories">
+            <div v-bind:id="'inventory-' + i " class="mt-1 form-row" v-for="(inv,i) in Facility.Inventories">
                 <div class="col-12">
                     <div class="item-list">
                         <div class="form-row">
@@ -790,12 +787,13 @@
                                     <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
                                             v-bind:id="'sku-attachment-'+i" accept="image/*" capture="camera"
                                         v-on:input="onSkuBannerFileChange($event,i,ai)" />
+                                        <!--
                                     <a href="#" class="btn btn-sm btn-block m-0 mt-2 btn-primary" role="button"
                                         title="Upload" v-on:click="uploadSkuBannerFile($event,i,ai)"
                                         v-if="attachment.Dirty">
                                         Save
                                     </a>
-                                    <!-- <a href="#" class="h-fill btn btn-primary" role="button" title="Remove"
+                                     <a href="#" class="h-fill btn btn-primary" role="button" title="Remove"
                                         v-on:click="removeSkuBannner($event,i,ai)">
                                         <i class="small fas fa-trash"></i>
                                     </a> -->
@@ -803,7 +801,6 @@
                             </div>
                             <div class="col">
                                 <div class="form-row mb-2">
-
                                     <div class="col text-right">
                                         <a href="#/" class="fas fa-toggle-on btn btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
                                             v-on:click="zeroInventory($event,i)"
@@ -819,12 +816,8 @@
                                 <h6 class="m-0">{{inv.Sku.Item.Name}} -
                                     <small>{{inv.Sku.PackagingUOM.Name}}</small>
                                 </h6>
-                                <span v-if="inv.Sku.MaxRetailPrice * 1.0 === inv.SellingPrice * 1.0">
+                                <span>
                                     <b>&#x20B9; {{inv.SellingPrice}}</b>
-                                </span>
-                                <span v-else>
-                                    <b>&#x20B9; {{inv.SellingPrice}}</b> <del class="text-muted">&#x20B9;
-                                        {{inv.Sku.MaxRetailPrice}} </del>
                                 </span>
                             </div>
                         </div>
@@ -838,24 +831,19 @@
                             <label v-bind:for="'item' + i" class="small mb-0">Product Name</label>
                             <input v-bind:key="'item' + i" v-bind:id="'item' + i" class="form-control form-control-sm"
                                 placeholder="Product Name" v-model="current.Inventory.Sku.Item.Name"
-                                v-on:input="onItemChange($event)" v-on:blur="removeList($event)"
+                                v-on:input="onItemChange($event)" v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.Items.length)" />
                         </div>
                         <div class="col-5">
                             <label class="small mb-0" v-bind:for="'uom' + i">Package</label>
                             <input v-bind:key="'uom' + i" v-bind:id="'uom' + i" class="form-control form-control-sm"
                                 placeholder="Package" v-model="current.Inventory.Sku.PackagingUOM.Name"
-                                v-on:input="onUnitOfMeasureChange($event)" v-on:blur="removeList($event)"
+                                v-on:input="onUnitOfMeasureChange($event)" v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)" />
                         </div>
                     </div>
                     <div class="form-row mb-2">
                         <div class="col-7">
-                            <label class="small mb-0" v-bind:for="'mrp' + i">Max Retail Price</label>
-                            <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
-                                placeholder="MRP" v-model="current.Inventory.Sku.MaxRetailPrice" />
-                        </div>
-                        <div class="col-5">
                             <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
                             <input v-bind:key="'price' + i" v-bind:id="'price' + i" class="form-control form-control-sm"
                                 placeholder="Price" v-model="current.Inventory.SellingPrice" />
@@ -867,8 +855,8 @@
                             <label class="small mb-0" v-bind:for="'asset_code' + i">GST/SAC Code</label>
                             <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
                                 class="form-control form-control-sm" placeholder="GST/SAC Code"
-                                v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                                v-on:input="onAssetCodeChange($event)" v-on:blur="removeList($event)"
+                                v-model="current.Inventory.Sku.Item.AssetCode.Code" :disabled="current.Inventory.Sku.Item.Id"
+                                v-on:input="onAssetCodeChange($event)" v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
                         </div>
                         <div class="col-5">

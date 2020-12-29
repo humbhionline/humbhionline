@@ -18,9 +18,14 @@ public class BeforeDestroyUser  extends BeforeModelDestroyExtension<User> {
     @Override
     public void beforeDestroy(User model) {
         model.getSignUps().forEach(signUp -> signUp.destroy());
-        List<Facility> facilityList =  new Select().from(Facility.class).where(new Expression(ModelReflector.instance(Facility.class).getPool(),"CREATOR_ID", Operator.EQ,model.getId())).execute();
-        facilityList.forEach(f->f.destroy());
         List<Order> orders =  new Select().from(Order.class).where(new Expression(ModelReflector.instance(Order.class).getPool(),"CREATOR_ID", Operator.EQ,model.getId())).execute();
         orders.forEach(o->o.destroy());
+
+        List<Facility> facilityList =  new Select().from(Facility.class).where(new Expression(ModelReflector.instance(Facility.class).getPool(),"CREATOR_ID", Operator.EQ,model.getId())).execute();
+        facilityList.forEach(f->{
+            f.getOrders().forEach(o->o.destroy());
+            f.getInventoryList().forEach(i->i.destroy());
+            f.destroy();
+        });
     }
 }

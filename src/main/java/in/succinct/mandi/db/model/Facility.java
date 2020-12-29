@@ -62,4 +62,7 @@ public interface Facility extends in.succinct.plugins.ecommerce.db.model.partici
 
     @Index
     public Long getCreatorUserId();
+
+
+    public List<Order> getOrders();
 }

@@ -313,7 +313,7 @@
                         <div class="col">
                             <div class="form-check-inline align-middle mr-1">
                                 <small>
-                                    Max Distance in Kms
+                                    With in (Kms)
                                 </small>
                             </div>
                             <div class="form-check-inline align-middle mr-1">
@@ -334,6 +334,7 @@
                                 @change="setPreferredDistance(10000)">
                                 <label class="form-check-label small" for="distance_filter_10000">>10</label>
                             </div>
+
                         </div>
                     </div>
 
@@ -353,7 +354,7 @@
                 <div class="col">
                     <div class="item-list">
                         <div class="form-row">
-                            <div class="col-4">
+                            <div class="col-4 img-holder">
                                 <img class="img-fluid w-100"
                                 v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
                                 v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0" />
