@@ -174,8 +174,12 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             lineHelper.setAttribute("SkuId",StringUtil.valueOf(inventory.getSkuId()));
 
             OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement);
-            line.setMaxRetailPrice(line.getSku().getMaxRetailPrice() * line.getOrderedQuantity());
             line.setSellingPrice(inventory.getSellingPrice() *line.getOrderedQuantity());
+
+            line.setMaxRetailPrice(line.getSku().getMaxRetailPrice() * line.getOrderedQuantity());
+            if (line.getMaxRetailPrice() == 0){
+                line.setMaxRetailPrice(line.getSellingPrice());
+            }
             line.setDiscountPercentage((line.getMaxRetailPrice()  - line.getSellingPrice())/line.getMaxRetailPrice());
 
             if (!line.getRawRecord().isNewRecord()){

@@ -274,7 +274,6 @@
                     let self = this;
 
                     if (!self.isKeyTriggerable(e)) {
-                        self.current.Items = [];
                         return;
                     }
                     new Autocomplete("items", e.target).search().then(function (response) {
@@ -413,8 +412,8 @@
                             dummy.focus();
                             setTimeout(function(){
                                 resolve();
-                            },10);
-                        },10);
+                            },50);
+                        },50);
                     });
                 },
 
@@ -802,14 +801,19 @@
                             <div class="col">
                                 <div class="form-row mb-2">
                                     <div class="col text-right">
-                                        <a href="#/" class="fas fa-toggle-on btn btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
+                                        <a href="#/" class=" btn btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
                                             v-on:click="zeroInventory($event,i)"
-                                            :disabled="current.index === i"></a>
-                                        <a href="#/" class="fas fa-toggle-off btn btn-sm btn-outline-primary"
+                                            :disabled="current.index === i">
+                                            <i class="fas fa-toggle-on"></i>
+                                        </a>
+                                        <a href="#/" class=" btn btn-sm btn-outline-primary"
                                             v-on:click="infiniteInventory($event,i)" :disabled="current.index === i"
-                                            v-else></a>
+                                            v-else>
+                                            <i class="fas fa-toggle-off"></i>
+                                        </a>
                                         <a href="#/" v-if="current.index !== i"
-                                            class="ml-2 btn btn-sm btn-outline-primary fas fa-edit" v-on:click="edit($event,i)">
+                                            class="ml-2 btn btn-sm btn-outline-primary" v-on:click="edit($event,i)">
+                                            <i class=" fas fa-edit"></i>
                                         </a>
                                     </div>
                                 </div>

@@ -458,7 +458,7 @@
         <div v-bind:id="'Order-' + o.Id" class="my-4 container position-relative" v-for="(o,i) in Orders">
             <button class="btn-order-cancel d-flex  align-content-center justify-content-center" v-on:click="cancel($event,o)"
                 v-if="cancelled.findIndex(x => x === o.Id) < 0">
-                <i class="mt-1 fas fa-times "></i>
+                <i class="mt-1 fas fa-times"></i>
             </button>
             <div class="row">
                 <div class="col">
@@ -482,7 +482,7 @@
                                 {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
                                 <a v-bind:href="o._phref ? o._phref : '#'" class="btn btn-sm btn-primary mb-1 mt-1"
                                     role="button"
-                                    v-if="purchases && o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
+                                    v-if="purchases && Android && o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
                                     v-on:click="initialize_payment($event,o)">
                                     Pay
                                 </a>
@@ -569,7 +569,7 @@
                             <div class="col text-right">
                                 <a v-bind:href="o._rhref ? o._rhref : '#'" class="btn btn-sm btn-primary mb-1"
                                     role="button"
-                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y'"
+                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y' && Android && o.CreatorUser.VirtualPaymentAddress"
                                     v-on:click="initialize_refund($event,o)">
                                     Refund
                                 </a>
@@ -599,8 +599,10 @@
                                 &#x20B9; {{ ol.SellingPrice}}
                             </div>
                             <div class="col-1 d-flex justify-content-center align-items-center">
-                                <a class="fas fa-trash" v-on:click="cancel_order_line($event,ol,o)"
-                                    v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0"></a>
+                                <a href="#" class="btn" v-on:click="cancel_order_line($event,ol,o)"
+                                    v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
+                                    <i class=" fas fa-times"></i>
+                                </a>
                             </div>
                         </div>
                     </div>

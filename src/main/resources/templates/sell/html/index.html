@@ -366,15 +366,15 @@
                         <div class="action-box">
                             <!-- show status in the icon -->
                             <span v-if="current.index != i">
-                                <a href="#" class="btn btn-sm" v-if="(!f.Published || f.Published === 'N')"
+                                <a href="#" class="btn btn-sm btn-outline-primary" v-if="(!f.Published || f.Published === 'N')"
                                     v-on:click="publish($event,i)">
                                     <i class="fas fa-toggle-off"></i>
                                 </a>
-                                <a href="#" class="btn btn-sm" v-if="(f.Published && f.Published === 'Y')"
+                                <a href="#" class="btn btn-sm btn-outline-primary" v-if="(f.Published && f.Published === 'Y')"
                                     v-on:click="unpublish($event,i)">
                                      <i class="fas fa-toggle-on"></i>
                                 </a>
-                                <a href="#/" class="btn btn-sm" role="button" v-on:click="edit($event,i)">
+                                <a href="#/" class="btn btn-sm btn-outline-primary" role="button" v-on:click="edit($event,i)">
                                     <i class='fas fa-edit'></i>
                                 </a>
                             </span>
