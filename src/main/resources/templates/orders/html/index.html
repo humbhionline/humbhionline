@@ -482,7 +482,7 @@
                                 {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
                                 <a v-bind:href="o._phref ? o._phref : '#'" class="btn btn-sm btn-primary mb-1 mt-1"
                                     role="button"
-                                    v-if="purchases && Android && o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
+                                    v-if="purchases && o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
                                     v-on:click="initialize_payment($event,o)">
                                     Pay
                                 </a>
@@ -569,7 +569,7 @@
                             <div class="col text-right">
                                 <a v-bind:href="o._rhref ? o._rhref : '#'" class="btn btn-sm btn-primary mb-1"
                                     role="button"
-                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y' && Android && o.CreatorUser.VirtualPaymentAddress"
+                                    v-if="sales && o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y' && o.CreatorUser.VirtualPaymentAddress"
                                     v-on:click="initialize_refund($event,o)">
                                     Refund
                                 </a>
