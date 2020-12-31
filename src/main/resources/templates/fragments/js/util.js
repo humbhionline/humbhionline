@@ -10,9 +10,13 @@ function logout(ev){
 
 function showError(err){
     if (err.response ){
-        if (err.response.headers && err.response.headers.status === 401){
-            logout();
-        }else if (err.response.headers && err.response.headers.status === "413"){
+        if (err.response.status === 401){
+            if (Lockr.get("SignUp") || Lockr.get("User")){
+                window.location.replace("/login");
+            }else {
+                logout();
+            }
+        }else if (err.response.status === 413){
              showErrorMessage("Size Uploaded Too Big");
         }else if (err.response.data && err.response.data.SWFHttpResponse.Error) {
             showErrorMessage(err.response.data.SWFHttpResponse.Error)

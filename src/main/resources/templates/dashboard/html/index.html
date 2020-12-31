@@ -80,8 +80,8 @@
                         });
                     }
                 }).catch(function (err) {
-                    self.showApp();
                     showError(err);
+                    self.showApp();
                 });
                 let fo = Lockr.get("facilityOrders");
                 if (fo) {

@@ -19,9 +19,13 @@ public class DashboardController extends TemplatedController {
     public DashboardController(Path path) {
         super(path);
     }
-    @RequireLogin
+
     public View index(){
-        return html("index");
+        if (getPath().getSessionUser() != null) {
+            return html("index");
+        }else {
+            return html("index_nologin");
+        }
     }
 
     public View actual_terms(){
