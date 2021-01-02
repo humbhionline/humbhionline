@@ -543,7 +543,7 @@
                     <div class="col">
                         <a href="#" class="btn-close fas fa-edit" v-if="!userAddressBeingEdited"
                             @click="editAddress($event)"></a>
-                        <h6 class="m-0">&nbsp;{{ User.LongName }}</h6>
+                        <h6 class="m-0">{{ User.LongName }}</h6>
                         <p class="m-0 text-muted">
                             <span v-if="User.AddressLine1">{{User.AddressLine1}},</span>
                             <span v-if="User.AddressLine2">{{User.AddressLine2}},</span>
@@ -786,7 +786,7 @@
                     </div>
                 </div>
             </div>
-            <div class="content-box">
+            <div class="content-box mt-4" v-if="User.LongName.length < 0">
                 <div class="row">
                     <div class="col d-flex flex-row justify-content-end">
                         <button class="btn btn-block btn-primary btn-sm" @click="close($event)">Done</button>
@@ -876,9 +876,6 @@
                 </div>
             </form>
         </div>
-
-
-
         <div class="pop-overlay" v-if="userAddressBeingEdited || userPasswordBeingEdited"></div>
     </div>
 </div>

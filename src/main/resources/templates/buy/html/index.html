@@ -43,13 +43,13 @@
                     window.location.href = "/index";
                 },
                 showApp: function () {
-                    $("#header").load("/fragments/html/header",{}, function(){
+                    $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
                         new Vue({
                             el: "#header",
-                            data  : {
-                                User : Lockr.get("User"),
-                                navbar : { hide : false },
+                            data: {
+                                User: Lockr.get("User"),
+                                navbar: { hide: false },
                             }
                         });
                         $("#pageTitle").html("Order Details");
@@ -60,7 +60,7 @@
                     let self = this;
                     let user = self.User;
                     var order = self.facilityOrders[f.Id];
-                    order.Facility = { Id : f.Id };
+                    order.Facility = { Id: f.Id };
 
                     order.ShippingSellingPrice = f.DeliveryProvided === 'Y' ? f.DeliveryCharges : 0;
 
@@ -119,7 +119,7 @@
                             self.facilities.splice(index, 1);
                         }
                         Lockr.set("facilityOrders", self.facilityOrders);
-                        showErrorMessage("Order " + response.Orders[0].Id + " Booked Successfully!").then(function(){
+                        showErrorMessage("Order " + response.Orders[0].Id + " Booked Successfully!").then(function () {
                             window.location.reload();
                         });
                     }).catch(function (err) {
@@ -139,7 +139,7 @@
                         self.facilities = [];
                         self.facilityOrders = {};
                         Lockr.rm("facilityOrders");
-                        showErrorMessage("Order " + response.Orders.map(o => o.Id) + " Booked Successfully!").then(function(){
+                        showErrorMessage("Order " + response.Orders.map(o => o.Id) + " Booked Successfully!").then(function () {
                             window.location.reload();
                         });
                     }).catch(function (err) {
@@ -332,8 +332,7 @@
                     </div>
                 </div>
             </div>
-            <div style="height: 4em;">
-                &nbsp;
+            <div style="height: 98px;">
             </div>
             <div class="container">
                 <div class="bottom-card">

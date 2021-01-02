@@ -1,11 +1,11 @@
 <script type="application/javascript">
 
-    function hideMenu(){
+    function hideMenu() {
         $("#navbarTogglerDemo03").removeClass("show");
         return true;
     }
-    function fixMenu(){
-        $(function(){
+    function fixMenu() {
+        $(function () {
             let path = window.location.pathname;
             console.log('Path', path);
             path === "/dashboard" ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show()
@@ -16,10 +16,10 @@
             });
         });
     }
-    function back(){
-        if (window.history.length === 1){
+    function back() {
+        if (window.history.length === 1) {
             window.location.replace("/index");
-        }else {
+        } else {
             window.history.back();
         }
     }
@@ -52,7 +52,7 @@
                 <a class="nav-link" href="/dashboard"><i class="fa fa-home"></i> Home</a>
             </li>
             <li class="nav-item border-bottom">
-                <a class="nav-link" href="/users/html/profile" ><i class="fa fa-user-circle"></i> Profile</a>
+                <a class="nav-link" href="/users/html/profile"><i class="fa fa-user-circle"></i> Profile</a>
             </li>
             <li class="nav-item border-bottom dropdown-submenu" v-if="User.Seller === 'Y' && User.Verified === 'Y'">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarSellingMenuLink" data-toggle="dropdown"
@@ -75,20 +75,22 @@
                 </ul>
             </li>
 
-
             <li class="nav-item border-bottom">
                 <a class="nav-link" href="/orders?type=purchases" onclick="hideMenu()">
                     <i class="fa fa-list"></i> Purchases</a>
             </li>
             <li class="nav-item border-bottom">
-                <a class=" nav-link"  href="/issues" onclick="hideMenu()">
-                    <i class="fa fa-comment-dots"></i>Message Support</a>
+                <a class=" nav-link" href="/issues" onclick="hideMenu()">
+                    <i class="fa fa-comment-dots"></i> Message Support</a>
             </li>
             <li class="nav-item border-bottom" v-if="User.Staff === 'Y'">
-                <a class=" nav-link"  href="/users/search/VERIFIED:N" onclick="hideMenu()">
-                    <i class="fa fa-user"></i>Pending Kyc</a>
+                <a class=" nav-link" href="/users/search/VERIFIED:N" onclick="hideMenu()">
+                    <i class="fa fa-user"></i> Pending Kyc</a>
             </li>
-
+            <li class="nav-item border-bottom">
+                <a class=" nav-link" href="/dashboard/html/terms" onclick="hideMenu()">
+                    <i class="fa fa-user"></i> Policies</a>
+            </li>
             <li class="nav-item border-bottom">
                 <a class=" nav-link" onclick="logout(event)" href="#" onclick="hideMenu()">
                     <i class="fa fa-power-off"></i> Logout</a>

@@ -1,7 +1,7 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
-<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<script type="text/javascript" src="/fragments/js/util.js"></script>
 <link rel="stylesheet" href="/fragments/css/mandi.css">
 
 
@@ -23,19 +23,19 @@
         new Vue({
             el: "#app",
             data: {
-                User : {},
+                User: {},
                 sendSubscriptionToServer: sendSubscriptionToServer,
-                ShipmentCount : 0,
-                OrderLineCount : 0,
-                OrderAmount : 0,
-                DeliveryAmount : 0,
-                search : {
-                    MaxDistance : Lockr.get("PreferredMaxDistance") || 10 ,
-                    facility_id : facility_id,
-                    Facility : {},
-                    term : term || "",
-                    results : [] ,
-                    termLengthTrigger : 1,
+                ShipmentCount: 0,
+                OrderLineCount: 0,
+                OrderAmount: 0,
+                DeliveryAmount: 0,
+                search: {
+                    MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
+                    facility_id: facility_id,
+                    Facility: {},
+                    term: term || "",
+                    results: [],
+                    termLengthTrigger: 1,
                 },
                 facilityOrders: {},
             },
@@ -43,23 +43,23 @@
                 let self = this;
                 api().url("/users/current").get().then(function (response) {
                     self.User = response.User;
-                    if (!self.User.UserPhones){
+                    if (!self.User.UserPhones) {
                         self.User.UserPhones = [];
                     }
                     Lockr.set("User", self.User);
-                    Lockr.set("SignUp",self.User.SignUps[0]);
+                    Lockr.set("SignUp", self.User.SignUps[0]);
                     subscribe(sendSubscriptionToServer); //Do Subscription only after setting User.
-                    if (self.User.TermsAccepted !== 'Y'){
+                    if (self.User.TermsAccepted !== 'Y') {
                         window.location.replace("/dashboard/html/terms");
                         return;
                     }
-                    if (self.User.PasswordSet !== 'Y'){
+                    if (self.User.PasswordSet !== 'Y') {
                         window.location.replace("/users/html/profile");
                         return;
                     }
 
-                    let  validated = self.User.Id == 1 || self.User.UserPhones.length > 0 ;
-                    if (validated){
+                    let validated = self.User.Id == 1 || self.User.UserPhones.length > 0;
+                    if (validated) {
                         self.User.UserPhones.forEach((item, i) => {
                             if (item.Validated === 'N') {
                                 validated = false;
@@ -135,13 +135,13 @@
                     });
                 },
                 showApp: function () {
-                    $("#header").load("/fragments/html/header",{}, function(){
+                    $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
                         new Vue({
                             el: "#header",
-                            data  : {
-                                User : Lockr.get("User"),
-                                navbar : { hide : false },
+                            data: {
+                                User: Lockr.get("User"),
+                                navbar: { hide: false },
                             }
                         });
                         $("#pageTitle").html("Hum Bhi Online");
@@ -291,12 +291,14 @@
     <div id="app" class="app-body">
         <div class="container-fluid" v-if="search.facility_id && search.Facility.Name">
             <div class="row">
-                <div class="col-12">
-                    {{search.Facility.Name}},<br />
-                    {{search.Facility.AddressLine1}},{{search.Facility.AddressLine2}}<br />
-                    {{search.Facility.City.Name}},{{search.Facility.State.Name}}<br />
-                    {{search.Facility.PinCode.PinCode}}<br />
-                    @ Distance of {{search.Facility.Distance}} Km <br />
+                <div class="col-12 item-list">
+                    <h6 class="mb-0">{{search.Facility.Name}}</h6>
+                    <p class="m-0 text-muted">
+                        {{search.Facility.AddressLine1}}, {{search.Facility.AddressLine2}},
+                        {{search.Facility.City.Name}}, {{search.Facility.State.Name}}
+                        {{search.Facility.PinCode.PinCode}}
+                    </p>
+                    <p class="text-right"><small>@ Distance of {{search.Facility.Distance}} Km</small></p>
                     <!-- {{search.Facility.Lat +","+ search.Facility.Lng}} -->
                 </div>
             </div>
@@ -306,7 +308,7 @@
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
                         <input key="search" id="search" class="search-control" placeholder="Search for Items or Store"
-                        v-on:input="find($event)" v-model="search.term" />
+                            v-on:input="find($event)" v-model="search.term" />
                         <i class="fa fa-search"></i>
                     </div>
                     <div class="form-row mt-1 mb-2">
@@ -318,20 +320,20 @@
                             </div>
                             <div class="form-check-inline align-middle mr-1">
                                 <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
-                                name="MaxDistance" id="distance_filter_5" value="5"
-                                @change="setPreferredDistance(5)">
+                                    name="MaxDistance" id="distance_filter_5" value="5"
+                                    @change="setPreferredDistance(5)">
                                 <label class="form-check-label small" for="distance_filter_5">0 - 5</label>
                             </div>
                             <div class="form-check-inline align-middle mr-1">
                                 <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
-                                name="MaxDistance" id="distance_filter_10" value="10"
-                                @change="setPreferredDistance(10)">
+                                    name="MaxDistance" id="distance_filter_10" value="10"
+                                    @change="setPreferredDistance(10)">
                                 <label class="form-check-label small" for="distance_filter_10">0 - 10</label>
                             </div>
                             <div class="form-check-inline align-middle mr-1">
                                 <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
-                                name="MaxDistance" id="distance_filter_10000" value="10000"
-                                @change="setPreferredDistance(10000)">
+                                    name="MaxDistance" id="distance_filter_10000" value="10000"
+                                    @change="setPreferredDistance(10000)">
                                 <label class="form-check-label small" for="distance_filter_10000">>10</label>
                             </div>
 
@@ -356,71 +358,74 @@
                         <div class="form-row">
                             <div class="col-4 img-holder">
                                 <img class="img-fluid w-100"
-                                v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
-                                v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0" />
+                                    v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
+                                    v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0" />
                             </div>
                             <div class="col">
                                 <h6 class="m-0">{{result.Sku.Name}}</h6>
                                 <p class="mb-1">
                                     <small class="text-muted font-weight-bold">By: <a
-                                        v-bind:href="'/dashboard?facility_id=' +result.Facility.Id">{{result.Facility.Name}}</a>
+                                            v-bind:href="'/dashboard?facility_id=' +result.Facility.Id">{{result.Facility.Name}}</a>
                                     </small>
                                 </p>
                                 <small class="m-0"><a
-                                    v-bind:href="'https://google.com/maps/place/'+result.Facility.Lat +',' + result.Facility.Lng">
-                                    <i class="fa fa-map-pin mr-1 text-muted"></i>
-                                    {{result.Facility.Distance}} Km
-                                </a>
-                            </small>
-                            <h5 class="mb-0 mt-3">&#x20B9; {{result.SellingPrice}}</h5>
+                                        v-bind:href="'https://google.com/maps/place/'+result.Facility.Lat +',' + result.Facility.Lng">
+                                        <i class="fa fa-map-pin mr-1 text-muted"></i>
+                                        {{result.Facility.Distance}} Km
+                                    </a>
+                                </small>
+                                <h5 class="mb-0 mt-3">&#x20B9; {{result.SellingPrice}}</h5>
+                            </div>
+                        </div>
+                        <hr class="my-2" />
+                        <div class="form-row">
+                            <div class="col-4">
+                                <div class="btn-group" role="group" aria-label="Basic example">
+                                    <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
+                                        v-on:click="reduce($event,index)">
+                                        <i class="fa fa-minus"></i>
+                                    </button>
+                                    <input v-bind:key="'quantity' + index" v-bind:id="'quantity' + index"
+                                        class="btn btn-sm btn-outline-primary w-100 border-left-0 border-right-0 m-0"
+                                        placeholder="Quantity" v-model="result.OrderedQuantity"
+                                        @change="onQtyChange($event,index)" />
+                                    <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
+                                        v-on:click="increase($event,index)">
+                                        <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col text-right d-flex align-items-center justify-content-end">
+                                <small>
+                                    <span class="font-weight-bold text-muted">by:</span>
+                                    <del v-if="result.Facility.DeliveryProvided !== 'Y'">Delivery</del>
+                                    <span v-if="result.Facility.DeliveryProvided === 'Y'">Delivery <span
+                                            v-if="result.Facility.DeliveryRadius * 1.0 > 0">up to
+                                            {{ result.Facility.DeliveryRadius * 1.0}} Kms </span></span>
+                                    <span> | Pickup</span>
+
+                                </small>
+                            </div>
                         </div>
                     </div>
-                    <hr class="my-2" />
-                    <div class="form-row">
-                        <div class="col-4">
-                            <div class="btn-group" role="group" aria-label="Basic example">
-                                <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
-                                v-on:click="reduce($event,index)">
-                                <i class="fa fa-minus"></i>
-                            </button>
-                            <input v-bind:key="'quantity' + index" v-bind:id="'quantity' + index"
-                            class="btn btn-sm btn-outline-primary w-100 border-left-0 border-right-0 m-0"
-                            placeholder="Quantity" v-model="result.OrderedQuantity"
-                            @change="onQtyChange($event,index)" />
-                            <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
-                            v-on:click="increase($event,index)">
-                            <i class="fa fa-plus"></i>
-                        </button>
-                    </div>
                 </div>
-                <div class="col text-right d-flex align-items-center justify-content-end">
-                    <small>
-                        <span class="font-weight-bold text-muted">by:</span>
-                        <del v-if="result.Facility.DeliveryProvided !== 'Y'">Delivery</del>
-                        <span v-if="result.Facility.DeliveryProvided === 'Y'">Delivery <span
-                            v-if="result.Facility.DeliveryRadius * 1.0 > 0">up to
-                            {{ result.Facility.DeliveryRadius * 1.0}} Kms </span></span>
-                            <span> | Pickup</span>
+            </div>
+            <div style="height: 70px;">
 
-                        </small>
+            </div>
+            <div class="bottom-card" v-if="OrderLineCount > 0">
+                <div class="form-row">
+                    <div class="col-8">
+                        <h6 class="m-0">{{OrderLineCount}} Items | &#x20B9; {{(OrderAmount * 1.0).toFixed(2)}}</h6>
+                        <small class="m-0 text-muted">Delivery charges &#x20B9;
+                            {{(DeliveryAmount *1.0).toFixed(2)}}</small>
+                    </div>
+                    <div class="col d-flex align-items-center">
+                        <a class="btn btn-primary btn-sm btn-block" href="/buy">CHECKOUT</a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="bottom-card" v-if="OrderLineCount > 0">
-        <div class="form-row">
-            <div class="col-8">
-                <h6 class="m-0">{{OrderLineCount}} Items | &#x20B9; {{(OrderAmount * 1.0).toFixed(2)}}</h6>
-                <small class="m-0 text-muted">Delivery charges &#x20B9;
-                    {{(DeliveryAmount *1.0).toFixed(2)}}</small>
-                </div>
-                <div class="col d-flex align-items-center">
-                    <a class="btn btn-primary btn-sm btn-block" href="/buy">CHECKOUT</a>
-                </div>
-            </div>
-        </div>
-    </div>
 
-</div>
+    </div>
 </div>

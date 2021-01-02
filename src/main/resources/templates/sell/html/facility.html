@@ -3,7 +3,8 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/deepmerge/dist/umd.js"></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
-<link href="/fragments/css/mandi.css" rel="stylesheet"></link>
+<link href="/fragments/css/mandi.css" rel="stylesheet">
+</link>
 <script type="text/javascript" src="/fragments/js/util.js"></script>
 
 
@@ -41,7 +42,7 @@
                             inv.Sku.Item.AssetCode = { Code: "" };
                         }
                         if (!inv.Sku.Attachments) {
-                            inv.Sku.Attachments = [{ Sku :{ Id : inv.Sku.Id }}];
+                            inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
                         }
                     });
                     if (!response.Facility.Attachments) {
@@ -62,7 +63,7 @@
                             el: "#header",
                             data: {
                                 User: Lockr.get("User"),
-                                navbar : { hide : false },
+                                navbar: { hide: false },
                             }
                         });
                         $(".navbar").addClass("bg-clear");
@@ -153,9 +154,9 @@
                             inv.Sku.Item.AssetCode = { Code: "" };
                         }
                         if (!inv.Sku.Attachments) {
-                            inv.Sku.Attachments = [{ Sku : { Id: inv.Sku.Id} }];
-                            api().url("/skus/show/"+inv.Sku.Id).get().then(function(sku_response){
-                                inv.Sku.Attachments = sku_response.Sku.Attachments  ||  [{ Sku : { Id: inv.Sku.Id} }];
+                            inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
+                            api().url("/skus/show/" + inv.Sku.Id).get().then(function (sku_response) {
+                                inv.Sku.Attachments = sku_response.Sku.Attachments || [{ Sku: { Id: inv.Sku.Id } }];
                             });
                         }
 
@@ -194,7 +195,7 @@
                         self.Facility.Inventories.splice(index, 1);
                     }
                 },
-                destroy : function(event, index){
+                destroy: function (event, index) {
                     if (event) {
                         event.preventDefault();
                     }
@@ -205,7 +206,7 @@
                     let newRecord = !i.Id;
                     if (!newRecord) {
                         i.Infinite = "Y";
-                        api().url("/inventories/destroy/"+i.Id).get().then(function (response) {
+                        api().url("/inventories/destroy/" + i.Id).get().then(function (response) {
                             self.Facility.Inventories.splice(index, 1);
                         }).catch(function (err) {
                             showError(err);
@@ -287,7 +288,7 @@
                 onItemSelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
-                    self.hideKeyboard().then(function(){
+                    self.hideKeyboard().then(function () {
                         self.current.Inventory.Sku.Item = item;
                         //self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
                         if (!item.AssetCode) {
@@ -320,7 +321,7 @@
                 onAssetCodeSelect: function (e, ac) {
                     e && e.preventDefault();
                     let self = this;
-                    self.hideKeyboard().then(function(){
+                    self.hideKeyboard().then(function () {
                         self.current.Inventory.Sku.Item.AssetCode = ac;
                         self.current.AssetCodes = [];
                     });
@@ -356,12 +357,12 @@
                 onUnitOfMeasuresSelect: function (e, uom) {
                     e && e.preventDefault();
                     let self = this;
-                    self.hideKeyboard().then(function(){
+                    self.hideKeyboard().then(function () {
                         delete uom.Id;
-                        delete self.current.Inventory.Sku.Id ;
+                        delete self.current.Inventory.Sku.Id;
                         self.current.Inventory.Sku.PackagingUOM = uom;
                         self.current.UnitOfMeasures = [];
-                        let q = {q : "ITEM:" + self.current.Inventory.Sku.Item.Name  + " AND PACKAGING_U_O_M:" + uom.Name };
+                        let q = { q: "ITEM:" + self.current.Inventory.Sku.Item.Name + " AND PACKAGING_U_O_M:" + uom.Name };
                         api().url("/skus/search").get(q).then(function (response) {
                             if (response.Skus.length === 1) {
                                 self.current.Inventory.Sku = response.Skus[0];
@@ -398,22 +399,22 @@
                     let elem = e.target;
                     let self = this;
                     //self.hideKeyboard().then(function(){
-                        self.current.Items = [];
-                        self.current.UnitOfMeasures = [];
-                        self.current.AssetCodes = [];
-                        $(".lookups-list").removeClass("offsetTop");
+                    self.current.Items = [];
+                    self.current.UnitOfMeasures = [];
+                    self.current.AssetCodes = [];
+                    $(".lookups-list").removeClass("offsetTop");
                     //});
                 },
-                hideKeyboard: function(){
-                    return new Promise(function(resolve,reject){
+                hideKeyboard: function () {
+                    return new Promise(function (resolve, reject) {
                         //let dummy = $("#dummy");
                         let dummy = $(document.documentElement);
-                        setTimeout(function(){
+                        setTimeout(function () {
                             dummy.focus();
-                            setTimeout(function(){
+                            setTimeout(function () {
                                 resolve();
-                            },50);
-                        },50);
+                            }, 50);
+                        }, 50);
                     });
                 },
 
@@ -470,7 +471,7 @@
                     self.Facility.Attachments[index].Dirty = true;
                     Vue.set(self.Facility.Attachments, index, self.Facility.Attachments[index]);
                     self.readFacilityBannerUrl(e.target.files[0], index);
-                    self.uploadFacilityBannerFile(e,index);
+                    self.uploadFacilityBannerFile(e, index);
                 },
                 readFacilityBannerUrl: function (file, index) {
                     var reader = new FileReader();
@@ -542,7 +543,7 @@
                     if (e.target.files.length > 0) {
                         skuAttachment.AttachmentContentName = e.target.files[0].name;
                         skuAttachment.Dirty = true;
-                        self.readSkuBannerUrl(e,inventoryIndex, attachmentIndex);
+                        self.readSkuBannerUrl(e, inventoryIndex, attachmentIndex);
                     }
 
                 },
@@ -554,7 +555,7 @@
                     reader.onload = function (e) {
                         self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex].Attachment = e.target.result;
                         Vue.set(self.Facility.Inventories[inventoryIndex].Sku.Attachments, attachmentIndex, self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex]);
-                        self.uploadSkuBannerFile(e,inventoryIndex,attachmentIndex);
+                        self.uploadSkuBannerFile(e, inventoryIndex, attachmentIndex);
                     }
 
                     reader.readAsDataURL(file);
@@ -744,17 +745,19 @@
                             <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
                                 class="w-100"></img>
                         </span>
-                        <span v-else @click="chooseBannerFile($event,i)" class="img-holder">
-                            Click to upload Image
+                        <span v-else @click="chooseBannerFile($event,i)" class="img-holder d-flex align-items-center justify-content-center border rounded-sm">
+                            <div>
+                                <i class="fa fa-image text-muted"></i>
+                                Click to upload Image
+                            </div>
                         </span>
-
                         <a href="#" class="btn btn-sm btn-block btn-outline-primary" role="button" title="Remove"
                             v-on:click="removeBannner($event,i)">
                             <i class="small fas fa-trash"></i>
                         </a>
 
                         <input type="file" class="file-upload" v-bind:key="'attachment-'+i" v-bind:id="'attachment-'+i"
-                            v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*" capture="camera"/>
+                            v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*" capture="camera" />
 
                     </div>
                 </div>
@@ -766,7 +769,8 @@
                     <div class="item-list">
                         <div class="form-row">
                             <button v-if="current.index !== i"
-                                class="btn-sm btn-inv-remove btn-outline-primary d-flex align-contents-center justify-content-center" v-on:click="destroy($event,i)">
+                                class="btn-sm btn-inv-remove btn-outline-primary d-flex align-contents-center justify-content-center"
+                                v-on:click="destroy($event,i)">
                                 <i class="fas fa-times"></i>
                             </button>
                             <div class="col-4 img-holder">
@@ -784,9 +788,9 @@
                                         <i class="fa fa-camera"></i>
                                     </label>
                                     <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
-                                            v-bind:id="'sku-attachment-'+i" accept="image/*" capture="camera"
+                                        v-bind:id="'sku-attachment-'+i" accept="image/*" capture="camera"
                                         v-on:input="onSkuBannerFileChange($event,i,ai)" />
-                                        <!--
+                                    <!--
                                     <a href="#" class="btn btn-sm btn-block m-0 mt-2 btn-primary" role="button"
                                         title="Upload" v-on:click="uploadSkuBannerFile($event,i,ai)"
                                         v-if="attachment.Dirty">
@@ -801,18 +805,17 @@
                             <div class="col">
                                 <div class="form-row mb-2">
                                     <div class="col text-right">
-                                        <a href="#/" class=" btn btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
-                                            v-on:click="zeroInventory($event,i)"
-                                            :disabled="current.index === i">
+                                        <a href="#/" class="btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
+                                            v-on:click="zeroInventory($event,i)" :disabled="current.index === i">
                                             <i class="fas fa-toggle-on"></i>
                                         </a>
-                                        <a href="#/" class=" btn btn-sm btn-outline-primary"
+                                        <a href="#/" class="btn-sm btn-outline-primary"
                                             v-on:click="infiniteInventory($event,i)" :disabled="current.index === i"
                                             v-else>
                                             <i class="fas fa-toggle-off"></i>
                                         </a>
-                                        <a href="#/" v-if="current.index !== i"
-                                            class="ml-2 btn btn-sm btn-outline-primary" v-on:click="edit($event,i)">
+                                        <a href="#/" v-if="current.index !== i" class="btn-sm btn-outline-primary"
+                                            v-on:click="edit($event,i)">
                                             <i class=" fas fa-edit"></i>
                                         </a>
                                     </div>
@@ -859,8 +862,9 @@
                             <label class="small mb-0" v-bind:for="'asset_code' + i">GST/SAC Code</label>
                             <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
                                 class="form-control form-control-sm" placeholder="GST/SAC Code"
-                                v-model="current.Inventory.Sku.Item.AssetCode.Code" :disabled="current.Inventory.Sku.Item.Id"
-                                v-on:input="onAssetCodeChange($event)" v-on:focus="removeList($event)"
+                                v-model="current.Inventory.Sku.Item.AssetCode.Code"
+                                :disabled="current.Inventory.Sku.Item.Id" v-on:input="onAssetCodeChange($event)"
+                                v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
                         </div>
                         <div class="col-5">
