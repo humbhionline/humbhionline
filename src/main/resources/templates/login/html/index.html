@@ -111,7 +111,9 @@
                     }
                     let self = this;
                     if (self.phoneNumberEntered && !blank(self.params.User.PhoneNumber)) {
-                        window.location.replace("/login/index_otp?phone_number="+self.params.User.PhoneNumber);
+                        setTimeout(function(){
+                            window.location.replace("/login/index_otp?phone_number="+self.params.User.PhoneNumber);
+                        },50);
                     }else {
                         window.location.replace("/login/index_otp");
                     }

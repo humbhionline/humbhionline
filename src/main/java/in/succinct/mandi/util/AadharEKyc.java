@@ -160,7 +160,7 @@ public class AadharEKyc {
         Document document = aadharXML.getDocument();
 
         CertificateFactory fact = CertificateFactory.getInstance("X.509");
-        InputStream certStream = getClass().getResourceAsStream("/config/uidai_offline_publickey_20190619.cer");
+        InputStream certStream = getClass().getResourceAsStream("/config/uidai_auth_sign_prod_2023.cer");
         Certificate cer = fact.generateCertificate(certStream);
         PublicKey key = cer.getPublicKey();
 
