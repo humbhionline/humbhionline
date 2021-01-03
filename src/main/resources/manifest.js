@@ -2,7 +2,8 @@ var staticCacheName = 'mandi-v1';
 var cacheRefreshTime = 0;
 async function refreshCache(){
     var now = new Date().getTime();
-    if (cacheRefreshTime < now - 60000){ //Older than 10 seconds
+    if (cacheRefreshTime < now - 30000){ //Older than 10 seconds
+        cacheRefreshTime = now;
         var r = await fetch("/cache_versions/last",{headers:{'content-type' :'application/json'}});
         var response = await r.json();
         staticCacheName = 'mandi-v'+response.CacheVersion.VersionNumber;
@@ -13,7 +14,6 @@ async function refreshCache(){
                 }
             });
         })
-        cacheRefreshTime = now;
     }
 }
 
