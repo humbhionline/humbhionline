@@ -757,7 +757,7 @@
                         </a>
 
                         <input type="file" class="file-upload" v-bind:key="'attachment-'+i" v-bind:id="'attachment-'+i"
-                            v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*" capture="camera" />
+                            v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*"  />
 
                     </div>
                 </div>
@@ -788,7 +788,7 @@
                                         <i class="fa fa-camera"></i>
                                     </label>
                                     <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
-                                        v-bind:id="'sku-attachment-'+i" accept="image/*" capture="camera"
+                                        v-bind:id="'sku-attachment-'+i" accept="image/*" 
                                         v-on:input="onSkuBannerFileChange($event,i,ai)" />
                                     <!--
                                     <a href="#" class="btn btn-sm btn-block m-0 mt-2 btn-primary" role="button"

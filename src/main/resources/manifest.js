@@ -1,10 +1,31 @@
-const staticCacheName = 'mandi-v1';
+var staticCacheName = 'mandi-v1';
+var cacheRefreshTime = 0;
+async function refreshCache(){
+    var now = new Date().getTime();
+    if (cacheRefreshTime < now - 60000){ //Older than 10 seconds
+        var r = await fetch("/cache_versions/last",{headers:{'content-type' :'application/json'}});
+        var response = await r.json();
+        staticCacheName = 'mandi-v'+response.CacheVersion.VersionNumber;
+        caches.keys().then(function(cacheNames){
+            cacheNames.forEach(function(name,i){
+                if (name !== staticCacheName){
+                    caches.delete(name);
+                }
+            });
+        })
+        cacheRefreshTime = now;
+    }
+}
 
 self.addEventListener('fetch', function(event){
+    refreshCache();
+    if (event.request.cache === 'only-if-cached' && event.request.mode !== 'same-origin') {
+        return;
+    }
     event.respondWith(
         caches.match(event.request).then(function (response) {
             let cacheable = event.request.method.toUpperCase() === 'GET' && event.request.url.startsWith("http") &&
-                (  /^(.*)\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js)/.test(event.request.url) )  
+                (  /^(.*)\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js)/.test(event.request.url) )
             if (response !== undefined){
                 console.log("Found in cache" + event.request.url );
                 return response;
@@ -21,6 +42,7 @@ self.addEventListener('fetch', function(event){
             }
         })
     );
+
 });
 
 self.addEventListener('activate', function(event){
@@ -31,7 +53,7 @@ self.addEventListener('activate', function(event){
 
 
 self.addEventListener('install', event => {
-  console.log('Attempting to install service worker and cache static assets');
+    console.log('Attempting to install service worker and cache static assets');
 });
 
 var deferredPrompt;
