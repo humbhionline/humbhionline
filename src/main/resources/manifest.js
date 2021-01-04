@@ -1,12 +1,12 @@
-var staticCacheName = 'mandi-v1';
+var staticCacheName = undefined;
 var cacheRefreshTime = 0;
 async function refreshCache(){
     var now = new Date().getTime();
-    if (cacheRefreshTime < now - 30000){ //Older than 10 seconds
+    if (!staticCacheName || cacheRefreshTime < now - 30000){ //Older than 10 seconds
         cacheRefreshTime = now;
         var r = await fetch("/cache_versions/last",{headers:{'content-type' :'application/json'}});
         var response = await r.json();
-        staticCacheName = 'mandi-v'+response.CacheVersion.VersionNumber;
+        staticCacheName = 'mandi-v'+ (response.CacheVersion.VersionNumber * 1.0).toFixed(0);
         caches.keys().then(function(cacheNames){
             cacheNames.forEach(function(name,i){
                 if (name !== staticCacheName){
@@ -16,9 +16,29 @@ async function refreshCache(){
         })
     }
 }
+function loadCacheVersion(){
+    return new Promise(function(resolve,reject){
+        if (!staticCacheName){
+            caches.keys().then(function(cacheNames){
+                if (cacheNames.length === 1){
+                    staticCacheName = cacheNames[0];
+                    resolve();
+                }else {
+                    refreshCache().catch(function(){
+                    }).finally(function(){
+                        resolve();
+                    })
+                }
+            });
+        }
+        resolve();
+    });
+}
 
 self.addEventListener('fetch', function(event){
-    refreshCache();
+    if (staticCacheName){
+        refreshCache();
+    }
     if (event.request.cache === 'only-if-cached' && event.request.mode !== 'same-origin') {
         return;
     }
@@ -30,12 +50,14 @@ self.addEventListener('fetch', function(event){
                 console.log("Found in cache" + event.request.url );
                 return response;
             }else if (cacheable){
-                return fetch(event.request).then(function(response){
-                    let responseClone = response.clone();
-                    caches.open(staticCacheName).then(function (cache) {
-                      cache.put(event.request, responseClone);
+                return loadCacheVersion().then(function(){
+                    return fetch(event.request).then(function(response){
+                        let responseClone = response.clone();
+                        caches.open(staticCacheName).then(function (cache) {
+                          cache.put(event.request, responseClone);
+                        });
+                        return response;
                     });
-                    return response;
                 });
             }else {
                 return fetch(event.request);
