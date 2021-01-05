@@ -1,63 +1,63 @@
 var staticCacheName = undefined;
 var cacheRefreshTime = 0;
-async function refreshCache(){
-    var now = new Date().getTime();
-    if (!staticCacheName || cacheRefreshTime < now - 30000){ //Older than 10 seconds
-        cacheRefreshTime = now;
-        var r = await fetch("/cache_versions/last",{headers:{'content-type' :'application/json'}});
-        var response = await r.json();
-        staticCacheName = 'mandi-v'+ (response.CacheVersion.VersionNumber * 1.0).toFixed(0);
-        caches.keys().then(function(cacheNames){
-            cacheNames.forEach(function(name,i){
-                if (name !== staticCacheName){
-                    caches.delete(name);
-                }
-            });
-        })
-    }
-}
-function loadCacheVersion(){
+
+function refreshCache(){
     return new Promise(function(resolve,reject){
-        if (!staticCacheName){
-            caches.keys().then(function(cacheNames){
-                if (cacheNames.length === 1){
-                    staticCacheName = cacheNames[0];
-                    resolve();
-                }else {
-                    refreshCache().catch(function(){
-                    }).finally(function(){
+        var now = new Date().getTime();
+        caches.keys().then(function(cacheNames){
+            if (cacheNames.length === 1){
+                return cacheNames[0];
+            }else {
+                return undefined;
+            }
+        }).then(function(localVersion){
+            if (!localVersion || cacheRefreshTime < now - 30000){ //Older than 10 seconds
+                cacheRefreshTime = now;
+                fetch("/cache_versions/last",{headers:{'content-type' :'application/json'}}).then(function(response){
+                    return response.json();
+                }).then(function(response){
+                    return 'mandi-v'+ (response.CacheVersion.VersionNumber * 1.0).toFixed(0);
+                }).then(function(version){
+                    staticCacheName = version;
+                    caches.keys().then(function(cacheNames){
+                        cacheNames.forEach(function(name,i){
+                            if (name !== staticCacheName){
+                                caches.delete(name);
+                            }
+                        });
                         resolve();
-                    })
-                }
-            });
-        }
-        resolve();
+                    });
+                })
+            }else{
+                staticCacheName = localVersion;
+                resolve();
+            }
+        })
+
     });
 }
 
 self.addEventListener('fetch', function(event){
-    if (staticCacheName){
-        refreshCache();
-    }
+
     if (event.request.cache === 'only-if-cached' && event.request.mode !== 'same-origin') {
         return;
     }
     event.respondWith(
-        caches.match(event.request).then(function (response) {
+        refreshCache().then(function(){
+            return caches.match(event.request);
+        }).then(function (response) {
             let cacheable = event.request.method.toUpperCase() === 'GET' && event.request.url.startsWith("http") &&
                 (  /^(.*)\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js)/.test(event.request.url) )
             if (response !== undefined){
                 console.log("Found in cache" + event.request.url );
                 return response;
             }else if (cacheable){
-                return loadCacheVersion().then(function(){
-                    return fetch(event.request).then(function(response){
-                        let responseClone = response.clone();
-                        caches.open(staticCacheName).then(function (cache) {
-                          cache.put(event.request, responseClone);
-                        });
-                        return response;
+                return fetch(event.request).then(function(response){
+                    let responseClone = response.clone();
+                    caches.open(staticCacheName).then(function (cache) {
+                      cache.put(event.request, responseClone);
                     });
+                    return response;
                 });
             }else {
                 return fetch(event.request);
