@@ -130,6 +130,7 @@
         height: 100vh;
         top: 0;
         overflow: hidden;
+        background: transparent;
     }
     .navbar-collapse.show .overlay {
         width: 100%;
