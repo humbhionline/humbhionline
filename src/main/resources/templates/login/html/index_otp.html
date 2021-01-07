@@ -29,7 +29,7 @@
         login = new Vue({
             el : "#app",
             data : {
-                Android : undefined , //TODO Uncomment this . typeof Android == "undefined" ? undefined : Android,
+                Android : typeof Android == "undefined" ? undefined : Android,
                 params: { "SignUp": { "PhoneNumber": "" } , "OtpRequested" : "N"},
                 Otp : "",
                 message : "",
@@ -49,10 +49,9 @@
             },
             methods : {
                 waitForOtp : function(){
+                    this.showApp();
                     if (this.Android){
                         this.Android.waitForOtp();
-                    }else {
-                        this.showApp();
                     }
                 },
                 onOtpReceipt: function(otp){
