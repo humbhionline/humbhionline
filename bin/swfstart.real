@@ -12,6 +12,7 @@ then
   export swf_env="development"
 fi
 
+git pull;
 mvn clean -DskipTests=true package
 if [ "$debug" = "" ] 
 then
@@ -52,7 +53,6 @@ then
     closeStdFd=false;
 fi
 
-git pull;
 
 nohup nice -19 java -ea:com.venky  -Xmx4g -XX:+PrintGCDetails -Xloggc:$PWD/tmp/gc.log -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/media/heaps/java.hprof -XX:-OmitStackTraceInFastThrow  $DEBUG_OPTS -DPORT=${wport} -Dswf.env=${swf_env} -Dswf.pidfile=$PWD/tmp/pid -Dderby.locks.waitTimeout=10  -DSystem.out.close=${closeStdFd} -DSystem.err.close=${closeStdFd} -DSystem.in.close=${closeStdFd} -cp "overrideProperties/${separator}target/classes/${separator}target/dependency/*" com.venky.swf.JettyServer &
 

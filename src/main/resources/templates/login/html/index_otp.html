@@ -12,6 +12,11 @@
             login.onOtpReceipt(otp);
         }
     }
+    function onOtpTimeout(){
+        if (login){
+            login.onOtpTimeout();
+        }
+    }
 
     $(function(){
         if (!isMobile()){
@@ -58,6 +63,8 @@
                     this.Otp = otp;
                     this.verifyPhoneOtp(null);
                 },
+                onOtpTimeout: function(){
+                },
                 verifyPhoneOtp: function (event) {
                     if (event){
                         event.preventDefault();
@@ -82,6 +89,7 @@
                         event.preventDefault();
                     }
                     var self = this;
+                    self.waitForOtp();
                     this.http.get("/sign_ups/sendOtp/" + this.params.SignUp.Id, { "data": {} }).then(function (response) {
                         showErrorMessage(response.data.SWFHttpResponse.Message);
                     });
