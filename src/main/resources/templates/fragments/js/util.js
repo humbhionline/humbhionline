@@ -82,6 +82,10 @@ function isMobile(){
     return isAndroidApp() || isMobileBrowser();
 }
 
+function isOpenOrder(o){
+    return !["CANCELLED","SHIPPED","DELIVERED","RETURNED"].includes(o.FulfillmentStatus);
+}
+
 function isMobileBrowser(){
     var hasTouchScreen = false;
     if ("maxTouchPoints" in navigator) {
@@ -100,7 +104,7 @@ function isMobileBrowser(){
             hasTouchScreen = (
                 /\b(BlackBerry|webOS|iPhone|IEMobile)\b/i.test(UA) ||
                 /\b(Android|Windows Phone|iPad|iPod)\b/i.test(UA) ||
-                /\b(Mobile)\b/i.test(UA) 
+                /\b(Mobile)\b/i.test(UA)
             );
         }
     }

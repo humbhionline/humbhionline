@@ -136,25 +136,29 @@
                         event.preventDefault();
                     }
                     let self = this;
-
-
+                    $.confirm({
+                        title : "Confirmation",
+                        content :"Are you at this location right now?" ,
+                        buttons : {
+                            yes : function(){
+                                self.current.Facility.CurrentlyAtLocation = "Y";
+                                self._save();
+                            },
+                            no : function(){
+                                self.current.Facility.CurrentlyAtLocation = "N";
+                                self._save();
+                            }
+                        }
+                    });
+                },
+                _save: function(){
+                    let self = this;
                     let index = self.current.index;
                     let f = self.current.Facility;
                     let newRecord = !f.Id;
-                    if (newRecord){
-                        $.confirm({
-                            title : "Confirmation",
-                            content :"Are you at this location right now?" ,
-                            buttons : {
-                                yes : function(){
-                                    self.current.Facility.CurrentlyAtLocation = "Y";
-                                },
-                                no : function(){
-                                    self.current.Facility.CurrentlyAtLocation = "N";
-                                }
-                            }
-                        });
-                    }
+                    f.Lat && delete f.Lat ;
+                    f.Lng && delete f.Lng ;
+
                     api().url("/facilities/save").parameters({ "Facility": f }).post().then(function (response) {
                         self.fixFacilities(response.Facilities);
                         if (newRecord) {
@@ -167,7 +171,6 @@
                         showError(err);
 
                     });
-
                 },
                 remove: function (event, index) {
                     if (event) {
@@ -503,17 +506,18 @@
                     <div class="form-row mb-2" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules' + i"
                         v-if="current.Facility.DeliveryProvided === 'Y'">
                         <div class="col">
-                            <label class="text-muted" v-bind:for="'DeliveryRadius' + i">Upto</label>
+                            <label class="text-muted small" v-bind:for="'DeliveryRadius' + i">Upto Kms</label>
                             <input class="form-control form-control-sm" v-bind:key="'DeliveryRadius' + i"
                                 v-bind:id="'DeliveryRadius' + i" placeholder="Upto how many Kms"
                                 v-model="current.Facility.DeliveryRadius" />
                         </div>
                         <div class="col">
-                            <label class="text-muted" v-bind:for="'DeliveryCharges' + i">Delivery Charges</label>
-                            &#x20B9 <input class="form-control form-control-sm" v-bind:key="'DeliveryCharges' + i"
-                                v-bind:id="'DeliveryCharges' + i" placeholder="0"
-                                v-model="current.Facility.DeliveryCharges" />
+                            <label class="text-muted small" v-bind:for="'FixedDeliveryCharges' + i">Fixed Delivery Charges</label>
+                            &#x20B9 <input class="form-control form-control-sm" v-bind:key="'FixedDeliveryCharges' + i"
+                                v-bind:id="'FixedDeliveryCharges' + i" placeholder="0"
+                                v-model="current.Facility.FixedDeliveryCharges" />
                         </div>
+
                     </div>
                     <div class="form-row">
                         <div class="col text-right">

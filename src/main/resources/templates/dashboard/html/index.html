@@ -14,6 +14,7 @@
         var params = (new URL(window.location)).searchParams;
         var term = params.get("search");
         var facility_id = params.get("facility_id");
+        var order_id = params.get("order_id");
 
         let PreferredMaxDistance = Lockr.get("PreferredMaxDistance");
         if (!PreferredMaxDistance) {
@@ -32,7 +33,9 @@
                 search: {
                     MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
                     facility_id: facility_id,
+                    order_id : order_id,
                     Facility: {},
+                    Order :{},
                     term: term || "",
                     results: [],
                     termLengthTrigger: 1,
@@ -75,8 +78,19 @@
                             if (f.Id) {
                                 self.search.termLengthTrigger = 0;
                             }
-                            self.find(null);
-                            self.showApp();
+                            self.loadOrder().then(function(o){
+                                if (o.Id && isOpenOrder(o)){
+                                    self.search.Order = o;
+                                }else {
+                                    self.search.Order = {};
+                                    self.search.order_id = undefined;
+                                }
+                                if (self.search.Order.Id) {
+                                    self.search.termLengthTrigger = 0;
+                                }
+                                self.find(null);
+                                self.showApp();
+                            });
                         });
                     }
                 }).catch(function (err) {
@@ -119,6 +133,20 @@
                             }
                         }
                     }
+                },
+                loadOrder: function () {
+                    let self = this;
+                    return new Promise(function (resolve, reject) {
+                        if (self.search.order_id && self.search.order_id * 1.0 > 0) {
+                            api().url("orders/show/" + self.search.order_id).get().then(function (response) {
+                                resolve(response.Order);
+                            }).catch(function (err) {
+                                reject(err);
+                            });
+                        } else {
+                            resolve({});
+                        }
+                    });
                 },
                 loadFacility: function () {
                     let self = this;
@@ -176,7 +204,15 @@
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
                         term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND SKU:" + term + "*" : "") + ")";
                     }
-                    api().url("/inventories/search/" + term).get({ "MaxDistance": self.search.MaxDistance }).then(function (response) {
+                    var params = {} ;
+                    params.MaxDistance = self.search.MaxDistance;
+
+                    if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0 ){
+                        params.OrderId = self.search.Order.Id;
+                    }
+
+
+                    api().url("/inventories/search/" + term).get(params).then(function (response) {
                         if (!response) {
                             return
                         }
@@ -191,6 +227,7 @@
                             var order = self.facilityOrders[result.Facility.Id];
                             result.OrderedQuantity = 0;
                             result.OrderedAmount = (0.00).toFixed(2);
+
                             if (result.Facility.DeliveryProvided === 'Y') {
                                 if (result.Facility.DeliveryRadius * 1 < result.Facility.Distance * 1) {
                                     result.Facility.DeliveryProvided = 'N';
@@ -218,7 +255,7 @@
                 reduce: function (event, index) {
                     let self = this;
                     let result = self.search.results[index];
-                    result.OrderedQuantity -= 1;
+                    result.OrderedQuantity -= (result.Sku.Item.AssetCode && result.Sku.Item.AssetCode.Code.startsWith('99681') ) ? result.Facility.Distance * 1.0 : 1.0;
                     result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
@@ -231,7 +268,7 @@
                     if (!result.OrderedQuantity) {
                         result.OrderedQuantity = 0.0;
                     }
-                    result.OrderedQuantity += 1.0;
+                    result.OrderedQuantity += (result.Sku.Item.AssetCode && result.Sku.Item.AssetCode.Code.startsWith('99681') ) ? result.Facility.Distance *1.0  : 1.0;
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
                     self.addToCart(event, result);
@@ -267,6 +304,9 @@
                             } else {
                                 order.OrderLines.splice(index, 1);
                             }
+                        }
+                        if (self.search.Order.Id ){
+                            order.RefOrder = { Id :  self.search.Order.Id };
                         }
                     }
                     self.reloadCounts();

@@ -22,6 +22,7 @@ import com.venky.swf.plugins.templates.controller.TemplateLoader;
 import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;
+import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
@@ -414,5 +415,8 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         return show(order);
     }
 
+    public View delivery_plan(long id){
+        return new RedirectorView(getPath(),"/dashboard","?search=Delivery&order_id="+id);
+    }
 
 }

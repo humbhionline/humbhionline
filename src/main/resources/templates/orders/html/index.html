@@ -254,7 +254,7 @@
                         title : "Confirmation",
                         content :"Do you really want to cancel order "  + order.Id,
                         buttons : {
-                            confirm : function() {
+                            yes : function() {
                                 api().url("/orders/cancel/" + order.Id).get().then(function (response) {
                                     if (index >= 0) {
                                         self.Orders.splice(index, 1, response.Order);
@@ -264,7 +264,7 @@
                                     showError(err);
                                 });
                             },
-                            cancel : function(){
+                            no : function(){
 
                             }
                         }
@@ -505,7 +505,7 @@
             <div class="row">
                 <div class="col">
                     <div class="content-sub-box">
-                        <div class="form-row">
+                        <div class="form-row" v-if="!o.RefOrder">
                             <div class="col">
                                 <p class="mb-0 font-weight-bold">{{o.CreatorUser.LongName}}</p>
                                 <p class="m-0">
@@ -521,10 +521,44 @@
                                 </p>
                             </div>
                         </div>
+                        <div class="form-row" v-if="o.RefOrder">
+                            <div class="col">
+                                <p class="mb-0 font-weight-bold">Pick From</p>
+                                <p class="mb-0">
+                                    <small class="text-muted">{{o.RefOrder.Facility.Name}},
+                                        {{o.RefOrder.Facility.AddressLine1}}
+                                        {{(blank(o.RefOrder.Facility.AddressLine2)? "" : "," )}} {{o.RefOrder.Facility.AddressLine2}}
+                                        {{(blank(o.RefOrder.Facility.AddressLine3)? "" : "," )}} {{o.RefOrder.Facility.AddressLine3}}
+                                        {{(blank(o.RefOrder.Facility.AddressLine4)? "" : "," )}} {{o.RefOrder.Facility.AddressLine4}}
+                                        , {{o.RefOrder.Facility.City.Name}}-{{o.RefOrder.Facility.State.Name}},
+                                        {{o.RefOrder.Facility.PinCode.PinCode}}
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="form-row" v-if="o.RefOrder">
+                            <div class="col">
+                                <p class="mb-0 font-weight-bold">Deliver To</p>
+                                <p class="m-0">
+                                    <small class="text-muted">{{o.RefOrder.CreatorUser.LongName}},
+                                        {{o.RefOrder.CreatorUser.AddressLine1}}
+                                        {{(blank(o.RefOrder.CreatorUser.AddressLine2)? "" : "," )}}
+                                        {{o.RefOrder.CreatorUser.AddressLine2}}
+                                        {{(blank(o.RefOrder.CreatorUser.AddressLine3)? "" : "," )}}
+                                        {{o.RefOrder.CreatorUser.AddressLine3}}
+                                        {{(blank(o.RefOrder.CreatorUser.AddressLine4)? "" : "," )}}
+                                        {{o.RefOrder.CreatorUser.AddressLine4}}
+                                        , {{o.RefOrder.CreatorUser.City.Name}}-{{o.RefOrder.CreatorUser.State.Name}},
+                                        {{o.RefOrder.CreatorUser.PinCode.PinCode}}</small>
+                                </p>
+                            </div>
+                        </div>
+
                         <hr class="my-2" />
                         <div class="form-row">
                             <div class="col">
-                                <p class="d-block mb-1">Order : {{o.Id}}
+                                <p class="d-block mb-1">Order : {{o.Id }}
                                 </p>
                                 <p class="m-0">{{o.FulfillmentStatus}}
                                     <a class="fas fa-print btn" v-bind:href="'/orders/print/' + o.Id" v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
@@ -543,7 +577,14 @@
                                 <small v-else>
                                     Settled
                                 </small>
-                                <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0">
+                                <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0 && o.RefOrder">
+                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                        v-on:click="deliver($event,o)" v-if="sales &&
+                                            delivered.findIndex(x=> x===o.Id) < 0">
+                                        Deliver
+                                    </a>
+                                </p>
+                                <p class="m-0" v-else-if="cancelled.findIndex(x => x === o.Id) < 0">
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
                                         v-on:click="pack($event,o)" v-if="sales &&
                                     packed.findIndex(x => x === o.Id) < 0 &&

@@ -149,6 +149,8 @@
     <#assign discount_percent = (((discount * 100) / pre_tax_price )?round) />
 </#if>
 <#assign selling_price = Order.SellingPrice?number />
+<#assign product_selling_price = Order.ProductSellingPrice?number />
+<#assign shipping_selling_price = Order.ShippingSellingPrice?number />
 <body>
           <div class="invoice-box">
             <table cellpadding="0" border="1" class="invoice-table" cellspacing="0">
@@ -564,7 +566,7 @@
     </td>
   </tr>
 
-  <!-- 
+  <!--
   <tr>
       <td colspan="2">
          <table style="height: 100px;">

@@ -68,5 +68,8 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
 
 
 
+    public Long getRefOrderId();
+    public void setRefOrderId(Long id);
+    public Order getRefOrder();
 
 }

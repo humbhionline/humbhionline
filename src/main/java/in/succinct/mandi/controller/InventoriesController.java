@@ -1,10 +1,12 @@
 package in.succinct.mandi.controller;
 
+import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
+import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.util.BoundingBox;
 import com.venky.swf.pm.DataSecurityFilter;
@@ -13,10 +15,13 @@ import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select.ResultFilter;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Item;
+import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
+import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.inventory.Inventory;
+import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -31,7 +36,14 @@ public class InventoriesController extends ModelController<Inventory> {
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map =  super.getIncludedModelFields();
-        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG","DELIVERY_PROVIDED","DELIVERY_RADIUS","DELIVERY_CHARGES"));
+        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG","DELIVERY_PROVIDED","DELIVERY_RADIUS","DELIVERY_CHARGES","FIXED_DELIVERY_CHARGES"));
+        {
+            List<String> itemFields = ModelReflector.instance(Item.class).getUniqueFields();
+            itemFields.add("ASSET_CODE_ID");
+            itemFields.add("ID");
+
+            map.put(Item.class, itemFields);
+        }
         map.put(Attachment.class,Arrays.asList("ID","ATTACHMENT_URL"));
         return map;
     }
@@ -48,19 +60,49 @@ public class InventoriesController extends ModelController<Inventory> {
                 valueOf(getPath().getFormFields().get("MaxDistance")));
     }
 
+    public long getOrderId(){
+        return getReflector().getJdbcTypeHelper().getTypeRef(Long.class).getTypeConverter().valueOf(getPath().getFormFields().get("OrderId"));
+    }
+    public Order getOrder(){
+        long orderId = getOrderId();
+        if (orderId > 0){
+            return Database.getTable(Order.class).get(orderId);
+        }
+        return null;
+    }
+
+    List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
     @Override
     protected ResultFilter<Inventory> getFilter() {
         final ResultFilter<Inventory> superFilter = super.getFilter();
 
         return record -> {
-            boolean pass = true;
             Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
+            Order order = getOrder();
 
-            pass = pass && facility.isPublished();
-            pass = pass && facility.getDistance() < getMaxDistance() ;
+            boolean pass = facility.isPublished();
+            pass = pass && (record.isInfinite() || record.getQuantity() > 0);
             pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
                     || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem() );
-            pass = pass && (record.isInfinite() || record.getQuantity() > 0);
+
+            if (order != null) {
+                //Return only delivery items
+                pass = pass && deliverySkuIds.contains(record.getSkuId());
+                if (pass){
+                    for (OrderAddress address : order.getAddresses()) {
+                        if (ObjectUtil.equals(OrderAddress.ADDRESS_TYPE_SHIP_TO, address.getAddressType())) {
+                            pass = pass && new GeoCoordinate(address).distanceTo(new GeoCoordinate(facility)) < facility.getDeliveryRadius();
+                        }
+                    }
+                }
+                double distance = new GeoCoordinate(facility).distanceTo(new GeoCoordinate(order.getFacility()));
+                pass = pass && distance < facility.getDeliveryRadius();
+                facility.setDistance(distance); //Distance to pick up location
+            }else {
+                //Dont return Delivery items.
+                pass = pass && !deliverySkuIds.contains(record.getSkuId());
+            }
+            pass = pass && facility.getDistance() < getMaxDistance() ;
             pass = pass &&  superFilter.pass(record);
 
             return pass;
@@ -73,29 +115,38 @@ public class InventoriesController extends ModelController<Inventory> {
         Expression where = super.getWhereClause();
         int maxDistance = getMaxDistance();
         if (maxDistance <= 10){
-            com.venky.swf.db.model.User currentUser = Database.getInstance().getCurrentUser();
-            if (currentUser != null && currentUser.getCurrentLat() != null) {
-                BoundingBox bb = new BoundingBox(new GeoCoordinate(new GeoLocation() {
-                    @Override
-                    public BigDecimal getLat() {
-                        return currentUser.getCurrentLat();
-                    }
+            Order order = getOrder();
+            GeoCoordinate reference = null;
+            if (order == null){
+                com.venky.swf.db.model.User currentUser = Database.getInstance().getCurrentUser();
+                if (currentUser != null && currentUser.getCurrentLat() != null){
+                    reference = new GeoCoordinate(new GeoLocation() {
+                        @Override
+                        public BigDecimal getLat() {
+                            return currentUser.getCurrentLat();
+                        }
 
-                    @Override
-                    public void setLat(BigDecimal bigDecimal) {
-                        currentUser.setCurrentLat(bigDecimal);
-                    }
+                        @Override
+                        public void setLat(BigDecimal bigDecimal) {
+                            currentUser.setCurrentLat(bigDecimal);
+                        }
 
-                    @Override
-                    public BigDecimal getLng() {
-                        return currentUser.getCurrentLng();
-                    }
+                        @Override
+                        public BigDecimal getLng() {
+                            return currentUser.getCurrentLng();
+                        }
 
-                    @Override
-                    public void setLng(BigDecimal bigDecimal) {
-                        currentUser.setCurrentLng(bigDecimal);
-                    }
-                }),2,maxDistance);
+                        @Override
+                        public void setLng(BigDecimal bigDecimal) {
+                            currentUser.setCurrentLng(bigDecimal);
+                        }
+                    });
+                }
+            }else {
+                reference = new GeoCoordinate(order.getFacility());
+            }
+            if (reference != null){
+                BoundingBox bb = new BoundingBox(reference,2,maxDistance);
 
                 List<Facility> facilities  = bb.find(Facility.class,getMaxListRecords());
                 if (!facilities.isEmpty()){
