@@ -344,6 +344,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         }
         userFields.addAll(ModelReflector.instance(User.class).getUniqueFields());
         facilityFields.addAll(ModelReflector.instance(Facility.class).getUniqueFields());
+        facilityFields.add("DELIVERY_PROVIDED");
 
         userFields.addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
         facilityFields.add("CREATOR_USER_ID");

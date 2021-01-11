@@ -464,6 +464,13 @@
                         showError(err);
                     })
 
+                },
+                plan :function(event,o){
+                    let self = this;
+                    if (event){
+                        event.preventDefault();
+                    }
+                    window.location.href = ("/orders/delivery_plan/"+o.Id);
                 }
 
             }
@@ -600,7 +607,13 @@
                                 </small>
                                 <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0 && o.RefOrder">
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="deliver($event,o)" v-if="sales &&
+                                        v-on:click="ship($event,o)" v-if="sales &&
+                                    shipped.findIndex(x => x === o.Id) < 0 &&
+                                    delivered.findIndex(x=> x===o.Id) < 0 ">
+                                        Pickup
+                                    </a>
+                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                        v-on:click="deliver($event,o)" v-else-if="sales &&
                                             delivered.findIndex(x=> x===o.Id) < 0">
                                         Deliver
                                     </a>
@@ -616,12 +629,17 @@
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
                                         v-on:click="ship($event,o)" v-else-if="sales &&
                                     shipped.findIndex(x => x === o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0">
-                                        Out For Delivery
+                                    delivered.findIndex(x=> x===o.Id) < 0 && o.Facility.DeliveryProvided === 'Y'">
+                                        Ship
+                                    </a>
+                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                        v-on:click="plan($event,o)" v-else-if="shipped.findIndex(x => x === o.Id) < 0 &&
+                                    delivered.findIndex(x=> x===o.Id) < 0 && o.Facility.DeliveryProvided === 'N' && !o.DeliveryPlanned">
+                                        Check Couriers
                                     </a>
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
                                         v-on:click="deliver($event,o)" v-else-if="sales &&
-                                    delivered.findIndex(x => x === o.Id) < 0">
+                                    delivered.findIndex(x => x === o.Id) < 0 &&!o.DeliveryPlanned">
                                         Deliver
                                     </a>
                                 </p>
