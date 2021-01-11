@@ -123,9 +123,24 @@
       }
   </style>
 </head>
+<#assign selling_price = Order.SellingPrice?number />
+<#assign product_selling_price = Order.ProductSellingPrice?number />
+<#assign shipping_selling_price = Order.ShippingSellingPrice?number />
+<#assign shipping_price = Order.ShippingSellingPrice?number / (1.18) />
+<#if (Order.CGst?number == 0) >
+    <#assign shipping_cgst =  0 />
+    <#assign shipping_igst =  (((0.18 * shipping_price * 100)?round) / 100) />
+<#else>
+    <#assign shipping_cgst =  (((0.09 * shipping_price * 100)?round) / 100) />
+    <#assign shipping_igst =  0 />
+</#if>
+<#assign shipping_sgst=shipping_cgst/>
+<#assign shipping_line = {"Sku": {"Name": "Fixed Delivery Charges" , "MaxRetailPrice" : shipping_selling_price } , "PackedQuantity" : 1 , "Hsn" : "996813" , "CGst" :  shipping_cgst, "SGst" : shipping_sgst , "IGst" : shipping_igst , "MaxRetailPrice": shipping_selling_price , "SellingPrice" : shipping_selling_price , "Price" : shipping_price , "DiscountPercentage" :"0"   }/>
+
 <#assign qty = 0 />
 <#assign mrp = 0 />
 <#assign lines=Order.OrderLines?sort_by("MaxRetailPrice")/>
+<#assign lines=lines + [shipping_line] />
 <#list lines>
 <#items as OrderLine>
         <#assign qty += OrderLine.PackedQuantity?number />
@@ -148,15 +163,12 @@
 <#if ( discount > 0 ) >
     <#assign discount_percent = (((discount * 100) / pre_tax_price )?round) />
 </#if>
-<#assign selling_price = Order.SellingPrice?number />
-<#assign product_selling_price = Order.ProductSellingPrice?number />
-<#assign shipping_selling_price = Order.ShippingSellingPrice?number />
 <body>
           <div class="invoice-box">
             <table cellpadding="0" border="1" class="invoice-table" cellspacing="0">
               <tr class="top" width="50%">
                  <td colspan="2" style="text-align: center; font-size: 15px;">
-        				    <strong>Packlist</strong>
+        				    <strong>Invoice</strong>
                  </td>
                </tr>
                <tr>
@@ -436,7 +448,7 @@
           <#if Order.CGst?number == 0>
               0
           <#else>
-              ${Order.CGst}<br/>
+              ${((Order.CGst?number * 100)/ 100)}<br/>
           </#if>
       </td>
       <td>
@@ -450,7 +462,7 @@
           <#if Order.SGst?number == 0>
               0
           <#else>
-              ${Order.SGst}<br/>
+              ${((Order.SGst?number * 100)/ 100)}<br/>
           </#if>
       </td>
       <td>
@@ -464,7 +476,7 @@
           <#if Order.IGst?number == 0>
               0
           <#else>
-              ${Order.IGst}<br/>
+              ${((Order.IGst?number * 100)/ 100)}<br/>
           </#if>
       </td>
       <td><b>${selling_price}</b></td>
@@ -512,7 +524,7 @@
               <td style="text-align: right; font-size: 12px;"><#if Order.CGst?number == 0>
                   0
               <#else>
-                  ${Order.CGst}
+                  ${(Order.CGst?number * 100 / 100)}
               </#if></td>
               <td style="text-align: right; font-size: 12px;">  <#if Order.SGst?number == 0>
                     0
@@ -522,7 +534,7 @@
               <td style="text-align: right; font-size: 12px;">  <#if Order.SGst?number == 0>
                     0
                 <#else>
-                    ${Order.SGst} <br/>
+                    ${(Order.SGst?number * 100 / 100)} <br/>
                 </#if></td>
               <td style="text-align: right; font-size: 12px;"><#if Order.IGst?number == 0>
                   0
@@ -532,7 +544,7 @@
               <td style="text-align: right; font-size: 12px;"><#if Order.IGst?number == 0>
                   0
               <#else>
-                  ${Order.IGst}
+                  ${(Order.IGst?number * 100 / 100)}
               </#if>
           </td>
             </tr>

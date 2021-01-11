@@ -233,6 +233,7 @@
                             }
                             self.Facility.Inventories.splice(index, 1, inv);
                         }).catch(function (err) {
+                            i.Infinite = "N";
                             showError(err);
                         });
                     } else {
@@ -788,7 +789,7 @@
                                         <i class="fa fa-camera"></i>
                                     </label>
                                     <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
-                                        v-bind:id="'sku-attachment-'+i" accept="image/*" 
+                                        v-bind:id="'sku-attachment-'+i" accept="image/*"
                                         v-on:input="onSkuBannerFileChange($event,i,ai)" />
                                     <!--
                                     <a href="#" class="btn btn-sm btn-block m-0 mt-2 btn-primary" role="button"

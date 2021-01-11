@@ -2,6 +2,8 @@ package in.succinct.mandi.controller;
 
 import com.venky.cache.Cache;
 import com.venky.core.date.DateUtils;
+import com.venky.core.math.DoubleHolder;
+import com.venky.core.math.DoubleUtils;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
@@ -237,7 +239,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         }
 
         if (order.getShippingSellingPrice() > 0){
-            order.setShippingPrice(order.getShippingSellingPrice()/(1+defaultGSTPct));
+            order.setShippingPrice(new DoubleHolder(order.getShippingSellingPrice()/(1+defaultGSTPct/100.0) , 2).getHeldDouble().doubleValue());
             double shippingTax= order.getShippingSellingPrice() - order.getShippingPrice();
             if (shippingWithinSameState){
                 buckets.get("C_GST").increment(shippingTax/2.0);
@@ -249,6 +251,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
                 buckets.get("I_GST").increment(shippingTax);
             }
         }
+
 
         for (String priceField : LINE_FIELDS_TO_SYNC) {
             order.getReflector().set(order,priceField,buckets.get(priceField).doubleValue());

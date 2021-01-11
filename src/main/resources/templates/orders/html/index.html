@@ -20,8 +20,12 @@
         //$("#header").load("/fragments/html/header");
         var params = (new URL(window.location)).searchParams;
         let type = params.get("type");
-        let purchases = !type || (type === "purchases");
-        let sales = !type || (type === "sales");
+        if (!type){
+            window.history.back();
+        }
+        let purchases = type && (type === "purchases");
+        let sales = type && (type === "sales");
+
 
         hboViewModel = new Vue({
             el: "#app",
@@ -444,6 +448,23 @@
                         showError(err);
                     });
                 },
+                print : function(event,o){
+                    let self = this;
+                    if (event){
+                        event.preventDefault();
+                    }
+                    api().url('/orders/print/' + o.Id).get().then(function(response){
+                        if (response.OrderPrints.length === 0){
+                            showErrorMessage("Invoice being generated. Check back in a while.")
+                        }else {
+                            let url = "/order_prints/view/"+response.OrderPrints[0].Id;
+                            window.location.href = url;
+                        }
+                    }).catch(function(err){
+                        showError(err);
+                    })
+
+                }
 
             }
         });
@@ -561,7 +582,7 @@
                                 <p class="d-block mb-1">Order : {{o.Id }}
                                 </p>
                                 <p class="m-0">{{o.FulfillmentStatus}}
-                                    <a class="fas fa-print btn" v-bind:href="'/orders/print/' + o.Id" v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
+                                    <a class="fas fa-print btn" href="#" @click="print($event,o)"  v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
                                     </a>
                                 </p>
                             </div>
@@ -644,6 +665,18 @@
                                     v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
                                     <i class=" fas fa-times"></i>
                                 </a>
+                            </div>
+                        </div>
+                        <div class="form-row border-top py-2 mt-2" v-if="o.ShippingSellingPrice">
+                            <div class="col d-flex align-items-center small">
+                                Delivery Charges
+                            </div>
+                            <div class="col-2 d-flex justify-content-center align-items-center">
+                            </div>
+                            <div class="col-4 d-flex justify-content-center align-items-center small">
+                                + &#x20B9; {{ o.ShippingSellingPrice }}
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
                             </div>
                         </div>
                     </div>

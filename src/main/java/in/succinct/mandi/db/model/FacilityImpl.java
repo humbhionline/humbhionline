@@ -90,21 +90,24 @@ public class FacilityImpl extends ModelImpl<Facility> {
 
     public double getDeliveryCharges(){
         Facility facility = getProxy();
-        Optional<Inventory> inventoryOptional = facility.getInventoryList().stream().filter(i->{
-            Sku sku = i.getSku().getRawRecord().getAsProxy(Sku.class);
-            Item item = sku.getItem();
-            if (item.getAssetCodeId() != null){
-                return (ObjectUtil.equals(item.getAssetCode().getCode(),"996813")) && !sku.isPublished(); //If pulished. It is courier and added as item in his order line.
-            }else {
-                return false;
-            }
-        }).findFirst();
-        double charges = facility.getFixedDeliveryCharges();
-        if (inventoryOptional.isPresent()){
-            Inventory inventory = inventoryOptional.get();
-            double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, inventory.getSku().getPackagingUOM().getName());
+        double charges = 0.0;
+        if (facility.isDeliveryProvided()){
+            Optional<Inventory> inventoryOptional = facility.getInventoryList().stream().filter(i->{
+                Sku sku = i.getSku().getRawRecord().getAsProxy(Sku.class);
+                Item item = sku.getItem();
+                if (item.getAssetCodeId() != null){
+                    return (ObjectUtil.equals(item.getAssetCode().getCode(),"996813")) && !i.isPublished() ; //If pulished. It is courier and added as item in his order line.
+                }else {
+                    return false;
+                }
+            }).findFirst();
+            charges = facility.getFixedDeliveryCharges();
+            if (inventoryOptional.isPresent()){
+                Inventory inventory = inventoryOptional.get();
+                double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, inventory.getSku().getPackagingUOM().getName());
 
-            charges += inventory.getSellingPrice() * Math.round(getDistance()/Math.max(cf,1));
+                charges += inventory.getSellingPrice() * Math.round(getDistance()/Math.max(cf,1));
+            }
         }
         return charges;
     }

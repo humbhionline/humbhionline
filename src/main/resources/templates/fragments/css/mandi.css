@@ -64,7 +64,7 @@
     .navbar-toggler {
         padding: 8px;
         box-shadow: var(--hbo-shadow);
-        background-color: var(--hbo-bg-header);
+        /*background-color: var(--hbo-bg-header);*/
     }
     .navbar-light .navbar-nav .nav-link {
         color: rgba(0, 0, 0, 0.8);
