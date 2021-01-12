@@ -634,7 +634,7 @@
                                     </a>
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
                                         v-on:click="plan($event,o)" v-else-if="shipped.findIndex(x => x === o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0 && o.Facility.DeliveryProvided === 'N' && !o.DeliveryPlanned">
+                                    delivered.findIndex(x=> x===o.Id) < 0 && o.Facility.DeliveryProvided === 'N' && o.DeliveryPlanned !== 'Y'">
                                         Check Couriers
                                     </a>
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
