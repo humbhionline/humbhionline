@@ -73,11 +73,14 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     public Order getRefOrder();
 
     @IS_VIRTUAL
+    @Index
     public boolean isDeliveryPlanned();
 
     @IS_VIRTUAL
+    @Index
     public boolean isOpen();
 
     @IS_VIRTUAL
+    @Index
     public boolean isCancelled();
 }

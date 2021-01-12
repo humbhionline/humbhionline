@@ -318,6 +318,10 @@
                         Lockr.set("PreferredMaxDistance", distance);
                         this.find(null);
                     }
+                },
+                buy : function(event){
+                    event && event.preventDefault();
+                    window.location.replace("/buy");
                 }
 
             }
@@ -461,7 +465,7 @@
                             {{(DeliveryAmount *1.0).toFixed(2)}}</small>
                     </div>
                     <div class="col d-flex align-items-center">
-                        <a class="btn btn-primary btn-sm btn-block" href="/buy">CHECKOUT</a>
+                        <a class="btn btn-primary btn-sm btn-block" href="#" @click="buy($event)">CHECKOUT</a>
                     </div>
                 </div>
             </div>

@@ -31,21 +31,9 @@ public class OrderImpl extends ModelImpl<Order> {
         for (OrderLine line : order.getOrderLines()) {
             Item item = line.getSku().getItem().getRawRecord().getAsProxy(Item.class);
             AssetCode assetCode = item.getAssetCodeId() == null ? null : item.getAssetCode();
-            if (assetCode != null && assetCode.isSac()) {
-                if (line.getToAcknowledgeQuantity() > 0) {
-                    line.acknowledge();
-                }
-                if (line.getToPackQuantity() > 0) {
-                    line.pack(line.getToPackQuantity());
-                }
-                double toShipQuantity = line.getToShipQuantity();
-                if (toShipQuantity > 0) {
-                    line.ship(toShipQuantity);
-                    line.deliver(toShipQuantity);
-                }
-                //Auto pack,ship and deliver service lines.
+            if (assetCode != null && assetCode.isSac() && item.isHumBhiOnlineSubscriptionItem()) {
+                line.deliver();
             }
-
         }
         order.resetPayment(save);
     }
@@ -110,6 +98,9 @@ public class OrderImpl extends ModelImpl<Order> {
 
     public boolean isOpen(){
         Order order = getProxy();
+        if (getAmountPendingPayment() > 0 || getAmountToRefund() > 0){
+            return true;
+        }
         for (OrderLine line : order.getOrderLines()){
             if (line.getToShipQuantity() > 0 || line.getToDeliverQuantity() > 0){
                 return true;

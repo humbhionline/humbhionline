@@ -71,11 +71,21 @@ function sendSubscriptionToServer(subscription){
 
 function showSpinner(){
     let a = typeof Android == "undefined" ? undefined : Android ;
-    a && a.showSpinner();
+    if (a){
+        a.showSpinner();
+    }else {
+        let p = $("#spinner") ;
+        p.removeClass("invisible");
+    }
 }
 function hideSpinner(){
     let a = typeof Android == "undefined" ? undefined : Android ;
-    a && a.hideSpinner();
+    if (a){
+        a.hideSpinner();
+    }else{
+        let p = $("#spinner") ;
+        p.addClass("invisible");
+    }
 }
 
 function isMobile(){

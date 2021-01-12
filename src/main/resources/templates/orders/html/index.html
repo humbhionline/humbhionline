@@ -50,11 +50,14 @@
                 if (purchases) {
                     self.loadOrders();
                 } else {
+                    showSpinner();
                     api().url("/facilities/mine").get().then(function (response) {
                         self.loadOrders(response.Facilities);
                     }).catch(function (err) {
                         self.showApp();
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 }
 
@@ -72,10 +75,12 @@
                     } else if (self.purchases) {
                         query = "CREATOR_USER_ID:" + self.User.Id;
                     }
+                    query += " AND OPEN:Y ";
                     self.Orders = [];
                     if (!query) {
                         self.showApp();
                     } else {
+                        showSpinner();
                         api().url("/orders/search").get({ q: query }).then(function (response) {
                             response.Orders.forEach((o, i) => {
                                 self.loadOrder(o, -1); // sending -1 avoid findIndex int the Orders Array.
@@ -84,6 +89,8 @@
                         }).catch(function (err) {
                             self.showApp();
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     }
 
@@ -141,6 +148,7 @@
                         return o.Id === orderId;
                     });
 
+                    showSpinner();
                     api().url("/orders/processUpi").parameters(upiresponsejsonString).headers({"X-Signature":signature}).post().then(function (response) {
                         if (index >= 0) {
                             self.Orders.splice(index, 1, response.Order);
@@ -148,6 +156,8 @@
                         showErrorMessage("Payment Status : " + r.Status);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
 
                 },
@@ -199,11 +209,14 @@
                     if (index < 0) {
                         return;
                     }
+                    showSpinner();
                     api().url("/orders/pack/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 ship: function (event, order) {
@@ -217,11 +230,14 @@
                     if (index < 0) {
                         return;
                     }
+                    showSpinner();
                     api().url("/orders/ship/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 deliver: function (event, order) {
@@ -235,11 +251,14 @@
                     if (index < 0) {
                         return;
                     }
+                    showSpinner();
                     api().url("/orders/deliver/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 cancel: function (event, order) {
@@ -259,6 +278,7 @@
                         content :"Do you really want to cancel order "  + order.Id,
                         buttons : {
                             yes : function() {
+                                showSpinner();
                                 api().url("/orders/cancel/" + order.Id).get().then(function (response) {
                                     if (index >= 0) {
                                         self.Orders.splice(index, 1, response.Order);
@@ -266,7 +286,9 @@
                                     self.update_status_array(response.Order);
                                 }).catch(function (err) {
                                     showError(err);
-                                });
+                                }).finally(function(){
+                                    hideSpinner();
+                                });;
                             },
                             no : function(){
 
@@ -293,6 +315,7 @@
                         content :"Do you really want to cancel order line for "  + order_line.Sku.Name + "?",
                         buttons : {
                             confirm : function() {
+                                showSpinner();
                                 api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
                                     api().url("/orders/show/" + order.Id).get().then(function (response) {
                                         //Refresh the order Status.
@@ -300,7 +323,9 @@
                                     });
                                 }).catch(function (err) {
                                     showError(err);
-                                });
+                                }).finally(function(){
+                                    hideSpinner();
+                                });;
                             },
                             cancel : function(){
 
@@ -318,6 +343,7 @@
                     if (index < 0) {
                         return;
                     }
+                    showSpinner();
                     api().url("/orders/initialize_payment/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Payment Initialized");
@@ -336,6 +362,8 @@
                         }
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
 
                     return true;
@@ -353,6 +381,7 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/reset_payment/" + order.Id).get().then(function (response) {
                         if (index >= 0) {
                             self.Orders.splice(index, 1, response.Order);
@@ -360,6 +389,8 @@
                         showErrorMessage("Payment Reset");
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 complete_payment: function (event, order) {
@@ -375,11 +406,14 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/complete_payment/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 initialize_refund: function (event, order) {
@@ -392,6 +426,7 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/initialize_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Refund Initialized");
@@ -405,6 +440,8 @@
                         }
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                     return true;
                 },
@@ -421,12 +458,15 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/reset_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Payment Reset");
                     }).catch(function (err) {
                         showError(err);
-                    });
+                    }).finally(function(){
+                        hideSpinner();
+                    });;
                 },
                 complete_refund: function (event, order) {
                     if (event) {
@@ -441,11 +481,14 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/complete_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 print : function(event,o){
@@ -453,6 +496,7 @@
                     if (event){
                         event.preventDefault();
                     }
+                    showSpinner();
                     api().url('/orders/print/' + o.Id).get().then(function(response){
                         if (response.OrderPrints.length === 0){
                             showErrorMessage("Invoice being generated. Check back in a while.")
@@ -462,7 +506,9 @@
                         }
                     }).catch(function(err){
                         showError(err);
-                    })
+                    }).finally(function(){
+                        hideSpinner();
+                    });
 
                 },
                 plan :function(event,o){
@@ -627,20 +673,21 @@
                                         Pack
                                     </a>
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="ship($event,o)" v-else-if="sales &&
+                                        v-on:click="ship($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y' &&
                                     shipped.findIndex(x => x === o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0 && o.Facility.DeliveryProvided === 'Y'">
+                                    delivered.findIndex(x=> x===o.Id) < 0 ">
                                         Ship
                                     </a>
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="plan($event,o)" v-else-if="shipped.findIndex(x => x === o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0 && o.Facility.DeliveryProvided === 'N' && o.DeliveryPlanned !== 'Y'">
-                                        Check Couriers
+                                        v-on:click="deliver($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y'  &&
+                                        delivered.findIndex(x => x === o.Id) < 0">
+                                        Deliver
                                     </a>
                                     <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="deliver($event,o)" v-else-if="sales &&
-                                    delivered.findIndex(x => x === o.Id) < 0 &&!o.DeliveryPlanned">
-                                        Deliver
+                                        v-on:click="plan($event,o)" v-else-if="o.DeliveryPlanned !== 'Y' &&
+                                        shipped.findIndex(x => x === o.Id) < 0 &&
+                                        delivered.findIndex(x=> x===o.Id) < 0 ">
+                                        Check Couriers
                                     </a>
                                 </p>
                             </div>
