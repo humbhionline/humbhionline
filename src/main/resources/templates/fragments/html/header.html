@@ -4,24 +4,56 @@
         $("#navbarTogglerDemo03").removeClass("show");
         return true;
     }
-    function fixMenu() {
+
+
+    function fixMenu(hide) {
         $(function () {
             let path = window.location.pathname;
             console.log('Path', path);
             path === "/dashboard" ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show()
-
-            $("#backbutton").on("click", function (e) {
-                console.log("Calling back");
-                back();
-            });
+            hboHeaderModel = makeHeaderVue(hide);
+            hideSpinner(); //Defensive. remove all spinners after showApp.
         });
     }
-    function back() {
-        if (window.history.length === 1) {
-            window.location.replace("/index");
-        } else {
-            window.history.back();
-        }
+
+    var hboHeaderModel;
+    function updateHeaderCount(){
+        hboHeaderModel && hboHeaderModel.$forceUpdate();
+    }
+
+    function makeHeaderVue(hide){
+        return new Vue({
+            el: "#header",
+            data: {
+                User: Lockr.get("User"),
+                navbar: { hide: ( hide ? true : false) },
+            },
+            methods: {
+                count: function(){
+                    let obj = Lockr.get("facilityOrders");
+                    var size = 0, key;
+                    var numLines = 0;
+                    for (key in obj) {
+                        if (obj.hasOwnProperty(key)) {
+                            size++;
+                            numLines += obj[key].OrderLines.length;
+                        }
+                    }
+                    if (size > 0 && numLines > 0){
+                        return size + "(" + numLines +")";
+                    }else {
+                        return "";
+                    }
+                },
+                back : function(){
+                    if (window.history.length === 1) {
+                        window.location.replace("/index");
+                    } else {
+                        window.history.back();
+                    }
+                }
+            }
+        });
     }
 </script>
 
@@ -30,14 +62,15 @@
         aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
-    <button id="backbutton" class="navbar-toggler btn btn-light btn-back">
+    <button id="backbutton" class="navbar-toggler btn btn-light btn-back" @click="back()">
         <i class="fa fa-chevron-left text-white"></i>
     </button>
     <h5 id="pageTitle" class="m-0 text-white" ></h5>
     <p id="msg" class="mb-0 invisible"></p>
     <div class="navbar-brand">
         <!-- <a class="m-logo fa fa-bell" href="/alerts" /> -->
-        <a href="/buy">
+        <a href="/buy" class="d-flex justify-content-center">
+            <p id="orderCount" class="text-white very-small position-absolute">{{count()}}</p>
             <img src="/resources/web_manifest/logo-white.svg" alt=""><img>
         </a>
     </div>

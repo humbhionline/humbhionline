@@ -40,10 +40,11 @@
                     results: [],
                     termLengthTrigger: 1,
                 },
-                facilityOrders: {},
+                facilityOrders: Lockr.get("facilityOrders") || {},
             },
             created: function () {
                 let self = this;
+                showSpinner();
                 api().url("/users/current").get().then(function (response) {
                     self.User = response.User;
                     if (!self.User.UserPhones) {
@@ -96,12 +97,9 @@
                 }).catch(function (err) {
                     showError(err);
                     self.showApp();
+                }).finally(function(){
+                    hideSpinner();
                 });
-                let fo = Lockr.get("facilityOrders");
-                if (fo) {
-                    self.facilityOrders = fo;
-                    self.reloadCounts();
-                }
             },
             methods: {
                 reloadCounts: function () {
@@ -133,15 +131,20 @@
                             }
                         }
                     }
+
+                    updateHeaderCount();
                 },
                 loadOrder: function () {
                     let self = this;
                     return new Promise(function (resolve, reject) {
                         if (self.search.order_id && self.search.order_id * 1.0 > 0) {
+                            showSpinner();
                             api().url("orders/show/" + self.search.order_id).get().then(function (response) {
                                 resolve(response.Order);
                             }).catch(function (err) {
                                 reject(err);
+                            }).finally(function(){
+                                hideSpinner();
                             });
                         } else {
                             resolve({});
@@ -152,10 +155,13 @@
                     let self = this;
                     return new Promise(function (resolve, reject) {
                         if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
+                            showSpinner();
                             api().url("facilities/show/" + self.search.facility_id).get().then(function (response) {
                                 resolve(response.Facility);
                             }).catch(function (err) {
                                 reject(err);
+                            }).finally(function(){
+                                hideSpinner();
                             });
                         } else {
                             resolve({});
@@ -163,19 +169,14 @@
                     });
                 },
                 showApp: function () {
+                    let self = this;
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
-                        new Vue({
-                            el: "#header",
-                            data: {
-                                User: Lockr.get("User"),
-                                navbar: { hide: false },
-                            }
-                        });
                         $("#pageTitle").html("Hum Bhi Online");
                         $(".body").css("padding-top", "148px");
                         $("#root").show();
                         $("#search").focus();
+                        self.reloadCounts();
                     });
                 },
                 headers: function () {
@@ -212,6 +213,7 @@
                     }
 
 
+                    showSpinner();
                     api().url("/inventories/search/" + term).get(params).then(function (response) {
                         if (!response) {
                             return
@@ -243,6 +245,8 @@
                             }
                         });
 
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 onQtyChange: function (event, index) {

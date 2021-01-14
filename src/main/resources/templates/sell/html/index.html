@@ -27,16 +27,20 @@
                 if (self.User.Verified === 'N') {
                     if (self.User.Seller !== "Y" ){
                         self.User.Seller = "Y";
+                        showSpinner();
                         api().url("/users/save").parameters({"User" : self.User}).post().then(function(response){
                             self.User = response.Users[0];
                             Lockr.set("User",self.User);
                             window.location.href = "/users/html/profile";
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     }else {
                         window.location.href = "/users/html/profile";
                     }
                     return;
                 }
+                showSpinner();
                 api().url("/facilities/search/CREATOR_USER_ID:"+self.User.Id).get().then(function (response) {
                     self.fixFacilities(response.Facilities);
                     self.Facilities = response.Facilities;
@@ -44,7 +48,9 @@
                 }).catch(function (err) {
                     self.showApp();
                     showError(err);
-                })
+                }).finally(function(){
+                    hideSpinner();
+                });
             },
             methods: {
                 fixFacilities: function(facilities){
@@ -63,13 +69,6 @@
                         fixMenu();
                         $("#pageTitle").html("Manage Facilities");
                         $("#root").show();
-                        new Vue({
-                            el: "#header",
-                            data  : {
-                                User : Lockr.get("User"),
-                                navbar : { hide : false },
-                            }
-                        });
                     });
                 },
                 create: function (event) {
@@ -159,6 +158,7 @@
                     f.Lat && delete f.Lat ;
                     f.Lng && delete f.Lng ;
 
+                    showSpinner();
                     api().url("/facilities/save").parameters({ "Facility": f }).post().then(function (response) {
                         self.fixFacilities(response.Facilities);
                         if (newRecord) {
@@ -170,6 +170,8 @@
                     }).catch(function (err) {
                         showError(err);
 
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 remove: function (event, index) {
@@ -182,10 +184,13 @@
 
                     let newRecord = !f.Id;
                     if (!newRecord) {
+                        showSpinner();
                         api().url("/facilities/destroy/" + f.Id).get().then(function (response) {
                             self.Facilities.splice(index, 1);
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     } else {
                         self.Facilities.splice(index, 1);
@@ -289,6 +294,7 @@
                         showErrorMessage("Facility not yet registered!");
                         return;
                     }
+                    showSpinner();
                     api().url("/facilities/" + apiName + "/" + f.Id).get().then(function (response) {
                         self.fixFacility(response.Facility);
                         if (newRecord) {
@@ -298,6 +304,8 @@
                         }
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 blank: function (s) {

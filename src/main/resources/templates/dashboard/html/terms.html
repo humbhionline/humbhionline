@@ -19,14 +19,7 @@
             methods : {
                 showApp : function(){
                     $("#header").load("/fragments/html/header",{}, function(){
-                        fixMenu();
-                        new Vue({
-                            el: "#header",
-                            data  : {
-                                User : Lockr.get("User"),
-                                navbar : { hide : true },
-                            },
-                        });
+                        fixMenu(true);
                         $("#terms").load("/dashboard/actual_terms", {},function(){
                             $("#root").show();
                         })
@@ -50,6 +43,7 @@
                 save : function(event){
                     let self = this;
                     event.preventDefault();
+                    showSpinner();
                     api().url("/users/save").parameters({User: self.User}).post().then(function(response){
                         if (response.Users[0].TermsAccepted === 'N'){
                             logout();
@@ -57,6 +51,8 @@
                     }).catch(function(err){
                         self.User.TermsAccepted = 'N';
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 }
 

@@ -26,9 +26,12 @@
             created: function () {
                 let self = this;
                 if (id && id * 1 > 0) {
+                    showSpinner();
                     api().url("/issues/show/" + id).get().then(function (response) {
                         self.Issue = response.Issue;
                         self.showApp();
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 } else {
                     self.showApp();
@@ -39,13 +42,6 @@
                     let self = this;
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
-                        new Vue({
-                            el: "#header",
-                            data: {
-                                User: Lockr.get("User"),
-                                navbar: { hide: false },
-                            }
-                        });
                         var title = "New Issue";
                         if (self.Issue.Id) {
                             title = "Issue #" + self.Issue.Id;
@@ -90,12 +86,15 @@
                     }
 
                     let self = this;
+                    showSpinner();
                     api().url("/issues/yank/" + self.Issue.Id).get().then(function (response) {
                         self.Issue = response.Issue;
                         showErrorMessage("Issue Yanked");
                         //window.location.replace("/issues/show/" + response.Issues[0].Id);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 destroy_note: function (event, note) {
@@ -103,6 +102,7 @@
                         event.preventDefault();
                     }
                     let self = this;
+                    showSpinner();
                     api().url("/notes/destroy/" + note.Id).get().then(function (response) {
                         showErrorMessage("Note Deleted");
                         let index = self.Issue.Notes.findIndex(function (n) {
@@ -111,7 +111,9 @@
                         self.Issue.Notes.splice(index, 1);
                     }).catch(function (err) {
                         showError(err);
-                    })
+                    }).finally(function(){
+                        hideSpinner();
+                    });
                 },
                 readDataFile: function (file, callback) {
                     var reader = new FileReader();

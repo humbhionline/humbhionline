@@ -128,6 +128,7 @@
                     let self = this;
                     if (!blank(self.params.User.PhoneNumber)){
                         self.hideApp();
+                        showSpinner();
                         api().url("/users/hasPassword").parameters(self.params.User).post().then(function(response){
                             self.phoneNumberEntered = true;
                             if (!response.PasswordSet || response.PasswordSet !== "Y" ){
@@ -139,7 +140,9 @@
                             self.showApp();
                             self.phoneNumberEntered =false;
                             showError(err);
-                        })
+                        }).finally(function(){
+                            hideSpinner();
+                        });
                     }else {
                         self.phoneNumberEntered = false;
                     }

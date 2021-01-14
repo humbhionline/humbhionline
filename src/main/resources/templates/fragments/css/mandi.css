@@ -694,4 +694,9 @@
     .terms-block h2 {
         font-size: 1.2rem;
     }
+    .very-small {
+        font-size :50%!important;
+        font-weight: 900!important;
+    }
+
 }

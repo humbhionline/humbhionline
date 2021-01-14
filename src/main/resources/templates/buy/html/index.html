@@ -19,7 +19,6 @@
                 let self = this;
                 self.loadFacilities();
                 if (self.facilities.length > 0) {
-                    self.reloadCounts();
                     self.showApp();
                 } else {
                     window.location.replace("/orders?type=purchases");
@@ -43,15 +42,10 @@
                     window.location.href = "/index";
                 },
                 showApp: function () {
+                    let self = this;
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
-                        new Vue({
-                            el: "#header",
-                            data: {
-                                User: Lockr.get("User"),
-                                navbar: { hide: false },
-                            }
-                        });
+                        self.reloadCounts();
                         $("#pageTitle").html("Order Details");
                         $("#root").show();
                     });
@@ -107,6 +101,7 @@
                     let self = this;
                     var Orders = [];
                     self.addOrderToBook(f, Orders);
+                    showSpinner();
                     self.book(Orders).then(function (response) {
                         delete self.facilityOrders[f.Id];
                         if (self.facilityOrders.length == 0) {
@@ -124,6 +119,8 @@
                         });
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 bookOrders: function (event) {
@@ -135,6 +132,7 @@
                     self.facilities.forEach((f, i) => {
                         self.addOrderToBook(f, Orders);
                     });
+                    showSpinner();
                     self.book(Orders).then(function (response) {
                         self.facilities = [];
                         self.facilityOrders = {};
@@ -144,6 +142,8 @@
                         });
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
 
                 },
@@ -211,6 +211,7 @@
                             }
                         }
                     }
+                    updateHeaderCount();
                     Vue.set(self, "OrderAmount", self.OrderAmount);
                 },
                 totalAmount: function () {

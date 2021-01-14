@@ -187,13 +187,6 @@
                     // Manage Orders
                     $("#header").load("/fragments/html/header", {}, function(){
                         fixMenu();
-                        new Vue({
-                            el: "#header",
-                            data  : {
-                                User : Lockr.get("User"),
-                                navbar : { hide : false },
-                            }
-                        });
                         $("#pageTitle").html("Manage Orders");
                         $("#root").show();
                     });
