@@ -767,7 +767,7 @@
                         <span v-if="attachment.AttachmentUrl || attachment.Attachment"
                             @click="chooseBannerFile($event,i)" class="img-holder">
                             <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
-                                class="w-100"></img>
+                                class="w-100 h-100"></img>
                         </span>
                         <span v-else @click="chooseBannerFile($event,i)" class="img-holder d-flex align-items-center justify-content-center border rounded-sm">
                             <div>

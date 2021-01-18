@@ -47,11 +47,15 @@ public interface Facility extends in.succinct.plugins.ecommerce.db.model.partici
     public void setDeliveryRadius(double deliveryRadius);
 
     @COLUMN_DEF(StandardDefault.ZERO)
+    public double getMinFixedDistance();
+    public void setMinFixedDistance(double fixedDistance);
+
+    @COLUMN_DEF(StandardDefault.ZERO)
     public double getFixedDeliveryCharges();
     public void setFixedDeliveryCharges(double charges);
 
     @IS_VIRTUAL
-    public double getDeliveryCharges();
+    public double getDeliveryCharges(double distance);
 
 
     public void publish();

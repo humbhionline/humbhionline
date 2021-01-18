@@ -69,7 +69,7 @@
     <p id="msg" class="mb-0 invisible"></p>
     <div class="navbar-brand">
         <!-- <a class="m-logo fa fa-bell" href="/alerts" /> -->
-        <a href="/buy" class="d-flex justify-content-center">
+        <a href="/dashboard" class="d-flex justify-content-center">
             <p id="orderCount" class="text-white very-small position-absolute">{{count()}}</p>
             <img src="/resources/web_manifest/logo-white.svg" alt=""><img>
         </a>
@@ -117,7 +117,7 @@
                     <i class="fa fa-comment-dots"></i> Message Support</a>
             </li>
             <li class="nav-item border-bottom" v-if="User.Staff === 'Y'">
-                <a class=" nav-link" href="/users/search/VERIFIED:N" onclick="hideMenu()">
+                <a class=" nav-link" href="/users/pendingKyc" onclick="hideMenu()">
                     <i class="fa fa-user"></i> Pending Kyc</a>
             </li>
             <li class="nav-item border-bottom">

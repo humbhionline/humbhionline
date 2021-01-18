@@ -83,6 +83,9 @@
                         showSpinner();
                         api().url("/orders/search").get({ q: query }).then(function (response) {
                             response.Orders.forEach((o, i) => {
+                                if (o.Facility.DeliveryRadius * 1 < o.Facility.Distance * 1) {
+                                    o.Facility.DeliveryProvided = 'N';
+                                }
                                 self.loadOrder(o, -1); // sending -1 avoid findIndex int the Orders Array.
                             });
                             self.showApp();
@@ -510,6 +513,19 @@
                         event.preventDefault();
                     }
                     window.location.href = ("/orders/delivery_plan/"+o.Id);
+                },
+                planningRequired: function (o){
+                    if (o.RefOrder){
+                        return false; //A Delivery Order
+                    }else if (sales){
+                        return  o.DeliveryPlanned !== 'Y' ;
+                    }else{
+                        if (o.CustomerPickup === 'N') {
+                           return  false;
+                        }else {
+                           return o.DeliveryPlanned !== 'Y'
+                        }
+                    }
                 }
 
             }
@@ -630,59 +646,71 @@
                                 <p class="m-0">{{o.FulfillmentStatus}}
                                     <a class="fas fa-print btn" href="#" @click="print($event,o)"  v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
                                     </a>
+                                    <!-- If a seller provides delivery, then he owns the transportation responsibility -->
+                                    <a href="#/" class="btn btn-sm btn-outline-primary" role="button"
+                                        v-on:click="plan($event,o)" v-if="planningRequired(o) &&
+                                        shipped.findIndex(x => x === o.Id) < 0 &&
+                                        delivered.findIndex(x=> x===o.Id) < 0 ">
+                                        Plan Courier?
+                                    </a>
                                 </p>
                             </div>
                             <div class="col text-right">
-                                <p class="m-0">Payment status:</p>
-                                <small v-if="o.AmountPendingPayment * 1.0 > 0">
-                                    {{ o.PaymentInitialized  === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9;
-                                    {{(o.AmountPendingPayment *1.0).toFixed(2)}}
-                                </small>
-                                <small v-else-if="o.AmountToRefund * 1.0 > 0">
-                                    To Refund : &#x20B9; {{(o.AmountToRefund * 1.0).toFixed(2) }}
-                                </small>
-                                <small v-else>
-                                    Settled
-                                </small>
-                                <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0 && o.RefOrder">
-                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="ship($event,o)" v-if="sales &&
-                                    shipped.findIndex(x => x === o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0 ">
-                                        Pickup
-                                    </a>
-                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="deliver($event,o)" v-else-if="sales &&
-                                            delivered.findIndex(x=> x===o.Id) < 0">
-                                        Deliver
-                                    </a>
-                                </p>
-                                <p class="m-0" v-else-if="cancelled.findIndex(x => x === o.Id) < 0">
-                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="pack($event,o)" v-if="sales &&
-                                    packed.findIndex(x => x === o.Id) < 0 &&
-                                    shipped.findIndex(x=> x=== o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0">
-                                        Pack
-                                    </a>
-                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="ship($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y' &&
-                                    shipped.findIndex(x => x === o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0 ">
-                                        Ship
-                                    </a>
-                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="deliver($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y'  &&
-                                        delivered.findIndex(x => x === o.Id) < 0">
-                                        Deliver
-                                    </a>
-                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="plan($event,o)" v-else-if="o.DeliveryPlanned !== 'Y' &&
-                                        shipped.findIndex(x => x === o.Id) < 0 &&
-                                        delivered.findIndex(x=> x===o.Id) < 0 ">
-                                        Check Couriers
-                                    </a>
-                                </p>
+                                <div class="h-100">
+                                    <div class="row h-50">
+                                        <div class="col-12">
+                                            <p class="m-0">Payment status:</p>
+                                            <small v-if="o.AmountPendingPayment * 1.0 > 0">
+                                                {{ o.PaymentInitialized  === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9;
+                                                {{(o.AmountPendingPayment *1.0).toFixed(2)}}
+                                            </small>
+                                            <small v-else-if="o.AmountToRefund * 1.0 > 0">
+                                                To Refund : &#x20B9; {{(o.AmountToRefund * 1.0).toFixed(2) }}
+                                            </small>
+                                            <small v-else>
+                                                Settled
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="row h-50">
+                                        <div class="col-12 d-flex align-items-end justify-content-end">
+                                            <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0 && o.RefOrder">
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="ship($event,o)" v-if="sales &&
+                                                shipped.findIndex(x => x === o.Id) < 0 &&
+                                                delivered.findIndex(x=> x===o.Id) < 0 ">
+                                                    Pickup
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="deliver($event,o)" v-else-if="sales &&
+                                                        delivered.findIndex(x=> x===o.Id) < 0">
+                                                    Deliver
+                                                </a>
+                                            </p>
+                                            <p class="m-0" v-else-if="cancelled.findIndex(x => x === o.Id) < 0">
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="pack($event,o)" v-if="sales &&
+                                                packed.findIndex(x => x === o.Id) < 0 &&
+                                                shipped.findIndex(x=> x=== o.Id) < 0 &&
+                                                delivered.findIndex(x=> x===o.Id) < 0">
+                                                    Pack
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="ship($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' &&
+                                                    o.Facility.DeliveryProvided === 'Y' &&
+                                                shipped.findIndex(x => x === o.Id) < 0 &&
+                                                delivered.findIndex(x=> x===o.Id) < 0 ">
+                                                    Ship
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
+                                                    v-on:click="deliver($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y'  &&
+                                                    delivered.findIndex(x => x === o.Id) < 0">
+                                                    Deliver
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="form-row">
@@ -725,7 +753,7 @@
                                 </a>
                             </div>
                         </div>
-                        <div class="form-row border-top py-2 mt-2" v-if="o.ShippingSellingPrice">
+                        <div class="form-row border-top py-2 mt-2" v-if="o.CustomerPickup === 'N'">
                             <div class="col d-flex align-items-center small">
                                 Delivery Charges
                             </div>

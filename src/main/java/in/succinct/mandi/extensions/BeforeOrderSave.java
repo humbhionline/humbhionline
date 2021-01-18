@@ -14,7 +14,16 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
     @Override
     public void beforeSave(Order model) {
         Order refOrder = model.getRefOrder();
+        Order transportOrder = model.getTransportOrder();
+
         if (refOrder == null){
+            // Is Product Order
+            if (model.getRawRecord().isFieldDirty("FULFILLMENT_STATUS") &&
+                    ObjectUtil.equals(model.getFulfillmentStatus(),Order.FULFILLMENT_STATUS_CANCELLED)){
+                if (transportOrder != null){
+                    transportOrder.cancel("Original Order cancelled");
+                }
+            }
             return;
         }
         if (model.getRawRecord().isFieldDirty("FULFILLMENT_STATUS") &&
@@ -25,6 +34,7 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
                 ObjectUtil.equals(model.getFulfillmentStatus(),Order.FULFILLMENT_STATUS_SHIPPED)){
             refOrder.ship();
         }
+
         if (model.getRawRecord().isNewRecord()){
             try {
                 LuceneIndexer.instance(Order.class).updateDocument(refOrder.getRawRecord());

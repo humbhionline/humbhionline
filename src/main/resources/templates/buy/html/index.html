@@ -12,6 +12,7 @@
             data: {
                 User: Lockr.get("User"),
                 OrderAmount: {},
+                DeliveryAmount: {},
                 facilityOrders: Lockr.get("facilityOrders") || {},
                 facilities: []
             },
@@ -31,7 +32,9 @@
                     self.facilities = [];
                     for (key in self.facilityOrders) {
                         if (self.facilityOrders.hasOwnProperty(key)) {
-                            self.facilities.push(self.facilityOrders[key].OrderLines[0].Inventory.Facility);
+                            var order = self.facilityOrders[key];
+                            order.CustomerPickup =  order.CustomerPickup || ( !isDeliveryOrder(key) && order.OrderLines[0].Inventory.DeliveryProvided === 'N'? 'Y' : 'N') ;
+                            self.facilities.push(order.OrderLines[0].Inventory.Facility);
                         }
                     }
                 },
@@ -46,7 +49,7 @@
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
                         self.reloadCounts();
-                        $("#pageTitle").html("Order Details");
+                            $("#pageTitle").html("Order Details");
                         $("#root").show();
                     });
                 },
@@ -56,7 +59,8 @@
                     var order = self.facilityOrders[f.Id];
                     order.Facility = { Id: f.Id };
 
-                    order.ShippingSellingPrice = f.DeliveryProvided === 'Y' ? f.DeliveryCharges : 0;
+
+                    order.ShippingSellingPrice = order.CustomerPickup === 'Y' ?  0  : ( self.DeliveryAmount[f.Id] ? self.DeliveryAmount[f.Id] * 1.0 : 0.0 );
 
                     order.OrderAddresses = [
                         {
@@ -176,8 +180,14 @@
                 reduceOrderLine: function (event, f, index) {
                     let self = this;
                     let result = self.facilityOrders[f.Id].OrderLines[index];
-                    result.OrderedQuantity -= 1;
+                    //result.OrderedQuantity -= 1;
+                    result.OrderedQuantity -= (!self.isDeliverySku(result.Inventory.Sku)? 1.0 : Math.max(result.Inventory.ChargeableDistance*1.0 - result.Inventory.Facility.MinFixedDistance *1.0,0.001));
+
                     self.onOrderLineQtyChange(event, f, index);
+                },
+                isDeliverySku : function(sku){
+                    let self = this;
+                    return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
                 },
                 increaseOrderLine: function (event, f, index) {
                     if (event) {
@@ -185,12 +195,18 @@
                     }
 
                     let self = this;
+
                     let result = self.facilityOrders[f.Id].OrderLines[index];
+                    if (self.isDeliverySku(result.Inventory.Sku) && result.OrderedQuantity * 1.0  > 0 ){
+                        return;
+                    }
+
                     if (!result.OrderedQuantity) {
                         result.OrderedQuantity = 0.0;
                     }
 
-                    result.OrderedQuantity += 1.0;
+                    result.OrderedQuantity += (!self.isDeliverySku(result.Inventory.Sku)? 1.0 : Math.max(result.Inventory.ChargeableDistance*1.0 - result.Inventory.Facility.MinFixedDistance *1.0,0.001));
+
                     self.onOrderLineQtyChange(event, f, index);
                 },
                 reloadCounts: function () {
@@ -198,13 +214,18 @@
 
                     var obj = self.facilityOrders;
                     self.OrderAmount = {};
-
+                    self.DeliveryAmount = {};
                     for (key in obj) {
                         if (obj.hasOwnProperty(key)) {
                             self.OrderAmount[key] = 0;
                             obj[key].OrderLines.forEach((ol, i) => {
                                 self.OrderAmount[key] += ol.OrderedQuantity * ol.Inventory.SellingPrice;
+                                self.DeliveryAmount[key] = self.DeliveryAmount[key] || ( ( ol.Inventory.DeliveryProvided === 'Y'  &&
+                                                            ol.Inventory.DeliveryCharges  ) ?
+                                                            ol.Inventory.DeliveryCharges * 1.0 :  0.0 ) ;
+                                                            //Delivery Amount is for the order and not for each line.
                             });
+
                             if (obj[key].OrderLines.length === 0) {
                                 delete obj[key];
                                 delete self.OrderAmount[key];
@@ -213,6 +234,7 @@
                     }
                     updateHeaderCount();
                     Vue.set(self, "OrderAmount", self.OrderAmount);
+                    Vue.set(self, "DeliveryAmount", self.DeliveryAmount);
                 },
                 totalAmount: function () {
                     let self = this;
@@ -225,11 +247,26 @@
                 deliveryAmount: function () {
                     let self = this;
                     var total = 0.0;
-                    self.facilities.forEach((f, i) => {
-                        total += (f.DeliveryProvided === 'Y' ? f.DeliveryCharges * 1.0 : 0);
-                    });
+                    for (key in self.DeliveryAmount) {
+                        if (self.facilityOrders[key].CustomerPickup !== 'Y' ){
+                            total += self.DeliveryAmount[key];
+                        }
+                    }
                     return total;
 
+                },
+                isDeliveryOrder: function (fId){
+                    let self = this;
+                    let order = self.facilityOrders[fId];
+                    return order.RefOrder && order.RefOrder.Id * 1.0 > 0 ;
+                },
+                toggleCustomerPickUp : function(e,fId){
+                    let self = this;
+                    e && e.preventDefault();
+                    let order = self.facilityOrders[fId];
+                    order.CustomerPickup = (order.CustomerPickup === 'Y') ? 'N' : 'Y';
+                    Lockr.set("facilityOrders",self.facilityOrders);
+                    self.$forceUpdate();
                 }
             }
         });
@@ -283,7 +320,7 @@
                                             placeholder="0" v-model="ol.OrderedQuantity"
                                             @change="onOrderLineQtyChange($event,facility,olindex)" />
                                         <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
-                                            v-on:click="increaseOrderLine($event,facility,olindex)">
+                                            v-on:click="increaseOrderLine($event,facility,olindex)" >
                                             <i class="fa fa-plus"></i>
                                         </button>
                                     </div>
@@ -292,10 +329,47 @@
                         </div>
                     </div>
                     <div class="form-row">
-                        <div class="col d-flex align-items-center">
-                            Total : &#8377; {{(facility.DeliveryCharges * 1.0 + OrderAmount[facility.Id]).toFixed(2)}}
+                        <div class="col d-flex align-items-center small">
+                            <div class="w-100">
+                                <div class="row">
+                                    <div class="col" >
+                                        Order
+                                    </div>
+                                    <div class="col-5 text-right">
+                                         &#8377; {{ OrderAmount[facility.Id].toFixed(2) }}
+                                    </div>
+                                </div>
+                                <div class="row" >
+                                    <div class="col" v-if="!isDeliveryOrder(facility.Id)">
+                                        Delivery
+                                    </div>
+                                    <div class="col" v-else>
+                                        Fixed
+                                    </div>
+                                    <div class="col-5 d-flex align-item-center justify-content-end" >
+                                        <a href="#" class="right" @click="toggleCustomerPickUp($event,facility.Id)" v-if="!isDeliveryOrder(facility.Id)" >
+                                            <i class="fa fa-times"  v-if="facilityOrders[facility.Id].CustomerPickup == 'N'"></i>
+                                            <i class="fa fa-plus"  v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'"></i>
+                                        </a>
+                                        <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
+                                            &#8377; {{ DeliveryAmount[facility.Id].toFixed(2) }}
+                                        </del>
+                                        <span v-else>
+                                            &#8377; {{ DeliveryAmount[facility.Id].toFixed(2) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="row" >
+                                    <div class="col">
+                                        Total
+                                    </div>
+                                    <div class="col-5 text-right">
+                                         &#8377; {{ (( facilityOrders[facility.Id].CustomerPickup == 'Y' ? 0 : DeliveryAmount[facility.Id] ) + OrderAmount[facility.Id] ).toFixed(2)  }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col text-right">
+                        <div class="col-5 text-right d-flex align-items-center justify-content-end">
                             <button class="btn btn-sm btn-primary" v-on:click="bookOrder($event,facility)">Place
                                 Order</button>
                         </div>
@@ -309,26 +383,26 @@
                     </div>
                 </div>
                 <div class="row text-muted">
-                    <div class="col-6 d-flex flex-row justify-content-start">
-                        Ordered Amount
+                    <div class="col d-flex flex-row justify-content-start">
+                        Order Charges
                     </div>
-                    <div class="col-6 d-flex flex-row justify-content-end">
+                    <div class="col-4 d-flex flex-row justify-content-end">
                         &#8377; {{totalAmount().toFixed(2)}}
                     </div>
                 </div>
                 <div class="row text-muted">
-                    <div class="col-6 d-flex flex-row justify-content-start">
-                        Delivery Charges
+                    <div class="col d-flex flex-row justify-content-start">
+                        Delivery/Fixed Charges
                     </div>
-                    <div class="col-6 d-flex flex-row justify-content-end">
+                    <div class="col-4 d-flex flex-row justify-content-end">
                         &#8377; {{deliveryAmount().toFixed(2)}}
                     </div>
                 </div>
                 <div class="row text-muted">
-                    <div class="col-6 font-weight-bold">
+                    <div class="col font-weight-bold">
                         To Pay
                     </div>
-                    <div class="col-6 text-right">
+                    <div class="col-4 text-right">
                         &#8377; {{(deliveryAmount() + totalAmount()).toFixed(2)}}
                     </div>
                 </div>

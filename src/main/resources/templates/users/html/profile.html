@@ -393,6 +393,7 @@
                     self.userPasswordBeingEdited = false;
                 },
                 verify: function (event) {
+                    event && event.preventDefault();
                     let self = this;
                     showSpinner();
                     api().url("/users/verify/" + self.User.Id).get().then(function (response) {
@@ -405,7 +406,11 @@
                 close: function (event) {
                     let self = this;
                     event && event.preventDefault();
-                    back();
+                    if (Lockr.get("User").Id != self.User.Id) {
+                        window.location.replace("/users/pendingKyc");
+                    }else {
+                        window.history.back();
+                    }
                 },
                 showApp: function () {
                     let self = this;
@@ -811,7 +816,7 @@
                     </div>
                 </div>
             </div>
-            <div class="content-box mt-4" v-if="User.LongName.length < 0">
+            <div class="content-box mt-4" v-if="User.LongName.length > 0">
                 <div class="row">
                     <div class="col d-flex flex-row justify-content-end">
                         <button class="btn btn-block btn-primary btn-sm" @click="close($event)">Done</button>

@@ -195,6 +195,15 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         }
     }
 
+    public View pendingKyc(){
+        if (TemplateEngine.getInstance(getTemplateDirectory()).exists("/html/pendingKyc.html")){
+            return redirectTo("html/pendingKyc");
+        }else {
+            getPath().addErrorMessage("Template missing " );
+            return back();
+        }
+    }
+
     @RequireLogin(false)
     public View hasPassword() throws IOException {
         ensureIntegrationMethod(HttpMethod.POST);

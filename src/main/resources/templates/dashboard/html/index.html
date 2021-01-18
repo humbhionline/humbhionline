@@ -116,18 +116,22 @@
                             self.ShipmentCount += 1;
                             self.OrderLineCount += obj[key].OrderLines.length;
                             var facility = null;
+                            var deliveryAmount = null; //It is only charged once per order.!!
                             obj[key].OrderLines.forEach((ol, i) => {
                                 self.OrderAmount += ol.OrderedQuantity * ol.Inventory.SellingPrice
                                 if (!facility) {
                                     facility = ol.Inventory.Facility;
+                                }
+                                if (!deliveryAmount && ol.Inventory.DeliveryProvided === 'Y'){
+                                    deliveryAmount = ol.Inventory.DeliveryCharges
                                 }
                             });
                             if (obj[key].OrderLines.length === 0) {
                                 delete obj[key];
                             }
 
-                            if (facility) {
-                                self.DeliveryAmount += (facility.DeliveryProvided === 'Y' ? facility.DeliveryCharges * 1.0 : 0);
+                            if (deliveryAmount && ( !obj[key].CustomerPickup || obj[key].CustomerPickup !== 'Y' )) {
+                                self.DeliveryAmount +=  deliveryAmount * 1.0 ;
                             }
                         }
                     }
@@ -229,13 +233,10 @@
                             var order = self.facilityOrders[result.Facility.Id];
                             result.OrderedQuantity = 0;
                             result.OrderedAmount = (0.00).toFixed(2);
-
-                            if (result.Facility.DeliveryProvided === 'Y') {
-                                if (result.Facility.DeliveryRadius * 1 < result.Facility.Distance * 1) {
-                                    result.Facility.DeliveryProvided = 'N';
-                                }
-                            }
                             if (order) {
+                                if (order.CustomerPickup === 'Y'){
+                                    result.DeliveryProvided = 'N';
+                                }
                                 order.OrderLines.forEach((orderLine, i) => {
                                     if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id) {
                                         result.OrderedQuantity = orderLine.OrderedQuantity
@@ -259,11 +260,14 @@
                 reduce: function (event, index) {
                     let self = this;
                     let result = self.search.results[index];
-                    result.OrderedQuantity -= (result.Sku.Item.AssetCode && result.Sku.Item.AssetCode.Code.startsWith('99681') ) ? result.Facility.Distance * 1.0 : 1.0;
+                    result.OrderedQuantity -= (!self.isDeliverySku(result.Sku)? 1.0 : Math.max(result.ChargeableDistance*1.0 - result.Facility.MinFixedDistance *1.0,0.001));
                     result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
                     self.addToCart(event, result);
+                },
+                isDeliverySku : function(sku){
+                    return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
                 },
                 increase: function (event, index) {
                     let self = this;
@@ -272,7 +276,11 @@
                     if (!result.OrderedQuantity) {
                         result.OrderedQuantity = 0.0;
                     }
-                    result.OrderedQuantity += (result.Sku.Item.AssetCode && result.Sku.Item.AssetCode.Code.startsWith('99681') ) ? result.Facility.Distance *1.0  : 1.0;
+                    if (self.isDeliverySku(result.Sku) && result.OrderedQuantity * 1.0  > 0 ){
+                        return;
+                    }
+
+                    result.OrderedQuantity += (!self.isDeliverySku(result.Sku)? 1.0 : Math.max(result.ChargeableDistance*1.0 - result.Facility.MinFixedDistance *1.0,0.001));
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
                     self.addToCart(event, result);
@@ -311,6 +319,9 @@
                         }
                         if (self.search.Order.Id ){
                             order.RefOrder = { Id :  self.search.Order.Id };
+                            order.CustomerPickup = 'N';
+                        }else {
+                            order.CustomerPickup =  order.CustomerPickup || (ol.Inventory.DeliveryProvided === 'N' ? 'Y' : 'N');
                         }
                     }
                     self.reloadCounts();
@@ -405,7 +416,7 @@
                     <div class="item-list">
                         <div class="form-row">
                             <div class="col-4 img-holder">
-                                <img class="img-fluid w-100"
+                                <img class="img-fluid w-100 h-100"
                                     v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
                                     v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0" />
                             </div>
@@ -423,6 +434,7 @@
                                     </a>
                                 </small>
                                 <h5 class="mb-0 mt-3">&#x20B9; {{result.SellingPrice}}</h5>
+
                             </div>
                         </div>
                         <hr class="my-2" />
@@ -430,7 +442,7 @@
                             <div class="col-4">
                                 <div class="btn-group" role="group" aria-label="Basic example">
                                     <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
-                                        v-on:click="reduce($event,index)">
+                                        v-on:click="reduce($event,index)" >
                                         <i class="fa fa-minus"></i>
                                     </button>
                                     <input v-bind:key="'quantity' + index" v-bind:id="'quantity' + index"
@@ -438,20 +450,21 @@
                                         placeholder="Quantity" v-model="result.OrderedQuantity"
                                         @change="onQtyChange($event,index)" />
                                     <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
-                                        v-on:click="increase($event,index)">
+                                        v-on:click="increase($event,index)" >
                                         <i class="fa fa-plus"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="col text-right d-flex align-items-center justify-content-end">
-                                <small>
-                                    <span class="font-weight-bold text-muted">by:</span>
-                                    <del v-if="result.Facility.DeliveryProvided !== 'Y'">Delivery</del>
-                                    <span v-if="result.Facility.DeliveryProvided === 'Y'">Delivery <span
-                                            v-if="result.Facility.DeliveryRadius * 1.0 > 0">up to
-                                            {{ result.Facility.DeliveryRadius * 1.0}} Kms </span></span>
-                                    <span> | Pickup</span>
-
+                            <div class="col text-right d-flex align-items-center justify-content-end" >
+                                 <small>
+                                    <del v-if="result.DeliveryProvided !== 'Y'">Delivery</del>
+                                    <span v-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) &&
+                                            ( !result.DeliveryCharges || result.DeliveryCharges * 1.0 === 0 )">
+                                        Delivery - Free
+                                    </span>
+                                    <span v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0" class="text-muted">
+                                        {{ (isDeliverySku(result.Sku) ? "Fixed Charges" : "Delivery") }} - &#x20B9; {{ result.DeliveryCharges }}
+                                    </span>
                                 </small>
                             </div>
                         </div>
@@ -465,7 +478,7 @@
                 <div class="form-row">
                     <div class="col-8">
                         <h6 class="m-0">{{OrderLineCount}} Items | &#x20B9; {{(OrderAmount * 1.0).toFixed(2)}}</h6>
-                        <small class="m-0 text-muted">Delivery charges &#x20B9;
+                        <small class="m-0 text-muted" v-if="DeliveryAmount * 1.0 > 0" >Delivery charges &#x20B9;
                             {{(DeliveryAmount *1.0).toFixed(2)}}</small>
                     </div>
                     <div class="col d-flex align-items-center">

@@ -88,9 +88,10 @@ public class FacilityImpl extends ModelImpl<Facility> {
         this.atLocation = currentlyAtLocation;
     }
 
-    public double getDeliveryCharges(){
+
+    public double getDeliveryCharges(double distance) {
         Facility facility = getProxy();
-        double charges = 0.0;
+        Double charges = null;
         if (facility.isDeliveryProvided()){
             Optional<Inventory> inventoryOptional = facility.getInventoryList().stream().filter(i->{
                 Sku sku = i.getSku().getRawRecord().getAsProxy(Sku.class);
@@ -106,10 +107,11 @@ public class FacilityImpl extends ModelImpl<Facility> {
                 Inventory inventory = inventoryOptional.get();
                 double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, inventory.getSku().getPackagingUOM().getName());
 
-                charges += inventory.getSellingPrice() * Math.round(getDistance()/Math.max(cf,1));
+                charges += inventory.getSellingPrice() * Math.round( (Math.max(0,distance - facility.getMinFixedDistance()))/Math.max(cf,1));
             }
         }
         return charges;
+
     }
 
 }

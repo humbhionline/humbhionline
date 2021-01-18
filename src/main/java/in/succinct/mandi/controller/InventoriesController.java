@@ -1,5 +1,6 @@
 package in.succinct.mandi.controller;
 
+import com.venky.core.math.DoubleHolder;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
@@ -14,13 +15,13 @@ import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select.ResultFilter;
 import in.succinct.mandi.db.model.Facility;
+import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
-import in.succinct.plugins.ecommerce.db.model.inventory.Inventory;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 
 import java.math.BigDecimal;
@@ -36,7 +37,7 @@ public class InventoriesController extends ModelController<Inventory> {
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map =  super.getIncludedModelFields();
-        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG","DELIVERY_PROVIDED","DELIVERY_RADIUS","DELIVERY_CHARGES","FIXED_DELIVERY_CHARGES"));
+        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG","DELIVERY_PROVIDED","DELIVERY_RADIUS","FIXED_DELIVERY_CHARGES","MIN_FIXED_DISTANCE"));
         {
             List<String> itemFields = ModelReflector.instance(Item.class).getUniqueFields();
             itemFields.add("ASSET_CODE_ID");
@@ -85,22 +86,43 @@ public class InventoriesController extends ModelController<Inventory> {
             pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
                     || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem() );
 
+
             if (order != null) {
                 //Return only delivery items
-                pass = pass && deliverySkuIds.contains(record.getSkuId());
+                double distanceToDeliveryLocation = 0;
+                double distanceBetweenPickUpAndDeliveryLocation = 0 ;
+                double distanceToPickLocation = 0 ;
+                GeoCoordinate shipTo = null;
+
+                pass = pass && facility.isDeliveryProvided() && deliverySkuIds.contains(record.getSkuId());
                 if (pass){
                     for (OrderAddress address : order.getAddresses()) {
                         if (ObjectUtil.equals(OrderAddress.ADDRESS_TYPE_SHIP_TO, address.getAddressType())) {
-                            pass = pass && new GeoCoordinate(address).distanceTo(new GeoCoordinate(facility)) < facility.getDeliveryRadius();
+                            shipTo = new GeoCoordinate(address);
+                            distanceToDeliveryLocation = shipTo.distanceTo(new GeoCoordinate(facility));
+                            distanceBetweenPickUpAndDeliveryLocation = shipTo.distanceTo(new GeoCoordinate(order.getFacility()));
+                            pass = pass &&  distanceToDeliveryLocation < facility.getDeliveryRadius();
                         }
                     }
                 }
-                double distance = new GeoCoordinate(facility).distanceTo(new GeoCoordinate(order.getFacility()));
-                pass = pass && distance < facility.getDeliveryRadius();
-                facility.setDistance(distance); //Distance to pick up location
+                distanceToPickLocation = new GeoCoordinate(facility).distanceTo(new GeoCoordinate(order.getFacility()));
+                pass = pass && distanceToPickLocation < facility.getDeliveryRadius();
+                if (pass){
+                    record.setDeliveryProvided(true);
+                    record.setDeliveryCharges(facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation));
+                    record.setChargeableDistance(new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue());
+                    facility.setDistance(new DoubleHolder(distanceToPickLocation,2).getHeldDouble().doubleValue());
+                }
             }else {
                 //Dont return Delivery items.
                 pass = pass && !deliverySkuIds.contains(record.getSkuId());
+                if (pass){
+                    record.setDeliveryProvided(facility.isDeliveryProvided() && facility.getDeliveryRadius() > facility.getDistance());
+                    if (record.isDeliveryProvided()){
+                        record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
+                        record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
+                    }
+                }
             }
             pass = pass && facility.getDistance() < getMaxDistance() ;
             pass = pass &&  superFilter.pass(record);

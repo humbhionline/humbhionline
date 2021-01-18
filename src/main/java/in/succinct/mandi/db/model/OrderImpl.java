@@ -90,10 +90,7 @@ public class OrderImpl extends ModelImpl<Order> {
     }
 
     public boolean isDeliveryPlanned() {
-        Order order = getProxy();
-        List<Order> deliveryPlans = new Select().from(Order.class).where(new Expression(getReflector().getPool(), "REF_ORDER_ID", Operator.EQ, order.getId())).execute();
-        Optional<Order> optionalDeliveryPlan = deliveryPlans.stream().filter(dp -> !dp.isCancelled() ).findAny();
-        return optionalDeliveryPlan.isPresent();
+        return getTransportOrder() != null;
     }
 
     public boolean isOpen(){
@@ -111,6 +108,16 @@ public class OrderImpl extends ModelImpl<Order> {
     public boolean isCancelled(){
         Order order = getProxy();
         return ObjectUtil.equals(order.getFulfillmentStatus(),Order.FULFILLMENT_STATUS_CANCELLED) || ObjectUtil.equals(order.getFulfillmentStatus(),Order.FULFILLMENT_STATUS_RETURNED);
+    }
+
+    public Order getTransportOrder(){
+        Order order = getProxy();
+        List<Order> deliveryPlans = new Select().from(Order.class).where(new Expression(getReflector().getPool(), "REF_ORDER_ID", Operator.EQ, order.getId())).execute();
+        Optional<Order> optionalDeliveryPlan = deliveryPlans.stream().filter(dp -> !dp.isCancelled() ).findAny();
+        if (optionalDeliveryPlan.isPresent()){
+            return optionalDeliveryPlan.get();
+        }
+        return null;
     }
 
 
