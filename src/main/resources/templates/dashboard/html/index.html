@@ -279,7 +279,6 @@
                     if (self.isDeliverySku(result.Sku) && result.OrderedQuantity * 1.0  > 0 ){
                         return;
                     }
-
                     result.OrderedQuantity += (!self.isDeliverySku(result.Sku)? 1.0 : Math.max(result.ChargeableDistance*1.0 - result.Facility.MinFixedDistance *1.0,0.001));
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);

@@ -69,7 +69,7 @@
     <p id="msg" class="mb-0 invisible"></p>
     <div class="navbar-brand">
         <!-- <a class="m-logo fa fa-bell" href="/alerts" /> -->
-        <a href="/dashboard" class="d-flex justify-content-center">
+        <a href="/buy" class="d-flex justify-content-center">
             <p id="orderCount" class="text-white very-small position-absolute">{{count()}}</p>
             <img src="/resources/web_manifest/logo-white.svg" alt=""><img>
         </a>
@@ -102,16 +102,45 @@
                     <li class="dropdown-item border-bottom">
                         <a class="nav-link" href="/orders?type=sales" onclick="hideMenu()">
                             <i class="fa fa-list"></i>
-                            Orders
+                            Current Orders
+                        </a>
+                    </li>
+                    <li class="dropdown-item border-bottom">
+                        <a class="nav-link" href="/orders?type=sales&history=Y" onclick="hideMenu()">
+                            <i class="fa fa-list"></i>
+                            History
                         </a>
                     </li>
                 </ul>
             </li>
 
+            <li class="nav-item border-bottom dropdown-submenu">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarPurchaseMenuLink" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">
+                    <i class="fa fa-coins"></i>
+                    Purchases</a>
+                <ul class="dropdown-menu ml-auto mr-auto">
+                    <li class="dropdown-item border-bottom">
+                        <a class="nav-link" href="/orders?type=purchases" onclick="hideMenu()">
+                            <i class="fa fa-list"></i>
+                            Current Orders
+                        </a>
+                    </li>
+                    <li class="dropdown-item border-bottom">
+                        <a class="nav-link" href="/orders?type=purchases&history=Y" onclick="hideMenu()">
+                            <i class="fa fa-list"></i>
+                            History
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!--
             <li class="nav-item border-bottom">
                 <a class="nav-link" href="/orders?type=purchases" onclick="hideMenu()">
                     <i class="fa fa-list"></i> Purchases</a>
             </li>
+            -->
             <li class="nav-item border-bottom">
                 <a class=" nav-link" href="/issues" onclick="hideMenu()">
                     <i class="fa fa-comment-dots"></i> Message Support</a>

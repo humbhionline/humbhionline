@@ -22,7 +22,8 @@
                 if (self.facilities.length > 0) {
                     self.showApp();
                 } else {
-                    window.location.replace("/orders?type=purchases");
+                    //window.location.replace("/orders?type=purchases");
+                    window.location.replace("/dashboard");
                 }
             },
             methods: {
@@ -119,7 +120,11 @@
                         }
                         Lockr.set("facilityOrders", self.facilityOrders);
                         showErrorMessage("Order " + response.Orders[0].Id + " Booked Successfully!").then(function () {
-                            window.location.reload();
+                            if (self.facilities.length > 0){
+                                window.location.reload();
+                            }else {
+                                window.location.replace("/orders?type=purchases");
+                            }
                         });
                     }).catch(function (err) {
                         showError(err);
@@ -142,7 +147,7 @@
                         self.facilityOrders = {};
                         Lockr.rm("facilityOrders");
                         showErrorMessage("Order " + response.Orders.map(o => o.Id) + " Booked Successfully!").then(function () {
-                            window.location.reload();
+                            window.location.replace("/orders?type=purchases");
                         });
                     }).catch(function (err) {
                         showError(err);
@@ -264,7 +269,7 @@
                     let self = this;
                     e && e.preventDefault();
                     let order = self.facilityOrders[fId];
-                    order.CustomerPickup = (order.CustomerPickup === 'Y') ? 'N' : 'Y';
+                    order.CustomerPickup = (order.CustomerPickup === 'Y' || order.OrderLines[0].Inventory.DeliveryProvided === 'N') ? 'N' : 'Y';
                     Lockr.set("facilityOrders",self.facilityOrders);
                     self.$forceUpdate();
                 }
@@ -341,16 +346,21 @@
                                 </div>
                                 <div class="row" >
                                     <div class="col" v-if="!isDeliveryOrder(facility.Id)">
-                                        Delivery
+                                        <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
+                                            Delivery
+                                        </del>
+                                        <span v-else>
+                                            Delivery
+                                        </span>
+                                        <a href="#" @click="toggleCustomerPickUp($event,facility.Id)"  v-if="facilityOrders[facility.Id].OrderLines[0].Inventory.DeliveryProvided === 'Y'">
+                                            <i class="fas fa-times"  v-if="facilityOrders[facility.Id].CustomerPickup == 'N'"></i>
+                                            <i class="fas fa-plus"  v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'"></i>
+                                        </a>
                                     </div>
                                     <div class="col" v-else>
                                         Fixed
                                     </div>
                                     <div class="col-5 d-flex align-item-center justify-content-end" >
-                                        <a href="#" class="right" @click="toggleCustomerPickUp($event,facility.Id)" v-if="!isDeliveryOrder(facility.Id)" >
-                                            <i class="fa fa-times"  v-if="facilityOrders[facility.Id].CustomerPickup == 'N'"></i>
-                                            <i class="fa fa-plus"  v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'"></i>
-                                        </a>
                                         <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
                                             &#8377; {{ DeliveryAmount[facility.Id].toFixed(2) }}
                                         </del>

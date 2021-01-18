@@ -20,11 +20,13 @@
         //$("#header").load("/fragments/html/header");
         var params = (new URL(window.location)).searchParams;
         let type = params.get("type");
+        var history = params.get("history");
         if (!type){
             window.history.back();
         }
         let purchases = type && (type === "purchases");
         let sales = type && (type === "sales");
+        history = history && (history === "Y");
 
 
         hboViewModel = new Vue({
@@ -75,7 +77,7 @@
                     } else if (self.purchases) {
                         query = "CREATOR_USER_ID:" + self.User.Id;
                     }
-                    query += " AND OPEN:Y ";
+                    query += (!history ? " AND OPEN:Y " : "" );
                     self.Orders = [];
                     if (!query) {
                         self.showApp();
@@ -526,7 +528,10 @@
                            return o.DeliveryPlanned !== 'Y'
                         }
                     }
-                }
+                },
+                isDeliveryOrder: function (order){
+                    return order.RefOrder && order.RefOrder.Id * 1.0 > 0 ;
+                },
 
             }
         });
@@ -641,7 +646,7 @@
                         <hr class="my-2" />
                         <div class="form-row">
                             <div class="col">
-                                <p class="d-block mb-1">Order : {{o.Id }}
+                                <p class="d-block mb-1">Order : {{o.Id }} {{ ( isDeliveryOrder(o) ? "/(" + o.RefOrder.Id + ")" : "" ) }}
                                 </p>
                                 <p class="m-0">{{o.FulfillmentStatus}}
                                     <a class="fas fa-print btn" href="#" @click="print($event,o)"  v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
