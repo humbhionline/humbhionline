@@ -20,8 +20,14 @@
         //$("#header").load("/fragments/html/header");
         var params = (new URL(window.location)).searchParams;
         let type = params.get("type");
-        let purchases = !type || (type === "purchases");
-        let sales = !type || (type === "sales");
+        var history = params.get("history");
+        if (!type){
+            window.history.back();
+        }
+        let purchases = type && (type === "purchases");
+        let sales = type && (type === "sales");
+        history = history && (history === "Y");
+
 
         hboViewModel = new Vue({
             el: "#app",
@@ -46,11 +52,14 @@
                 if (purchases) {
                     self.loadOrders();
                 } else {
+                    showSpinner();
                     api().url("/facilities/mine").get().then(function (response) {
                         self.loadOrders(response.Facilities);
                     }).catch(function (err) {
                         self.showApp();
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 }
 
@@ -68,18 +77,25 @@
                     } else if (self.purchases) {
                         query = "CREATOR_USER_ID:" + self.User.Id;
                     }
+                    query += (!history ? " AND OPEN:Y " : "" );
                     self.Orders = [];
                     if (!query) {
                         self.showApp();
                     } else {
+                        showSpinner();
                         api().url("/orders/search").get({ q: query }).then(function (response) {
                             response.Orders.forEach((o, i) => {
+                                if (o.Facility.DeliveryRadius * 1 < o.Facility.Distance * 1) {
+                                    o.Facility.DeliveryProvided = 'N';
+                                }
                                 self.loadOrder(o, -1); // sending -1 avoid findIndex int the Orders Array.
                             });
                             self.showApp();
                         }).catch(function (err) {
                             self.showApp();
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     }
 
@@ -137,6 +153,7 @@
                         return o.Id === orderId;
                     });
 
+                    showSpinner();
                     api().url("/orders/processUpi").parameters(upiresponsejsonString).headers({"X-Signature":signature}).post().then(function (response) {
                         if (index >= 0) {
                             self.Orders.splice(index, 1, response.Order);
@@ -144,6 +161,8 @@
                         showErrorMessage("Payment Status : " + r.Status);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
 
                 },
@@ -173,13 +192,6 @@
                     // Manage Orders
                     $("#header").load("/fragments/html/header", {}, function(){
                         fixMenu();
-                        new Vue({
-                            el: "#header",
-                            data  : {
-                                User : Lockr.get("User"),
-                                navbar : { hide : false },
-                            }
-                        });
                         $("#pageTitle").html("Manage Orders");
                         $("#root").show();
                     });
@@ -195,11 +207,14 @@
                     if (index < 0) {
                         return;
                     }
+                    showSpinner();
                     api().url("/orders/pack/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 ship: function (event, order) {
@@ -213,11 +228,14 @@
                     if (index < 0) {
                         return;
                     }
+                    showSpinner();
                     api().url("/orders/ship/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 deliver: function (event, order) {
@@ -231,11 +249,14 @@
                     if (index < 0) {
                         return;
                     }
+                    showSpinner();
                     api().url("/orders/deliver/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 cancel: function (event, order) {
@@ -254,7 +275,8 @@
                         title : "Confirmation",
                         content :"Do you really want to cancel order "  + order.Id,
                         buttons : {
-                            confirm : function() {
+                            yes : function() {
+                                showSpinner();
                                 api().url("/orders/cancel/" + order.Id).get().then(function (response) {
                                     if (index >= 0) {
                                         self.Orders.splice(index, 1, response.Order);
@@ -262,9 +284,11 @@
                                     self.update_status_array(response.Order);
                                 }).catch(function (err) {
                                     showError(err);
-                                });
+                                }).finally(function(){
+                                    hideSpinner();
+                                });;
                             },
-                            cancel : function(){
+                            no : function(){
 
                             }
                         }
@@ -289,6 +313,7 @@
                         content :"Do you really want to cancel order line for "  + order_line.Sku.Name + "?",
                         buttons : {
                             confirm : function() {
+                                showSpinner();
                                 api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
                                     api().url("/orders/show/" + order.Id).get().then(function (response) {
                                         //Refresh the order Status.
@@ -296,7 +321,9 @@
                                     });
                                 }).catch(function (err) {
                                     showError(err);
-                                });
+                                }).finally(function(){
+                                    hideSpinner();
+                                });;
                             },
                             cancel : function(){
 
@@ -314,6 +341,7 @@
                     if (index < 0) {
                         return;
                     }
+                    showSpinner();
                     api().url("/orders/initialize_payment/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Payment Initialized");
@@ -332,6 +360,8 @@
                         }
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
 
                     return true;
@@ -349,6 +379,7 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/reset_payment/" + order.Id).get().then(function (response) {
                         if (index >= 0) {
                             self.Orders.splice(index, 1, response.Order);
@@ -356,6 +387,8 @@
                         showErrorMessage("Payment Reset");
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 complete_payment: function (event, order) {
@@ -371,11 +404,14 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/complete_payment/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 initialize_refund: function (event, order) {
@@ -388,6 +424,7 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/initialize_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Refund Initialized");
@@ -401,6 +438,8 @@
                         }
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                     return true;
                 },
@@ -417,12 +456,15 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/reset_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Payment Reset");
                     }).catch(function (err) {
                         showError(err);
-                    });
+                    }).finally(function(){
+                        hideSpinner();
+                    });;
                 },
                 complete_refund: function (event, order) {
                     if (event) {
@@ -437,12 +479,58 @@
                     }
                     delete order._phref;
                     delete order._rhref;
+                    showSpinner();
                     api().url("/orders/complete_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
+                },
+                print : function(event,o){
+                    let self = this;
+                    if (event){
+                        event.preventDefault();
+                    }
+                    showSpinner();
+                    api().url('/orders/print/' + o.Id).get().then(function(response){
+                        if (response.OrderPrints.length === 0){
+                            showErrorMessage("Invoice being generated. Check back in a while.")
+                        }else {
+                            let url = "/order_prints/view/"+response.OrderPrints[0].Id;
+                            window.location.href = url;
+                        }
+                    }).catch(function(err){
+                        showError(err);
+                    }).finally(function(){
+                        hideSpinner();
+                    });
+
+                },
+                plan :function(event,o){
+                    let self = this;
+                    if (event){
+                        event.preventDefault();
+                    }
+                    window.location.href = ("/orders/delivery_plan/"+o.Id);
+                },
+                planningRequired: function (o){
+                    if (o.RefOrder){
+                        return false; //A Delivery Order
+                    }else if (sales){
+                        return  o.DeliveryPlanned !== 'Y' ;
+                    }else{
+                        if (o.CustomerPickup === 'N') {
+                           return  false;
+                        }else {
+                           return o.DeliveryPlanned !== 'Y'
+                        }
+                    }
+                },
+                isDeliveryOrder: function (order){
+                    return order.RefOrder && order.RefOrder.Id * 1.0 > 0 ;
                 },
 
             }
@@ -505,7 +593,7 @@
             <div class="row">
                 <div class="col">
                     <div class="content-sub-box">
-                        <div class="form-row">
+                        <div class="form-row" v-if="!o.RefOrder">
                             <div class="col">
                                 <p class="mb-0 font-weight-bold">{{o.CreatorUser.LongName}}</p>
                                 <p class="m-0">
@@ -521,48 +609,113 @@
                                 </p>
                             </div>
                         </div>
+                        <div class="form-row" v-if="o.RefOrder">
+                            <div class="col">
+                                <p class="mb-0 font-weight-bold">Pick From</p>
+                                <p class="mb-0">
+                                    <small class="text-muted">{{o.RefOrder.Facility.Name}},
+                                        {{o.RefOrder.Facility.AddressLine1}}
+                                        {{(blank(o.RefOrder.Facility.AddressLine2)? "" : "," )}} {{o.RefOrder.Facility.AddressLine2}}
+                                        {{(blank(o.RefOrder.Facility.AddressLine3)? "" : "," )}} {{o.RefOrder.Facility.AddressLine3}}
+                                        {{(blank(o.RefOrder.Facility.AddressLine4)? "" : "," )}} {{o.RefOrder.Facility.AddressLine4}}
+                                        , {{o.RefOrder.Facility.City.Name}}-{{o.RefOrder.Facility.State.Name}},
+                                        {{o.RefOrder.Facility.PinCode.PinCode}}
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="form-row" v-if="o.RefOrder">
+                            <div class="col">
+                                <p class="mb-0 font-weight-bold">Deliver To</p>
+                                <p class="m-0">
+                                    <small class="text-muted">{{o.RefOrder.CreatorUser.LongName}},
+                                        {{o.RefOrder.CreatorUser.AddressLine1}}
+                                        {{(blank(o.RefOrder.CreatorUser.AddressLine2)? "" : "," )}}
+                                        {{o.RefOrder.CreatorUser.AddressLine2}}
+                                        {{(blank(o.RefOrder.CreatorUser.AddressLine3)? "" : "," )}}
+                                        {{o.RefOrder.CreatorUser.AddressLine3}}
+                                        {{(blank(o.RefOrder.CreatorUser.AddressLine4)? "" : "," )}}
+                                        {{o.RefOrder.CreatorUser.AddressLine4}}
+                                        , {{o.RefOrder.CreatorUser.City.Name}}-{{o.RefOrder.CreatorUser.State.Name}},
+                                        {{o.RefOrder.CreatorUser.PinCode.PinCode}}</small>
+                                </p>
+                            </div>
+                        </div>
+
                         <hr class="my-2" />
                         <div class="form-row">
                             <div class="col">
-                                <p class="d-block mb-1">Order : {{o.Id}}
+                                <p class="d-block mb-1">Order : {{o.Id }} {{ ( isDeliveryOrder(o) ? "/(" + o.RefOrder.Id + ")" : "" ) }}
                                 </p>
                                 <p class="m-0">{{o.FulfillmentStatus}}
-                                    <a class="fas fa-print btn" v-bind:href="'/orders/print/' + o.Id" v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
+                                    <a class="fas fa-print btn" href="#" @click="print($event,o)"  v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
+                                    </a>
+                                    <!-- If a seller provides delivery, then he owns the transportation responsibility -->
+                                    <a href="#/" class="btn btn-sm btn-outline-primary" role="button"
+                                        v-on:click="plan($event,o)" v-if="planningRequired(o) &&
+                                        shipped.findIndex(x => x === o.Id) < 0 &&
+                                        delivered.findIndex(x=> x===o.Id) < 0 ">
+                                        Plan Courier?
                                     </a>
                                 </p>
                             </div>
                             <div class="col text-right">
-                                <p class="m-0">Payment status:</p>
-                                <small v-if="o.AmountPendingPayment * 1.0 > 0">
-                                    {{ o.PaymentInitialized  === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9;
-                                    {{(o.AmountPendingPayment *1.0).toFixed(2)}}
-                                </small>
-                                <small v-else-if="o.AmountToRefund * 1.0 > 0">
-                                    To Refund : &#x20B9; {{(o.AmountToRefund * 1.0).toFixed(2) }}
-                                </small>
-                                <small v-else>
-                                    Settled
-                                </small>
-                                <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0">
-                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="pack($event,o)" v-if="sales &&
-                                    packed.findIndex(x => x === o.Id) < 0 &&
-                                    shipped.findIndex(x=> x=== o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0">
-                                        Pack
-                                    </a>
-                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="ship($event,o)" v-else-if="sales &&
-                                    shipped.findIndex(x => x === o.Id) < 0 &&
-                                    delivered.findIndex(x=> x===o.Id) < 0">
-                                        Out For Delivery
-                                    </a>
-                                    <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                        v-on:click="deliver($event,o)" v-else-if="sales &&
-                                    delivered.findIndex(x => x === o.Id) < 0">
-                                        Deliver
-                                    </a>
-                                </p>
+                                <div class="h-100">
+                                    <div class="row h-50">
+                                        <div class="col-12">
+                                            <p class="m-0">Payment status:</p>
+                                            <small v-if="o.AmountPendingPayment * 1.0 > 0">
+                                                {{ o.PaymentInitialized  === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9;
+                                                {{(o.AmountPendingPayment *1.0).toFixed(2)}}
+                                            </small>
+                                            <small v-else-if="o.AmountToRefund * 1.0 > 0">
+                                                To Refund : &#x20B9; {{(o.AmountToRefund * 1.0).toFixed(2) }}
+                                            </small>
+                                            <small v-else>
+                                                Settled
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="row h-50">
+                                        <div class="col-12 d-flex align-items-end justify-content-end">
+                                            <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0 && o.RefOrder">
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="ship($event,o)" v-if="sales &&
+                                                shipped.findIndex(x => x === o.Id) < 0 &&
+                                                delivered.findIndex(x=> x===o.Id) < 0 ">
+                                                    Pickup
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="deliver($event,o)" v-else-if="sales &&
+                                                        delivered.findIndex(x=> x===o.Id) < 0">
+                                                    Deliver
+                                                </a>
+                                            </p>
+                                            <p class="m-0" v-else-if="cancelled.findIndex(x => x === o.Id) < 0">
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="pack($event,o)" v-if="sales &&
+                                                packed.findIndex(x => x === o.Id) < 0 &&
+                                                shipped.findIndex(x=> x=== o.Id) < 0 &&
+                                                delivered.findIndex(x=> x===o.Id) < 0">
+                                                    Pack
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="ship($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' &&
+                                                    o.Facility.DeliveryProvided === 'Y' &&
+                                                shipped.findIndex(x => x === o.Id) < 0 &&
+                                                delivered.findIndex(x=> x===o.Id) < 0 ">
+                                                    Ship
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
+                                                    v-on:click="deliver($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y'  &&
+                                                    delivered.findIndex(x => x === o.Id) < 0">
+                                                    Deliver
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="form-row">
@@ -603,6 +756,18 @@
                                     v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
                                     <i class=" fas fa-times"></i>
                                 </a>
+                            </div>
+                        </div>
+                        <div class="form-row border-top py-2 mt-2" v-if="o.CustomerPickup === 'N'">
+                            <div class="col d-flex align-items-center small">
+                                Delivery Charges
+                            </div>
+                            <div class="col-2 d-flex justify-content-center align-items-center">
+                            </div>
+                            <div class="col-4 d-flex justify-content-center align-items-center small">
+                                + &#x20B9; {{ o.ShippingSellingPrice }}
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
                             </div>
                         </div>
                     </div>

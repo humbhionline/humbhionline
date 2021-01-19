@@ -1,4 +1,4 @@
-#Terms  And Conditions
+#Terms And Conditions
 ##Service Provided
 I Venkatraman Mahadevan (GSTIN 29AAWPM7654G1ZV) as the sole proprietor of the hyper-local marketplace (software platform) called HumBhiOnline, provide the following services as part of the platform.
 
@@ -42,13 +42,14 @@ In order to use the services offered by the platform, a user needs to be 18 year
 1. Users intending to sell on the platform would need to additionally complete the KYC Process before one can start selling on the platform. KYC can be completed either using the self-service Aadhar paperless-eKYC module for free. Alternatively, one could send mail to <a href="mailto:support@humbhionline">support@humbhionline.in</a> to schedule an Agent visit to your Address. This visit would be arranged for a charge of 100Rs and also according to the availability of agents.
 
 
-###Privacy
+##Privacy
 All information entered by you in the profile section will be used by HumBhiOnline to provide the services mentioned above in a seemless and efficient fashion. HumbhiOnline will not give this information to any other person/company unless it is related to the services provided by the platform. for e.g. we may want to do analytics of the application usability and performance and may engage other companies or consultants to work on the same. In such cases, we will share the information as required for the purpose at hand.
 
 We would share the information on your profile section, your order history, and any other information we have of you with law enforcement, government or government organizations we believe is necessary to do so in connection with the investigation and/or resolution of possible crimes, especially those involve personal injury and theft/infringement of intellectual property.
 
+To know more about our complete privacy policy, click <a href="/privacy">here</a>.
 
-### Disclaimers
+## Disclaimers
 
 1. Onus of keeping personal information current and updated on the platform rests with the user.
 1. Onus of products, images and contents posted by users rest with the seller/manufacturer/importer posting them.
@@ -63,7 +64,7 @@ We would share the information on your profile section, your order history, and 
 1. Neither the Properitor nor the platform shall be liable for damages for any delay or failure to perform its obligations hereunder if such delay or failure is due to causes beyond its control or without its fault or negligence, due to Force Majeure events including but not limited to acts of war, acts of God, earthquake, riot, fire, festive activities sabotage, labor shortage or dispute, Internet interruption, technical failure, breakage of sea cable, hacking, piracy, cheating, illegal or unauthorized access.
 
 
-###Dispute resolutions.
+##Dispute resolutions.
 1. Buyer and Seller need to resolve their disputes by themselves first.
 1. If unable a resolve for 30 days, one of them can approach <a href="mailto:support@humbhionline">support@humbhionline.in</a> to mediate.
 	* The Platform would  assign an arbitrator whose decision will be binding on both parties.
@@ -72,8 +73,8 @@ We would share the information on your profile section, your order history, and 
 	 All these proceedings for arbitration would happen in the city of Bangalore and will be conducted in English.
 
 
-###Notices.
+##Notices.
 1. Any changes done to this document would be communicated via the application and via email if registered with the platform. Your continued usage of the platform assumes that you agree to the changes made to the document. It is your responsibility to keep a watch for the changes to this document and take action  accordingly.
 
-### Contact us
+## Contact us
  If you have any questions about this Agreement, the practices of the platform, or your experience with the Service, you can contact us at <a href="mailto:support@humbhionline">support@humbhionline.in</a>.

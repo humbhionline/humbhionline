@@ -27,16 +27,20 @@
                 if (self.User.Verified === 'N') {
                     if (self.User.Seller !== "Y" ){
                         self.User.Seller = "Y";
+                        showSpinner();
                         api().url("/users/save").parameters({"User" : self.User}).post().then(function(response){
                             self.User = response.Users[0];
                             Lockr.set("User",self.User);
                             window.location.href = "/users/html/profile";
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     }else {
                         window.location.href = "/users/html/profile";
                     }
                     return;
                 }
+                showSpinner();
                 api().url("/facilities/search/CREATOR_USER_ID:"+self.User.Id).get().then(function (response) {
                     self.fixFacilities(response.Facilities);
                     self.Facilities = response.Facilities;
@@ -44,7 +48,9 @@
                 }).catch(function (err) {
                     self.showApp();
                     showError(err);
-                })
+                }).finally(function(){
+                    hideSpinner();
+                });
             },
             methods: {
                 fixFacilities: function(facilities){
@@ -63,13 +69,6 @@
                         fixMenu();
                         $("#pageTitle").html("Manage Facilities");
                         $("#root").show();
-                        new Vue({
-                            el: "#header",
-                            data  : {
-                                User : Lockr.get("User"),
-                                navbar : { hide : false },
-                            }
-                        });
                     });
                 },
                 create: function (event) {
@@ -136,25 +135,30 @@
                         event.preventDefault();
                     }
                     let self = this;
-
-
+                    $.confirm({
+                        title : "Confirmation",
+                        content :"Are you at this location right now?" ,
+                        buttons : {
+                            yes : function(){
+                                self.current.Facility.CurrentlyAtLocation = "Y";
+                                self._save();
+                            },
+                            no : function(){
+                                self.current.Facility.CurrentlyAtLocation = "N";
+                                self._save();
+                            }
+                        }
+                    });
+                },
+                _save: function(){
+                    let self = this;
                     let index = self.current.index;
                     let f = self.current.Facility;
                     let newRecord = !f.Id;
-                    if (newRecord){
-                        $.confirm({
-                            title : "Confirmation",
-                            content :"Are you at this location right now?" ,
-                            buttons : {
-                                yes : function(){
-                                    self.current.Facility.CurrentlyAtLocation = "Y";
-                                },
-                                no : function(){
-                                    self.current.Facility.CurrentlyAtLocation = "N";
-                                }
-                            }
-                        });
-                    }
+                    f.Lat && delete f.Lat ;
+                    f.Lng && delete f.Lng ;
+
+                    showSpinner();
                     api().url("/facilities/save").parameters({ "Facility": f }).post().then(function (response) {
                         self.fixFacilities(response.Facilities);
                         if (newRecord) {
@@ -166,8 +170,9 @@
                     }).catch(function (err) {
                         showError(err);
 
+                    }).finally(function(){
+                        hideSpinner();
                     });
-
                 },
                 remove: function (event, index) {
                     if (event) {
@@ -179,10 +184,13 @@
 
                     let newRecord = !f.Id;
                     if (!newRecord) {
+                        showSpinner();
                         api().url("/facilities/destroy/" + f.Id).get().then(function (response) {
                             self.Facilities.splice(index, 1);
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     } else {
                         self.Facilities.splice(index, 1);
@@ -286,6 +294,7 @@
                         showErrorMessage("Facility not yet registered!");
                         return;
                     }
+                    showSpinner();
                     api().url("/facilities/" + apiName + "/" + f.Id).get().then(function (response) {
                         self.fixFacility(response.Facility);
                         if (newRecord) {
@@ -295,6 +304,8 @@
                         }
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 blank: function (s) {
@@ -503,16 +514,25 @@
                     <div class="form-row mb-2" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules' + i"
                         v-if="current.Facility.DeliveryProvided === 'Y'">
                         <div class="col">
-                            <label class="text-muted" v-bind:for="'DeliveryRadius' + i">Upto</label>
+                            <label class="text-muted small" v-bind:for="'DeliveryRadius' + i">Upto Kms</label>
                             <input class="form-control form-control-sm" v-bind:key="'DeliveryRadius' + i"
-                                v-bind:id="'DeliveryRadius' + i" placeholder="Upto how many Kms"
-                                v-model="current.Facility.DeliveryRadius" />
+                            v-bind:id="'DeliveryRadius' + i" placeholder="Upto how many Kms"
+                            v-model="current.Facility.DeliveryRadius" />
+                        </div>
+                    </div>
+                    <div class="form-row mb-2" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules-fixed' + i"
+                        v-if="current.Facility.DeliveryProvided === 'Y'" >
+                        <div class="col">
+                            <label class="text-muted small" v-bind:for="'MinFixedDistance' + i">Min Distance Charged</label>
+                            <input class="form-control form-control-sm" v-bind:key="'MinFixedDistance' + i"
+                                v-bind:id="'MinFixedDistance' + i" placeholder="Min Kms"
+                                v-model="current.Facility.MinFixedDistance" />
                         </div>
                         <div class="col">
-                            <label class="text-muted" v-bind:for="'DeliveryCharges' + i">Delivery Charges</label>
-                            &#x20B9 <input class="form-control form-control-sm" v-bind:key="'DeliveryCharges' + i"
-                                v-bind:id="'DeliveryCharges' + i" placeholder="0"
-                                v-model="current.Facility.DeliveryCharges" />
+                            <label class="text-muted small" v-bind:for="'FixedDeliveryCharges' + i">Fixed Charges</label>
+                            &#x20B9 <input class="form-control form-control-sm" v-bind:key="'FixedDeliveryCharges' + i"
+                                v-bind:id="'FixedDeliveryCharges' + i" placeholder="0"
+                                v-model="current.Facility.FixedDeliveryCharges" />
                         </div>
                     </div>
                     <div class="form-row">

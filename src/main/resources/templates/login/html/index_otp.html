@@ -12,8 +12,17 @@
             login.onOtpReceipt(otp);
         }
     }
+    function onOtpTimeout(){
+        if (login){
+            login.onOtpTimeout();
+        }
+    }
 
     $(function(){
+        if (!isMobile()){
+            window.location.replace("/download");
+            return;
+        }
         var searchParams = (new URL(window.location)).searchParams;
         var redirect_to = searchParams.get("_redirect_to");
         var phoneNumber = searchParams.get("phone_number");
@@ -25,7 +34,7 @@
         login = new Vue({
             el : "#app",
             data : {
-                Android : undefined , //TODO Uncomment this . typeof Android == "undefined" ? undefined : Android,
+                Android : typeof Android == "undefined" ? undefined : Android,
                 params: { "SignUp": { "PhoneNumber": "" } , "OtpRequested" : "N"},
                 Otp : "",
                 message : "",
@@ -45,15 +54,16 @@
             },
             methods : {
                 waitForOtp : function(){
+                    this.showApp();
                     if (this.Android){
                         this.Android.waitForOtp();
-                    }else {
-                        this.showApp();
                     }
                 },
                 onOtpReceipt: function(otp){
                     this.Otp = otp;
                     this.verifyPhoneOtp(null);
+                },
+                onOtpTimeout: function(){
                 },
                 verifyPhoneOtp: function (event) {
                     if (event){
@@ -79,6 +89,7 @@
                         event.preventDefault();
                     }
                     var self = this;
+                    self.waitForOtp();
                     this.http.get("/sign_ups/sendOtp/" + this.params.SignUp.Id, { "data": {} }).then(function (response) {
                         showErrorMessage(response.data.SWFHttpResponse.Message);
                     });
@@ -194,11 +205,11 @@
     <p id="msg" class="mb-0 invisible"></p>
     <div id="app"  class="container-fluid">
         <div class="row justify-content-center">
-            <div class="col-6 col-sm-2">
+            <div class="col-8 col-sm-2">
                 <div class="logo-holder mb-5">
-                    <img src="/resources/web_manifest/drawing.svg" alt="HumBhi Online">
+                    <img src="/resources/web_manifest/144x144.png" alt="Hum Bhi Online">
                     <div class="text-center font-weight-bold"  style="color: red;font-size: large;">
-                        HumBhi Online
+                        Hum Bhi Online
                     </div>
                 </div>
             </div>
@@ -207,8 +218,7 @@
             <div class="col-10 col-sm-4">
                 <form @submit.prevent="signUp()">
                     <div class="form-group">
-                        <label for="PhoneNumber" class="text-center d-block">Enter your Mobile Number</label>
-                        <input class="form-control" type="tel" id="PhoneNumber" placeholder="Mobile Number" v-model="params.SignUp.PhoneNumber" />
+                        <input class="form-control" type="tel" id="PhoneNumber" placeholder="Enter Mobile Number" v-model="params.SignUp.PhoneNumber" />
                     </div>
                     <div class="form-group text-right">
                         <button class="btn btn-primary btn-block" type="submit" id="btnSignUp">Request OTP</button>
@@ -226,8 +236,7 @@
                 <div class="col-10 col-sm-4">
                     <form @submit.prevent="verifyPhoneOtp()">
                         <div class="form-group">
-                            <label for="PhoneOtp" class="text-left d-block mb-0">Enter your OTP</label>
-                            <input id="PhoneOtp" type="password" pattern="[0-9]*" inputmode="numeric" class="form-control" placeholder="OTP" v-model="Otp" />
+                            <input id="PhoneOtp" type="password" pattern="[0-9]*" inputmode="numeric" class="form-control" placeholder="Enter OTP" v-model="Otp" />
                         </div>
                         <div class="form-group">
                             <button type="submit" class="btn btn-block btn-primary" id="btnVerifyPhoneOtp">Validate Mobile</button>

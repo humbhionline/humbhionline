@@ -33,6 +33,7 @@
             },
             created: function () {
                 let self = this;
+                showSpinner();
                 api().url("/facilities/show/" + id).get().then(function (response) {
                     if (!response.Facility.Inventories) {
                         response.Facility.Inventories = [];
@@ -53,19 +54,14 @@
                 }).catch(function (err) {
                     self.showApp();
                     showError(err);
-                })
+                }).finally(function(){
+                    hideSpinner();
+                });
             },
             methods: {
                 showApp: function () {
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
-                        new Vue({
-                            el: "#header",
-                            data: {
-                                User: Lockr.get("User"),
-                                navbar: { hide: false },
-                            }
-                        });
                         $(".navbar").addClass("bg-clear");
                         $(".body").css("padding-top", "300px");
                         $("#root").show();
@@ -143,6 +139,7 @@
 
 
 
+                    showSpinner();
                     api().url("/api/adjust").parameters({
                         AdjustmentRequest: {
                             NewProduct: newProduct, "Inventory": i, AdjustmentQuantity: self.current.AdjustmentQuantity,
@@ -168,6 +165,8 @@
                         self.cancel(null);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
 
                 },
@@ -182,6 +181,7 @@
                     let newRecord = !i.Id;
                     if (!newRecord) {
                         i.Infinite = "N";
+                        showSpinner();
                         api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Remove Inventory", NewProduct: "N" } }).post().then(function (response) {
                             var inv = deepmerge(i, response.AdjustmentRequests[0].Inventory);
                             if (!inv.Sku.Item.AssetCode) {
@@ -190,6 +190,8 @@
                             self.Facility.Inventories.splice(index, 1, inv);
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     } else {
                         self.Facility.Inventories.splice(index, 1);
@@ -206,10 +208,13 @@
                     let newRecord = !i.Id;
                     if (!newRecord) {
                         i.Infinite = "Y";
+                        showSpinner();
                         api().url("/inventories/destroy/" + i.Id).get().then(function (response) {
                             self.Facility.Inventories.splice(index, 1);
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     } else {
                         self.Facility.Inventories.splice(index, 1);
@@ -226,6 +231,7 @@
                     let newRecord = !i.Id;
                     if (!newRecord) {
                         i.Infinite = "Y";
+                        showSpinner();
                         api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Mark Infinite Inventory", NewProduct: "N" } }).post().then(function (response) {
                             var inv = deepmerge(i, response.AdjustmentRequests[0].Inventory);
                             if (!inv.Sku.Item.AssetCode) {
@@ -233,7 +239,10 @@
                             }
                             self.Facility.Inventories.splice(index, 1, inv);
                         }).catch(function (err) {
+                            i.Infinite = "N";
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     } else {
                         self.Facility.Inventories.splice(index, 1);
@@ -363,6 +372,7 @@
                         self.current.Inventory.Sku.PackagingUOM = uom;
                         self.current.UnitOfMeasures = [];
                         let q = { q: "ITEM:" + self.current.Inventory.Sku.Item.Name + " AND PACKAGING_U_O_M:" + uom.Name };
+                        showSpinner();
                         api().url("/skus/search").get(q).then(function (response) {
                             if (response.Skus.length === 1) {
                                 self.current.Inventory.Sku = response.Skus[0];
@@ -371,6 +381,8 @@
                                     self.current.Inventory.Sku.Item.AssetCode = { Code: "" };
                                 }
                             }
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     })
                 },
@@ -456,10 +468,13 @@
                     }
                     let self = this;
                     if (self.Facility.Attachments[index].Id) {
+                        showSpinner();
                         api().url("/attachments/destroy/" + self.Facility.Attachments[index].Id).get().then(function (response) {
                             self.Facility.Attachments.splice(index, 1);
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     } else {
                         self.Facility.Attachments.splice(index, 1);
@@ -503,12 +518,15 @@
                     if (self.Facility.Attachments[index].Id) {
                         formData.append("ID", self.Facility.Attachments[index].Id);
                     }
+                    showSpinner();
                     api().url("/attachments/save").parameters(formData).headers({ "Content-Type": "multipart/form-data" }).post().then(function (response) {
                         console.log(response);
                         if (self.Facility.Attachments[index].AttachmentUrl === response.Attachment.AttachmentUrl) {
                             response.Attachment.AttachmentUrl = "/attachments/show/0" + response.Attachment.AttachmentUrl;
                         }
                         self.Facility.Attachments.splice(index, 1, response.Attachment);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 createDataFile: function (file, callback) {
@@ -526,10 +544,13 @@
                     let self = this;
                     let skuAttachment = self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex];
                     if (skuAttachment.Id) {
+                        showSpinner();
                         api().url("/attachments/destroy/" + skuAttachment.Id).get().then(function (response) {
                             self.Facility.Inventories[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     } else {
                         self.Facility.Inventories[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
@@ -583,6 +604,7 @@
                     if (attachment.Id) {
                         formData.append("ID", attachment.Id);
                     }
+                    showSpinner();
                     api().url("/attachments/save").parameters(formData).headers({ "Content-Type": "multipart/form-data" }).post().then(function (response) {
                         console.log(response);
                         if (inv.Sku.Attachments[attachmentIndex].AttachmentUrl === response.Attachment.AttachmentUrl) {
@@ -592,6 +614,8 @@
                         inv.Sku.Attachments.splice(attachmentIndex, 1, response.Attachment);
                     }).catch(function (err) {
                         showError(err);
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 chooseSkuFile: function (e, inventoryIndex) {
@@ -743,7 +767,7 @@
                         <span v-if="attachment.AttachmentUrl || attachment.Attachment"
                             @click="chooseBannerFile($event,i)" class="img-holder">
                             <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
-                                class="w-100"></img>
+                                class="w-100 h-100"></img>
                         </span>
                         <span v-else @click="chooseBannerFile($event,i)" class="img-holder d-flex align-items-center justify-content-center border rounded-sm">
                             <div>
@@ -757,7 +781,7 @@
                         </a>
 
                         <input type="file" class="file-upload" v-bind:key="'attachment-'+i" v-bind:id="'attachment-'+i"
-                            v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*" capture="camera" />
+                            v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*"  />
 
                     </div>
                 </div>
@@ -788,7 +812,7 @@
                                         <i class="fa fa-camera"></i>
                                     </label>
                                     <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
-                                        v-bind:id="'sku-attachment-'+i" accept="image/*" capture="camera"
+                                        v-bind:id="'sku-attachment-'+i" accept="image/*"
                                         v-on:input="onSkuBannerFileChange($event,i,ai)" />
                                     <!--
                                     <a href="#" class="btn btn-sm btn-block m-0 mt-2 btn-primary" role="button"

@@ -2,6 +2,8 @@ package in.succinct.mandi.controller;
 
 import com.venky.cache.Cache;
 import com.venky.core.date.DateUtils;
+import com.venky.core.math.DoubleHolder;
+import com.venky.core.math.DoubleUtils;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
@@ -22,6 +24,7 @@ import com.venky.swf.plugins.templates.controller.TemplateLoader;
 import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;
+import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
@@ -236,7 +239,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         }
 
         if (order.getShippingSellingPrice() > 0){
-            order.setShippingPrice(order.getShippingSellingPrice()/(1+defaultGSTPct));
+            order.setShippingPrice(new DoubleHolder(order.getShippingSellingPrice()/(1+defaultGSTPct/100.0) , 2).getHeldDouble().doubleValue());
             double shippingTax= order.getShippingSellingPrice() - order.getShippingPrice();
             if (shippingWithinSameState){
                 buckets.get("C_GST").increment(shippingTax/2.0);
@@ -248,6 +251,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
                 buckets.get("I_GST").increment(shippingTax);
             }
         }
+
 
         for (String priceField : LINE_FIELDS_TO_SYNC) {
             order.getReflector().set(order,priceField,buckets.get(priceField).doubleValue());
@@ -340,6 +344,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         }
         userFields.addAll(ModelReflector.instance(User.class).getUniqueFields());
         facilityFields.addAll(ModelReflector.instance(Facility.class).getUniqueFields());
+        facilityFields.add("DELIVERY_PROVIDED");
 
         userFields.addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
         facilityFields.add("CREATOR_USER_ID");
@@ -414,5 +419,8 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         return show(order);
     }
 
+    public View delivery_plan(long id){
+        return new RedirectorView(getPath(),"/dashboard","?search=Delivery&order_id="+id);
+    }
 
 }

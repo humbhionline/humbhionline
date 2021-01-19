@@ -4,24 +4,56 @@
         $("#navbarTogglerDemo03").removeClass("show");
         return true;
     }
-    function fixMenu() {
+
+
+    function fixMenu(hide) {
         $(function () {
             let path = window.location.pathname;
             console.log('Path', path);
             path === "/dashboard" ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show()
-
-            $("#backbutton").on("click", function (e) {
-                console.log("Calling back");
-                back();
-            });
+            hboHeaderModel = makeHeaderVue(hide);
+            hideSpinner(); //Defensive. remove all spinners after showApp.
         });
     }
-    function back() {
-        if (window.history.length === 1) {
-            window.location.replace("/index");
-        } else {
-            window.history.back();
-        }
+
+    var hboHeaderModel;
+    function updateHeaderCount(){
+        hboHeaderModel && hboHeaderModel.$forceUpdate();
+    }
+
+    function makeHeaderVue(hide){
+        return new Vue({
+            el: "#header",
+            data: {
+                User: Lockr.get("User"),
+                navbar: { hide: ( hide ? true : false) },
+            },
+            methods: {
+                count: function(){
+                    let obj = Lockr.get("facilityOrders");
+                    var size = 0, key;
+                    var numLines = 0;
+                    for (key in obj) {
+                        if (obj.hasOwnProperty(key)) {
+                            size++;
+                            numLines += obj[key].OrderLines.length;
+                        }
+                    }
+                    if (size > 0 && numLines > 0){
+                        return size + "(" + numLines +")";
+                    }else {
+                        return "";
+                    }
+                },
+                back : function(){
+                    if (window.history.length === 1) {
+                        window.location.replace("/index");
+                    } else {
+                        window.history.back();
+                    }
+                }
+            }
+        });
     }
 </script>
 
@@ -30,15 +62,16 @@
         aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
-    <button id="backbutton" class="btn btn-light btn-back">
-        <i class="fa fa-chevron-left"></i>
+    <button id="backbutton" class="navbar-toggler btn btn-light btn-back" @click="back()">
+        <i class="fa fa-chevron-left text-white"></i>
     </button>
-    <h5 id="pageTitle" class="m-0"></h5>
+    <h5 id="pageTitle" class="m-0 text-white" ></h5>
     <p id="msg" class="mb-0 invisible"></p>
     <div class="navbar-brand">
         <!-- <a class="m-logo fa fa-bell" href="/alerts" /> -->
-        <a href="/buy">
-            <img src="/resources/web_manifest/64x64.png" alt=""><img>
+        <a href="/buy" class="d-flex justify-content-center">
+            <p id="orderCount" class="text-white very-small position-absolute">{{count()}}</p>
+            <img src="/resources/web_manifest/logo-white.svg" alt=""><img>
         </a>
     </div>
     <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
@@ -49,10 +82,10 @@
             </li>
             -->
             <li class="nav-item border-bottom">
-                <a class="nav-link" href="/dashboard"><i class="fa fa-home"></i> Home</a>
+                <a class="nav-link" href="/dashboard" onclick="hideMenu()"><i class="fa fa-home"></i> Home</a>
             </li>
             <li class="nav-item border-bottom">
-                <a class="nav-link" href="/users/html/profile"><i class="fa fa-user-circle"></i> Profile</a>
+                <a class="nav-link" href="/users/html/profile" onclick="hideMenu()"><i class="fa fa-user-circle"></i> Profile</a>
             </li>
             <li class="nav-item border-bottom dropdown-submenu" v-if="User.Seller === 'Y' && User.Verified === 'Y'">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarSellingMenuLink" data-toggle="dropdown"
@@ -69,22 +102,51 @@
                     <li class="dropdown-item border-bottom">
                         <a class="nav-link" href="/orders?type=sales" onclick="hideMenu()">
                             <i class="fa fa-list"></i>
-                            Orders
+                            Current Orders
+                        </a>
+                    </li>
+                    <li class="dropdown-item border-bottom">
+                        <a class="nav-link" href="/orders?type=sales&history=Y" onclick="hideMenu()">
+                            <i class="fa fa-list"></i>
+                            History
                         </a>
                     </li>
                 </ul>
             </li>
 
+            <li class="nav-item border-bottom dropdown-submenu">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarPurchaseMenuLink" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">
+                    <i class="fa fa-coins"></i>
+                    Purchases</a>
+                <ul class="dropdown-menu ml-auto mr-auto">
+                    <li class="dropdown-item border-bottom">
+                        <a class="nav-link" href="/orders?type=purchases" onclick="hideMenu()">
+                            <i class="fa fa-list"></i>
+                            Current Orders
+                        </a>
+                    </li>
+                    <li class="dropdown-item border-bottom">
+                        <a class="nav-link" href="/orders?type=purchases&history=Y" onclick="hideMenu()">
+                            <i class="fa fa-list"></i>
+                            History
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!--
             <li class="nav-item border-bottom">
                 <a class="nav-link" href="/orders?type=purchases" onclick="hideMenu()">
                     <i class="fa fa-list"></i> Purchases</a>
             </li>
+            -->
             <li class="nav-item border-bottom">
                 <a class=" nav-link" href="/issues" onclick="hideMenu()">
                     <i class="fa fa-comment-dots"></i> Message Support</a>
             </li>
             <li class="nav-item border-bottom" v-if="User.Staff === 'Y'">
-                <a class=" nav-link" href="/users/search/VERIFIED:N" onclick="hideMenu()">
+                <a class=" nav-link" href="/users/pendingKyc" onclick="hideMenu()">
                     <i class="fa fa-user"></i> Pending Kyc</a>
             </li>
             <li class="nav-item border-bottom">
@@ -100,6 +162,10 @@
         <div class="overlay" data-toggle="collapse" data-target="#navbarTogglerDemo03"></div>
     </div>
 </nav>
+
+<div id="spinner" class="spinner-border spinner-border-sm bg-light invisible" style="height:50px ;width:50px ;position:fixed; left:45% ;top: 8%; z-index:3;">
+</div>
+
 <div class="fixed-bottom app-footer">
     <div class="row">
     </div>

@@ -20,6 +20,7 @@ public class DashboardController extends TemplatedController {
         super(path);
     }
 
+    @RequireLogin
     public View index(){
         if (getPath().getSessionUser() != null) {
             return html("index");

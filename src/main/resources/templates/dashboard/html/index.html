@@ -14,6 +14,7 @@
         var params = (new URL(window.location)).searchParams;
         var term = params.get("search");
         var facility_id = params.get("facility_id");
+        var order_id = params.get("order_id");
 
         let PreferredMaxDistance = Lockr.get("PreferredMaxDistance");
         if (!PreferredMaxDistance) {
@@ -32,15 +33,18 @@
                 search: {
                     MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
                     facility_id: facility_id,
+                    order_id : order_id,
                     Facility: {},
+                    Order :{},
                     term: term || "",
                     results: [],
                     termLengthTrigger: 1,
                 },
-                facilityOrders: {},
+                facilityOrders: Lockr.get("facilityOrders") || {},
             },
             created: function () {
                 let self = this;
+                showSpinner();
                 api().url("/users/current").get().then(function (response) {
                     self.User = response.User;
                     if (!self.User.UserPhones) {
@@ -75,19 +79,27 @@
                             if (f.Id) {
                                 self.search.termLengthTrigger = 0;
                             }
-                            self.find(null);
-                            self.showApp();
+                            self.loadOrder().then(function(o){
+                                if (o.Id && isOpenOrder(o)){
+                                    self.search.Order = o;
+                                }else {
+                                    self.search.Order = {};
+                                    self.search.order_id = undefined;
+                                }
+                                if (self.search.Order.Id) {
+                                    self.search.termLengthTrigger = 0;
+                                }
+                                self.find(null);
+                                self.showApp();
+                            });
                         });
                     }
                 }).catch(function (err) {
                     showError(err);
                     self.showApp();
+                }).finally(function(){
+                    hideSpinner();
                 });
-                let fo = Lockr.get("facilityOrders");
-                if (fo) {
-                    self.facilityOrders = fo;
-                    self.reloadCounts();
-                }
             },
             methods: {
                 reloadCounts: function () {
@@ -104,30 +116,56 @@
                             self.ShipmentCount += 1;
                             self.OrderLineCount += obj[key].OrderLines.length;
                             var facility = null;
+                            var deliveryAmount = null; //It is only charged once per order.!!
                             obj[key].OrderLines.forEach((ol, i) => {
                                 self.OrderAmount += ol.OrderedQuantity * ol.Inventory.SellingPrice
                                 if (!facility) {
                                     facility = ol.Inventory.Facility;
+                                }
+                                if (!deliveryAmount && ol.Inventory.DeliveryProvided === 'Y'){
+                                    deliveryAmount = ol.Inventory.DeliveryCharges
                                 }
                             });
                             if (obj[key].OrderLines.length === 0) {
                                 delete obj[key];
                             }
 
-                            if (facility) {
-                                self.DeliveryAmount += (facility.DeliveryProvided === 'Y' ? facility.DeliveryCharges * 1.0 : 0);
+                            if (deliveryAmount && ( !obj[key].CustomerPickup || obj[key].CustomerPickup !== 'Y' )) {
+                                self.DeliveryAmount +=  deliveryAmount * 1.0 ;
                             }
                         }
                     }
+
+                    updateHeaderCount();
+                },
+                loadOrder: function () {
+                    let self = this;
+                    return new Promise(function (resolve, reject) {
+                        if (self.search.order_id && self.search.order_id * 1.0 > 0) {
+                            showSpinner();
+                            api().url("orders/show/" + self.search.order_id).get().then(function (response) {
+                                resolve(response.Order);
+                            }).catch(function (err) {
+                                reject(err);
+                            }).finally(function(){
+                                hideSpinner();
+                            });
+                        } else {
+                            resolve({});
+                        }
+                    });
                 },
                 loadFacility: function () {
                     let self = this;
                     return new Promise(function (resolve, reject) {
                         if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
+                            showSpinner();
                             api().url("facilities/show/" + self.search.facility_id).get().then(function (response) {
                                 resolve(response.Facility);
                             }).catch(function (err) {
                                 reject(err);
+                            }).finally(function(){
+                                hideSpinner();
                             });
                         } else {
                             resolve({});
@@ -135,19 +173,14 @@
                     });
                 },
                 showApp: function () {
+                    let self = this;
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
-                        new Vue({
-                            el: "#header",
-                            data: {
-                                User: Lockr.get("User"),
-                                navbar: { hide: false },
-                            }
-                        });
                         $("#pageTitle").html("Hum Bhi Online");
                         $(".body").css("padding-top", "148px");
                         $("#root").show();
                         $("#search").focus();
+                        self.reloadCounts();
                     });
                 },
                 headers: function () {
@@ -176,7 +209,16 @@
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
                         term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND SKU:" + term + "*" : "") + ")";
                     }
-                    api().url("/inventories/search/" + term).get({ "MaxDistance": self.search.MaxDistance }).then(function (response) {
+                    var params = {} ;
+                    params.MaxDistance = self.search.MaxDistance;
+
+                    if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0 ){
+                        params.OrderId = self.search.Order.Id;
+                    }
+
+
+                    showSpinner();
+                    api().url("/inventories/search/" + term).get(params).then(function (response) {
                         if (!response) {
                             return
                         }
@@ -191,12 +233,10 @@
                             var order = self.facilityOrders[result.Facility.Id];
                             result.OrderedQuantity = 0;
                             result.OrderedAmount = (0.00).toFixed(2);
-                            if (result.Facility.DeliveryProvided === 'Y') {
-                                if (result.Facility.DeliveryRadius * 1 < result.Facility.Distance * 1) {
-                                    result.Facility.DeliveryProvided = 'N';
-                                }
-                            }
                             if (order) {
+                                if (order.CustomerPickup === 'Y'){
+                                    result.DeliveryProvided = 'N';
+                                }
                                 order.OrderLines.forEach((orderLine, i) => {
                                     if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id) {
                                         result.OrderedQuantity = orderLine.OrderedQuantity
@@ -206,6 +246,8 @@
                             }
                         });
 
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 onQtyChange: function (event, index) {
@@ -218,11 +260,14 @@
                 reduce: function (event, index) {
                     let self = this;
                     let result = self.search.results[index];
-                    result.OrderedQuantity -= 1;
+                    result.OrderedQuantity -= (!self.isDeliverySku(result.Sku)? 1.0 : Math.max(result.ChargeableDistance*1.0 - result.Facility.MinFixedDistance *1.0,0.001));
                     result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
                     self.addToCart(event, result);
+                },
+                isDeliverySku : function(sku){
+                    return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
                 },
                 increase: function (event, index) {
                     let self = this;
@@ -231,7 +276,10 @@
                     if (!result.OrderedQuantity) {
                         result.OrderedQuantity = 0.0;
                     }
-                    result.OrderedQuantity += 1.0;
+                    if (self.isDeliverySku(result.Sku) && result.OrderedQuantity * 1.0  > 0 ){
+                        return;
+                    }
+                    result.OrderedQuantity += (!self.isDeliverySku(result.Sku)? 1.0 : Math.max(result.ChargeableDistance*1.0 - result.Facility.MinFixedDistance *1.0,0.001));
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
                     self.addToCart(event, result);
@@ -268,6 +316,12 @@
                                 order.OrderLines.splice(index, 1);
                             }
                         }
+                        if (self.search.Order.Id ){
+                            order.RefOrder = { Id :  self.search.Order.Id };
+                            order.CustomerPickup = 'N';
+                        }else {
+                            order.CustomerPickup =  order.CustomerPickup || (ol.Inventory.DeliveryProvided === 'N' ? 'Y' : 'N');
+                        }
                     }
                     self.reloadCounts();
                     Lockr.set("facilityOrders", self.facilityOrders);
@@ -278,6 +332,10 @@
                         Lockr.set("PreferredMaxDistance", distance);
                         this.find(null);
                     }
+                },
+                buy : function(event){
+                    event && event.preventDefault();
+                    window.location.replace("/buy");
                 }
 
             }
@@ -357,7 +415,7 @@
                     <div class="item-list">
                         <div class="form-row">
                             <div class="col-4 img-holder">
-                                <img class="img-fluid w-100"
+                                <img class="img-fluid w-100 h-100"
                                     v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
                                     v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0" />
                             </div>
@@ -375,6 +433,7 @@
                                     </a>
                                 </small>
                                 <h5 class="mb-0 mt-3">&#x20B9; {{result.SellingPrice}}</h5>
+
                             </div>
                         </div>
                         <hr class="my-2" />
@@ -382,7 +441,7 @@
                             <div class="col-4">
                                 <div class="btn-group" role="group" aria-label="Basic example">
                                     <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
-                                        v-on:click="reduce($event,index)">
+                                        v-on:click="reduce($event,index)" >
                                         <i class="fa fa-minus"></i>
                                     </button>
                                     <input v-bind:key="'quantity' + index" v-bind:id="'quantity' + index"
@@ -390,20 +449,21 @@
                                         placeholder="Quantity" v-model="result.OrderedQuantity"
                                         @change="onQtyChange($event,index)" />
                                     <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
-                                        v-on:click="increase($event,index)">
+                                        v-on:click="increase($event,index)" >
                                         <i class="fa fa-plus"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="col text-right d-flex align-items-center justify-content-end">
-                                <small>
-                                    <span class="font-weight-bold text-muted">by:</span>
-                                    <del v-if="result.Facility.DeliveryProvided !== 'Y'">Delivery</del>
-                                    <span v-if="result.Facility.DeliveryProvided === 'Y'">Delivery <span
-                                            v-if="result.Facility.DeliveryRadius * 1.0 > 0">up to
-                                            {{ result.Facility.DeliveryRadius * 1.0}} Kms </span></span>
-                                    <span> | Pickup</span>
-
+                            <div class="col text-right d-flex align-items-center justify-content-end" >
+                                 <small>
+                                    <del v-if="result.DeliveryProvided !== 'Y'">Delivery</del>
+                                    <span v-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) &&
+                                            ( !result.DeliveryCharges || result.DeliveryCharges * 1.0 === 0 )">
+                                        Delivery - Free
+                                    </span>
+                                    <span v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0" class="text-muted">
+                                        {{ (isDeliverySku(result.Sku) ? "Fixed Charges" : "Delivery") }} - &#x20B9; {{ result.DeliveryCharges }}
+                                    </span>
                                 </small>
                             </div>
                         </div>
@@ -417,11 +477,11 @@
                 <div class="form-row">
                     <div class="col-8">
                         <h6 class="m-0">{{OrderLineCount}} Items | &#x20B9; {{(OrderAmount * 1.0).toFixed(2)}}</h6>
-                        <small class="m-0 text-muted">Delivery charges &#x20B9;
+                        <small class="m-0 text-muted" v-if="DeliveryAmount * 1.0 > 0" >Delivery charges &#x20B9;
                             {{(DeliveryAmount *1.0).toFixed(2)}}</small>
                     </div>
                     <div class="col d-flex align-items-center">
-                        <a class="btn btn-primary btn-sm btn-block" href="/buy">CHECKOUT</a>
+                        <a class="btn btn-primary btn-sm btn-block" href="#" @click="buy($event)">CHECKOUT</a>
                     </div>
                 </div>
             </div>

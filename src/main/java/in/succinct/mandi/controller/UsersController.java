@@ -78,9 +78,12 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         if (!formFields.isEmpty()) {
             String sFileData = (String) formFields.get("zipfile");
             InputStream in = null;
-            String expectedPrefix = "data:application/zip;base64,";
-            if (sFileData.startsWith(expectedPrefix)) {
-                in = new ByteArrayInputStream(Base64.getDecoder().decode(sFileData.substring(expectedPrefix.length())));
+            String[] expectedPrefixes = new String[] {"data:application/zip;base64,", "data:application/x-zip-compressed;base64,"};
+            for (String expectedPrefix : expectedPrefixes){
+                if (sFileData.startsWith(expectedPrefix)) {
+                    in = new ByteArrayInputStream(Base64.getDecoder().decode(sFileData.substring(expectedPrefix.length())));
+                    break;
+                }
             }
             if (in == null) {
                 throw new RuntimeException("Nothing uploaded!");
@@ -189,6 +192,15 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
             }else {
                 return super.blank();
             }
+        }
+    }
+
+    public View pendingKyc(){
+        if (TemplateEngine.getInstance(getTemplateDirectory()).exists("/html/pendingKyc.html")){
+            return redirectTo("html/pendingKyc");
+        }else {
+            getPath().addErrorMessage("Template missing " );
+            return back();
         }
     }
 

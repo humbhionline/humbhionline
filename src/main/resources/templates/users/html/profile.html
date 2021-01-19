@@ -35,13 +35,15 @@
                 self = this;
                 self.User = { Id: user_id || Lockr.get("User").Id };
                 self.fixUserAttributes();
+                showSpinner();
                 api().url("/users/show/" + self.User.Id).get().then(function (response) {
                     self.User = response.User;
                     self.fixUserAttributes();
 
                     self.showApp();
+                }).finally(function(){
+                    hideSpinner();
                 });
-
             },
             methods: {
                 fixUserAttributes: function () {
@@ -159,11 +161,14 @@
                     if (!self.User.LongName) {
                         showErrorMessage("Let us know your full name.");
                     } else {
+                        showSpinner();
                         api().url("/users/save").parameters({ "User": self.User }).post().then(function (response) {
                             self.User = response.Users[0];
                             self.fixUserAttributes();
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     }
                 },
@@ -188,12 +193,15 @@
                         let formData = new FormData();
                         formData.append('zipfile', datafile);
                         formData.append('password', password);
+                        showSpinner();
                         api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata", "Accept": "application/json" }).post().then(function (response) {
                             console.log(response);
                             self.User = response.User;
                             self.fixUserAttributes();
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     });
                 },
@@ -207,6 +215,7 @@
 
                 verifyPhone: function (userPhone) {
                     self = this;
+                    showSpinner();
                     api().url("/user_phones/validateOtp/" + userPhone.Id).parameters({ "Otp": userPhone.Otp }).post().then(function (response) {
                         if (response.UserPhone.Validated === 'Y') {
                             index = self.User.UserPhones.findIndex(function (currentValue) {
@@ -218,6 +227,8 @@
                             showErrorMessage("Otp doesnot match");
                         }
 
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
 
@@ -226,11 +237,14 @@
                     if (!userPhone.Validated || userPhone.Validated !== 'Y') {
                         showErrorMessage("Only validated phone numbers can be made as primary phone number.");
                     } else {
+                        showSpinner();
                         api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "PhoneNumber": userPhone.PhoneNumber } }).post().then(function (response) {
                             self.User = response.Users[0];
                             self.fixUserAttributes();
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     }
                 },
@@ -259,12 +273,15 @@
                 },
                 addPhone: function (userPhone) {
                     self = this;
+                    showSpinner();
                     api().url("/user_phones/save").parameters({ "UserPhone": { "PhoneNumber": userPhone.PhoneNumber, "UserId": self.User.Id } }).post().then(function (response) {
                         index = self.User.UserPhones.findIndex(function (currentValue) {
                             return !currentValue.Id;
                         });
                         self.User.UserPhones.splice(index, 1, response.UserPhones[0]);
                         self.checkUserPhones();
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 viewAddPhone: function (status) {
@@ -275,6 +292,7 @@
                 },
                 verifyEmail: function (userEmail) {
                     self = this;
+                    showSpinner();
                     api().url("/user_emails/validateOtp/" + userEmail.Id).parameters({ "Otp": userEmail.Otp }).post().then(function (response) {
                         if (response.UserEmail.Validated === 'Y') {
                             index = self.User.UserEmails.findIndex(function (currentValue) {
@@ -285,6 +303,8 @@
                         } else {
                             showErrorMessage("Otp doesnot match");
                         }
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 makePrimaryEmail: function (userEmail) {
@@ -292,22 +312,28 @@
                     if (!userEmail.Validated || userEmail.Validated !== 'Y') {
                         showErrorMessage("Only validated emails can be made as primary email.");
                     } else {
+                        showSpinner();
                         api().url("/users/save").parameters({ "User": { "Id": self.User.Id, "Email": userEmail.Email } }).post().then(function (response) {
                             self.User = response.Users[0];
                             self.fixUserAttributes();
                         }).catch(function (err) {
                             showError(err);
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     }
                 },
                 destroyEmail: function (userEmail) {
                     self = this;
+                    showSpinner();
                     api().url("/user_emails/destroy/" + userEmail.Id).get().then(function (response) {
                         index = self.User.UserEmails.findIndex(function (currentValue) {
                             return currentValue.Id === userEmail.Id;
                         });
                         self.User.UserEmails.splice(index, 1);
                         self.checkUserEmails();
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 checkUserEmails: function () {
@@ -317,12 +343,15 @@
                 },
                 addEmail: function (userEmail) {
                     self = this;
+                    showSpinner();
                     api().url("/user_emails/save").parameters({ "UserEmail": { "Email": userEmail.Email, "UserId": self.User.Id } }).post().then(function (response) {
                         index = self.User.UserEmails.findIndex(function (currentValue) {
                             return !currentValue.Id;
                         });
                         self.User.UserEmails.splice(index, 1, response.UserEmails[0]);
                         self.checkUserEmails();
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 viewAddEmail: function (status) {
@@ -364,16 +393,24 @@
                     self.userPasswordBeingEdited = false;
                 },
                 verify: function (event) {
+                    event && event.preventDefault();
                     let self = this;
+                    showSpinner();
                     api().url("/users/verify/" + self.User.Id).get().then(function (response) {
                         self.User = response.User;
                         self.fixUserAttributes();
+                    }).finally(function(){
+                        hideSpinner();
                     });
                 },
                 close: function (event) {
                     let self = this;
                     event && event.preventDefault();
-                    back();
+                    if (Lockr.get("User").Id != self.User.Id) {
+                        window.location.replace("/users/pendingKyc");
+                    }else {
+                        window.history.back();
+                    }
                 },
                 showApp: function () {
                     let self = this;
@@ -381,13 +418,6 @@
                         fixMenu();
                         $("#pageTitle").html(self.User.LongName.length > 0 ? "Manage Profile" : "Let us know you a bit.");
                         $("#root").show();
-                        new Vue({
-                            el: "#header",
-                            data: {
-                                User: Lockr.get("User"),
-                                navbar : { hide : false },
-                            }
-                        });
                     });
                 },
                 removeList: function (e) {
@@ -786,7 +816,7 @@
                     </div>
                 </div>
             </div>
-            <div class="content-box mt-4" v-if="User.LongName.length < 0">
+            <div class="content-box mt-4" v-if="User.LongName.length > 0">
                 <div class="row">
                     <div class="col d-flex flex-row justify-content-end">
                         <button class="btn btn-block btn-primary btn-sm" @click="close($event)">Done</button>

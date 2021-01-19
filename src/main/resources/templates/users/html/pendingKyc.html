@@ -1,0 +1,107 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+<link rel="stylesheet" href="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.css"></link>
+<script type="text/javascript" src="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.js" ></script>
+
+<link href="/fragments/css/mandi.css" rel="stylesheet">
+<script type="text/javascript" src="/fragments/js/util.js"></script>
+<script type="text/javascript">
+    $(function(){
+        new Vue({
+            el: "#app",
+            data: {
+                User: Lockr.get("User"),
+                Users: [],
+            },
+            created: function(){
+                let self = this;
+                showSpinner();
+                let q = { q : "VERIFIED:N AND SELLER:Y"};
+                api().url("/users/search").get(q).then(function(response){
+                    self.Users = response.Users;
+                    self.showApp();
+                }).finally(function(){
+                    hideSpinner();
+                });
+            },
+            methods:{
+                showApp : function(){
+                    $("#header").load("/fragments/html/header", {}, function () {
+                        fixMenu();
+                        $("#root").show();
+                        $("#pageTitle").html("Sellers Pending Kyc");
+                    });
+                },
+                verify : function(event,User,index){
+
+                    event && event.preventDefault();
+                    let self = this;
+                    $.confirm({
+                        title : "Confirmation",
+                        content :"Are you satified with the documentation provided by " + User.LongName +"?",
+                        buttons : {
+                            yes : function() {
+                                showSpinner();
+                                api().url("/users/verify/"+User.Id).get().then(function(response){
+                                    self.Users.splice(index,1);
+                                }).finally(function(){
+                                    hideSpinner();
+                                });
+                            },
+                            no : function(){
+
+                            }
+                        }
+                    });
+
+
+                }
+            }
+        });
+    });
+</script>
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+        <div class="container-fluid">
+            <div v-if="Users.length === 0">
+                <div class="col-12">
+                    <div class="content-box mb-3">
+                        All Sellers have KYC Completed.!! Hurray!!
+                    </div>
+                </div>
+            </div>
+            <div v-bind:id="'user-' + i" class="row" v-for="(User,i) in Users">
+                <div class="col-12">
+                    <div class="content-box mb-3">
+                        <div class="form-row">
+                            <div class="col">
+                                <h6 class="m-0">{{ User.LongName }}</h6>
+                                <p class="m-0 text-muted">
+                                    <span v-if="User.AddressLine1">{{User.AddressLine1}},</span>
+                                    <span v-if="User.AddressLine2">{{User.AddressLine2}},</span>
+                                    <span v-if="User.AddressLine3">{{User.AddressLine3}},</span>
+                                    <span v-if="User.AddressLine4">{{User.AddressLine4}},</span>
+                                    <span
+                                        v-if="User.City && User.State && User.City.Name && User.State.Name">{{User.City.Name}}-{{User.State.Name}},</span>
+                                    <span v-if="User.PinCode && User.PinCode.PinCode">{{User.PinCode.PinCode}}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="form-row mt-2">
+                            <div class="col text-right">
+                                <a @click="verify($event,User,i)" href="#"
+                                    class="btn btn-sm btn-primary" role="button" >
+                                    Approve
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

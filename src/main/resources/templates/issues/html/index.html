@@ -17,23 +17,18 @@
             created: function () {
                 let self = this;
 
+                showSpinner();
                 api().url("/issues/search").get({ "q": "STATUS:OPEN OR STATUS:WIP" }).then(function (response) {
                     self.Issues = response.Issues;
                 }).finally(function () {
                     self.showApp();
-                })
+                    hideSpinner();
+                });
             },
             methods: {
                 showApp: function () {
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
-                        new Vue({
-                            el: "#header",
-                            data: {
-                                User: Lockr.get("User"),
-                                navbar: { hide: false },
-                            }
-                        });
                         $("#pageTitle").html("Issues");
                         $("#root").show();
 

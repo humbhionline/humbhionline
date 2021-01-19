@@ -123,9 +123,24 @@
       }
   </style>
 </head>
+<#assign selling_price = Order.SellingPrice?number />
+<#assign product_selling_price = Order.ProductSellingPrice?number />
+<#assign shipping_selling_price = Order.ShippingSellingPrice?number />
+<#assign shipping_price = Order.ShippingSellingPrice?number / (1.18) />
+<#if (Order.CGst?number == 0) >
+    <#assign shipping_cgst =  0 />
+    <#assign shipping_igst =  (((0.18 * shipping_price * 100)?round) / 100) />
+<#else>
+    <#assign shipping_cgst =  (((0.09 * shipping_price * 100)?round) / 100) />
+    <#assign shipping_igst =  0 />
+</#if>
+<#assign shipping_sgst=shipping_cgst/>
+<#assign shipping_line = {"Sku": {"Name": "Fixed Delivery Charges" , "MaxRetailPrice" : shipping_selling_price } , "PackedQuantity" : 1 , "Hsn" : "996813" , "CGst" :  shipping_cgst, "SGst" : shipping_sgst , "IGst" : shipping_igst , "MaxRetailPrice": shipping_selling_price , "SellingPrice" : shipping_selling_price , "Price" : shipping_price , "DiscountPercentage" :"0"   }/>
+
 <#assign qty = 0 />
 <#assign mrp = 0 />
 <#assign lines=Order.OrderLines?sort_by("MaxRetailPrice")/>
+<#assign lines=lines + [shipping_line] />
 <#list lines>
 <#items as OrderLine>
         <#assign qty += OrderLine.PackedQuantity?number />
@@ -148,13 +163,12 @@
 <#if ( discount > 0 ) >
     <#assign discount_percent = (((discount * 100) / pre_tax_price )?round) />
 </#if>
-<#assign selling_price = Order.SellingPrice?number />
 <body>
           <div class="invoice-box">
             <table cellpadding="0" border="1" class="invoice-table" cellspacing="0">
               <tr class="top" width="50%">
                  <td colspan="2" style="text-align: center; font-size: 15px;">
-        				    <strong>Packlist</strong>
+        				    <strong>Invoice</strong>
                  </td>
                </tr>
                <tr>
@@ -352,7 +366,7 @@
         <#if ldiscounted_price == 0>
             <#assign ltaxRate = 18 >
         <#else>
-            <#if (((OrderLine.CGst?number + OrderLine.IGst?number + OrderLine.SGst?number)*100.0/ldiscounted_price)?round) < 18 >
+            <#if ((((OrderLine.CGst?number + OrderLine.IGst?number + OrderLine.SGst?number)*100.0/ldiscounted_price)?round) < 18) >
                 <#assign ltaxRate =  (((OrderLine.CGst?number + OrderLine.IGst?number + OrderLine.SGst?number)*100.0/ldiscounted_price)?round)/>
             <#else>
                 <#assign ltaxRate =  18/>
@@ -369,8 +383,8 @@
       <td style="text-align: left;  max-height: 22px; height: 22px; overflow: auto;" >${OrderLine.Sku.Name}</td>
       <td>${OrderLine.Hsn}</td>
       <td>${lqty}</td>
-      <td>${ldiscounted_price}</td>
-      <td>${ldiscounted_price}</td>
+      <td>${(ldiscounted_price/lqty)?string["0.00"]}</td>
+      <td>${ldiscounted_price?string["0.00"]}</td>
       <td>
         <#if OrderLine.CGst?number == 0>
             0%
@@ -382,7 +396,7 @@
           <#if OrderLine.CGst?number == 0>
               0
           <#else>
-              ${OrderLine.CGst}
+              ${OrderLine.CGst?number?string["0.00"]}
           </#if>
       </td>
       <td>
@@ -396,7 +410,7 @@
           <#if OrderLine.SGst?number == 0>
               0
           <#else>
-              ${OrderLine.SGst} <br/>
+              ${OrderLine.SGst?number?string["0.00"]} <br/>
           </#if>
       </td>
       <td>
@@ -410,19 +424,19 @@
           <#if OrderLine.IGst?number == 0>
               0
           <#else>
-              ${OrderLine.IGst}
+              ${OrderLine.IGst?number?string["0.00"]}
           </#if>
       </td>
-      <td>${lselling_price}</td>
+      <td>${lselling_price?string["0.00"]}</td>
     </tr>
 </#items>
 </#list>
     <tr class="item" style="text-align:right">
       <td style="text-align: left;  max-height: 22px; height: 22px; overflow: auto;"><b>TOTAL</b></td>
-      <td><b></b></td>
-      <td><b>${qty}</b></td>
-      <td><b>${discounted_price}</b></td>
-      <td><b>${discounted_price}</b></td>
+      <td><b>-</b></td>
+      <td><b>-</b></td>
+      <td><b>-</b></td>
+      <td><b>${discounted_price?string["0.00"]}</b></td>
       <td>
         <#if Order.CGst?number == 0>
             0%
@@ -434,7 +448,7 @@
           <#if Order.CGst?number == 0>
               0
           <#else>
-              ${Order.CGst}<br/>
+              ${((Order.CGst?number * 100)?round/ 100)?string["0.00"]}<br/>
           </#if>
       </td>
       <td>
@@ -448,7 +462,7 @@
           <#if Order.SGst?number == 0>
               0
           <#else>
-              ${Order.SGst}<br/>
+              ${((Order.SGst?number * 100)?round/ 100)?string["0.00"]}<br/>
           </#if>
       </td>
       <td>
@@ -462,10 +476,10 @@
           <#if Order.IGst?number == 0>
               0
           <#else>
-              ${Order.IGst}<br/>
+              ${((Order.IGst?number * 100)?round/ 100)?string["0.00"]}<br/>
           </#if>
       </td>
-      <td><b>${selling_price}</b></td>
+      <td><b>${selling_price?string["0.00"]}</b></td>
      </tr>
     </table>
    </td>
@@ -510,7 +524,7 @@
               <td style="text-align: right; font-size: 12px;"><#if Order.CGst?number == 0>
                   0
               <#else>
-                  ${Order.CGst}
+                  ${(Order.CGst?number * 100 / 100)}
               </#if></td>
               <td style="text-align: right; font-size: 12px;">  <#if Order.SGst?number == 0>
                     0
@@ -520,7 +534,7 @@
               <td style="text-align: right; font-size: 12px;">  <#if Order.SGst?number == 0>
                     0
                 <#else>
-                    ${Order.SGst} <br/>
+                    ${(Order.SGst?number * 100 / 100)} <br/>
                 </#if></td>
               <td style="text-align: right; font-size: 12px;"><#if Order.IGst?number == 0>
                   0
@@ -530,7 +544,7 @@
               <td style="text-align: right; font-size: 12px;"><#if Order.IGst?number == 0>
                   0
               <#else>
-                  ${Order.IGst}
+                  ${(Order.IGst?number * 100 / 100)}
               </#if>
           </td>
             </tr>
@@ -540,7 +554,10 @@
       <table cellspacing="0" class="sub-table" cellpadding="0" style="padding: 10px !important;" >
       <tr>
         <td style="text-align:right">
-          Total Amount: ${discounted_price}
+          Total Amount:
+        </td>
+        <td style="text-align:right">
+          ${((discounted_price * 100.0)?round/100.0)?string["0.00"]}
         </td>
        </tr>
        <tr>
@@ -552,19 +569,25 @@
 
 
          <td style="text-align:right">
-           Tax (Inclusive): ${totalTax}
+            Tax (Inclusive):
+         </td>
+         <td style="text-align:right">
+           ${((totalTax *100.0)?round/100.0)?string["0.00"]}
          </td>
         </tr>
+
         <tr>
+          <td style="text-align:right">Grand Total(INR):
+          </td>
           <td style="text-align:right">
-            Grand Total(INR): ${selling_price}
+            ${((selling_price *100.0)?round/100.0)?string["0.00"]}
           </td>
          </tr>
       </table>
     </td>
   </tr>
 
-  <!-- 
+  <!--
   <tr>
       <td colspan="2">
          <table style="height: 100px;">

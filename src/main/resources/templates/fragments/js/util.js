@@ -71,9 +71,57 @@ function sendSubscriptionToServer(subscription){
 
 function showSpinner(){
     let a = typeof Android == "undefined" ? undefined : Android ;
-    a && a.showSpinner();
+    if (a){
+        a.showSpinner();
+    }else {
+        let p = $("#spinner") ;
+        p.removeClass("invisible");
+    }
 }
 function hideSpinner(){
     let a = typeof Android == "undefined" ? undefined : Android ;
-    a && a.hideSpinner();
+    if (a){
+        a.hideSpinner();
+    }else{
+        let p = $("#spinner") ;
+        p.addClass("invisible");
+    }
+}
+
+function isMobile(){
+    return isAndroidApp() || isMobileBrowser();
+}
+
+function isOpenOrder(o){
+    return !["CANCELLED","SHIPPED","DELIVERED","RETURNED"].includes(o.FulfillmentStatus);
+}
+
+function isMobileBrowser(){
+    var hasTouchScreen = false;
+    if ("maxTouchPoints" in navigator) {
+        hasTouchScreen = navigator.maxTouchPoints > 0;
+    } else if ("msMaxTouchPoints" in navigator) {
+        hasTouchScreen = navigator.msMaxTouchPoints > 0;
+    } else {
+        var mQ = window.matchMedia && matchMedia("(pointer:coarse)");
+        if (mQ && mQ.media === "(pointer:coarse)") {
+            hasTouchScreen = !!mQ.matches;
+        } else if ('orientation' in window) {
+            hasTouchScreen = true; // deprecated, but good fallback
+        } else {
+            // Only as a last resort, fall back to user agent sniffing
+            var UA = navigator.userAgent;
+            hasTouchScreen = (
+                /\b(BlackBerry|webOS|iPhone|IEMobile)\b/i.test(UA) ||
+                /\b(Android|Windows Phone|iPad|iPod)\b/i.test(UA) ||
+                /\b(Mobile)\b/i.test(UA)
+            );
+        }
+    }
+
+    return hasTouchScreen;
+}
+
+function isAndroidApp(){
+    return typeof Android !== "undefined"
 }
