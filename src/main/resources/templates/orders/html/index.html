@@ -117,7 +117,7 @@
                                 o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
                                     '&pn=' + o.Facility.CreatorUser.NameAsInBankAccount +
                                     '&tr=O:' + o.Id +
-                                    '&tn=Humbhionline Txn ' + o.Id +
+                                    '&tn=HumBhiOnline Txn ' + o.Id +
                                     '&am=' + o.AmountPendingPayment +
                                     '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                             }
@@ -125,7 +125,7 @@
                                 o._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress +
                                     '&pn=' + o.CreatorUser.NameAsInBankAccount +
                                     '&tr=R:' + o.Id +
-                                    '&tn=Return for Humbhionline Txn ' + o.Id +
+                                    '&tn=Return for HumBhiOnline Txn ' + o.Id +
                                     '&am=' + o.AmountToRefund +
                                     '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                             }
@@ -348,13 +348,13 @@
                         response.Order._phref = "#";
                         if (self.Android) {
                             self.orderInitiatedForPayment = response.Order;
-                            self.Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress, order.Facility.CreatorUser.NameAsInBankAccount, "O:" + order.Id, order.AmountPendingPayment * 1.0, 'Humbhionline Txn ' + order.Id);
+                            self.Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress, order.Facility.CreatorUser.NameAsInBankAccount, "O:" + order.Id, order.AmountPendingPayment * 1.0, 'HumBhiOnline Txn ' + order.Id);
                         } else if (navigator.userAgent.match(/Android/i)) {
                             let o = response.Order
                             o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
                                 '&pn=' + o.Facility.CreatorUser.NameAsInBankAccount +
                                 '&tr=O:' + o.Id +
-                                '&tn=Humbhionline Txn ' + o.Id +
+                                '&tn=HumBhiOnline Txn ' + o.Id +
                                 '&am=' + o.AmountPendingPayment +
                                 '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                         }
@@ -432,9 +432,9 @@
                         if (self.Android) {
                             // v-bind:href=
                             self.orderInitiatedForReturn = response.Order;
-                            self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress, order.CreatorUser.NameAsInBankAccount, "R:" + order.Id, order.AmountToRefund * 1.0, 'Return for Humbhionline Txn ' + order.Id);
+                            self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress, order.CreatorUser.NameAsInBankAccount, "R:" + order.Id, order.AmountToRefund * 1.0, 'Return for HumBhiOnline Txn ' + order.Id);
                         } else if (navigator.userAgent.match(/Android/i)) {
-                            response.Order._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn=' + o.CreatorUser.NameAsInBankAccount + '&tr=R:' + o.Id + '&tn=Return for Humbhionline Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
+                            response.Order._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn=' + o.CreatorUser.NameAsInBankAccount + '&tr=R:' + o.Id + '&tn=Return for HumBhiOnline Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                         }
                     }).catch(function (err) {
                         showError(err);
