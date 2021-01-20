@@ -1,6 +1,7 @@
 package in.succinct.mandi.controller;
 
 import com.venky.cache.Cache;
+import com.venky.core.collections.SequenceSet;
 import com.venky.core.date.DateUtils;
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.math.DoubleUtils;
@@ -28,6 +29,7 @@ import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
+import in.succinct.mandi.db.model.RefOrder;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
@@ -320,33 +322,44 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>,List<String>> map =  super.getIncludedModelFields();
-        map.put(Order.class,ModelReflector.instance(Order.class).getFields());
+        map.put(Order.class,ModelReflector.instance(Order.class).getVisibleFields(Arrays.asList("ID","LOCK_ID","CREATED_AT" ,"UPDATED_AT","CREATOR_USER_ID")));
+        List<String> refOrderFields = new SequenceSet<>();
+        refOrderFields.addAll(map.get(Order.class));
+        refOrderFields.removeAll(Arrays.asList("MANIFEST_ID"));
 
+        map.put(RefOrder.class,refOrderFields);
 
         ModelReflector<OrderLine> orderLineModelReflector = ModelReflector.instance(OrderLine.class);
-        map.put(OrderLine.class,orderLineModelReflector.getFields(cd ->  cd.getName().equals("ID") || ( !cd.getName().equals("ORDER_ID") && !orderLineModelReflector.isHouseKeepingField(orderLineModelReflector.getFieldName(cd.getName())) ) ));
-
+        map.put(OrderLine.class,orderLineModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
+        map.get(OrderLine.class).removeAll(Arrays.asList("ORDER_ID","SHIP_FROM_ID","INVENTORY_ID"));
+        /*
         ModelReflector<OrderAddress> orderAddressModelReflector = ModelReflector.instance(OrderAddress.class);
-        map.put(OrderAddress.class, orderAddressModelReflector.getFields(cd -> !cd.getName().equals("ORDER_ID")  &&!orderAddressModelReflector.isHouseKeepingField(orderAddressModelReflector.getFieldName(cd.getName()))));
-
+        map.put(OrderAddress.class, orderAddressModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
+        map.get(OrderAddress.class).remove("ORDER_ID");
+        */
+        map.remove(OrderAddress.class);
 
         ModelReflector<OrderStatus> orderStatusModelReflector = ModelReflector.instance(OrderStatus.class);
-        map.put(OrderStatus.class,orderStatusModelReflector.getFields(cd -> !cd.getName().equals("ORDER_ID")  && !orderStatusModelReflector.isHouseKeepingField(orderStatusModelReflector.getFieldName(cd.getName()))));
+        map.put(OrderStatus.class,orderStatusModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
+        map.get(OrderStatus.class).remove("ORDER_ID");
 
         ModelReflector<Sku> skuModelReflector = ModelReflector.instance(Sku.class);
-        map.put(Sku.class,skuModelReflector.getFields(cd -> !skuModelReflector.isHouseKeepingField(skuModelReflector.getFieldName(cd.getName()))));
+        map.put(Sku.class,skuModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
 
         List<String> userFields = new ArrayList<>();
         List<String> facilityFields = new ArrayList<>();
+
         for (String addressField : Address.getAddressFields()) {
             userFields.add(addressField);
             facilityFields.add(addressField);
         }
+
         userFields.addAll(ModelReflector.instance(User.class).getUniqueFields());
+        userFields.retainAll(ModelReflector.instance(User.class).getVisibleFields());
+        userFields.addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
+
         facilityFields.addAll(ModelReflector.instance(Facility.class).getUniqueFields());
         facilityFields.add("DELIVERY_PROVIDED");
-
-        userFields.addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
         facilityFields.add("CREATOR_USER_ID");
 
         map.put(User.class,userFields);

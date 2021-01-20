@@ -654,6 +654,7 @@
                                     <!-- If a seller provides delivery, then he owns the transportation responsibility -->
                                     <a href="#/" class="btn btn-sm btn-outline-primary" role="button"
                                         v-on:click="plan($event,o)" v-if="planningRequired(o) &&
+                                        cancelled.findIndex(x => x === o.Id) < 0 &&
                                         shipped.findIndex(x => x === o.Id) < 0 &&
                                         delivered.findIndex(x=> x===o.Id) < 0 ">
                                         Plan Courier?

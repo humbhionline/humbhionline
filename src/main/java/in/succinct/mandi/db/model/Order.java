@@ -69,9 +69,16 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
 
 
 
+    @HIDDEN
+    public Long getParentOrderId();
+    public void setParentOrderId(Long id);
+    public Order getParentOrder();
+
+    @IS_VIRTUAL
     public Long getRefOrderId();
     public void setRefOrderId(Long id);
-    public Order getRefOrder();
+    @IS_VIRTUAL
+    public RefOrder getRefOrder();
 
     @IS_VIRTUAL
     @Index

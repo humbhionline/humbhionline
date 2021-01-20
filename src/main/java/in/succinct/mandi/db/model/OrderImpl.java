@@ -2,6 +2,7 @@ package in.succinct.mandi.db.model;
 
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.table.ModelImpl;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
@@ -112,7 +113,7 @@ public class OrderImpl extends ModelImpl<Order> {
 
     public Order getTransportOrder(){
         Order order = getProxy();
-        List<Order> deliveryPlans = new Select().from(Order.class).where(new Expression(getReflector().getPool(), "REF_ORDER_ID", Operator.EQ, order.getId())).execute();
+        List<Order> deliveryPlans = new Select().from(Order.class).where(new Expression(getReflector().getPool(), "PARENT_ORDER_ID", Operator.EQ, order.getId())).execute();
         Optional<Order> optionalDeliveryPlan = deliveryPlans.stream().filter(dp -> !dp.isCancelled() ).findAny();
         if (optionalDeliveryPlan.isPresent()){
             return optionalDeliveryPlan.get();
@@ -120,5 +121,14 @@ public class OrderImpl extends ModelImpl<Order> {
         return null;
     }
 
+    public Long getRefOrderId() {
+        return getProxy().getParentOrderId();
+    }
+    public void setRefOrderId(Long id) {
+        getProxy().setParentOrderId(id);
+    }
+    public RefOrder getRefOrder() {
+        return getProxy().getParentOrder().getRawRecord().getAsProxy(RefOrder.class);
+    }
 
 }

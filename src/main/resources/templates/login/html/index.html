@@ -49,8 +49,8 @@
                         event.preventDefault();
                     }
                     var self = this;
-                    self.http(false).post("/login", self.params).then(function (response) {
-                        self.http(true).get("/users/current", {data :{}}).then(function (response){
+                    self.http(false).post("/login", self.params,{ "headers" :  {"Content-Type" : "application/json" , "KeepAlive":"Y"} }).then(function (response) {
+                        self.http(true).get("/users/current", {data :{} , headers: { "content-type" : "application/json" } }).then(function (response){
                             if (response.data.User.SignUps[0].Validated === 'Y') {
                                 Lockr.set("SignUp",response.data.User.SignUps[0]);
                                 Lockr.set("User",response.data.User);

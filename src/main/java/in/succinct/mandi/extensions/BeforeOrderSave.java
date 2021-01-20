@@ -13,10 +13,10 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
     }
     @Override
     public void beforeSave(Order model) {
-        Order refOrder = model.getRefOrder();
+        Order parentOrder = model.getParentOrder();
         Order transportOrder = model.getTransportOrder();
 
-        if (refOrder == null){
+        if (parentOrder == null){
             // Is Product Order
             if (model.getRawRecord().isFieldDirty("FULFILLMENT_STATUS") &&
                     ObjectUtil.equals(model.getFulfillmentStatus(),Order.FULFILLMENT_STATUS_CANCELLED)){
@@ -28,16 +28,16 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
         }
         if (model.getRawRecord().isFieldDirty("FULFILLMENT_STATUS") &&
                 ObjectUtil.equals(model.getFulfillmentStatus(),Order.FULFILLMENT_STATUS_DELIVERED)){
-            refOrder.deliver();
+            parentOrder.deliver();
         }
         if (model.getRawRecord().isFieldDirty("FULFILLMENT_STATUS") &&
                 ObjectUtil.equals(model.getFulfillmentStatus(),Order.FULFILLMENT_STATUS_SHIPPED)){
-            refOrder.ship();
+            parentOrder.ship();
         }
 
         if (model.getRawRecord().isNewRecord()){
             try {
-                LuceneIndexer.instance(Order.class).updateDocument(refOrder.getRawRecord());
+                LuceneIndexer.instance(Order.class).updateDocument(parentOrder.getRawRecord());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
