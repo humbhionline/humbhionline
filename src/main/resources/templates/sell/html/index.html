@@ -514,7 +514,7 @@
                     <div class="form-row mb-2" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules' + i"
                         v-if="current.Facility.DeliveryProvided === 'Y'">
                         <div class="col">
-                            <label class="text-muted small" v-bind:for="'DeliveryRadius' + i">Upto Kms</label>
+                            <label class="text-muted small" v-bind:for="'DeliveryRadius' + i">Maximum Upto Kms</label>
                             <input class="form-control form-control-sm" v-bind:key="'DeliveryRadius' + i"
                             v-bind:id="'DeliveryRadius' + i" placeholder="Upto how many Kms"
                             v-model="current.Facility.DeliveryRadius" />
@@ -523,7 +523,7 @@
                     <div class="form-row mb-2" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules-fixed' + i"
                         v-if="current.Facility.DeliveryProvided === 'Y'" >
                         <div class="col">
-                            <label class="text-muted small" v-bind:for="'MinFixedDistance' + i">Min Distance Charged</label>
+                            <label class="text-muted small" v-bind:for="'MinFixedDistance' + i">Upto First Few Kms</label>
                             <input class="form-control form-control-sm" v-bind:key="'MinFixedDistance' + i"
                                 v-bind:id="'MinFixedDistance' + i" placeholder="Min Kms"
                                 v-model="current.Facility.MinFixedDistance" />
@@ -541,7 +541,7 @@
                                 Cancel
                             </a>
                             <a href="#/" class="btn btn-primary btn-sm" role="button" v-on:click="save($event)">
-                                submit
+                                Submit
                             </a>
                         </div>
                     </div>

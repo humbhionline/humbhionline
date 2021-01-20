@@ -472,10 +472,28 @@
             <div class="content-box">
                 <div class="form-row mb-2">
                     <div class="col">
-                        <div class="form-check">
+                        <div class="col border py-1">
+                            <!--
                             <input value="N" class="form-check-input align-middle" type="checkbox" id="seller"
                                 v-model="User.Seller" @change="saveUser($event)" true-value="Y" false-value="N">
                             <label class="form-check-label align-middle" for="seller">Do you wish to Sell?</label>
+                            @change="saveUser($event)"
+                            -->
+                            <div class="align-middle mr-1">
+                                <small>
+                                    Do you wish be a seller on Hum Bhi Online?
+                                </small>
+                            </div>
+                            <div class="form-check-inline align-middle mr-1">
+                                <input class="form-check-input mb-0" type="radio" v-model="User.Seller"
+                                    name="seller_n" id="seller_n" value="N" @change="saveUser($event)">
+                                <label class="form-check-label small" for="seller_n">No, Not right now</label>
+                            </div>
+                            <div class="form-check-inline align-middle mr-1">
+                                <input class="form-check-input mb-0" type="radio" v-model="User.Seller"
+                                    name="seller_y" id="seller_y" value="Y" @change="saveUser($event)">
+                                <label class="form-check-label small" for="seller_y">Yes, I would like to sell</label>
+                            </div>
                         </div>
                         <div class="col">
                             <span class="small" v-if="User.Verified !== 'Y' ">Your KYC process needs to be completed
