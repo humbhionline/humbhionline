@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="/fragments/css/mandi.css">
+<link rel="stylesheet" href="/dashboard/css/style.css">
 
 <div style="w-100">
     <header>
@@ -9,8 +9,8 @@
                         <a class="navbar-brand" href="#">
                             <img src="/dashboard/images/MandiLogo.svg" class="logo-img" alt=""><span>HumBhi</span>Online
                         </a>
-                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                            data-bs-target="#navbarTogglerDemo02" aria-controls="navbarTogglerDemo02"
+                        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                            data-target="#navbarTogglerDemo02" aria-controls="navbarTogglerDemo02"
                             aria-expanded="false" aria-label="Toggle navigation">
                             <span class="navbar-toggler-icon"></span>
                         </button>
@@ -21,19 +21,20 @@
                                         <a class="nav-link active" aria-current="page" href="/">Home</a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link" href="#why">Why choose</a>
+                                        <a class="nav-link" href="#why" data-toggle="collapse" data-target="#navbarTogglerDemo02" >Why choose</a>
                                     </li>
                                     <!-- <li class="nav-item">
                                         <a class="nav-link" href="#" tabindex="-1" aria-disabled="true">Testiminial</a>
                                     </li> -->
                                     <li class="nav-item">
-                                        <a class="nav-link" href="#pricing" tabindex="-1" aria-disabled="true">Pricing</a>
+                                        <a class="nav-link" href="/dashboard#pricing" tabindex="-1"
+                                            aria-disabled="true">Pricing</a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link" href="#faq" tabindex="-1" aria-disabled="true">FAQ</a>
+                                        <a class="nav-link" href="/dashboard#faq" tabindex="-1" aria-disabled="true">FAQ</a>
                                     </li>
                                 </ul>
-                                <button class="btn btn-primary rounded-pill" type="submit">Download Now</button>
+                                <a href="https://play.google.com/store/apps/details?id=in.humbhionline" class="btn btn-primary rounded-pill d-none d-sm-block" type="submit">Download Now</a>
                             </div>
                         </div>
                     </div>
@@ -52,10 +53,11 @@
                                     from the grass roots!</h1>
                                 <p>A refreshingly Indian market place that is inclusive in its approach to all round
                                     community growth, “Lokah Samastah Sukhino Bhavanthu”</p>
-                                <a href="#."><img src="/dashboard/images/google-play-button.gif" class="play-btn" alt=""></a>
-                                <button
+                                <a href="https://play.google.com/store/apps/details?id=in.humbhionline"><img src="/dashboard/images/google-play-button.gif" class="play-btn"
+                                        alt=""></a>
+                                <a href="/login"
                                     class="btn btn-primary rounded-pill btn-sm mx-lg-2 mx-1 d-inline-block d-sm-none"
-                                    type="submit">Get Started</button>
+                                    type="submit">Get Started</a>
                             </div>
                         </div>
                         <div class="col-4 col-lg-3 offset-lg-1 text-center">
@@ -116,7 +118,7 @@
                 <div class="col text-center">
                     <div class="row d-flex justify-content-center">
                         <div class="col-lg-6">
-                            <h2 class="mt-lg-5 mt-2" id="why" >Why choose HumBhiOnline</h2>
+                            <h2 class="mt-lg-5 mt-2" id="why">Why choose HumBhiOnline</h2>
                             <p class="text-line"><strong>“HumBhiOnline”</strong> was created to remove this entry
                                 barrier for small sellers. It is critical for the digital
                                 economy to thrive, that India’s small sellers adopt online strategies for their
@@ -140,7 +142,8 @@
                         tracking that are prone to
                         mistakes.</p>
                         -->
-                    <p> People who are currently not your customers can discover you in the market place and start ordering with you.</p>
+                    <p> People who are currently not your customers can discover you in the market place and start
+                        ordering with you.</p>
                 </div>
                 <div class="col-lg-3 col-10">
                     <img src="/dashboard/images/upiPayment.svg" class="w-25 mb-2" alt="">
@@ -164,7 +167,7 @@
         <div class="container">
             <div class="row d-flex justify-content-center">
                 <div class="col-lg-8 text-center">
-                    <h2 class="mt-lg-5 mt-2" id="faq" >Frequently asked questions</h2>
+                    <h2 class="mt-lg-5 mt-2" id="faq">Frequently asked questions</h2>
                     <p class="text-line">
                         The rise of mobile devices transforms the way we consume information entirely
                         and the world's most elevant channels such as Facebook.
@@ -174,11 +177,14 @@
             <div class="row d-flex justify-content-center">
                 <div class="col-lg-10">
                     <div class="accordion mb-4" id="accordionExample">
-                        <div class="accordion-item card">
-                            <h5 class="card-header accordion-header" id="headingOne">
-                                <button class="btn btn-link accordion-button" type="button" data-bs-toggle="collapse" data-toggle="collapse"
-                                    data-bs-target="#collapseOne" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        <div class="card">
+                            <h5 class="card-header" id="headingOne">
+                                <button class="btn btn-link" type="button" data-bs-toggle="collapse"
+                                    data-toggle="collapse" data-bs-target="#collapseOne" data-target="#collapseOne"
+                                    aria-expanded="true" aria-controls="collapseOne">
                                     Why am I not suggested to my customers?
+                                    <i class="fa fa-angle-down"></i>
+                                    <i class="fa fa-angle-up"></i>
                                 </button>
                             </h5>
 
@@ -191,13 +197,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="card accordion-item">
-                            <h5 class="card-header accordion-header" id="headingTwo">
-                                <button class="accordion-button btn btn-link  collapsed" type="button"
-                                    data-bs-toggle="collapse" data-bs-target="#collapseTwo"
-                                    data-toggle="collapse" data-target="#collapseTwo"
-                                    aria-expanded="false" aria-controls="collapseTwo">
+                        <div class="card">
+                            <h5 class="card-header" id="headingTwo">
+                                <button class=" btn btn-link  collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseTwo" data-toggle="collapse"
+                                    data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
                                     Can I register as a delivery provider?
+                                    <i class="fa fa-angle-down"></i>
+                                    <i class="fa fa-angle-up"></i>
                                 </button>
                             </h5>
                             <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo"
@@ -214,13 +221,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="accordion-item card">
-                            <h5 class="accordion-header card-header" id="headingThree">
-                                <button class="accordion-button btn btn-link collapsed" type="button"
-                                    data-bs-toggle="collapse" data-bs-target="#collapseThree"
-                                    data-toggle="collapse" data-target="#collapseThree"
-                                    aria-expanded="false" aria-controls="collapseThree">
+                        <div class="card">
+                            <h5 class="card-header" id="headingThree">
+                                <button class=" btn btn-link collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseThree" data-toggle="collapse"
+                                    data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
                                     How and when is the payment done to the Seller?
+                                    <i class="fa fa-angle-down"></i>
+                                    <i class="fa fa-angle-up"></i>
                                 </button>
                             </h5>
                             <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree"
@@ -230,14 +238,15 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="accordion-item card">
-                            <h5 class="accordion-header card-header" id="headingFour">
-                                <button class="accordion-button btn btn-link collapsed" type="button"
-                                    data-bs-toggle="collapse" data-bs-target="#collapseFour"
-                                    data-toggle="collapse" data-target="#collapseFour"
-                                    aria-expanded="false" aria-controls="collapseFour">
+                        <div class="card">
+                            <h5 class=" card-header" id="headingFour">
+                                <button class=" btn btn-link collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseFour" data-toggle="collapse"
+                                    data-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
                                     Will my customer buy from other Sellers? Will this not be detremental to my
                                     business?
+                                    <i class="fa fa-angle-down"></i>
+                                    <i class="fa fa-angle-up"></i>
                                 </button>
                             </h5>
                             <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour"
@@ -260,13 +269,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="accordion-item card">
+                        <div class="card">
                             <h5 class="accordion-header card-header" id="headingFive">
-                                <button class="accordion-button btn btn-link collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseFive"
-                                    data-toggle="collapse" data-target="#collapseFive"
-                                    aria-expanded="false" aria-controls="collapseFive">
+                                <button class=" btn btn-link collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseFive" data-toggle="collapse"
+                                    data-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
                                     What is the vision for HumBhiOnline?
+                                    <i class="fa fa-angle-down"></i>
+                                    <i class="fa fa-angle-up"></i>
                                 </button>
                             </h5>
                             <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive"
@@ -288,13 +298,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="accordion-item card">
+                        <div class="card">
                             <h5 class="accordion-header card-header" id="headingSix">
-                                <button class="accordion-button btn btn-link  collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseSix"
-                                    data-toggle="collapse" data-target="#collapseSix"
-                                    aria-expanded="false" aria-controls="collapseSix">
+                                <button class=" btn btn-link  collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseSix" data-toggle="collapse"
+                                    data-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
                                     How can I help with the HumBhiOnline movement?
+                                    <i class="fa fa-angle-down"></i>
+                                    <i class="fa fa-angle-up"></i>
                                 </button>
                             </h5>
                             <div id="collapseSix" class="accordion-collapse collapse" aria-labelledby="headingSix"
@@ -319,14 +330,15 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="accordion-item card">
-                            <h5 class="accordion-header card-header" id="headingSeven">
-                                <button class="accordion-button btn btn-link collapsed" type="button"
-                                    data-bs-toggle="collapse" data-bs-target="#collapseSeven"
-                                    data-toggle="collapse" data-target="#collapseSeven"
-                                    aria-expanded="false" aria-controls="collapseSeven">
+                        <div class="card">
+                            <h5 class=" card-header" id="headingSeven">
+                                <button class=" btn-block btn btn-link collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseSeven" data-toggle="collapse"
+                                    data-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven">
                                     Ah! you want to get Cheap marketing ? It helps you and HumBhiOnline! How does it
                                     help me?
+                                    <i class="fa fa-angle-down"></i>
+                                    <i class="fa fa-angle-up"></i>
                                 </button>
                             </h5>
                             <div id="collapseSeven" class="accordion-collapse collapse" aria-labelledby="headingSeven"
