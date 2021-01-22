@@ -128,7 +128,12 @@ public class OrderImpl extends ModelImpl<Order> {
         getProxy().setParentOrderId(id);
     }
     public RefOrder getRefOrder() {
-        return getProxy().getParentOrder().getRawRecord().getAsProxy(RefOrder.class);
+        Order parent  = getProxy().getParentOrder() ;
+        if (parent  != null ) {
+            return parent.getRawRecord().getAsProxy(RefOrder.class);
+        }else {
+            return null;
+        }
     }
 
 }
