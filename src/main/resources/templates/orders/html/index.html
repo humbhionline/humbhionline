@@ -709,9 +709,16 @@
                                                     Ship
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
-                                                    v-on:click="deliver($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y'  &&
+                                                    v-on:click="deliver($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' &&
+                                                    o.Facility.DeliveryProvided === 'Y'  &&
                                                     delivered.findIndex(x => x === o.Id) < 0">
                                                     Deliver
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
+                                                    v-on:click="deliver($event,o)" v-else-if="purchases
+                                                    && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided !== 'Y'  &&
+                                                    delivered.findIndex(x => x === o.Id) < 0">
+                                                    Pickup
                                                 </a>
                                             </p>
                                         </div>
