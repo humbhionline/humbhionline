@@ -1,6 +1,38 @@
 <link rel="stylesheet" href="/dashboard/css/style.css">
 
-<div style="w-100">
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
+<script type="text/javascript">
+    $(function(){
+        new Vue({
+            el: "#root",
+            data : {
+                User: Lockr.get("User"),
+                SignUp: Lockr.get("SignUp"),
+                isAndroidApp : isAndroidApp(),
+                isMobile : isMobile(),
+            },
+            created : function(){
+                let self =this;
+                console.log("Mobile :" + self.isMobile);
+                console.log("Android :" + self.isAndroidApp);
+                if (self.isMobile){
+                    if ( (self.User && self.User.Verified === 'Y') || (self.SignUp && self.SignUp.Verified === 'Y') ){
+                        window.location.replace("/login");
+                    }
+                }
+            }
+        });
+    });
+    function hideMenu() {
+        $("#menu").removeClass("show");
+        return true;
+    }
+</script>
+
+
+<div id="root" style="w-100">
     <header>
         <div class="container">
             <div class="row">
@@ -10,31 +42,31 @@
                             <img src="/dashboard/images/MandiLogo.svg" class="logo-img" alt=""><span>HumBhi</span>Online
                         </a>
                         <button class="navbar-toggler" type="button" data-toggle="collapse"
-                            data-target="#navbarTogglerDemo02" aria-controls="navbarTogglerDemo02"
+                            data-target="#menu" aria-controls="menu"
                             aria-expanded="false" aria-label="Toggle navigation">
                             <span class="navbar-toggler-icon"></span>
                         </button>
-                        <div class="collapse navbar-collapse" id="navbarTogglerDemo02">
+                        <div class="collapse navbar-collapse" id="menu">
                             <div class="d-lg-flex justify-content-lg-end w-100">
                                 <ul class="navbar-nav mr-0 mb-2 mb-lg-0">
                                     <li class="nav-item">
-                                        <a class="nav-link active" aria-current="page" href="/">Home</a>
+                                        <a class="nav-link active" aria-current="page" onclick="hideMenu()" href="/dashboard#">Home</a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link" href="#why"  >Why choose</a>
+                                        <a class="nav-link" onclick="hideMenu()" href="/dashboard#why"  >Why choose</a>
                                     </li>
                                     <!-- <li class="nav-item">
                                         <a class="nav-link" href="#" tabindex="-1" aria-disabled="true">Testiminial</a>
                                     </li> -->
                                     <li class="nav-item">
-                                        <a class="nav-link" href="#pricing" tabindex="-1"
+                                        <a class="nav-link" onclick="hideMenu()" href="/dashboard#pricing" tabindex="-1"
                                             aria-disabled="true">Pricing</a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link" href="#faq" tabindex="-1" aria-disabled="true">FAQ</a>
+                                        <a class="nav-link" onclick="hideMenu()" href="/dashboard#faq" tabindex="-1" aria-disabled="true">FAQ</a>
                                     </li>
                                 </ul>
-                                <a href="https://play.google.com/store/apps/details?id=in.humbhionline" class="btn btn-primary rounded-pill d-none d-sm-block" type="submit">Download Now</a>
+                                <a v-if="!isAndroidApp" href="https://play.google.com/store/apps/details?id=in.humbhionline" class="btn btn-primary rounded-pill d-none d-sm-block" type="submit">Download Now</a>
                             </div>
                         </div>
                     </div>
@@ -53,7 +85,7 @@
                                     from the grass roots!</h1>
                                 <p>A refreshingly Indian market place that is inclusive in its approach to all round
                                     community growth, “Lokah Samastah Sukhino Bhavanthu”</p>
-                                <a href="https://play.google.com/store/apps/details?id=in.humbhionline"><img src="/dashboard/images/google-play-button.gif" class="play-btn"
+                                <a v-if="!isAndroidApp" href="https://play.google.com/store/apps/details?id=in.humbhionline"><img src="/dashboard/images/google-play-button.gif" class="play-btn"
                                         alt=""></a>
                                 <a href="/login"
                                     class="btn btn-primary rounded-pill btn-sm mx-lg-2 mx-1 d-inline-block d-sm-none"
@@ -429,8 +461,8 @@
             </div>
         </div>
     </section>
-    <hr />
-    <section class="section-download d-flex align-items-center">
+    <hr v-if="!isAndroidApp"/>
+    <section class="section-download d-flex align-items-center" v-if="!isAndroidApp">
         <div class="container">
             <div class="row mb-lg-0 mb-4">
                 <div class="col-lg-5">
@@ -438,7 +470,9 @@
                     <p>A refreshingly Indian market place that is inclusive in its approach to all round community
                         growth, “Lokah
                         Samastah Sukhino Bhavanthu”.</p>
-                    <a href="#."><img src="/dashboard/images/google-play-button.gif" class="play-btn" alt=""></a>
+                    <a href="https://play.google.com/store/apps/details?id=in.humbhionline">
+                        <img src="/dashboard/images/google-play-button.gif" class="play-btn" alt="" >
+                    </a>
                 </div>
             </div>
         </div>
