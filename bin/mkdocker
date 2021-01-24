@@ -1,0 +1,8 @@
+rm -rf tmp/mandi-docker
+mkdir tmp/mandi-docker
+cp -Rp target overrideProperties bin tmp/mandi-docker/
+tag=`date +%Y%m%d%H%M%S`
+echo 'MAILTO=""
+* * * * * /mandi/bin/trigger PERSISTED_TASK_POLLER' >  tmp/mandi-docker/crontab.txt
+docker build -t mandi:$tag . 
+
