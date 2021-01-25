@@ -1,5 +1,4 @@
-#!/bin/bash
-source $HOME/.bash_aliases
+#!/bin/sh
 source overrideProperties/config/envvars
 
 toolpath=`dirname $0`

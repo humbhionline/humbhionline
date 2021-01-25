@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/sh 
 source ~/.bash_aliases
 bindir=`dirname $0`
 projpath=$bindir/..

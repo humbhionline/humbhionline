@@ -1,9 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 toolpath=`dirname $0`
 projpath=$toolpath/..
 cd $projpath
 
-source $HOME/.bash_aliases
 source overrideProperties/config/envvars
 user_password=$1
 user=`echo ${user_password} |cut -f1 -d '/'`
