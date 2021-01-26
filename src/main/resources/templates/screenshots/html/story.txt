@@ -1,0 +1,61 @@
+ <img src="/screenshots/images/humbhionline.in_login_index_otp_phone_number=1234567890(Moto G4).png"></img> |Otp is being received in your mobile
+ <img src="/screenshots/images/humbhionline.in_login_index_otp_phone_number=1234567890(Moto G4) (1).png"></img> |Enter the otp received and click Validate Mobile
+ <img src="/screenshots/images/humbhionline.in_dashboard_html_terms(Moto G4).png"></img> |Read the Terms of Service
+ <img src="/screenshots/images/humbhionline.in_dashboard_html_terms(Moto G4) (1).png"></img> |Accept the terms of Service
+ <img src="/screenshots/images/humbhionline.in_dashboard_html_terms(Moto G4) (2).png"></img> |Click Close
+ <img src="/screenshots/images/humbhionline.in_users_html_profile(Moto G4).png"></img> |Enter your name and Address
+ <img src="/screenshots/images/humbhionline.in_users_html_profile(Moto G4) (1).png"></img> |Set a password. You can use this to login later instead of the otp
+ <img src="/screenshots/images/humbhionline.in_users_html_profile(Moto G4) (2).png"></img> |Choose if you want to be a seller on the platform. If you want to just purchase from your vendors, you can click done and start shopping 
+ <img src="/screenshots/images/humbhionline.in_users_html_profile(Moto G4) (3).png"></img> |If you wish to be a seller on the platform, you need to complete KYC using either the self service based AadharEKyc or manual verification process. Using Aadhar EKyc is faster and more convinient. You will be up and selling quickly using this route. If you choose to use the manual verification process, it could take time as hum bhi online would need to schedule an agent for a vist, take documents id and address proof, then Humbhionline would review the documentation work and approve you to be a seller. 
+ <img src="/screenshots/images/resident.uidai.gov.in_offline-kyc(Moto G4).png"></img> |If you choose to go the EKyC route, you can go the government website and download the eKyc document.
+ <img src="/screenshots/images/resident.uidai.gov.in_offline-kyc(Moto G4) (1).png"></img> |Enter your aadhar number, the security code on the screen, and request for OTP
+ <img src="/screenshots/images/resident.uidai.gov.in_offline-kyc(Moto G4) (2).png"></img> |Wait for OTP
+ <img src="/screenshots/images/resident.uidai.gov.in_offline-kyc(Moto G4) (3).png"></img> |Enter a secret code and the otp received on the mobile registered with Aadhar and click download
+ <img src="/screenshots/images/humbhionline.in_users_html_profile(Moto G4) (4).png"></img> |select the downloaded zip file and share the secret code on this screen
+ <img src="/screenshots/images/humbhionline.in_users_html_profile(Moto G4) (5).png"></img> |Your KYC is complete
+ <img src="/screenshots/images/humbhionline.in_users_html_profile(Moto G4) (6).png"></img> |Click Done
+ <img src="/screenshots/images/humbhionline.in_dashboard(Moto G4).png"></img> |Go to the Sales Menu
+ <img src="/screenshots/images/humbhionline.in_dashboard(Moto G4) (1).png"></img> |Click on Facilities
+ <img src="/screenshots/images/humbhionline.in_sell(Moto G4).png"></img> |Create a New Facility by clicking on the button
+ <img src="/screenshots/images/humbhionline.in_sell(Moto G4) (1).png"></img> |Your home address, that was verified during KYC gets defaulted. You can change it if required.
+ <img src="/screenshots/images/humbhionline.in_sell(Moto G4) (2).png"></img> |If you provide delivery, you can say so.
+ <img src="/screenshots/images/humbhionline.in_sell(Moto G4) (3).png"></img> |And configure the area around your facility you provide delivery for. If you charge for deliveries and have a minimum charges upto a certain distance, you can configure so.
+ <img src="/screenshots/images/humbhionline.in_sell(Moto G4) (4).png"></img> |Click on Submit. If you are at the facility being configured, let us know so that we can use the location from your mobile phone
+ <img src="/screenshots/images/humbhionline.in_sell(Moto G4) (5).png"></img> |Next you can specify what products you stock here.
+ <img src="/screenshots/images/humbhionline.in_sell_html_facility_id=21&includeMenu=N(Moto G4).png" |You can add "Local Delivery"></img> as a product to account for rate per km beyond your minumum charges configured at the facility.
+ <img src="/screenshots/images/humbhionline.in_sell_html_facility_id=21&includeMenu=N(Moto G4) (1).png"></img> |
+ <img src="/screenshots/images/humbhionline.in_sell_html_facility_id=21&includeMenu=N(Moto G4) (2).png"></img> |
+ <img src="/screenshots/images/humbhionline.in_sell_html_facility_id=21&includeMenu=N(Moto G4) (3).png"></img> |
+ <img src="/screenshots/images/humbhionline.in_sell_html_facility_id=21&includeMenu=N(Moto G4) (4).png"></img> |Add an item e.g Potato, mention how its packaged, and the price you wish to sell. If you are adding an item for the first time, you can also add the HSN/SAC code against it incase you know. Note that  HSN/SAC codes will keep getting rationalized/corrected at the platform level from time to time.
+ <img src="/screenshots/images/humbhionline.in_sell_html_facility_id=21&includeMenu=N(Moto G4) (5).png"></img> |Add another item e.g Coconut Oil 
+ <img src="/screenshots/images/humbhionline.in_sell_html_facility_id=21&includeMenu=N(Moto G4) (6).png"></img> |You can associate images against the product
+ <img src="/screenshots/images/potato.jpeg"></img> |Like this potato image
+ <img src="/screenshots/images/humbhionline.in_sell_html_facility_id=21&includeMenu=N(Moto G4) (7).png"></img> |Against your product catalog
+ <img src="/screenshots/images/humbhionline.in_sell_html_facility_id=21&includeMenu=N(Moto G4) (8).png" |You can see all products being sold from the facility here. Here you can turn a product on or off to indicate if you would like to take orders for the product or not. Note; That "Local Delivery" Remains unpublished as your are not a courier company. For courier companies, "Local Delivery"></img> would be on as they would take transport orders for Local Delivery 
+ <img src="/screenshots/images/banner.png"></img> |You can attach a banner on your facility.
+ <img src="/screenshots/images/humbhionline.in_sell(Moto G4) (6).png"></img> |Your Facility is currently off. You will need to turn it on so that you can take orders for the facility. Using these two  switches, at facility and at product level, you can control what you product or facility you would like to take orders for
+ <img src="/screenshots/images/humbhionline.in_sell(Moto G4) (7).png"></img> |The facility can be turned  on to accept order for the facility
+ <img src="/screenshots/images/humbhionline.in_dashboard(Moto G4) (2).png"></img> |You can go to Home and put in your items and check if they are getting listed correctly.
+ <img src="/screenshots/images/humbhionline.in_dashboard(Moto G4) (3).png"></img> |Check if all your products are getting listed correctly
+ <img src="/screenshots/images/humbhionline.in_dashboard(Moto G4) (4).png"></img> |Check if by searching for your facility name, all your products stocked at the facility are getting listed.
+ <img src="/screenshots/images/humbhionline.in_orders_type=sales(Moto G4).png"></img> |When an order is placed on you, you will be notified of the same so that you can get it procesed. You can see all your current sales orders waiting on you under menu Sale->Current Orders. Click on Pack when you have packed the order. 
+ <img src="/screenshots/images/humbhionline.in_orders_type=sales(Moto G4) (1).png"></img> |Click on the ship button to indicate that your delivery boy has left the shop with the order for delivery
+<a href="/screenshots/images/packlist0000000000000000115.pdf"></a> |Click Print icon to download invoice that would be generated like this
+ <img src="/screenshots/images/humbhionline.in_orders_type=sales(Moto G4) (2).png"></img> |You can click on the deliver button once the order is delivered.
+ <img src="/screenshots/images/humbhionline.in_orders_type=sales(Moto G4) (3).png"></img> |If you receive payment for this order in any way other than UPI, you may click on the Received button to complete the payment transaction.
+ <img src="/screenshots/images/humbhionline.in_orders_type=sales(Moto G4) (4).png"></img> |Once payment is settled and marked DELIVERED, this order would go out of the current orders list but my be seen in the history menu under sales or purchases as the case may be.
+ <img src="/screenshots/images/humbhionline.in_orders_type=sales(Moto G4) (5).png"></img> |Order has gone out of the Current orders list
+ <img src="/screenshots/images/humbhionline.in_dashboard(Moto G4) (5).png"></img> |Now, Lets see how you can make purchases on Hum bhi online. On home screen, search for the product you wish to purchase.
+ <img src="/screenshots/images/humbhionline.in_dashboard(Moto G4) (6).png"></img> |Increment the quantity against the searched item as needed and click on CHECKOUT at the bottom of the page.
+ <img src="/screenshots/images/humbhionline.in_buy(Moto G4).png"></img> |You can check your cart contents here , choose to continue shopping with more sellers or place all orders you have created so far
+ <img src="/screenshots/images/humbhionline.in_orders_type=purchases(Moto G4).png"></img> |You can see your purchase here. You can pay at any time upto delivery.
+ <img src="/screenshots/images/humbhionline.in_dashboard__search=Delivery&order_id=117(Moto G4).png"></img> |If your seller doesnot support delivery, you can either go yourself for pickup or can organize a courier pickup
+ <img src="/screenshots/images/humbhionline.in_dashboard__search=Delivery&order_id=117(Moto G4) (1).png"></img> |Against your preferred Delivery person, click the incrment button. The quantity being incremented is the distance the courier has to travel beyond his minimum distance to make the delivery. 
+ <img src="/screenshots/images/humbhionline.in_buy(Moto G4) (1).png"></img> |Click CHECKOUT and place orders just as you would do for product orders.
+ <img src="/screenshots/images/humbhionline.in_orders_type=purchases(Moto G4) (1).png"></img> |Courier order bookings are shown with reference to the product order to be picked up.
+ <img src="/screenshots/images/humbhionline.in_orders_type=sales(Moto G4) (6).png"></img> |If you are a courier boy, you would see the same order under your sales order like this. You can do a Pickup and then Deliver against this order.
+ <img src="/screenshots/images/humbhionline.in_orders_type=purchases(Moto G4) (3).png"></img> |Once the courier has picked up your products from the seller, you would see both your purchases (product and courier orders) as SHIPPED
+ <a href="/screenshots/images/packlist0000000000000000118.pdf"></a> |Invoice for this courier order can be downloaded by clicking the print icon.
+ <img src="/screenshots/images/Screenshot_2021-01-20-16-34-37-427_android.jpg"></img> |To make payments, you can click the Pay button and choose from one of your preferred UPI application to complete the transaction.
+ <img src="/screenshots/images/Screenshot_2021-01-20-16-35-18-687_in.org.npci.upiapp.jpg"></img> |The complete payment information would come prefilled. you can verify the name and amount and click confirm to complete the payment
+ <img src="/screenshots/images/humbhionline.in_orders_type=purchases(Moto G4) (4).png"></img> |Both the orders would go out of the current orders view into history view
