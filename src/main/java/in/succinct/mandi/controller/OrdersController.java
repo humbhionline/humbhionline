@@ -181,7 +181,8 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement);
             line.setSellingPrice(inventory.getSellingPrice() *line.getOrderedQuantity());
 
-            line.setMaxRetailPrice(line.getSku().getMaxRetailPrice() * line.getOrderedQuantity());
+            line.setMaxRetailPrice(inventory.getReflector().getJdbcTypeHelper().
+                    getTypeRef(double.class).getTypeConverter().valueOf(inventory.getMaxRetailPrice()) * line.getOrderedQuantity());
             if (line.getMaxRetailPrice() == 0){
                 line.setMaxRetailPrice(line.getSellingPrice());
             }

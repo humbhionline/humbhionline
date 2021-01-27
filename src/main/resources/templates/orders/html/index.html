@@ -747,7 +747,7 @@
                             </div>
                         </div>
                         <div class="form-row border-top py-2 mt-2" v-for="(ol,i) in o.OrderLines"
-                            v-bind:style="(ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 == 0) ? 'text-decoration:line-through' : ''">
+                            v-bind:style="(ol.RemainingCancellableQuantity *1.0 == 0) ? 'text-decoration:line-through' : ''">
                             <div class="col d-flex align-items-center">
                                 {{ ol.Sku.Name}}
                             </div>
@@ -756,8 +756,21 @@
                                     {{ (ol.OrderedQuantity * 1.0).toFixed(0) }}
                                 </div>
                             </div>
-                            <div class="col-4 d-flex justify-content-center align-items-center">
-                                &#x20B9; {{ ol.SellingPrice}}
+                            <div class="col-4 d-flex justify-content-center align-items-center small">
+                                <div class="container">
+                                    <div class="row" v-if="ol.RemainingCancellableQuantity * 1.0 > 0 && ol.MaxRetailPrice * 1.0 > ol.SellingPrice * 1.0 ">
+                                        <div class="col">
+                                            <strike>
+                                                &#x20B9; {{ ol.MaxRetailPrice}}
+                                            </strike>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col">
+                                            &#x20B9; {{ ol.SellingPrice}}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-1 d-flex justify-content-center align-items-center">
                                 <a href="#" class="btn" v-on:click="cancel_order_line($event,ol,o)"

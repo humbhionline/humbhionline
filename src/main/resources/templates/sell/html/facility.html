@@ -299,7 +299,10 @@
                     let self = this;
                     self.hideKeyboard().then(function () {
                         self.current.Inventory.Sku.Item = item;
-                        //self.current.Inventory.SellingPrice = self.current.Inventory.Sku.MaxRetailPrice
+                        self.current.Inventory.MaxRetailPrice = self.current.Inventory.Sku.MaxRetailPrice;
+                        self.current.Inventory.SellingPrice = self.current.Inventory.MaxRetailPrice ;
+
+
                         if (!item.AssetCode) {
                             item.AssetCode = { Code: "" };
                         }
@@ -376,7 +379,9 @@
                         api().url("/skus/search").get(q).then(function (response) {
                             if (response.Skus.length === 1) {
                                 self.current.Inventory.Sku = response.Skus[0];
-                                self.current.Inventory.SellingPrice = 0;// self.current.Inventory.Sku.MaxRetailPrice;
+                                self.current.Inventory.MaxRetailPrice = self.current.Inventory.MaxRetailPrice || self.current.Inventory.Sku.MaxRetailPrice || 0;
+                                self.current.Inventory.SellingPrice = self.current.Inventory.SellingPrice || self.current.Inventory.MaxRetailPrice  || 0;
+
                                 if (!self.current.Inventory.Sku.Item.AssetCode) {
                                     self.current.Inventory.Sku.Item.AssetCode = { Code: "" };
                                 }
@@ -824,7 +829,8 @@
                                     <small>{{inv.Sku.PackagingUOM.Name}}</small>
                                 </h6>
                                 <span>
-                                    <b>&#x20B9; {{inv.SellingPrice}}</b>
+                                    <strike v-if="inv.MaxRetailPrice * 1 > inv.SellingPrice * 1">&#x20B9; {{inv.MaxRetailPrice}}</strike>
+                                    <b>&#x20B9; {{inv.SellingPrice}} </b>
                                 </span>
                             </div>
                         </div>
@@ -878,6 +884,11 @@
                             <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
                             <input v-bind:key="'price' + i" v-bind:id="'price' + i" class="form-control form-control-sm"
                                 placeholder="Price" v-model="current.Inventory.SellingPrice" />
+                        </div>
+                        <div class="col-5">
+                            <label class="small mb-0" v-bind:for="'mrp' + i">MRP</label>
+                            <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
+                                placeholder="&#x20B9;" v-model="current.Inventory.MaxRetailPrice" />
                         </div>
                     </div>
                     <div class="form-row mb-2">

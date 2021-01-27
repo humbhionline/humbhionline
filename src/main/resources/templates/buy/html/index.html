@@ -311,7 +311,12 @@
                         </div>
                         <div class="col-8">
                             <h6>{{ol.Inventory.Sku.Name}}</h6>
-                            <p>@ &#8377; {{ol.Inventory.SellingPrice}}</p>
+                            <p>@
+                                <strike v-if="ol.Inventory.MaxRetailPrice * 1 > ol.Inventory.SellingPrice * 1">
+                                    &#8377; {{ol.Inventory.MaxRetailPrice}}
+                                </strike>
+                                &#8377; {{ol.Inventory.SellingPrice}}
+                            </p>
                             <div class="row">
                                 <div class="col-8">
                                     <div class="btn-group" role="group" aria-label="Basic example">
