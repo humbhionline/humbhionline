@@ -19,5 +19,4 @@ chmod +x tmp/mandi-docker/bin/service-start
 
 
 docker build -t mandi:${tag} .
-docker tag mandi:$tag mandi:latest 
-
+docker image tag mandi:$tag mandi:latest 

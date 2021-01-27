@@ -63,6 +63,9 @@
                                             aria-disabled="true">Pricing</a>
                                     </li>
                                     <li class="nav-item">
+                                        <a class="nav-link" onclick="hideMenu()" target="_blank" href="/screenshots" tabindex="-1" aria-disabled="true">How To</a>
+                                    </li>
+                                    <li class="nav-item">
                                         <a class="nav-link" onclick="hideMenu()" href="/dashboard#faq" tabindex="-1" aria-disabled="true">FAQ</a>
                                     </li>
                                 </ul>
@@ -458,6 +461,31 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="card">
+                            <h5 class=" card-header" id="heading9">
+                                <button class=" btn-block btn btn-link collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapse9" data-toggle="collapse"
+                                    data-target="#collapse9" aria-expanded="false" aria-controls="collapse9">
+                                    So what's the difference between the Android and  the mobile-web version?
+                                    <i class="fa fa-angle-down"></i>
+                                    <i class="fa fa-angle-up"></i>
+                                </button>
+                            </h5>
+                            <div id="collapse9" class="accordion-collapse collapse" aria-labelledby="heading9"
+                                data-bs-parent="#accordionExample" data-parent="#accordionExample">
+                                <div class="accordion-body card-body">
+                                    <p>There are two main differences:
+                                    <ol>
+                                        <li>In-App Push Notifcation in the browser works only if browser is active whereas in Android application, it works even when the application is not active. </li>
+                                        <li>Automatic UPI payment confirmation happens if the the payer uses the Android Application.
+                                            If the payer uses the mobile web version, the receiver has to manually confirm the receipt of the payment
+                                            after checking with his/her NPCI/Bank messages. </li>
+                                    </ol>
+                                    </p>
+                                    <b>Therefore we highly recommend using the HumBhiOnline Android application for smoother experience</b>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -497,8 +525,12 @@
                 <a class="nav-link" href="#pricing" tabindex="-1" aria-disabled="true">Pricing</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" target="_blank" href="/screenshots" tabindex="-1" aria-disabled="true">How To</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="#faq" tabindex="-1" aria-disabled="true">FAQ</a>
             </li>
+
         </ul>
         <p class="mb-0">&copy; humbhi online 2020</p>
     </footer>
