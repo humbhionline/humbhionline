@@ -24,6 +24,7 @@
         new Vue({
             el: "#app",
             data: {
+                Mobile: isMobile(),
                 User: {},
                 sendSubscriptionToServer: sendSubscriptionToServer,
                 ShipmentCount: 0,
@@ -342,21 +343,67 @@
         });
     });
 </script>
+<style>
+    /* Make the image fully responsive */
+    .carousel-inner img {
+        height: 200px;
+        width: 100%;
+    }
 
+    .carousel-inner {
+        background: gray;
+    }
+
+
+</style>
 <div id="root" style="display:none;">
     <div id="header">
     </div>
     <div id="app" class="app-body">
         <div class="container-fluid" v-if="search.facility_id && search.Facility.Name">
+            <div id="banner-slider" class="carousel slide" data-ride="carousel">
+                <!-- Indicators -->
+                <ul class="carousel-indicators">
+                    <li data-target="#banner-slider" v-bind:data-slide-to="index"
+                        v-bind:class="index == 0 ? 'active' : '' " v-for="(attachment,index) in search.Facility.Attachments">
+                    </li>
+                </ul>
+                <!-- The slideshow -->
+                <div class="carousel-inner">
+                    <div v-bind:class="'justify-content-center carousel-item ' + (index == 0 ? 'active' : '') "
+                        v-for="(attachment,index) in search.Facility.Attachments">
+                        <img v-bind:src="attachment.AttachmentUrl"></img>
+                    </div>
+                </div>
+
+                <!-- Left and right controls -->
+                <a class="carousel-control-prev" href="#banner-slider" data-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                </a>
+                <a class="carousel-control-next" href="#banner-slider" data-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                </a>
+            </div>
             <div class="row">
                 <div class="col-12 item-list">
-                    <h6 class="mb-0">{{search.Facility.Name}}</h6>
+                    <h6 class="mb-0">{{search.Facility.Name}}
+                        <a class="btn btn-outline-less-primary" v-bind:href="'tel://'+ search.Facility.PhoneNumber" v-if="Mobile && search.Facility.PhoneNumber">
+                             <i class="fa-phone-alt fas"></i>
+                        </a>
+                        <a v-bind:href="'whatsapp://send?phone='+ search.Facility.PhoneNumber"
+                            data-action="share/whatsapp/share" class="btn btn-outline-less-primary" v-if="Mobile && search.Facility.PhoneNumber">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                    </h6>
                     <p class="m-0 text-muted">
                         {{search.Facility.AddressLine1}}, {{search.Facility.AddressLine2}},
                         {{search.Facility.City.Name}}, {{search.Facility.State.Name}}
-                        {{search.Facility.PinCode.PinCode}}
+                        {{search.Facility.PinCode.PinCode}}, {{search.Facility.PhoneNumber}}
                     </p>
-                    <p class="text-right"><small>@ Distance of {{search.Facility.Distance}} Km</small></p>
+                    <p class="text-right">
+                        <small>@ Distance of {{search.Facility.Distance}} Km</small>
+
+                    </p>
                     <!-- {{search.Facility.Lat +","+ search.Facility.Lng}} -->
                 </div>
             </div>

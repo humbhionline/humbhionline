@@ -29,7 +29,10 @@
                     Inventory: {},
                     AdjustmentQuantity: 0,
                 },
-
+                search: {
+                    term: "",
+                    results: [],
+                },
             },
             created: function () {
                 let self = this;
@@ -49,6 +52,7 @@
                     if (!response.Facility.Attachments) {
                         response.Facility.Attachments = [];
                     }
+                    self.search.results = response.Facility.Inventories;
                     Vue.set(self, "Facility", response.Facility);
                     self.showApp();
                 }).catch(function (err) {
@@ -95,11 +99,11 @@
                         Quantity: "0",
                         Infinite: "N"
                     };
-                    let last = self.Facility.Inventories.length > 0 ? self.Facility.Inventories[self.Facility.Inventories.length - 1] : null;
+                    let last = self.search.results.length > 0 ? self.search.results[self.search.results.length - 1] : null;
 
                     if (!last || last.Id) {
-                        self.Facility.Inventories.push(i);
-                        self.edit(null, self.Facility.Inventories.length - 1);
+                        self.search.results.push(i);
+                        self.edit(null, self.search.results.length - 1);
                     }
 
                 },
@@ -109,13 +113,13 @@
                     }
                     this.current.index = index;
                     if (index >= 0) {
-                        this.current.Inventory = JSON.parse(JSON.stringify(this.Facility.Inventories[this.current.index]));
+                        this.current.Inventory = JSON.parse(JSON.stringify(this.search.results[this.current.index]));
                     } else {
                         this.current.Inventory = {};
-                        let length = this.Facility.Inventories.length;
-                        let last = length > 0 ? this.Facility.Inventories[length - 1] : null;
+                        let length = this.search.results.length;
+                        let last = length > 0 ? this.search.results[length - 1] : null;
                         if (last && !last.Id) {
-                            this.Facility.Inventories.splice(length - 1, 1);
+                            this.search.results.splice(length - 1, 1);
                         }
                         this.current.AdjustmentQuantity = 0;
                     }
@@ -125,6 +129,33 @@
                         event.preventDefault();
                     }
                     this.edit(event, -1);
+                },
+                updateLists: function(inv){
+                    let self  = this;
+                    [self.Facility.Inventories,self.search.results].forEach((list, i) => {
+
+                        let index = list.findIndex(function(i){
+                            return i.Id == inv.Id ;
+                        });
+                        if (index < 0){
+                            list.push(inv);
+                        }else {
+                            list.splice(index,1,inv);
+                        }
+
+                    });
+                },
+                clearFromLists: function(inv){
+                    let self  = this;
+                    [self.Facility.Inventories,self.search.results].forEach((list, i) => {
+
+                        let index = list.findIndex(function(i){
+                            return i.Id == inv.Id ;
+                        });
+                        if (index >= 0){
+                            list.splice(index,1);
+                        }
+                    });
                 },
                 save: function (event) {
                     if (event) {
@@ -157,11 +188,8 @@
                             });
                         }
 
-                        if (newRecord) {
-                            self.Facility.Inventories.splice(self.Facility.Inventories.length - 1, 1, inv);
-                        } else {
-                            self.Facility.Inventories.splice(index, 1, inv);
-                        }
+                        self.search.results.splice(index, 1, inv);
+                        self.updateLists(inv);
                         self.cancel(null);
                     }).catch(function (err) {
                         showError(err);
@@ -176,7 +204,7 @@
                     }
 
                     let self = this;
-                    let i = self.Facility.Inventories[index];
+                    let i = self.search.results[index];
 
                     let newRecord = !i.Id;
                     if (!newRecord) {
@@ -187,14 +215,14 @@
                             if (!inv.Sku.Item.AssetCode) {
                                 inv.Sku.Item.AssetCode = { Code: "" };
                             }
-                            self.Facility.Inventories.splice(index, 1, inv);
+                            self.updateLists(inv);
                         }).catch(function (err) {
                             showError(err);
                         }).finally(function(){
                             hideSpinner();
                         });
                     } else {
-                        self.Facility.Inventories.splice(index, 1);
+                        self.search.results.splice(index, 1);
                     }
                 },
                 destroy: function (event, index) {
@@ -203,21 +231,21 @@
                     }
 
                     let self = this;
-                    let i = self.Facility.Inventories[index];
+                    let i = self.search.results[index];
 
                     let newRecord = !i.Id;
                     if (!newRecord) {
                         i.Infinite = "Y";
                         showSpinner();
                         api().url("/inventories/destroy/" + i.Id).get().then(function (response) {
-                            self.Facility.Inventories.splice(index, 1);
+                            self.clearFromLists(i);
                         }).catch(function (err) {
                             showError(err);
                         }).finally(function(){
                             hideSpinner();
                         });
                     } else {
-                        self.Facility.Inventories.splice(index, 1);
+                        self.search.results.splice(index, 1);
                     }
                 },
                 infiniteInventory: function (event, index) {
@@ -226,7 +254,7 @@
                     }
 
                     let self = this;
-                    let i = self.Facility.Inventories[index];
+                    let i = self.search.results[index];
 
                     let newRecord = !i.Id;
                     if (!newRecord) {
@@ -237,7 +265,7 @@
                             if (!inv.Sku.Item.AssetCode) {
                                 inv.Sku.Item.AssetCode = { Code: "" };
                             }
-                            self.Facility.Inventories.splice(index, 1, inv);
+                            self.updateLists(inv);
                         }).catch(function (err) {
                             i.Infinite = "N";
                             showError(err);
@@ -245,7 +273,7 @@
                             hideSpinner();
                         });
                     } else {
-                        self.Facility.Inventories.splice(index, 1);
+                        self.search.results.splice(index, 1,i);
                     }
                 },
                 isKeyTriggerable: function (e, length = 3) {
@@ -547,24 +575,24 @@
                         event.preventDefault();
                     }
                     let self = this;
-                    let skuAttachment = self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex];
+                    let skuAttachment = self.search.results[inventoryIndex].Sku.Attachments[attachmentIndex];
                     if (skuAttachment.Id) {
                         showSpinner();
                         api().url("/attachments/destroy/" + skuAttachment.Id).get().then(function (response) {
-                            self.Facility.Inventories[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
+                            self.search.results[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
                         }).catch(function (err) {
                             showError(err);
                         }).finally(function(){
                             hideSpinner();
                         });
                     } else {
-                        self.Facility.Inventories[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
+                        self.search.results[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
                     }
                 },
                 onSkuBannerFileChange: function (e, inventoryIndex, attachmentIndex) {
                     //e.preventDefault();
                     let self = this;
-                    let skuAttachment = self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex];
+                    let skuAttachment = self.search.results[inventoryIndex].Sku.Attachments[attachmentIndex];
 
                     if (e.target.files.length > 0) {
                         skuAttachment.AttachmentContentName = e.target.files[0].name;
@@ -579,8 +607,8 @@
                     let self = this;
 
                     reader.onload = function (e) {
-                        self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex].Attachment = e.target.result;
-                        Vue.set(self.Facility.Inventories[inventoryIndex].Sku.Attachments, attachmentIndex, self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex]);
+                        self.search.results[inventoryIndex].Sku.Attachments[attachmentIndex].Attachment = e.target.result;
+                        Vue.set(self.search.results[inventoryIndex].Sku.Attachments, attachmentIndex, self.search.results[inventoryIndex].Sku.Attachments[attachmentIndex]);
                         self.uploadSkuBannerFile(e, inventoryIndex, attachmentIndex);
                     }
 
@@ -601,8 +629,8 @@
                     var file = files[0];
                     let self = this;
                     let formData = new FormData();
-                    let inv = self.Facility.Inventories[inventoryIndex];
-                    let attachment = self.Facility.Inventories[inventoryIndex].Sku.Attachments[attachmentIndex];
+                    let inv = self.search.results[inventoryIndex];
+                    let attachment = self.search.results[inventoryIndex].Sku.Attachments[attachmentIndex];
 
                     formData.append("ATTACHMENT", file);
                     formData.append("SKU_ID", inv.Sku.Id);
@@ -633,8 +661,22 @@
                 },
                 blank: function (s) {
                     return (!s || s.length === 0)
-                }
+                },
 
+                find: function (e) {
+                    let self = this;
+                    if (e) {
+                        e.preventDefault();
+                    }
+                    if (blank(self.search.term)){
+                        self.search.results = self.Facility.Inventories
+                    }else {
+                        self.search.results = self.Facility.Inventories.filter(function(inv,index){
+                            return inv.Sku.Name.indexOf(self.search.term) >= 0 ;
+                        });
+                    }
+                    console.log(self.search.results);
+                },
             }
         });
     });
@@ -711,13 +753,13 @@
                                     <span>Credit Balance: {{User.BalanceOrderLineCount}}</span>
                                 </div>
                                 <div class="col small text-right">
-                                    <span>Store Items: {{Facility.Inventories.length}}</span>
+                                    <span>Store Items: {{search.results.length}}</span>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="col text-right">
                                     <a href="#/" class="mt-1 btn btn-sm btn-outline-primary" role="button"
-                                        v-on:click="create($event)">
+                                        v-on:click="create($event)" v-if="blank(search.term)">
                                         + New Product
                                     </a>
                                 </div>
@@ -769,7 +811,17 @@
             </div>
             <div class="pop-overlay" v-if="facilityBannerBeingEdited"></div>
 
-            <div v-bind:id="'inventory-' + i " class="mt-1 form-row" v-for="(inv,i) in Facility.Inventories">
+            <div class="form-row">
+                <div class="col-12">
+                    <div class="d-flex flex-row align-items-center">
+                        <input key="search" id="search" class="search-control" placeholder="Search for Items or Store"
+                            v-on:input="find($event)" v-model="search.term" />
+                        <i class="fa fa-search"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div v-bind:id="'inventory-' + i " class="mt-1 form-row" v-for="(inv,i) in search.results">
                 <div class="col-12">
                     <div class="item-list">
                         <div class="form-row">
