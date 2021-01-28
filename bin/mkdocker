@@ -1,3 +1,4 @@
+mvn clean -DskipTests=true package
 rm -rf tmp/mandi-docker
 
 mkdir tmp/mandi-docker

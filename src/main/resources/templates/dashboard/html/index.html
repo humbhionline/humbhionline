@@ -59,7 +59,7 @@
                         return;
                     }
                     if (self.User.PasswordSet !== 'Y') {
-                        window.location.replace("/users/html/profile");
+                        window.location.href = ("/users/html/profile");
                         return;
                     }
 
@@ -73,7 +73,7 @@
                     }
 
                     if (!validated) {
-                        window.location.replace("/users/html/profile");
+                        window.location.href = ("/users/html/profile");
                     } else {
                         self.loadFacility().then(function (f) {
                             self.search.Facility = f;
@@ -336,7 +336,7 @@
                 },
                 buy : function(event){
                     event && event.preventDefault();
-                    window.location.replace("/buy");
+                    window.location.href = ("/buy");
                 }
 
             }
