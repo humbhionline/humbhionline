@@ -4,7 +4,6 @@ import com.venky.cache.Cache;
 import com.venky.core.collections.SequenceSet;
 import com.venky.core.date.DateUtils;
 import com.venky.core.math.DoubleHolder;
-import com.venky.core.math.DoubleUtils;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
@@ -346,6 +345,8 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
         ModelReflector<Sku> skuModelReflector = ModelReflector.instance(Sku.class);
         map.put(Sku.class,skuModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
+        map.put(in.succinct.mandi.db.model.Item.class,ModelReflector.instance(Item.class).getUniqueFields());
+        map.get(in.succinct.mandi.db.model.Item.class).add("HUM_BHI_ONLINE_SUBSCRIPTION_ITEM");
 
         List<String> userFields = new ArrayList<>();
         List<String> facilityFields = new ArrayList<>();
@@ -354,6 +355,9 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             userFields.add(addressField);
             facilityFields.add(addressField);
         }
+        userFields.add("PHONE_NUMBER");
+        facilityFields.add("PHONE_NUMBER");
+
 
         userFields.addAll(ModelReflector.instance(User.class).getUniqueFields());
         userFields.retainAll(ModelReflector.instance(User.class).getVisibleFields());

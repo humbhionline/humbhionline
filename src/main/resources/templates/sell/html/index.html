@@ -86,8 +86,8 @@
                         Name: "", AddressLine1: "", AddressLine2: "", AddressLine3: "", AddressLine4: "",
                         City: { Name: "", State: { Name: "", Country: { Name: "India" } } },
                         PinCode: { PinCode: "" },
-                        PhoneNumber: "",
-                        AlternatePhoneNumber: "",
+                        PhoneNumber: self.User.PhoneNumber,
+                        AlternatePhoneNumber: self.User.AlternatePhoneNumber,
                         Company: self.User.Company,
                         Inventories : []
                     };
@@ -156,6 +156,8 @@
                     let self = this;
                     let index = self.current.index;
                     let f = self.current.Facility;
+                    f.PhoneNumber ||= self.User.PhoneNumber;
+                    f.AlternatePhoneNumber ||= self.User.AlternatePhoneNumber;
                     let newRecord = !f.Id;
                     f.Lat && delete f.Lat ;
                     f.Lng && delete f.Lng ;

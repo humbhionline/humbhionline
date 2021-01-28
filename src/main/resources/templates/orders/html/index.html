@@ -33,6 +33,7 @@
             el: "#app",
             data: {
                 Android: typeof Android == "undefined" ? undefined : Android,
+                Mobile : isMobile(),
                 purchases: purchases,
                 sales: sales,
                 User: Lockr.get("User"),
@@ -517,6 +518,12 @@
                     window.location.href = ("/orders/delivery_plan/"+o.Id);
                 },
                 planningRequired: function (o){
+                    let non_subscription_line = o.OrderLines.find(function(o1){
+                        return o1.Sku.Item.HumBhiOnlineSubscriptionItem !== 'Y';
+                    });
+                    if (!non_subscription_line){
+                        return false;
+                    }
                     if (o.RefOrder){
                         return false; //A Delivery Order
                     }else if (sales){
@@ -553,7 +560,15 @@
                     <div class="content-box">
                         <div class="form-row">
                             <div class="col-8">
-                                <p class="mb-0 font-weight-bold">{{o.Facility.Name}}</p>
+                                <p class="mb-0 font-weight-bold">{{o.Facility.Name}}
+                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel://'+ o.Facility.PhoneNumber" v-if="Mobile && o.Facility.PhoneNumber && purchases">
+                                         <i class="fa-phone-alt fas"></i>
+                                    </a>
+                                    <a v-bind:href="'whatsapp://send?phone='+ o.Facility.PhoneNumber"
+                                        data-action="share/whatsapp/share" class="btn btn-sm btn-outline-less-primary" v-if="Mobile && o.Facility.PhoneNumber && purchases">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                </p>
                                 <p class="mb-0">
                                     <small class="text-muted">
                                         {{o.Facility.AddressLine1}}
@@ -595,7 +610,15 @@
                     <div class="content-sub-box">
                         <div class="form-row" v-if="!o.RefOrder">
                             <div class="col">
-                                <p class="mb-0 font-weight-bold">{{o.CreatorUser.LongName}}</p>
+                                <p class="mb-0 font-weight-bold">{{o.CreatorUser.LongName}}
+                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel://'+ o.CreatorUser.PhoneNumber" v-if="Mobile && o.CreatorUser.PhoneNumber && sales">
+                                         <i class="fa-phone-alt fas"></i>
+                                    </a>
+                                    <a v-bind:href="'whatsapp://send?phone='+ o.CreatorUser.PhoneNumber"
+                                        data-action="share/whatsapp/share" class="btn btn-sm btn-outline-less-primary" v-if="Mobile && o.CreatorUser.PhoneNumber && sales">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                </p>
                                 <p class="m-0">
                                     <small class="text-muted">{{o.CreatorUser.AddressLine1}}
                                         {{(blank(o.CreatorUser.AddressLine2)? "" : "," )}}
