@@ -118,11 +118,13 @@
                         event.preventDefault();
                     }
                     let self = this;
-                    var url = "/login/index_otp";
+                    var url = "/login/index_otp?";
+                    url += "_redirect_to=" + redirect_to;
 
                     if (self.phoneNumberEntered && !blank(self.params.User.PhoneNumber)) {
-                        url += "?phone_number="+self.params.User.PhoneNumber;
+                        url += "&phone_number="+self.params.User.PhoneNumber;
                     }
+
                     setTimeout(function(){
                         window.location.replace(url);
                     },10);
