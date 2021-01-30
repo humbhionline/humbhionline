@@ -21,7 +21,7 @@ I Venkatraman Mahadevan (GSTIN 29AAWPM7654G1ZV) as the sole proprietor of the hy
 	* Buyers can pay and download invoice pdf any time after the Seller has packed the order.
 	* Buyers can take delivery at the seller's location or at the buyer's location if the seller provides such delivery to buyer's location.
 
-These services are provided via the "HumBhiOnline", android mobile application on google playstore and  via the mobile site <a href="http://humbhionline.in">humbhionline.in</a>. For best experience, it is recommended that users use the android application to use the platform.
+These services are provided via the "HumBhiOnline", android mobile application on google playstore and  via the mobile site <a href="https://humbhionline.in">humbhionline.in</a>. For best experience, it is recommended that users use the android application to use the platform.
 
 
 ##Charges
