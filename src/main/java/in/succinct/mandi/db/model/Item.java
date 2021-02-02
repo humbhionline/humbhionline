@@ -11,4 +11,7 @@ public interface Item  extends in.succinct.plugins.ecommerce.db.model.catalog.It
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     boolean isHumBhiOnlineSubscriptionItem();
     void setHumBhiOnlineSubscriptionItem(boolean humBhiOnlineSubscriptionItem);
+
+    public String getTags();
+    public void setTags(String tags);
 }

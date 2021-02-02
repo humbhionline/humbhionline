@@ -208,7 +208,7 @@
                     }
                     let term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
-                        term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND SKU:" + term + "*" : "") + ")";
+                        term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND ( SKU:" + term + "* OR TAG:" + term + "* )" : "") + ")";
                     }
                     var params = {} ;
                     params.MaxDistance = self.search.MaxDistance;
@@ -467,7 +467,9 @@
                                     v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0" />
                             </div>
                             <div class="col">
-                                <h6 class="m-0">{{result.Sku.Name}}</h6>
+                                <h6 class="m-0">{{result.Sku.Name}}
+                                    <p class="small">{{result.Tags}}</p>
+                                </h6>
                                 <p class="mb-1">
                                     <small class="text-muted font-weight-bold">By: <a
                                             v-bind:href="'/dashboard?facility_id=' +result.Facility.Id">{{result.Facility.Name}}</a>

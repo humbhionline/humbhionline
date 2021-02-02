@@ -25,6 +25,7 @@
                     Items: [],
                     UnitOfMeasures: [],
                     AssetCodes: [],
+                    Tags : [],
                     lookupselectionIndex: -1,
                     Inventory: {},
                     AdjustmentQuantity: 0,
@@ -366,6 +367,56 @@
                         self.current.AssetCodes = [];
                     });
                 },
+
+                onTagChange: function (e) {
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+
+                    let self = this;
+                    let lastIndex = self.current.Inventory.Tags.lastIndexOf(",");
+                    var value = lastIndex < 0 ? e.target.value : self.current.Inventory.Tags.substring(lastIndex+1);
+                    if (value.length == 0){
+                        self.current.Tags = [];
+                    }
+                    if (value.length < 3){
+                        return;
+                    }
+
+
+                    api().url("/tags/search/"+ value).get().then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.current.Tags = response.Tags;
+                        if (response.Tags.length > 0) {
+                            self.loadLookupEntries(e.target);
+                        }else {
+                            let lastIndex = self.current.Inventory.Tags.lastIndexOf(",");
+                            if (lastIndex < 0){
+                                self.current.Inventory.Tags = e.target.value;
+                            }else {
+                                self.current.Inventory.Tags = self.current.Inventory.Tags.substring(0,lastIndex) + "," + value;
+                            }
+
+                        }
+                    });
+                },
+                onTagSelect: function (e, tag) {
+                    e && e.preventDefault();
+                    let self = this;
+                    self.hideKeyboard().then(function () {
+                        let lastIndex = self.current.Inventory.Tags.lastIndexOf(",");
+                        if (lastIndex < 0){
+                            self.current.Inventory.Tags = tag.Name ;
+                        }else {
+                            self.current.Inventory.Tags = self.current.Inventory.Tags.substring(0,lastIndex) + "," + tag.Name;
+                        }
+                        self.current.Tags = [];
+                    });
+                },
+
                 onUnitOfMeasureChange: function (e) {
                     e && e.preventDefault();
                     let self = this;
@@ -447,6 +498,7 @@
                     self.current.Items = [];
                     self.current.UnitOfMeasures = [];
                     self.current.AssetCodes = [];
+                    self.current.Tags = [];
                     $(".lookups-list").removeClass("offsetTop");
                     //});
                 },
@@ -672,7 +724,7 @@
                         self.search.results = self.Facility.Inventories
                     }else {
                         self.search.results = self.Facility.Inventories.filter(function(inv,index){
-                            return inv.Sku.Name.indexOf(self.search.term) >= 0 ;
+                            return inv.Sku.Name.indexOf(self.search.term) >= 0 || ( inv.Tags && inv.Tags.indexOf(self.search.term) >= 0 );
                         });
                     }
                     console.log(self.search.results);
@@ -879,6 +931,7 @@
                                 </div>
                                 <h6 class="m-0">{{inv.Sku.Item.Name}} -
                                     <small>{{inv.Sku.PackagingUOM.Name}}</small>
+                                    <p>{{inv.Tags}}</p>
                                 </h6>
                                 <span>
                                     <strike v-if="inv.MaxRetailPrice * 1 > inv.SellingPrice * 1">&#x20B9; {{inv.MaxRetailPrice}}</strike>
@@ -912,6 +965,9 @@
                             v-on:keyup.enter="onUnitOfMeasuresSelect($event,code)"
                             v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)"
                             v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)">{{code.Name}} </a>
+
+                        <a href="#" v-for="(code,index) in current.Tags" v-if="current.Tags.length > 0"
+                            v-on:click="onTagSelect($event,code)" >{{code.Name}} </a>
                     </div>
                     <h6 v-if="current.Inventory.Dirty">Modify Stock</h6>
                     <h6 v-else>Add New Stock</h6>
@@ -930,6 +986,15 @@
                                 v-on:input="onUnitOfMeasureChange($event)" v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)" />
                         </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col-12">
+                            <label v-bind:for="'tag' + i" class="small mb-0">Tags</label>
+                            <input v-bind:key="'tag' + i" v-bind:id="'tag' + i" class="form-control form-control-sm"
+                                placeholder="Tags" v-model="current.Inventory.Tags"
+                                v-on:input="onTagChange($event)" v-on:focus="removeList($event)" />
+                        </div>
+
                     </div>
                     <div class="form-row mb-2">
                         <div class="col-7">

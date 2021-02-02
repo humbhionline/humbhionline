@@ -202,6 +202,9 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             if (taxRate == null){
                 taxRate = defaultGSTPct;
             }
+            if (ObjectUtil.isVoid(shipFrom.getGSTIN())){
+                taxRate = 0.0;
+            }
             line.setPrice(line.getSellingPrice()/(1.0 + taxRate/100.0));
 
 
