@@ -1,1 +1,4 @@
-kill `cat tmp/pid`
+if [ -f tmp/pid ]
+then 
+    kill `cat tmp/pid`
+fi

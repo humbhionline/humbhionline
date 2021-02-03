@@ -12,6 +12,18 @@
                 SignUp: Lockr.get("SignUp"),
                 isAndroidApp: isAndroidApp(),
                 isMobile: isMobile(),
+                venkyText: "is a passionate technology enthusiast and has been part of the founding team in several successful\
+                    supply chain startups after completing his MSc Statistics degree from IIT Kanpur. He is also the author of \
+                    Succinct Web Framework (an opensource web application framework), that he has used effectively in several large scale \
+                    production applications. Post retirement, his favourite past time has been building applications on the Succinct Framework \
+                    for enterpreneur friends and family. During covid 19 pandemeic, seeing small sellers and farmers struggling to make a living taking orders \
+                    on phone and text messages, he decided to put his technology and supply chain skills to use for his local seller friends and came up with \
+                    this refreshingly inclusive market place, where, any one can start selling online and proudly feel Humbhionline!",
+                venkyQuote:"\"Any one should be able to sell online. Technology costs are not dependent on what is sold, Gold or Iron!\"",
+                prashantText: "has had a rich experience of designing and building User interaction for several projects as a UI/Ux architect. \
+                    Some of the more recent projects were with Venky having Succinct framework as the backend.",
+                prashantQuote:"\"I would work with Venky Sir on any project he works on.\""
+
             },
             created: function () {
                 let self = this;
@@ -558,38 +570,49 @@
             <div class="row justify-content-center">
                 <div class="col-lg-10 text-center">
                     <h2>Meet Our Team</h2>
-                    <p>The rise of mobile devices transforms the way we consume information entirely
-                        and the world's most elevant channels such as Facebook.</p>
+                    <p>The Team that believes “Lokah Samastah Sukhino Bhavanthu”</p>
                 </div>
             </div>
             <div class="row justify-content-center">
-                <div class="col-lg-6">
+                <div class="col-lg-12">
                     <div class="row">
                         <div class="col-4">
-                            <img src="/dashboard/images/team-img.gif" class="img-thumbnail img-fluid" alt="">
+                            <img src="/dashboard/images/venky.jpg" class="img-thumbnail img-fluid" alt="" >
                         </div>
-                        <div class="col-8">
+                        <div class="col-8" >
                             <h4 class="mb-0">Venky Mahadevan</h4>
-                            <p>Lorem Ipsum is simply dummy</p>
-                            <p>It is a long established fact that a reader will be distracted by the readable content of
-                                a page when looking at its layout. The point of using Lorem Ipsum is that it has a
-                                more-or-less normal distribution of letters, as opposed to using</p>
+                            <p>Co-founder & Primary Volunteer</p>
+                            <p  v-if="!isMobile">
+                                {{venkyText}}
+                            </p>
+                            <h5 v-if="!isMobile">{{venkyQuote}}</h5>
+                        </div>
+                        <div class="col-12" v-if="isMobile">
+                            <p>
+                                {{venkyText}}
+                                <h5>{{venkyQuote}}</h5>
+                            </p>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-6">
+                <div class="col-lg-12">
                     <div class="row">
                         <div class="col-4">
                             <img src="/dashboard/images/team-img.gif" class="img-thumbnail img-fluid" alt="">
                         </div>
                         <div class="col-8">
                             <h4 class="mb-0">Prashant Thakar</h4>
-                            <p>Lorem Ipsum is simply dummy</p>
-                            <p>It is a long established fact that a reader will be distracted by the readable content of
-                                a page
-                                when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less
-                                normal
-                                distribution of letters, as opposed to using</p>
+                            <p>Co-founder & Ui/Ux Ui Volunteer</p>
+                            <p v-if="!isMobile">
+                                {{prashantText}}
+                            </p>
+                            <h5 v-if="!isMobile">{{prashantQuote}}</h5>
+                        </div>
+                        <div class="col-12" v-if="isMobile">
+                            <p>
+                                {{prashantText}}
+                                <h5>{{prashantQuote}}</h5>
+                            </p>
                         </div>
                     </div>
                 </div>
