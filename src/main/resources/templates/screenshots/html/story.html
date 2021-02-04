@@ -1,0 +1,83 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/jquery/dist/jquery.min.js"></script>
+
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
+
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
+
+<link rel="stylesheet" type="text/css" href="/resources/scripts/node_modules/slick-carousel/slick/slick.css"/>
+<link rel="stylesheet" type="text/css" href="/resources/scripts/node_modules/slick-carousel/slick/slick-theme.css"/>
+<script type="text/javascript" src="/resources/scripts/node_modules/slick-carousel/slick/slick.min.js"></script>
+
+<script type="text/javascript" src="/fragments/js/util.js"></script>
+<script type="text/javascript">
+    $(function(){
+        //registerServiceWorker();
+
+        new Vue({
+            el: "#root",
+            data : {
+                Slides : [],
+            },
+            created: function(){
+               let qry = {};
+               qry.q = "PRESENTATION:Usage"
+               qry.maxRecords=100;
+               let self = this;
+               api().url("/slides/search/").get(qry).then(function(response){
+                   self.Slides = response.Slides.sort((a,b)=>a.Sequence *1.0- b.Sequence*1.0);
+                   self.show();
+               });
+           },
+           methods: {
+               show: function(){
+                   setTimeout(function(){
+                       $(".screenshots").slick();
+                   },10);
+               }
+           }
+
+        });
+
+    });
+</script>
+<style>
+    img {
+        width :160pt;
+        height :284pt;
+    }
+    .slick-arrow {
+        z-index:10;
+    }
+    .slick-prev {
+        left:10pt;
+    }
+    .slick-next {
+        right:10pt;
+    }
+    .body {
+        background-color:#0fb;
+    }
+</style>
+<div id="root" >
+    <div class="screenshots" >
+        <div v-bind:id="'slide'+index " v-for="(slide,index) in Slides ">
+            <div class="container">
+                <div class="row ">
+                     <div class="col d-flex flex-row justify-content-center">
+                         <img v-bind:data-lazy="slide.AttachmentUrl" ></img>
+                     </div>
+                 </div>
+                 <div class="row">
+                     <div class="col-1">
+                     </div>
+                     <div class="col-10 d-flex flex-row justify-content-center">
+                         <h5  class="text-center" v-html="slide.Text">
+                         </h5>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

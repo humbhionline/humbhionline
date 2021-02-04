@@ -47,7 +47,8 @@ self.addEventListener('fetch', function(event){
             return caches.match(event.request);
         }).then(function (response) {
             let cacheable = event.request.method.toUpperCase() === 'GET' && event.request.url.startsWith("http") &&
-                (  /^(.*)\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js)/.test(event.request.url) )
+                ((  /^(.*)\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js)/.test(event.request.url) ) ||
+                 (  /^(.*)(\/attachment\/|\/view\/)([0-9]+)$/.test(event.request.url) )); 
             if (response !== undefined){
                 console.log("Found in cache" + event.request.url );
                 return response;
