@@ -563,13 +563,10 @@
                         <div class="form-row">
                             <div class="col-8">
                                 <p class="mb-0 font-weight-bold">{{o.Facility.Name}}
-                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel://'+ o.Facility.PhoneNumber" v-if="Mobile && o.Facility.PhoneNumber && purchases">
-                                         <i class="fa-phone-alt fas"></i>
+                                    <a class="btn btn-sm btn-outline-less-primary"  v-if="Mobile && o.Facility.PhoneNumber && purchases">
+                                         
                                     </a>
-                                    <a v-bind:href="'whatsapp://send?phone='+ o.Facility.PhoneNumber"
-                                        data-action="share/whatsapp/share" class="btn btn-sm btn-outline-less-primary" v-if="Mobile && o.Facility.PhoneNumber && purchases">
-                                        <i class="fab fa-whatsapp"></i>
-                                    </a>
+                                    
                                 </p>
                                 <p class="mb-0">
                                     <small class="text-muted">
@@ -579,6 +576,11 @@
                                         {{(blank(o.Facility.AddressLine4)? "" : "," )}} {{o.Facility.AddressLine4}}
                                         , {{o.Facility.City.Name}}-{{o.Facility.State.Name}},
                                         {{o.Facility.PinCode.PinCode}}
+                                        <br>
+                                        <span v-if="o.Facility.PhoneNumber"><i class="fa-phone-alt fas"></i> : <a v-bind:href="'tel://'+ o.Facility.PhoneNumber">{{o.Facility.PhoneNumber}}</a></span> <a v-bind:href="'whatsapp://send?phone='+ o.Facility.PhoneNumber"
+                                        data-action="share/whatsapp/share" class="btn-link btn py-0 px-2" v-if="Mobile && o.Facility.PhoneNumber && purchases">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
                                     </small>
                                 </p>
                             </div>
