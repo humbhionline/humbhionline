@@ -251,14 +251,16 @@
                         return;
                     }
                     showSpinner();
-                    api().url("/orders/deliver/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index, 1, response.Order);
-                        self.update_status_array(response.Order);
-                    }).catch(function (err) {
-                        showError(err);
-                    }).finally(function(){
-                        hideSpinner();
-                    });
+                    loadLocation(true).then(function(){
+                        api().url("/orders/deliver/" + order.Id).get().then(function (response) {
+                            self.Orders.splice(index, 1, response.Order);
+                            self.update_status_array(response.Order);
+                        }).catch(function (err) {
+                            showError(err);
+                        }).finally(function(){
+                            hideSpinner();
+                        });
+                    })
                 },
                 cancel: function (event, order) {
                     if (event) {

@@ -20,6 +20,7 @@ import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
+import in.succinct.mandi.db.model.UserLocation;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
@@ -89,6 +90,8 @@ public class InventoriesController extends ModelController<Inventory> {
 
             if (order != null) {
                 //Return only delivery items
+                //
+                GeoLocation deliveryBoyLocation = getDeliveryBoyLocation(facility);
                 double distanceToDeliveryLocation = 0;
                 double distanceBetweenPickUpAndDeliveryLocation = 0 ;
                 double distanceToPickLocation = 0 ;
@@ -110,8 +113,8 @@ public class InventoriesController extends ModelController<Inventory> {
                 if (pass){
                     record.setDeliveryProvided(true);
                     record.setDeliveryCharges(facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation));
-                    record.setChargeableDistance(new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue());
-                    facility.setDistance(new DoubleHolder(distanceToPickLocation,2).getHeldDouble().doubleValue());
+                    record.setChargeableDistance(Math.max(facility.getMinFixedDistance(),new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue()));
+                    facility.setDistance(new DoubleHolder(new GeoCoordinate(deliveryBoyLocation).distanceTo(new GeoCoordinate(order.getFacility())),2).getHeldDouble().doubleValue());
                 }
             }else {
                 //Dont return Delivery items.
@@ -130,6 +133,16 @@ public class InventoriesController extends ModelController<Inventory> {
             return pass;
         };
 
+    }
+
+    private GeoLocation getDeliveryBoyLocation(Facility facility) {
+        User creator = facility.getCreatorUser().getRawRecord().getAsProxy(User.class);
+        if (!creator.getUserLocations().isEmpty()){
+            UserLocation location = creator.getUserLocations().get(0);
+            return location;
+        }else {
+            return facility;
+        }
     }
 
     @Override

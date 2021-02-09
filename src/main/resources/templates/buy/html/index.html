@@ -11,10 +11,12 @@
             el: "#app",
             data: {
                 User: Lockr.get("User"),
+                guest: Lockr.get("User").Name === 'guest',
                 OrderAmount: {},
                 DeliveryAmount: {},
                 facilityOrders: Lockr.get("facilityOrders") || {},
-                facilities: []
+                facilities: [],
+                logout : logout,
             },
             created: function () {
                 let self = this;
@@ -50,7 +52,7 @@
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
                         self.reloadCounts();
-                            $("#pageTitle").html("Order Details");
+                        $("#pageTitle").html("Order Details");
                         $("#root").show();
                     });
                 },
@@ -272,7 +274,8 @@
                     order.CustomerPickup = (order.CustomerPickup === 'Y' || order.OrderLines[0].Inventory.DeliveryProvided === 'N') ? 'N' : 'Y';
                     Lockr.set("facilityOrders",self.facilityOrders);
                     self.$forceUpdate();
-                }
+                },
+
             }
         });
     });
@@ -319,7 +322,7 @@
                             </p>
                             <div class="row">
                                 <div class="col-8">
-                                    <div class="btn-group" role="group" aria-label="Basic example">
+                                    <div class="btn-group" role="group" aria-label="Basic example" v-if="!isDeliverySku(ol.Inventory.Sku)">
                                         <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
                                             v-on:click="reduceOrderLine($event,facility,olindex)">
                                             <i class="fa fa-minus"></i>
@@ -334,6 +337,16 @@
                                             <i class="fa fa-plus"></i>
                                         </button>
                                     </div>
+                                    <div class="btn-group" role="group" aria-label="Basic example" v-else>
+                                        <a href="#" class="btn btn-sm btn-outline-primary" v-if="(ol.OrderedQuantity * 1.0 > 0)"
+                                            v-on:click="reduceOrderLine($event,facility,olindex)">
+                                            <i class="fas fa-toggle-on"></i>
+                                        </a>
+                                        <a href="#" class="btn btn-sm btn-outline-primary" v-if="(ol.OrderedQuantity * 1.0 <= 0)"
+                                            v-on:click="increaseOrderLine($event,facility,olindex)">
+                                             <i class="fas fa-toggle-off"></i>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -345,7 +358,7 @@
                                     <div class="col" >
                                         Order
                                     </div>
-                                    <div class="col-5 text-right">
+                                    <div class="col-5 text-right" v-if="OrderAmount[facility.Id]">
                                          &#8377; {{ OrderAmount[facility.Id].toFixed(2) }}
                                     </div>
                                 </div>
@@ -365,7 +378,7 @@
                                     <div class="col" v-else>
                                         Fixed
                                     </div>
-                                    <div class="col-5 d-flex align-item-center justify-content-end" >
+                                    <div class="col-5 d-flex align-item-center justify-content-end"  v-if="DeliveryAmount[facility.Id]">
                                         <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
                                             &#8377; {{ DeliveryAmount[facility.Id].toFixed(2) }}
                                         </del>
@@ -385,7 +398,7 @@
                             </div>
                         </div>
                         <div class="col-5 text-right d-flex align-items-center justify-content-end">
-                            <button class="btn btn-sm btn-primary" v-on:click="bookOrder($event,facility)">Place
+                            <button class="btn btn-sm btn-primary" v-on:click="guest? logout($event) : bookOrder($event,facility)">Place
                                 Order</button>
                         </div>
                     </div>
@@ -435,7 +448,7 @@
                             </a>
                         </div>
                         <div class="col-6 text-right">
-                            <button class="btn btn-sm btn-block btn-primary" v-on:click="bookOrders($event)">
+                            <button class="btn btn-sm btn-block btn-primary" v-on:click="guest? logout($event) : bookOrders($event)">
                                 <small>
                                     Place Orders
                                 </small>

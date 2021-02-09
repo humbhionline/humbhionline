@@ -12,6 +12,7 @@
         new Vue({
             el: "#app",
             data: {
+                Mobile: isMobile(),
                 User: Lockr.get("User"),
                 Users: [],
             },
@@ -79,7 +80,15 @@
                     <div class="content-box mb-3">
                         <div class="form-row">
                             <div class="col">
-                                <h6 class="m-0">{{ User.LongName }}</h6>
+                                <h6 class="m-0">{{ User.LongName }}
+                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel://'+ User.PhoneNumber" v-if="Mobile">
+                                         <i class="fa-phone-alt fas"></i>
+                                    </a>
+                                    <a v-bind:href="'whatsapp://send?phone='+User.PhoneNumber"
+                                        data-action="share/whatsapp/share" class="btn-sm btn-outline-primary" v-if="Mobile">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                </h6>
                                 <p class="m-0 text-muted">
                                     <span v-if="User.AddressLine1">{{User.AddressLine1}},</span>
                                     <span v-if="User.AddressLine2">{{User.AddressLine2}},</span>

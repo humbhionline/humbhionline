@@ -22,7 +22,7 @@ public class DashboardController extends TemplatedController {
 
     @RequireLogin(false)
     public View index(){
-        if (getPath().getSessionUser() != null) {
+        if (getPath().getSessionUser() != null || !getPath().getFormFields().isEmpty()) {
             return html("index");
         }else {
             return html("index_nologin");

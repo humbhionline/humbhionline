@@ -49,4 +49,5 @@ public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     @IS_VIRTUAL
     public List<Long> getOperatingFacilityIds();
 
+    public List<UserLocation> getUserLocations();
 }
