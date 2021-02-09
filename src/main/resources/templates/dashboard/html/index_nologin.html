@@ -19,10 +19,10 @@
                     for enterpreneur friends and family. During covid 19 pandemeic, seeing small sellers and farmers struggling to make a living taking orders \
                     on phone and text messages, he decided to put his technology and supply chain skills to use for his local seller friends and came up with \
                     this refreshingly inclusive market place, where, any one can start selling online and proudly feel Humbhionline!",
-                venkyQuote:"\"Any one should be able to sell online. Technology costs are not dependent on what is sold, Gold or Iron!\"",
+                venkyQuote: "\"Any one should be able to sell online. Technology costs are not dependent on what is sold, Gold or Iron!\"",
                 prashantText: "has had a rich experience of designing and building User interaction for several projects as a UI/Ux architect. \
                     Some of the more recent projects were with Venky having Succinct framework as the backend.",
-                prashantQuote:"\"I would work with Venky Sir on any project he works on.\""
+                prashantQuote: "\"I would work with Venky Sir on any project he works on.\""
 
             },
             created: function () {
@@ -565,7 +565,7 @@
         </div>
     </section>
     <hr />
-    <section id="about-us">
+    <section id="about-us" class="my-lg-5">
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-10 text-center">
@@ -573,48 +573,31 @@
                     <p>The Team that believes “Lokah Samastah Sukhino Bhavanthu”</p>
                 </div>
             </div>
-            <div class="row justify-content-center">
-                <div class="col-lg-12">
-                    <div class="row">
-                        <div class="col-4">
-                            <img src="/dashboard/images/venky.jpg" class="img-thumbnail img-fluid" alt="" >
-                        </div>
-                        <div class="col-8" >
-                            <h4 class="mb-0">Venky Mahadevan</h4>
-                            <p>Co-founder & Primary Volunteer</p>
-                            <p  v-if="!isMobile">
-                                {{venkyText}}
-                            </p>
-                            <h5 v-if="!isMobile">{{venkyQuote}}</h5>
-                        </div>
-                        <div class="col-12" v-if="isMobile">
-                            <p>
-                                {{venkyText}}
-                                <h5>{{venkyQuote}}</h5>
-                            </p>
-                        </div>
-                    </div>
+            <div class="row">
+                <div class="col-lg-4">
+                    <img src="/dashboard/images/venky.jpg" class="img-thumbnail img-fluid mb-3 mb-lg-0" alt="">
                 </div>
-                <div class="col-lg-12">
-                    <div class="row">
-                        <div class="col-4">
-                            <img src="/dashboard/images/team-img.gif" class="img-thumbnail img-fluid" alt="">
-                        </div>
-                        <div class="col-8">
-                            <h4 class="mb-0">Prashant Thakar</h4>
-                            <p>Co-founder & Ui/Ux Ui Volunteer</p>
-                            <p v-if="!isMobile">
-                                {{prashantText}}
-                            </p>
-                            <h5 v-if="!isMobile">{{prashantQuote}}</h5>
-                        </div>
-                        <div class="col-12" v-if="isMobile">
-                            <p>
-                                {{prashantText}}
-                                <h5>{{prashantQuote}}</h5>
-                            </p>
-                        </div>
-                    </div>
+                <div class="col-lg-8">
+                    <h4 class="mb-0">Venky Mahadevan</h4>
+                    <p>Co-founder & Primary Volunteer</p>
+                    <p>
+                        {{venkyText}}
+                    </p>
+                    <h5 class="mb-0">{{venkyQuote}}</h5>
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-lg-4">
+                    <img src="/dashboard/images/prashant.jpg" class="img-thumbnail img-fluid mb-3 mb-lg-0" alt="">
+                </div>
+                <div class="col-lg-8">
+                    <h4 class="mb-0">Prashant Thakar</h4>
+                    <p>Co-founder & Ui/Ux Ui Volunteer</p>
+                    <p>
+                        {{prashantText}}
+                    </p>
+                    <h5 class="mb-0">{{prashantQuote}}</h5>
                 </div>
             </div>
         </div>

@@ -34,9 +34,9 @@
                 search: {
                     MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
                     facility_id: facility_id,
-                    order_id : order_id,
+                    order_id: order_id,
                     Facility: {},
-                    Order :{},
+                    Order: {},
                     term: term || "",
                     results: [],
                     termLengthTrigger: 1,
@@ -85,10 +85,10 @@
                             if (f.Id) {
                                 self.search.termLengthTrigger = 0;
                             }
-                            self.loadOrder().then(function(o){
-                                if (o.Id && isOpenOrder(o)){
+                            self.loadOrder().then(function (o) {
+                                if (o.Id && isOpenOrder(o)) {
                                     self.search.Order = o;
-                                }else {
+                                } else {
                                     self.search.Order = {};
                                     self.search.order_id = undefined;
                                 }
@@ -103,7 +103,7 @@
                 }).catch(function (err) {
                     showError(err);
                     self.showApp();
-                }).finally(function(){
+                }).finally(function () {
                     hideSpinner();
                 });
             },
@@ -128,7 +128,7 @@
                                 if (!facility) {
                                     facility = ol.Inventory.Facility;
                                 }
-                                if (!deliveryAmount && ol.Inventory.DeliveryProvided === 'Y'){
+                                if (!deliveryAmount && ol.Inventory.DeliveryProvided === 'Y') {
                                     deliveryAmount = ol.Inventory.DeliveryCharges
                                 }
                             });
@@ -136,8 +136,8 @@
                                 delete obj[key];
                             }
 
-                            if (deliveryAmount && ( !obj[key].CustomerPickup || obj[key].CustomerPickup !== 'Y' )) {
-                                self.DeliveryAmount +=  deliveryAmount * 1.0 ;
+                            if (deliveryAmount && (!obj[key].CustomerPickup || obj[key].CustomerPickup !== 'Y')) {
+                                self.DeliveryAmount += deliveryAmount * 1.0;
                             }
                         }
                     }
@@ -153,7 +153,7 @@
                                 resolve(response.Order);
                             }).catch(function (err) {
                                 reject(err);
-                            }).finally(function(){
+                            }).finally(function () {
                                 hideSpinner();
                             });
                         } else {
@@ -170,7 +170,7 @@
                                 resolve(response.Facility);
                             }).catch(function (err) {
                                 reject(err);
-                            }).finally(function(){
+                            }).finally(function () {
                                 hideSpinner();
                             });
                         } else {
@@ -215,10 +215,10 @@
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
                         term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND ( SKU:" + term + "* OR TAG:" + term + "* )" : "") + ")";
                     }
-                    var params = {} ;
+                    var params = {};
                     params.MaxDistance = self.search.MaxDistance;
 
-                    if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0 ){
+                    if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0) {
                         params.OrderId = self.search.Order.Id;
                     }
 
@@ -240,7 +240,7 @@
                             result.OrderedQuantity = 0;
                             result.OrderedAmount = (0.00).toFixed(2);
                             if (order) {
-                                if (order.CustomerPickup === 'Y'){
+                                if (order.CustomerPickup === 'Y') {
                                     result.DeliveryProvided = 'N';
                                 }
                                 order.OrderLines.forEach((orderLine, i) => {
@@ -252,7 +252,7 @@
                             }
                         });
 
-                    }).finally(function(){
+                    }).finally(function () {
                         hideSpinner();
                     });
                 },
@@ -266,13 +266,13 @@
                 reduce: function (event, index) {
                     let self = this;
                     let result = self.search.results[index];
-                    result.OrderedQuantity -= (!self.isDeliverySku(result.Sku)? 1.0 : Math.max(result.ChargeableDistance*1.0 - result.Facility.MinFixedDistance *1.0,0.001));
+                    result.OrderedQuantity -= (!self.isDeliverySku(result.Sku) ? 1.0 : Math.max(result.ChargeableDistance * 1.0 - result.Facility.MinFixedDistance * 1.0, 0.001));
                     result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
                     self.addToCart(event, result);
                 },
-                isDeliverySku : function(sku){
+                isDeliverySku: function (sku) {
                     return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
                 },
                 increase: function (event, index) {
@@ -282,7 +282,7 @@
                     if (!result.OrderedQuantity) {
                         result.OrderedQuantity = 0.0;
                     }
-                    if (self.isDeliverySku(result.Sku) && result.OrderedQuantity * 1.0  > 0 ){
+                    if (self.isDeliverySku(result.Sku) && result.OrderedQuantity * 1.0 > 0) {
                         return;
                     }
                     result.OrderedQuantity += (!self.isDeliverySku(result.Sku)? 1.0 : Math.max(result.ChargeableDistance*1.0 - result.Facility.MinFixedDistance *1.0,0.00001));
@@ -322,11 +322,11 @@
                                 order.OrderLines.splice(index, 1);
                             }
                         }
-                        if (self.search.Order.Id ){
-                            order.RefOrder = { Id :  self.search.Order.Id };
+                        if (self.search.Order.Id) {
+                            order.RefOrder = { Id: self.search.Order.Id };
                             order.CustomerPickup = 'N';
-                        }else {
-                            order.CustomerPickup =  order.CustomerPickup || (ol.Inventory.DeliveryProvided === 'N' ? 'Y' : 'N');
+                        } else {
+                            order.CustomerPickup = order.CustomerPickup || (ol.Inventory.DeliveryProvided === 'N' ? 'Y' : 'N');
                         }
                     }
                     self.reloadCounts();
@@ -339,7 +339,7 @@
                         this.find(null);
                     }
                 },
-                buy : function(event){
+                buy: function (event) {
                     event && event.preventDefault();
                     window.location.href = ("/buy");
                 }
@@ -358,8 +358,6 @@
     .carousel-inner {
         background: gray;
     }
-
-
 </style>
 <div id="root" style="display:none;">
     <div id="header">
@@ -370,7 +368,8 @@
                 <!-- Indicators -->
                 <ul class="carousel-indicators">
                     <li data-target="#banner-slider" v-bind:data-slide-to="index"
-                        v-bind:class="index == 0 ? 'active' : '' " v-for="(attachment,index) in search.Facility.Attachments">
+                        v-bind:class="index == 0 ? 'active' : '' "
+                        v-for="(attachment,index) in search.Facility.Attachments">
                     </li>
                 </ul>
                 <!-- The slideshow -->
@@ -391,24 +390,29 @@
             </div>
             <div class="row">
                 <div class="col-12 item-list">
-                    <h6 class="mb-0">{{search.Facility.Name}}
-                        <a class="btn btn-outline-less-primary" v-bind:href="'tel://'+ search.Facility.PhoneNumber" v-if="Mobile && search.Facility.PhoneNumber">
-                             <i class="fa-phone-alt fas"></i>
-                        </a>
-                        <a v-bind:href="'whatsapp://send?phone='+ search.Facility.PhoneNumber"
-                            data-action="share/whatsapp/share" class="btn btn-outline-less-primary" v-if="Mobile && search.Facility.PhoneNumber">
-                            <i class="fab fa-whatsapp"></i>
-                        </a>
-                    </h6>
+                    <h6 class="mb-0">{{search.Facility.Name}}</h6>
                     <p class="m-0 text-muted">
                         {{search.Facility.AddressLine1}}, {{search.Facility.AddressLine2}},
                         {{search.Facility.City.Name}}, {{search.Facility.State.Name}}
-                        {{search.Facility.PinCode.PinCode}}, {{search.Facility.PhoneNumber}}
+                        {{search.Facility.PinCode.PinCode}}, <a
+                            v-bind:href="'tel://'+ search.Facility.PhoneNumber">{{search.Facility.PhoneNumber}}</a>
                     </p>
-                    <p class="text-right">
-                        <small>@ Distance of {{search.Facility.Distance}} Km</small>
-
-                    </p>
+                    <div class="row">
+                        <div class="col">
+                            <!-- <a class="btn btn-link" v-bind:href="'tel://'+ search.Facility.PhoneNumber"
+                                v-if="Mobile && search.Facility.PhoneNumber">
+                                <i class="fa-phone-alt fas"></i>
+                            </a> -->
+                            <a v-bind:href="'whatsapp://send?phone='+ search.Facility.PhoneNumber"
+                                data-action="share/whatsapp/share" class="btn btn-link px-1"
+                                v-if="Mobile && search.Facility.PhoneNumber">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                        <div class="col d-flex justify-content-end align-items-center">
+                            <small>@ Distance of {{search.Facility.Distance}} Km</small>
+                        </div>
+                    </div>
                     <!-- {{search.Facility.Lat +","+ search.Facility.Lng}} -->
                 </div>
             </div>
@@ -500,7 +504,7 @@
                             <div class="col-4">
                                 <div class="btn-group" role="group" aria-label="Basic example" v-if="!isDeliverySku(result.Sku)">
                                     <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
-                                        v-on:click="reduce($event,index)" >
+                                        v-on:click="reduce($event,index)">
                                         <i class="fa fa-minus"></i>
                                     </button>
                                     <input v-bind:key="'quantity' + index" v-bind:id="'quantity' + index"
@@ -508,7 +512,7 @@
                                         placeholder="Quantity" v-model="result.OrderedQuantity"
                                         @change="onQtyChange($event,index)" />
                                     <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
-                                        v-on:click="increase($event,index)" >
+                                        v-on:click="increase($event,index)">
                                         <i class="fa fa-plus"></i>
                                     </button>
                                 </div>
@@ -524,15 +528,18 @@
 
                                 </div>
                             </div>
-                            <div class="col text-right d-flex align-items-center justify-content-end" >
-                                 <small>
+                            <div class="col text-right d-flex align-items-center justify-content-end">
+                                <small>
                                     <del v-if="result.DeliveryProvided !== 'Y'">Delivery</del>
                                     <span v-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) &&
                                             ( !result.DeliveryCharges || result.DeliveryCharges * 1.0 === 0 )">
                                         Delivery - Free
                                     </span>
-                                    <span v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0" class="text-muted">
-                                        {{ (isDeliverySku(result.Sku) ? "Fixed Charges" : "Delivery") }} - &#x20B9; {{ result.DeliveryCharges }}
+                                    <span
+                                        v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0"
+                                        class="text-muted">
+                                        {{ (isDeliverySku(result.Sku) ? "Fixed Charges" : "Delivery") }} - &#x20B9; {{
+                                        result.DeliveryCharges }}
                                     </span>
                                 </small>
                             </div>
@@ -547,7 +554,7 @@
                 <div class="form-row">
                     <div class="col-8">
                         <h6 class="m-0">{{OrderLineCount}} Items | &#x20B9; {{(OrderAmount * 1.0).toFixed(2)}}</h6>
-                        <small class="m-0 text-muted" v-if="DeliveryAmount * 1.0 > 0" >Delivery charges &#x20B9;
+                        <small class="m-0 text-muted" v-if="DeliveryAmount * 1.0 > 0">Delivery charges &#x20B9;
                             {{(DeliveryAmount *1.0).toFixed(2)}}</small>
                     </div>
                     <div class="col d-flex align-items-center">
