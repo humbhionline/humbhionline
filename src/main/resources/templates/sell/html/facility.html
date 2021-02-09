@@ -25,7 +25,7 @@
                     Items: [],
                     UnitOfMeasures: [],
                     AssetCodes: [],
-                    Tags : [],
+                    Tags: [],
                     lookupselectionIndex: -1,
                     Inventory: {},
                     AdjustmentQuantity: 0,
@@ -59,7 +59,7 @@
                 }).catch(function (err) {
                     self.showApp();
                     showError(err);
-                }).finally(function(){
+                }).finally(function () {
                     hideSpinner();
                 });
             },
@@ -131,30 +131,30 @@
                     }
                     this.edit(event, -1);
                 },
-                updateLists: function(inv){
-                    let self  = this;
-                    [self.Facility.Inventories,self.search.results].forEach((list, i) => {
+                updateLists: function (inv) {
+                    let self = this;
+                    [self.Facility.Inventories, self.search.results].forEach((list, i) => {
 
-                        let index = list.findIndex(function(i){
-                            return i.Id == inv.Id ;
+                        let index = list.findIndex(function (i) {
+                            return i.Id == inv.Id;
                         });
-                        if (index < 0){
+                        if (index < 0) {
                             list.push(inv);
-                        }else {
-                            list.splice(index,1,inv);
+                        } else {
+                            list.splice(index, 1, inv);
                         }
 
                     });
                 },
-                clearFromLists: function(inv){
-                    let self  = this;
-                    [self.Facility.Inventories,self.search.results].forEach((list, i) => {
+                clearFromLists: function (inv) {
+                    let self = this;
+                    [self.Facility.Inventories, self.search.results].forEach((list, i) => {
 
-                        let index = list.findIndex(function(i){
-                            return i.Id == inv.Id ;
+                        let index = list.findIndex(function (i) {
+                            return i.Id == inv.Id;
                         });
-                        if (index >= 0){
-                            list.splice(index,1);
+                        if (index >= 0) {
+                            list.splice(index, 1);
                         }
                     });
                 },
@@ -194,7 +194,7 @@
                         self.cancel(null);
                     }).catch(function (err) {
                         showError(err);
-                    }).finally(function(){
+                    }).finally(function () {
                         hideSpinner();
                     });
 
@@ -219,7 +219,7 @@
                             self.updateLists(inv);
                         }).catch(function (err) {
                             showError(err);
-                        }).finally(function(){
+                        }).finally(function () {
                             hideSpinner();
                         });
                     } else {
@@ -242,7 +242,7 @@
                             self.clearFromLists(i);
                         }).catch(function (err) {
                             showError(err);
-                        }).finally(function(){
+                        }).finally(function () {
                             hideSpinner();
                         });
                     } else {
@@ -270,11 +270,11 @@
                         }).catch(function (err) {
                             i.Infinite = "N";
                             showError(err);
-                        }).finally(function(){
+                        }).finally(function () {
                             hideSpinner();
                         });
                     } else {
-                        self.search.results.splice(index, 1,i);
+                        self.search.results.splice(index, 1, i);
                     }
                 },
                 isKeyTriggerable: function (e, length = 3) {
@@ -329,7 +329,7 @@
                     self.hideKeyboard().then(function () {
                         self.current.Inventory.Sku.Item = item;
                         self.current.Inventory.MaxRetailPrice = self.current.Inventory.Sku.MaxRetailPrice;
-                        self.current.Inventory.SellingPrice = self.current.Inventory.MaxRetailPrice ;
+                        self.current.Inventory.SellingPrice = self.current.Inventory.MaxRetailPrice;
 
 
                         if (!item.AssetCode) {
@@ -376,28 +376,28 @@
 
                     let self = this;
                     let lastIndex = self.current.Inventory.Tags.lastIndexOf(",");
-                    var value = lastIndex < 0 ? e.target.value : self.current.Inventory.Tags.substring(lastIndex+1);
-                    if (value.length == 0){
+                    var value = lastIndex < 0 ? e.target.value : self.current.Inventory.Tags.substring(lastIndex + 1);
+                    if (value.length == 0) {
                         self.current.Tags = [];
                     }
-                    if (value.length < 3){
+                    if (value.length < 3) {
                         return;
                     }
 
 
-                    api().url("/tags/search/"+ value).get().then(function (response) {
+                    api().url("/tags/search/" + value).get().then(function (response) {
                         if (!response) {
                             return
                         }
                         self.current.Tags = response.Tags;
                         if (response.Tags.length > 0) {
                             self.loadLookupEntries(e.target);
-                        }else {
+                        } else {
                             let lastIndex = self.current.Inventory.Tags.lastIndexOf(",");
-                            if (lastIndex < 0){
+                            if (lastIndex < 0) {
                                 self.current.Inventory.Tags = e.target.value;
-                            }else {
-                                self.current.Inventory.Tags = self.current.Inventory.Tags.substring(0,lastIndex) + "," + value;
+                            } else {
+                                self.current.Inventory.Tags = self.current.Inventory.Tags.substring(0, lastIndex) + "," + value;
                             }
 
                         }
@@ -408,10 +408,10 @@
                     let self = this;
                     self.hideKeyboard().then(function () {
                         let lastIndex = self.current.Inventory.Tags.lastIndexOf(",");
-                        if (lastIndex < 0){
-                            self.current.Inventory.Tags = tag.Name ;
-                        }else {
-                            self.current.Inventory.Tags = self.current.Inventory.Tags.substring(0,lastIndex) + "," + tag.Name;
+                        if (lastIndex < 0) {
+                            self.current.Inventory.Tags = tag.Name;
+                        } else {
+                            self.current.Inventory.Tags = self.current.Inventory.Tags.substring(0, lastIndex) + "," + tag.Name;
                         }
                         self.current.Tags = [];
                     });
@@ -459,13 +459,13 @@
                             if (response.Skus.length === 1) {
                                 self.current.Inventory.Sku = response.Skus[0];
                                 self.current.Inventory.MaxRetailPrice = self.current.Inventory.MaxRetailPrice || self.current.Inventory.Sku.MaxRetailPrice || 0;
-                                self.current.Inventory.SellingPrice = self.current.Inventory.SellingPrice || self.current.Inventory.MaxRetailPrice  || 0;
+                                self.current.Inventory.SellingPrice = self.current.Inventory.SellingPrice || self.current.Inventory.MaxRetailPrice || 0;
 
                                 if (!self.current.Inventory.Sku.Item.AssetCode) {
                                     self.current.Inventory.Sku.Item.AssetCode = { Code: "" };
                                 }
                             }
-                        }).finally(function(){
+                        }).finally(function () {
                             hideSpinner();
                         });
                     })
@@ -558,7 +558,7 @@
                             self.Facility.Attachments.splice(index, 1);
                         }).catch(function (err) {
                             showError(err);
-                        }).finally(function(){
+                        }).finally(function () {
                             hideSpinner();
                         });
                     } else {
@@ -610,7 +610,7 @@
                             response.Attachment.AttachmentUrl = "/attachments/show/0" + response.Attachment.AttachmentUrl;
                         }
                         self.Facility.Attachments.splice(index, 1, response.Attachment);
-                    }).finally(function(){
+                    }).finally(function () {
                         hideSpinner();
                     });
                 },
@@ -634,7 +634,7 @@
                             self.search.results[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
                         }).catch(function (err) {
                             showError(err);
-                        }).finally(function(){
+                        }).finally(function () {
                             hideSpinner();
                         });
                     } else {
@@ -699,7 +699,7 @@
                         inv.Sku.Attachments.splice(attachmentIndex, 1, response.Attachment);
                     }).catch(function (err) {
                         showError(err);
-                    }).finally(function(){
+                    }).finally(function () {
                         hideSpinner();
                     });
                 },
@@ -720,11 +720,11 @@
                     if (e) {
                         e.preventDefault();
                     }
-                    if (blank(self.search.term)){
+                    if (blank(self.search.term)) {
                         self.search.results = self.Facility.Inventories
-                    }else {
-                        self.search.results = self.Facility.Inventories.filter(function(inv,index){
-                            return inv.Sku.Name.indexOf(self.search.term) >= 0 || ( inv.Tags && inv.Tags.indexOf(self.search.term) >= 0 );
+                    } else {
+                        self.search.results = self.Facility.Inventories.filter(function (inv, index) {
+                            return inv.Sku.Name.indexOf(self.search.term) >= 0 || (inv.Tags && inv.Tags.indexOf(self.search.term) >= 0);
                         });
                     }
                     console.log(self.search.results);
@@ -827,14 +827,15 @@
                     <div class="col">
                         <h6>Update/ Add New banner</h6>
                     </div>
-                    <div class="col-2 text-right">
+                    <!-- <div class="col-2 text-right">
                         <a href="#" @click="bannerEditComplete($event)" v-if="facilityBannerBeingEdited"><i
                                 class="fas fa-times"></i></a>
-                    </div>
+                    </div> -->
                 </div>
                 <div class="form-row mb-2">
                     <div class="col text-right">
-                        <a href="#" class="btn btn-sm btn-primary" @click="addBanner($event)">Add New</a>
+                        <a href="#." @click="bannerEditComplete($event)" class="btn btn-sm btn-secondery">Cancel</a><a
+                            href="#." class="btn btn-sm btn-primary" @click="addBanner($event)">Add New</a>
                     </div>
                 </div>
                 <div class="form-row">
@@ -844,7 +845,8 @@
                             <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
                                 class="w-100 h-100"></img>
                         </span>
-                        <span v-else @click="chooseBannerFile($event,i)" class="img-holder d-flex align-items-center justify-content-center border rounded-sm">
+                        <span v-else @click="chooseBannerFile($event,i)"
+                            class="img-holder d-flex align-items-center justify-content-center border rounded-sm">
                             <div>
                                 <i class="fa fa-image text-muted"></i>
                                 Click to upload Image
@@ -856,7 +858,7 @@
                         </a>
 
                         <input type="file" class="file-upload" v-bind:key="'attachment-'+i" v-bind:id="'attachment-'+i"
-                            v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*"  />
+                            v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*" />
 
                     </div>
                 </div>
@@ -877,11 +879,6 @@
                 <div class="col-12">
                     <div class="item-list">
                         <div class="form-row">
-                            <button v-if="current.index !== i"
-                                class="btn-sm btn-inv-remove btn-outline-primary d-flex align-contents-center justify-content-center"
-                                v-on:click="destroy($event,i)">
-                                <i class="fas fa-times"></i>
-                            </button>
                             <div class="col-4 img-holder">
                                 <img v-for="(attachment,ai) in inv.Sku.Attachments"
                                     v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl : attachment.Attachment"
@@ -927,6 +924,11 @@
                                             v-on:click="edit($event,i)">
                                             <i class=" fas fa-edit"></i>
                                         </a>
+                                        <button v-if="current.index !== i"
+                                            class="btn-sm btn btn-outline-primary"
+                                            v-on:click="destroy($event,i)">
+                                            Delete
+                                        </button>
                                     </div>
                                 </div>
                                 <h6 class="m-0">{{inv.Sku.Item.Name}} -
@@ -934,7 +936,8 @@
                                     <p>{{inv.Tags}}</p>
                                 </h6>
                                 <span>
-                                    <strike v-if="inv.MaxRetailPrice * 1 > inv.SellingPrice * 1">&#x20B9; {{inv.MaxRetailPrice}}</strike>
+                                    <strike v-if="inv.MaxRetailPrice * 1 > inv.SellingPrice * 1">&#x20B9;
+                                        {{inv.MaxRetailPrice}}</strike>
                                     <b>&#x20B9; {{inv.SellingPrice}} </b>
                                 </span>
                             </div>
@@ -950,24 +953,27 @@
                             v-on:keyup.down="navigate($event,index+1,current.Items.length)">
                             <span>{{item.Name}}{{item.AssetCode ? "-" + item.AssetCode.Code:""}}</span>
                             <span v-bind:alt="item.AssetCode ? item.AssetCode.Description : ''"
-                                class="small d-block text-truncate">{{ item.AssetCode ? item.AssetCode.Description : ""}}</span>
+                                class="small d-block text-truncate">{{ item.AssetCode ? item.AssetCode.Description :
+                                ""}}</span>
                         </a>
                         <a href="#" v-for="(code,index) in current.AssetCodes" v-if="current.AssetCodes.length > 0"
-                            v-on:click="onAssetCodeSelect($event,code)" v-on:keyup.space="onAssetCodeSelect($event,code)"
+                            v-on:click="onAssetCodeSelect($event,code)"
+                            v-on:keyup.space="onAssetCodeSelect($event,code)"
                             v-on:keyup.enter="onAssetCodeSelect($event,code)"
                             v-on:keyup.up="navigate($event,index-1,current.AssetCodes.length)"
                             v-on:keyup.down="navigate($event,index+1,current.AssetCodes.length)">
                             <span class="d-block">{{code.Code}}</span>
                             <span class="small d-block text-truncate">{{code.Description}}</span>
                         </a>
-                        <a href="#" v-for="(code,index) in current.UnitOfMeasures" v-if="current.UnitOfMeasures.length > 0"
-                            v-on:click="onUnitOfMeasuresSelect($event,code)" v-on:keyup.space="onUnitOfMeasuresSelect($event,code)"
+                        <a href="#" v-for="(code,index) in current.UnitOfMeasures"
+                            v-if="current.UnitOfMeasures.length > 0" v-on:click="onUnitOfMeasuresSelect($event,code)"
+                            v-on:keyup.space="onUnitOfMeasuresSelect($event,code)"
                             v-on:keyup.enter="onUnitOfMeasuresSelect($event,code)"
                             v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)"
                             v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)">{{code.Name}} </a>
 
                         <a href="#" v-for="(code,index) in current.Tags" v-if="current.Tags.length > 0"
-                            v-on:click="onTagSelect($event,code)" >{{code.Name}} </a>
+                            v-on:click="onTagSelect($event,code)">{{code.Name}} </a>
                     </div>
                     <h6 v-if="current.Inventory.Dirty">Modify Stock</h6>
                     <h6 v-else>Add New Stock</h6>
@@ -991,8 +997,8 @@
                         <div class="col-12">
                             <label v-bind:for="'tag' + i" class="small mb-0">Tags</label>
                             <input v-bind:key="'tag' + i" v-bind:id="'tag' + i" class="form-control form-control-sm"
-                                placeholder="Tags" v-model="current.Inventory.Tags"
-                                v-on:input="onTagChange($event)" v-on:focus="removeList($event)" />
+                                placeholder="Tags" v-model="current.Inventory.Tags" v-on:input="onTagChange($event)"
+                                v-on:focus="removeList($event)" />
                         </div>
 
                     </div>
