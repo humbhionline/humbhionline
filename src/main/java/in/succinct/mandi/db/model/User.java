@@ -44,7 +44,7 @@ public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     @Index
     public boolean isTermsAccepted();
-    public void setTermsAccepted(boolean termsAccepted);ArithmeticException
+    public void setTermsAccepted(boolean termsAccepted);
 
     @IS_VIRTUAL
     public List<Long> getOperatingFacilityIds();
