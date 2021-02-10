@@ -381,8 +381,7 @@
                         <div class="action-box">
                             <!-- show status in the icon -->
                             <span v-if="current.index != i">
-                                <a v-bind:href="'whatsapp://send?text=I am available online at ' + encodeURI(server_url + '/login?_redirect_to='
-                                    + encodeURIComponent('/dashboard?facility_id='+f.Id))"
+                                <a v-bind:href="'whatsapp://send?text=I am available online at ' + encodeURI(server_url + '/dashboard?facility_id='+f.Id)"
                                     data-action="share/whatsapp/share" class="btn-sm btn-outline-primary" v-if="Mobile">
                                     <i class="fab fa-whatsapp"></i>
                                 </a>

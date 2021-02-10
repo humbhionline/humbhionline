@@ -160,7 +160,7 @@
 <#assign pre_tax_price = (mrp / (1 + otaxRate/100.0))?round />
 <#assign discount = pre_tax_price - discounted_price />
 <#assign discount_percent = 0 />
-<#if ( discount > 0 ) >
+<#if ( discount > 0 && pre_tax_price > 0 ) >
     <#assign discount_percent = (((discount * 100) / pre_tax_price )?round) />
 </#if>
 <body>
@@ -383,7 +383,11 @@
       <td style="text-align: left;  max-height: 22px; height: 22px; overflow: auto;" >${OrderLine.Sku.Name}</td>
       <td>${OrderLine.Hsn}</td>
       <td>${lqty}</td>
+      <#if (lqty > 0)> 
       <td>${(ldiscounted_price/lqty)?string["0.00"]}</td>
+      <#else>
+      <td>${"0.00"}</td>
+      </#if>
       <td>${ldiscounted_price?string["0.00"]}</td>
       <td>
         <#if OrderLine.CGst?number == 0>

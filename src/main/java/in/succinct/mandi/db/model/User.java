@@ -36,15 +36,15 @@ public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
     public boolean isPasswordSet();
     public void setPasswordSet(boolean passwordSet);
 
-    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    @COLUMN_DEF(StandardDefault.NULL)
     @Index
-    public boolean isSeller();
-    public void setSeller(boolean seller);
+    public Boolean isSeller();
+    public void setSeller(Boolean seller);
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     @Index
     public boolean isTermsAccepted();
-    public void setTermsAccepted(boolean termsAccepted);
+    public void setTermsAccepted(boolean termsAccepted);ArithmeticException
 
     @IS_VIRTUAL
     public List<Long> getOperatingFacilityIds();
