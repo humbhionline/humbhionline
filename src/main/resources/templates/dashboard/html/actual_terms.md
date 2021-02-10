@@ -1,6 +1,6 @@
 #Terms And Conditions
 ##Service Provided
-I Venkatraman Mahadevan (GSTIN 29AAWPM7654G1ZV) as the sole proprietor of the hyper-local marketplace (software platform) called HumBhiOnline, provide the following services as part of the platform.
+I Venkatraman Mahadevan (GSTIN 29AAWPM7654G1ZV) as the sole Proprietor of the hyper-local marketplace (software platform) called HumBhiOnline, provide the following services as part of the platform.
 
 1. For Sellers:
 	* Allows to publish goods they plan to sell on the platform with its respective images, packaging options, mrp & gst rates.
@@ -43,7 +43,7 @@ In order to use the services offered by the platform, a user needs to be 18 year
 
 
 ##Privacy
-All information entered by you in the profile section will be used by HumBhiOnline to provide the services mentioned above in a seemless and efficient fashion. HumbhiOnline will not give this information to any other person/company unless it is related to the services provided by the platform. for e.g. we may want to do analytics of the application usability and performance and may engage other companies or consultants to work on the same. In such cases, we will share the information as required for the purpose at hand.
+All information entered by you in the profile section will be used by HumBhiOnline to provide the services mentioned above in a seemless and efficient fashion. HumBhiOnline will not give this information to any other person/company unless it is related to the services provided by the platform. for e.g. we may want to do analytics of the application usability and performance and may engage other companies or consultants to work on the same. In such cases, we will share the information as required for the purpose at hand.
 
 We would share the information on your profile section, your order history, and any other information we have of you with law enforcement, government or government organizations we believe is necessary to do so in connection with the investigation and/or resolution of possible crimes, especially those involve personal injury and theft/infringement of intellectual property.
 
@@ -61,7 +61,7 @@ To know more about our complete privacy policy, click <a href="/privacy">here</a
 1. Seller is solely responsible for quality, timely or accurate delivery by the products/services at the seller's or buyer's location and the plaform bears no liability whatsoever for the same. 
 1. Refunds/Replacements are subject to seller's prerogative. Check the seller's information and do your own duedilligence before buying from a seller.
 1. Even if you stop using the platform, these clauses would still be considered as accepted by you for the time you used the platform.
-1. Neither the Properitor nor the platform shall be liable for damages for any delay or failure to perform its obligations hereunder if such delay or failure is due to causes beyond its control or without its fault or negligence, due to Force Majeure events including but not limited to acts of war, acts of God, earthquake, riot, fire, festive activities sabotage, labor shortage or dispute, Internet interruption, technical failure, breakage of sea cable, hacking, piracy, cheating, illegal or unauthorized access.
+1. Neither the Proprietor nor the platform shall be liable for damages for any delay or failure to perform its obligations hereunder if such delay or failure is due to causes beyond its control or without its fault or negligence, due to Force Majeure events including but not limited to acts of war, acts of God, earthquake, riot, fire, festive activities sabotage, labor shortage or dispute, Internet interruption, technical failure, breakage of sea cable, hacking, piracy, cheating, illegal or unauthorized access.
 
 
 ##Dispute resolutions.
