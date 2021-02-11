@@ -4,11 +4,12 @@ import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.indexing.Index;
+import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 
 import java.sql.Date;
 import java.util.List;
 
-public interface User extends com.venky.swf.plugins.mobilesignup.db.model.User {
+public interface User extends EncryptedAddress, com.venky.swf.plugins.mobilesignup.db.model.User {
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     @Index
     public boolean isVerified();

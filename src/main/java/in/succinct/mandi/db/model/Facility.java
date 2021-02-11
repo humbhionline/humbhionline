@@ -12,7 +12,7 @@ import com.venky.swf.db.annotations.column.ui.PROTECTION;
 
 import java.util.List;
 
-public interface Facility extends in.succinct.plugins.ecommerce.db.model.participation.Facility {
+public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommerce.db.model.participation.Facility {
     @COLUMN_NAME("ID")
     @PROTECTION
     @HIDDEN

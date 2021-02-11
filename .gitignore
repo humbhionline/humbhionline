@@ -8,3 +8,4 @@ overrideProperties/
 nohup.out
 database/
 /.gradle/
+.keystore
