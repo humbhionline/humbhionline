@@ -4,10 +4,13 @@ import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.db.table.BindVariable;
+import com.venky.swf.db.table.Table;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import com.venky.swf.sql.Update;
 import com.venky.swf.util.SharedKeys;
 import in.succinct.mandi.db.model.EncryptedModel;
 import in.succinct.mandi.db.model.Facility;
@@ -23,6 +26,26 @@ public class AppInstaller implements Installer {
         encryptAddress(Facility.class);
         encryptAddress(User.class);
         encryptAddress(OrderAddress.class);
+        installGuestUser();
+    }
+
+    private void installGuestUser() {
+        Table<com.venky.swf.db.model.User> USER = Database.getTable(com.venky.swf.db.model.User.class);
+
+        Select q = new Select().from(com.venky.swf.db.model.User.class);
+        ModelReflector<com.venky.swf.db.model.User> ref = ModelReflector.instance(com.venky.swf.db.model.User.class);
+        String nameColumn = ref.getColumnDescriptor("name").getName();
+
+        //This Encryption is the symmetic encryption using sharedkeys
+        List<com.venky.swf.db.model.User> users = q.where(new Expression(ref.getPool(),nameColumn,Operator.EQ,new BindVariable(ref.getPool(),"guest"))).execute(com.venky.swf.db.model.User.class,false);
+
+        if (users.isEmpty()){
+            com.venky.swf.db.model.User u = USER.newRecord();
+            u.setName("guest");
+            u.setLongName("Guest");
+            u.save();
+        }
+
     }
 
     public <M extends Model & Address> void encryptAddress(Class<M> modelClass) {

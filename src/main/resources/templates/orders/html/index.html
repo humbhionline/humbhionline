@@ -498,7 +498,7 @@
                         event.preventDefault();
                     }
                     showSpinner();
-                    api().url('/orders/print/' + o.Id).get().then(function(response){
+                    api().url("/orders/print/" + o.Id).get().then(function(response){
                         if (response.OrderPrints.length === 0){
                             showErrorMessage("Invoice being generated. Check back in a while.")
                         }else {
@@ -564,9 +564,9 @@
                             <div class="col-8">
                                 <p class="mb-0 font-weight-bold">{{o.Facility.Name}}
                                     <a class="btn btn-sm btn-outline-less-primary"  v-if="Mobile && o.Facility.PhoneNumber && purchases">
-                                         
+
                                     </a>
-                                    
+
                                 </p>
                                 <p class="mb-0">
                                     <small class="text-muted">
