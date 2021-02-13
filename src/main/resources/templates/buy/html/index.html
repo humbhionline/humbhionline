@@ -323,7 +323,7 @@
                                             </button>
                                         </div>
                                         <div class="modal-body">
-                                            <img class="img-fluid w-100 h-100"
+                                            <img class="img-fluid w-100 h-100" v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
                                                 v-bind:src="'/attachments/view/'+ol.Inventory.Sku.Attachments[0].Id" />
                                         </div>
                                     </div>
@@ -392,7 +392,7 @@
                                             Delivery
                                         </span>
                                         <a href="#" @click="toggleCustomerPickUp($event,facility.Id)"
-                                            v-if="facilityOrders[facility.Id].OrderLines[0].Inventory.DeliveryProvided === 'Y'">
+                                            v-if="facilityOrders[facility.Id].OrderLines && facilityOrders[facility.Id].OrderLines.length > 0 && facilityOrders[facility.Id].OrderLines[0].Inventory.DeliveryProvided === 'Y'">
                                             <i class="fas fa-times"
                                                 v-if="facilityOrders[facility.Id].CustomerPickup == 'N'"></i>
                                             <i class="fas fa-plus"

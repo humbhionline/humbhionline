@@ -489,6 +489,7 @@
                                             </div>
                                             <div class="modal-body">
                                                 <img class="img-fluid w-100 h-100"
+                                                    v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
                                                     v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id" />
                                             </div>
                                         </div>
