@@ -489,8 +489,7 @@
                                             </div>
                                             <div class="modal-body">
                                                 <img class="img-fluid w-100 h-100"
-                                                v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
-                                                />
+                                                    v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id" />
                                             </div>
                                         </div>
                                     </div>
@@ -498,8 +497,8 @@
                             </div>
                             <div class="col">
                                 <h6 class="m-0">{{result.Sku.Name}}
-                                    <p class="small">{{result.Tags}}</p>
                                 </h6>
+                                <p class="mb-0 small">{{result.Tags}}</p>
                                 <p class="mb-1">
                                     <small class="text-muted font-weight-bold">By: <a
                                             v-bind:href="'/dashboard?facility_id=' +result.Facility.Id">{{result.Facility.Name}}</a>
@@ -545,7 +544,7 @@
                                     </a>
                                     <a href="#" class="btn btn-sm btn-outline-primary"
                                         v-if="(result.OrderedQuantity * 1.0 <= 0)" v-on:click="increase($event,index)">
-                                         <i class="fas fa-toggle-off"></i>
+                                        <i class="fas fa-toggle-off"></i>
                                     </a>
                                 </div>
                             </div>
