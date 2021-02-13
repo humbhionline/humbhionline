@@ -3,6 +3,8 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/deepmerge/dist/umd.js"></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+<script src="/fragments/js/cropper.js"></script>
+<link href="/fragments/css/cropper.css" rel="stylesheet">
 <link href="/fragments/css/mandi.css" rel="stylesheet">
 </link>
 <script type="text/javascript" src="/fragments/js/util.js"></script>
@@ -641,15 +643,28 @@
                         self.search.results[inventoryIndex].Sku.Attachments.splice(attachmentIndex, 1);
                     }
                 },
-                onSkuBannerFileChange: function (e, inventoryIndex, attachmentIndex) {
-                    //e.preventDefault();
+                onSkuBannerFileChange: function (e, inventoryIndex, attachmentIndex, newImage) {
+                    e.preventDefault();
                     let self = this;
                     let skuAttachment = self.search.results[inventoryIndex].Sku.Attachments[attachmentIndex];
+                    var reader = new FileReader();
+                    reader.readAsDataURL(e.target.files[0]);
+                    reader.onload = function (e) {
+                        $('#PrivewImage' + inventoryIndex).cropper('destroy').attr('src', e.target.result).cropper({
+                            aspectRatio: 1,
+                            // preview: '.img-preview',
+                            crop: function (e) {
+                                // console.log("Croppimage Data", e)
+                            }
+                        });
+                    }
+
 
                     if (e.target.files.length > 0) {
                         skuAttachment.AttachmentContentName = e.target.files[0].name;
                         skuAttachment.Dirty = true;
-                        self.readSkuBannerUrl(e, inventoryIndex, attachmentIndex);
+                        (!newImage) && $("#sku-modal-" + inventoryIndex).modal("show");
+                        // self.readSkuBannerUrl(e, inventoryIndex, attachmentIndex);
                     }
 
                 },
@@ -666,20 +681,41 @@
 
                     reader.readAsDataURL(file);
                 },
+                dataURItoBlob: function (dataURI) {
+                    // convert base64/URLEncoded data component to raw binary data held in a string
+                    var byteString;
+                    if (dataURI.split(',')[0].indexOf('base64') >= 0)
+                        byteString = atob(dataURI.split(',')[1]);
+                    else
+                        byteString = unescape(dataURI.split(',')[1]);
+                    // separate out the mime component
+                    var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+                    // write the bytes of the string to a typed array
+                    var ia = new Uint8Array(byteString.length);
+                    for (var i = 0; i < byteString.length; i++) {
+                        ia[i] = byteString.charCodeAt(i);
+                    }
+                    return new Blob([ia], { type: mimeString });
+                },
                 uploadSkuBannerFile: function (e, inventoryIndex, attachmentIndex) {
+                    let self = this;
                     if (e) {
                         e.preventDefault();
                         e.stopPropagation();
                     }
 
-                    var files = $('#sku-attachment-' + inventoryIndex)[0].files;
+                    // var files = $('#sku-attachment-' + inventoryIndex)[0].files;
+                    //Convert canvas image to Base64 $().cropper("getCroppedCanvas", { maxWidth: 4096, maxHeight: 4096 })
+                    var snap = $("#PrivewImage" + inventoryIndex).cropper("getCroppedCanvas", { maxWidth: 4096, maxHeight: 4096 });
+                    var img = snap.toDataURL();
+                    // // Convert Base64 image to binary
+                    var croppedfile = self.dataURItoBlob(img);
 
-                    if (!files.length) {
-                        return;
-                    };
+                    // if (!files.length) {
+                    //     return;
+                    // };
 
-                    var file = files[0];
-                    let self = this;
+                    var file = croppedfile;
                     let formData = new FormData();
                     let inv = self.search.results[inventoryIndex];
                     let attachment = self.search.results[inventoryIndex].Sku.Attachments[attachmentIndex];
@@ -697,6 +733,7 @@
                         }
 
                         inv.Sku.Attachments.splice(attachmentIndex, 1, response.Attachment);
+                        $("#sku-modal-" + inventoryIndex).modal("hide");
                     }).catch(function (err) {
                         showError(err);
                     }).finally(function () {
@@ -874,21 +911,47 @@
                     </div>
                 </div>
             </div>
-
             <div v-bind:id="'inventory-' + i " class="mt-1 form-row" v-for="(inv,i) in search.results">
                 <div class="col-12">
                     <div class="item-list">
                         <div class="form-row">
                             <div class="col-4 img-holder">
-                                <img v-for="(attachment,ai) in inv.Sku.Attachments"
-                                    v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl : attachment.Attachment"
-                                    v-if="attachment.Id || attachment.Dirty" class="w-100">
-                                </img>
-                                <div class="default-img d-flex align-items-center justify-content-center border rounded-sm"
-                                    v-else>
-                                    <i class="fa fa-image text-muted"></i>
-                                </div>
                                 <span v-for="(attachment,ai) in inv.Sku.Attachments">
+                                    <div class="img-box">
+                                        <img v-for="(attachment,ai) in inv.Sku.Attachments"
+                                            v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl : attachment.Attachment"
+                                            v-if="attachment.Id || attachment.Dirty" class="w-100" data-toggle="modal"
+                                            v-bind:data-target="'#sku-img-'+inv.Sku.Item.Id" />
+                                        </img>
+                                        <!-- Modal View Images-->
+                                        <div class="modal fade" v-bind:id="'sku-img-'+inv.Sku.Item.Id" tabindex="-1"
+                                            aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="exampleModalLabel">
+                                                            {{inv.Sku.Item.Name}}</h5>
+                                                        <button type="button" class="close" data-dismiss="modal"
+                                                            aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <img class="img-fluid w-100 h-100"
+                                                            v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl : attachment.Attachment" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="default-img d-flex align-items-center justify-content-center border rounded-sm"
+                                        v-else>
+                                        <i class="fa fa-image text-muted"></i>
+                                    </div>
+                                    <!-- <button type="button" class="btn btn-camera btn-sm btn-outline-primary"
+                                        data-toggle="modal" v-bind:data-target="'#sku-modal-'+i">
+                                        <i class="fa fa-camera"></i>
+                                    </button> -->
                                     <label class="btn btn-camera btn-sm btn-outline-primary"
                                         v-bind:for="'sku-attachment-'+i">
                                         <i class="fa fa-camera"></i>
@@ -896,20 +959,60 @@
                                     <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
                                         v-bind:id="'sku-attachment-'+i" accept="image/*"
                                         v-on:input="onSkuBannerFileChange($event,i,ai)" />
-                                    <!--
-                                    <a href="#" class="btn btn-sm btn-block m-0 mt-2 btn-primary" role="button"
-                                        title="Upload" v-on:click="uploadSkuBannerFile($event,i,ai)"
-                                        v-if="attachment.Dirty">
-                                        Save
-                                    </a>
-                                     <a href="#" class="h-fill btn btn-primary" role="button" title="Remove"
-                                        v-on:click="removeSkuBannner($event,i,ai)">
-                                        <i class="small fas fa-trash"></i>
-                                    </a> -->
+                                    <!-- Modal for Upload -->
+                                    <div class="modal fade" v-bind:id="'sku-modal-'+i" tabindex="-1"
+                                        aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h6 class="modal-title">Image for {{inv.Sku.Item.Name}}</h6>
+                                                    <button type="button" class="close" data-dismiss="modal"
+                                                        aria-label="Close">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <img v-bind:id="'PrivewImage'+i" j class="PrivewImage" />
+                                                    <!-- <a href="#" class="h-fill btn btn-primary" role="button"
+                                                        title="Remove" v-on:click="removeSkuBannner($event,i,ai)">
+                                                        <i class="small fas fa-trash"></i>
+                                                    </a> -->
+                                                    <!-- <div class="default-img d-flex align-items-center justify-content-center border rounded-sm"
+                                                        v-else>
+                                                        <i class="fa fa-image text-muted"></i>
+                                                    </div> -->
+                                                    <!--  select New Image
+                                                    <label class="btn btn-camera btn-sm btn-outline-primary"
+                                                        v-bind:for="'sku-attachment-'+i">
+                                                        Choose Image
+                                                    </label>
+                                                    <input type="file" class="file-upload" v-bind:key="'sku-attachment-'+i"
+                                                        v-bind:id="'sku-attachment-'+i" accept="image/*"
+                                                        v-on:input="onSkuBannerFileChange($event,i,ai)" /> -->
+                                                    <label class="btn btn-sm btn-outline-primary mt-2"
+                                                        v-bind:for="'sku-attachment-'+i">
+                                                        Select New Image
+                                                    </label>
+                                                    <input type="file" class="file-upload"
+                                                        v-bind:key="'sku-attachment-'+i" v-bind:id="'sku-attachment-'+i"
+                                                        accept="image/*"
+                                                        v-on:input="onSkuBannerFileChange($event,i,ai,'NewImage')" />
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary"
+                                                        data-dismiss="modal">Close</button>
+                                                    <a href="#" class="btn btn-primary" role="button" title="Upload"
+                                                        v-on:click="uploadSkuBannerFile($event,i,ai)">
+                                                        Upload Image
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </span>
                             </div>
                             <div class="col">
-                                <div class="form-row mb-2">
+                                <div class="form-row mb-0">
                                     <div class="col text-right">
                                         <a href="#/" class="btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
                                             v-on:click="zeroInventory($event,i)" :disabled="current.index === i">
@@ -924,8 +1027,7 @@
                                             v-on:click="edit($event,i)">
                                             <i class=" fas fa-edit"></i>
                                         </a>
-                                        <button v-if="current.index !== i"
-                                            class="btn-sm btn btn-outline-primary"
+                                        <button v-if="current.index !== i" class="btn-sm btn btn-outline-primary"
                                             v-on:click="destroy($event,i)">
                                             Delete
                                         </button>
@@ -933,8 +1035,8 @@
                                 </div>
                                 <h6 class="m-0">{{inv.Sku.Item.Name}} -
                                     <small>{{inv.Sku.PackagingUOM.Name}}</small>
-                                    <p>{{inv.Tags}}</p>
                                 </h6>
+                                <p class="mb-2">{{inv.Tags}}</p>
                                 <span>
                                     <strike v-if="inv.MaxRetailPrice * 1 > inv.SellingPrice * 1">&#x20B9;
                                         {{inv.MaxRetailPrice}}</strike>

@@ -52,10 +52,10 @@
                         self.User.UserPhones = [];
                     }
                     Lockr.set("User", self.User);
-                    let guest  = self.User.Name == 'guest';
+                    let guest = self.User.Name == 'guest';
                     let validated = guest || self.User.Id == 1 || self.User.UserPhones.length > 0;
-                    if (!guest){
-                        if (self.User.SignUps && self.User.SignUps.length > 0){
+                    if (!guest) {
+                        if (self.User.SignUps && self.User.SignUps.length > 0) {
                             Lockr.set("SignUp", self.User.SignUps[0]);
                         }
                         subscribe(sendSubscriptionToServer); //Do Subscription only after setting User.
@@ -285,7 +285,7 @@
                     if (self.isDeliverySku(result.Sku) && result.OrderedQuantity * 1.0 > 0) {
                         return;
                     }
-                    result.OrderedQuantity += (!self.isDeliverySku(result.Sku)? 1.0 : Math.max(result.ChargeableDistance*1.0 - result.Facility.MinFixedDistance *1.0,0.00001));
+                    result.OrderedQuantity += (!self.isDeliverySku(result.Sku) ? 1.0 : Math.max(result.ChargeableDistance * 1.0 - result.Facility.MinFixedDistance * 1.0, 0.00001));
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
                     self.addToCart(event, result);
@@ -473,7 +473,28 @@
                             <div class="col-4 img-holder">
                                 <img class="img-fluid w-100 h-100"
                                     v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
-                                    v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0" />
+                                    v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
+                                    data-toggle="modal" v-bind:data-target="'#sku-img-'+result.Sku.Id" />
+                                <!-- Modal View Images-->
+                                <div class="modal fade" v-bind:id="'sku-img-'+result.Sku.Id" tabindex="-1"
+                                    aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="exampleModalLabel">{{result.Sku.Name}}</h5>
+                                                <button type="button" class="close" data-dismiss="modal"
+                                                    aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <img class="img-fluid w-100 h-100"
+                                                v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col">
                                 <h6 class="m-0">{{result.Sku.Name}}
@@ -502,7 +523,8 @@
                         <hr class="my-2" />
                         <div class="form-row">
                             <div class="col-4">
-                                <div class="btn-group" role="group" aria-label="Basic example" v-if="!isDeliverySku(result.Sku)">
+                                <div class="btn-group" role="group" aria-label="Basic example"
+                                    v-if="!isDeliverySku(result.Sku)">
                                     <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
                                         v-on:click="reduce($event,index)">
                                         <i class="fa fa-minus"></i>
@@ -517,13 +539,13 @@
                                     </button>
                                 </div>
                                 <div class="btn-group" role="group" aria-label="Basic example" v-else>
-                                    <a href="#" class="btn btn-sm btn-outline-primary" v-if="(result.OrderedQuantity * 1.0 > 0)"
-                                        v-on:click="reduce($event,index)">
+                                    <a href="#" class="btn btn-sm btn-outline-primary"
+                                        v-if="(result.OrderedQuantity * 1.0 > 0)" v-on:click="reduce($event,index)">
                                         <i class="fas fa-toggle-on"></i>
                                     </a>
-                                    <a href="#" class="btn btn-sm btn-outline-primary" v-if="(result.OrderedQuantity * 1.0 <= 0)"
-                                        v-on:click="increase($event,index)">
-                                         <i class="fas fa-toggle-off"></i>
+                                    <a href="#" class="btn btn-sm btn-outline-primary"
+                                        v-if="(result.OrderedQuantity * 1.0 <= 0)" v-on:click="increase($event,index)">
+                                        <i class="fas fa-toggle-off"></i>
                                     </a>
 
                                 </div>
