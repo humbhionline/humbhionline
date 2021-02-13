@@ -13,7 +13,7 @@ import in.succinct.plugins.ecommerce.db.model.participation.PreferredCarrier;
 
 public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Order {
 
-    @COLUMN_DEF(value = StandardDefault.SOME_VALUE, args = PreferredCarrier.HAND_DELIVERY)
+    @COLUMN_DEF(value = StandardDefault.SOME_VALUE, args = "HAND_DELIVERY")
     public String getPreferredCarrierName();
 
     @PARTICIPANT

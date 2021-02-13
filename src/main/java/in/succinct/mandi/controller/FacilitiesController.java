@@ -85,4 +85,16 @@ public class FacilitiesController extends ModelController<Facility> {
         consideredModels.get(Sku.class).add(Attachment.class);
         return consideredModels;
     }
+
+    @Override
+    @RequireLogin(false)
+    public View index() {
+        return super.index();
+    }
+
+    @Override
+    @RequireLogin(false)
+    public View show(long id) {
+        return super.show(id);
+    }
 }

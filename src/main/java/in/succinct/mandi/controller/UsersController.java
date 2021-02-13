@@ -48,9 +48,13 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         super(path);
     }
 
-    @RequireLogin
+    @RequireLogin(false)
     public View current() {
-        return show(getSessionUser());
+        if (getSessionUser() == null){
+            return blank();
+        }else {
+            return show(getSessionUser());
+        }
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
 import com.venky.swf.db.table.Table;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
+import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
@@ -23,10 +24,11 @@ public class AppInstaller implements Installer {
 
     public void install() {
         Database.getInstance().resetIdGeneration();
-        encryptAddress(Facility.class);
-        encryptAddress(User.class);
-        encryptAddress(OrderAddress.class);
-        installGuestUser();
+        boolean encryptionSupport = (Config.instance().getBooleanProperty("swf.encryption.support",true));
+        encryptAddress(Facility.class,encryptionSupport);
+        encryptAddress(User.class,encryptionSupport);
+        encryptAddress(OrderAddress.class,encryptionSupport);
+        //installGuestUser();
     }
 
     private void installGuestUser() {
@@ -48,28 +50,44 @@ public class AppInstaller implements Installer {
 
     }
 
-    public <M extends Model & Address> void encryptAddress(Class<M> modelClass) {
+    public <M extends Model & Address> void encryptAddress(Class<M> modelClass, boolean requiresEncryptionFinally) {
         List<EncryptedModel> statuses = new Select().from(EncryptedModel.class).where(
                 new Expression(
                         ModelReflector.instance(EncryptedModel.class).getPool(),
                         "NAME", Operator.EQ, modelClass.getSimpleName())).execute();
-        if (statuses.isEmpty()) {
-            List<M> addresses = new Select().from(modelClass).execute(modelClass,false);
-            List<String> fields = ModelReflector.instance(modelClass).getEncryptedFields();
 
-            addresses.forEach(a -> {
-                for (String f : fields) {
-                    a.getRawRecord().markDirty(f);
-                }
-                a.getRawRecord().markDirty("LAT");
-                a.getRawRecord().markDirty("LNG");
-                a.save(false); //Avoid going to update lat and lng.
-            });
-
+        if (statuses.isEmpty() && !requiresEncryptionFinally){
+            return;
+        }else if (!statuses.isEmpty() && requiresEncryptionFinally){
+            return;
+        }else if (requiresEncryptionFinally){
             EncryptedModel encryptedModel = Database.getTable(EncryptedModel.class).newRecord();
             encryptedModel.setName(modelClass.getSimpleName());
             encryptedModel.save();
+        }else {
+            statuses.forEach(s->s.destroy());
         }
+        if (ModelReflector.instance(modelClass).getEncryptedFields().isEmpty()){
+            return;
+        }
+
+
+        SharedKeys.getInstance().setEnableEncryption(!requiresEncryptionFinally);
+        List<M> addresses = new Select().from(modelClass).execute(modelClass);
+        SharedKeys.getInstance().setEnableEncryption(requiresEncryptionFinally);
+        reupdate(modelClass,addresses,requiresEncryptionFinally);
+    }
+
+    private <M extends Model & Address> void reupdate(Class<M> modelClass, List<M> addresses,boolean requiresEncryptionFinally) {
+        List<String> fields = ModelReflector.instance(modelClass).getEncryptedFields();
+        addresses.forEach(a -> {
+            for (String f : fields) {
+                a.getRawRecord().markDirty(f);
+            }
+            a.getRawRecord().markDirty("LAT");
+            a.getRawRecord().markDirty("LNG");
+            a.save(false); //Avoid going to update lat and lng.
+        });
 
     }
 }

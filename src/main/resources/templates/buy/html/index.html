@@ -11,7 +11,7 @@
             el: "#app",
             data: {
                 User: Lockr.get("User"),
-                guest: Lockr.get("User").Name === 'guest',
+                guest: Lockr.get("User") && !Lockr.get("User").Name,
                 OrderAmount: {},
                 DeliveryAmount: {},
                 facilityOrders: Lockr.get("facilityOrders") || {},
@@ -45,7 +45,7 @@
                     if (event) {
                         event.preventDefault();
                     }
-                    window.location.href = "/index";
+                    window.location.replace(document.referrer && document.referrer.indexOf("dashboard")> 0 ? document.referrer : "/index");
                 },
                 showApp: function () {
                     let self = this;

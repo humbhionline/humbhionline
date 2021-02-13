@@ -11,7 +11,7 @@ public class AfterCreateFacility extends AfterModelCreateExtension<Facility> {
         PreferredCarrier preferredCarrier = Database.getTable(PreferredCarrier.class).newRecord();
         preferredCarrier.setFacilityId(model.getId());
         preferredCarrier.setTaxesPaidBySender(true);
-        preferredCarrier.setName(PreferredCarrier.HAND_DELIVERY);
+        preferredCarrier.setName("HAND_DELIVERY");
         preferredCarrier.save();
         //Add Hand Delivery in all facilities.
     }

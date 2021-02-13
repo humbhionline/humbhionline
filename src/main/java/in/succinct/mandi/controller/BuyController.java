@@ -9,7 +9,7 @@ public class BuyController extends TemplatedController {
     public BuyController(Path path) {
         super(path);
     }
-    @RequireLogin
+    @RequireLogin(false)
     public View index(){
         return html("index",false);
     }

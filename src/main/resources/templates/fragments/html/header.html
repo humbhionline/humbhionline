@@ -26,7 +26,7 @@
             el: "#header",
             data: {
                 User: Lockr.get("User"),
-                guest : Lockr.get("User") && Lockr.get("User").Name ==  'guest',
+                guest : Lockr.get("User") && !Lockr.get("User").Name ,
                 navbar: { hide: ( hide ? true : false) },
             },
             methods: {
@@ -82,7 +82,7 @@
                 <img src="/resources/web_manifest/64x64.png" class="img-fluid p-2 px-3 d-inline-block" alt="">
             </li>
             -->
-            <li class="nav-item border-bottom">
+            <li class="nav-item border-bottom" v-if="!guest">
                 <a class="nav-link" href="/dashboard" onclick="hideMenu()"><i class="fa fa-home"></i> Home</a>
             </li>
             <li class="nav-item border-bottom" v-if="!guest">
@@ -162,7 +162,7 @@
                 <a class=" nav-link" onclick="logout(event)" href="#" onclick="hideMenu()" v-if="!guest">
                     <i class="fa fa-power-off"></i> Logout</a>
                 <a class=" nav-link" onclick="logout(event)" href="#" onclick="hideMenu()" v-else>
-                    <i class="fa fa-user"></i> SignUp</a>
+                    <i class="fa fa-user"></i> Login/SignUp</a>
             </li>
 
         </ul>

@@ -5,6 +5,7 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
 import com.venky.swf.controller.ModelController;
+import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
@@ -14,6 +15,7 @@ import com.venky.swf.pm.DataSecurityFilter;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select.ResultFilter;
+import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Item;
@@ -192,5 +194,23 @@ public class InventoriesController extends ModelController<Inventory> {
             }
         }
         return where;
+    }
+
+    @Override
+    @RequireLogin(false)
+    public View search() {
+        return super.search();
+    }
+
+    @Override
+    @RequireLogin(false)
+    public View search(String strQuery) {
+        return super.search(strQuery);
+    }
+
+    @Override
+    @RequireLogin(false)
+    public View index() {
+        return super.index();
     }
 }
