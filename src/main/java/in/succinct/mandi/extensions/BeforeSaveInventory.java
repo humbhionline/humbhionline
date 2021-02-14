@@ -133,10 +133,10 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
                     .where(new Expression(ModelReflector.instance(Tag.class).getPool(),"NAME", Operator.EQ, tag)).execute();
             if (tags.isEmpty()){
                 Tag tag  = Database.getTable(Tag.class).newRecord();
-                tag.setName(this.tag);
+                tag.setName(this.tag.trim());
+                tag = Database.getTable(Tag.class).getRefreshed(tag);
                 tag.save();
             }
-
         }
     }
 }
