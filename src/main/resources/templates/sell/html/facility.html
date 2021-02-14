@@ -455,12 +455,15 @@
                         showSpinner();
                         api().url("/skus/search").get(q).then(function (response) {
                             if (response.Skus.length === 1) {
-                                self.current.Inventory.Sku = response.Skus[0];
-                                self.current.Inventory.MaxRetailPrice = self.current.Inventory.MaxRetailPrice || self.current.Inventory.Sku.MaxRetailPrice || 0;
-                                self.current.Inventory.SellingPrice = self.current.Inventory.SellingPrice || self.current.Inventory.MaxRetailPrice || 0;
+                                let sku = response.Skus[0];
+                                if (sku.PackagingUOM.Name  === uom.Name && sku.Item.Name === self.current.Inventory.Sku.Item.Name) {
+                                    self.current.Inventory.Sku = sku;
+                                    self.current.Inventory.MaxRetailPrice = self.current.Inventory.MaxRetailPrice || self.current.Inventory.Sku.MaxRetailPrice || 0;
+                                    self.current.Inventory.SellingPrice = self.current.Inventory.SellingPrice || self.current.Inventory.MaxRetailPrice || 0;
 
-                                if (!self.current.Inventory.Sku.Item.AssetCode) {
-                                    self.current.Inventory.Sku.Item.AssetCode = { Code: "" };
+                                    if (!self.current.Inventory.Sku.Item.AssetCode) {
+                                        self.current.Inventory.Sku.Item.AssetCode = { Code: "" };
+                                    }
                                 }
                             }
                         }).finally(function () {
