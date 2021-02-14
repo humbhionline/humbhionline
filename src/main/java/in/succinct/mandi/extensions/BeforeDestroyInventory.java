@@ -13,7 +13,7 @@ public class BeforeDestroyInventory extends BeforeModelDestroyExtension<Inventor
     @Override
     public void beforeDestroy(Inventory model) {
         User user = Database.getInstance().getCurrentUser().getRawRecord().getAsProxy(User.class);
-        if (!user.getOperatingFacilityIds().contains(model.getFacilityId()) || user.isStaff()){
+        if (!user.getOperatingFacilityIds().contains(model.getFacilityId()) && !user.isStaff()){
             throw  new AccessDeniedException("Only the facility owner can delete the inventory in the facility!");
         }
     }
