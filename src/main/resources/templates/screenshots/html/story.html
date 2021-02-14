@@ -5,76 +5,148 @@
 
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 
-<link rel="stylesheet" type="text/css" href="/resources/scripts/node_modules/slick-carousel/slick/slick.css"/>
-<link rel="stylesheet" type="text/css" href="/resources/scripts/node_modules/slick-carousel/slick/slick-theme.css"/>
+<link rel="stylesheet" type="text/css" href="/resources/scripts/node_modules/slick-carousel/slick/slick.css" />
+<link rel="stylesheet" type="text/css" href="/resources/scripts/node_modules/slick-carousel/slick/slick-theme.css" />
+<link rel="stylesheet" href="/dashboard/css/style.css">
 <script type="text/javascript" src="/resources/scripts/node_modules/slick-carousel/slick/slick.min.js"></script>
 
 <script type="text/javascript" src="/fragments/js/util.js"></script>
 <script type="text/javascript">
-    $(function(){
+    $(function () {
         //registerServiceWorker();
-
         new Vue({
             el: "#root",
-            data : {
-                Slides : [],
+            data: {
+                Slides: [],
             },
-            created: function(){
-               let qry = {};
-               qry.q = "PRESENTATION:Usage"
-               qry.maxRecords=100;
-               let self = this;
-               api().url("/slides/search/").get(qry).then(function(response){
-                   self.Slides = response.Slides.sort((a,b)=>a.Sequence *1.0- b.Sequence*1.0);
-                   self.show();
-               });
-           },
-           methods: {
-               show: function(){
-                   setTimeout(function(){
-                       $(".screenshots").slick();
-                   },10);
-               }
-           }
+            created: function () {
+                let qry = {};
+                qry.q = "PRESENTATION:Usage"
+                qry.maxRecords = 100;
+                let self = this;
+                api().url("/slides/search/").get(qry).then(function (response) {
+                    self.Slides = response.Slides.sort((a, b) => a.Sequence * 1.0 - b.Sequence * 1.0);
+                    self.show();
+                });
+            },
+            methods: {
+                show: function () {
+                    setTimeout(function () {
+                        $(".screenshots").slick({
+                            responsive: [
+                                {
+                                    breakpoint: 640,
+                                    settings: {
+                                        slidesToShow: 1,
+                                        slidesToScroll: 1,
+                                    }
+                                }]
+                        });
+                    }, 10);
+                }
+            }
 
         });
 
     });
 </script>
 <style>
-    img {
-        width :160pt;
-        height :284pt;
-    }
+    /* img {
+        width: 160pt;
+        height: 284pt;
+    } */
+
     .slick-arrow {
-        z-index:10;
+        z-index: 10;
+        width: 30px;
+        height: 30px;
     }
+
     .slick-prev {
-        left:10pt;
+        left: 0;
     }
+
     .slick-next {
-        right:10pt;
+        right: 0;
     }
-    .body {
-        background-color:#0fb;
+
+    .slick-prev:before,
+    .slick-next:before {
+        color: #ff0033;
+        font-size: 30px;
     }
 </style>
-<div id="root" >
-    <div class="screenshots" >
-        <div v-bind:id="'slide'+index " v-for="(slide,index) in Slides ">
-            <div class="container">
-                <div class="row ">
-                     <div class="col d-flex flex-row justify-content-center">
-                         <img v-bind:data-lazy="slide.AttachmentUrl" ></img>
-                     </div>
-                 </div>
-                 <div class="row">
-                     <div class="col-1">
-                     </div>
-                     <div class="col-10 d-flex flex-row justify-content-center">
-                         <h5  class="text-center" v-html="slide.Text">
-                         </h5>
-                     </div>
+<div id="root">
+    <header>
+        <div class="container">
+            <div class="row">
+                <nav class="navbar navbar-expand-lg navbar-light w-100">
+                    <div class="container p-0">
+                        <a class="navbar-brand" href="/dashboard">
+                            <img src="/dashboard/images/MandiLogo.svg" class="logo-img" alt=""><span>HumBhi</span>Online
+                        </a>
+                        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#menu"
+                            aria-controls="menu" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="menu">
+                            <div class="d-lg-flex justify-content-lg-end w-100">
+                                <ul class="navbar-nav mr-0 mb-2 mb-lg-0">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" aria-current="page" onclick="hideMenu()"
+                                            href="/dashboard">Home</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" onclick="hideMenu()" href="/dashboard#why">Why choose</a>
+                                    </li>
+                                    <!-- <li class="nav-item">
+                                        <a class="nav-link" href="#" tabindex="-1" aria-disabled="true">Testiminial</a>
+                                    </li> -->
+                                    <li class="nav-item">
+                                        <a class="nav-link" onclick="hideMenu()" href="/dashboard#pricing" tabindex="-1"
+                                            aria-disabled="true">Pricing</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" onclick="hideMenu()" href="/screenshots" tabindex="-1"
+                                            aria-disabled="true">How To</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" onclick="hideMenu()" href="/dashboard#about-us"
+                                            tabindex="-1" aria-disabled="true">About Us</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" onclick="hideMenu()" href="/dashboard#faq" tabindex="-1"
+                                            aria-disabled="true">FAQ</a>
+                                    </li>
+                                </ul>
+                                <a v-if="!isAndroidApp"
+                                    href="https://play.google.com/store/apps/details?id=in.humbhionline"
+                                    class="btn btn-primary rounded-pill d-none d-sm-block" type="submit">Download
+                                    Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <div class="screenshots">
+                    <div v-bind:id="'slide'+index " v-for="(slide,index) in Slides ">
+                        <div class="container">
+                            <div class="row d-flex justify-content-center">
+                                <div class="col-sm-4 d-flex justify-content-center">
+                                    <img v-bind:data-lazy="slide.AttachmentUrl" class="slide-img" />
+                                </div>
+                                <div
+                                    class="col-sm-6 slide-text d-flex align-items-center justify-content-sm-start justify-content-center text-sm-left text-center">
+                                    <p class="mb-0" v-html="slide.Text"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
