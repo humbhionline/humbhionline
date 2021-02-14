@@ -409,7 +409,7 @@
                         if (lastIndex < 0) {
                             self.current.Inventory.Tags = tag.Name;
                         } else {
-                            self.current.Inventory.Tags = self.current.Inventory.Tags.substring(0, lastIndex) + "," + tag.Name;
+                            self.current.Inventory.Tags = self.current.Inventory.Tags.substring(0, lastIndex) + ", " + tag.Name;
                         }
                         self.current.Tags = [];
                     });

@@ -85,7 +85,7 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
 
         if (!ObjectUtil.isVoid(inventory.getTags()) &&
                 inventory.getRawRecord().isFieldDirty("TAGS")) {
-            StringTokenizer tokenizer = new StringTokenizer(inventory.getTags(), ",");
+            StringTokenizer tokenizer = new StringTokenizer(inventory.getTags(), ", ");
             Set<String> tags = new TreeSet<>();
             while (tokenizer.hasMoreTokens()) {
                 String token = tokenizer.nextToken();
@@ -94,7 +94,7 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
             StringBuilder sTag = new StringBuilder();
             for (String tag : tags){
                 if (sTag.length() > 0){
-                    sTag.append(",");
+                    sTag.append(", ");
                 }
                 sTag.append(tag);
             }
