@@ -372,17 +372,19 @@
 
                 onTagChange: function (e) {
                     e && e.preventDefault();
-                    if (!this.isKeyTriggerable(e)) {
+                    let triggerLength  = 1
+                    if (!this.isKeyTriggerable(e,triggerLength)) {
                         return;
                     }
 
                     let self = this;
-                    let lastIndex = self.current.Inventory.Tags.lastIndexOf(",");
-                    var value = lastIndex < 0 ? e.target.value : self.current.Inventory.Tags.substring(lastIndex + 1);
+                    let fieldValue = e.target.value;
+                    let lastIndex = fieldValue.lastIndexOf(",");
+                    var value = lastIndex < 0 ? fieldValue : fieldValue.substring(lastIndex + 1);
                     if (value.length == 0) {
                         self.current.Tags = [];
                     }
-                    if (value.length < 3) {
+                    if (value.length < triggerLength) {
                         return;
                     }
 
@@ -395,13 +397,7 @@
                         if (response.Tags.length > 0) {
                             self.loadLookupEntries(e.target);
                         } else {
-                            let lastIndex = self.current.Inventory.Tags.lastIndexOf(",");
-                            if (lastIndex < 0) {
-                                self.current.Inventory.Tags = e.target.value;
-                            } else {
-                                self.current.Inventory.Tags = self.current.Inventory.Tags.substring(0, lastIndex) + "," + value;
-                            }
-
+                            //self.current.Inventory.Tags = fieldValue;
                         }
                     });
                 },
@@ -944,11 +940,11 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="default-img d-flex align-items-center justify-content-center border rounded-sm"
-                                        v-else>
+                                    <!--
+                                    <div class="default-img d-flex align-items-center justify-content-center border rounded-sm">
                                         <i class="fa fa-image text-muted"></i>
                                     </div>
-                                    <!-- <button type="button" class="btn btn-camera btn-sm btn-outline-primary"
+                                    <button type="button" class="btn btn-camera btn-sm btn-outline-primary"
                                         data-toggle="modal" v-bind:data-target="'#sku-modal-'+i">
                                         <i class="fa fa-camera"></i>
                                     </button> -->

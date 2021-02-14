@@ -2,7 +2,7 @@ mvn clean -DskipTests=true package
 rm -rf tmp/mandi-docker
 
 mkdir tmp/mandi-docker
-cp -Rp target overrideProperties bin tmp/mandi-docker/
+cp -Rp .keystore/ target overrideProperties bin tmp/mandi-docker/
 ln -sf docker.properties tmp/mandi-docker/overrideProperties/config/swf.properties
 
 tag=`date +%Y%m%d%H%M%S`
