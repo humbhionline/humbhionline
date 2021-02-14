@@ -437,7 +437,7 @@
                             self.orderInitiatedForReturn = response.Order;
                             self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress, order.CreatorUser.NameAsInBankAccount, "R:" + order.Id, order.AmountToRefund * 1.0, 'Return for HumBhiOnline Txn ' + order.Id);
                         } else if (navigator.userAgent.match(/Android/i)) {
-                            response.Order._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress + '&pn=' + o.CreatorUser.NameAsInBankAccount + '&tr=R:' + o.Id + '&tn=Return for HumBhiOnline Txn ' + o.Id + '&am=' + o.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
+                            response.Order._rhref = ('upi://pay?pa=' + order.CreatorUser.VirtualPaymentAddress + '&pn=' + order.CreatorUser.NameAsInBankAccount + '&tr=R:' + order.Id + '&tn=Return for HumBhiOnline Txn ' + order.Id + '&am=' + order.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
                         }
                     }).catch(function (err) {
                         showError(err);
