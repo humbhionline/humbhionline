@@ -141,14 +141,27 @@ footer {
 footer * {
     color: white;
 }
-.footer-link .nav-item{
+.footer-link .nav-item {
     display: inline-block;
 }
-.footer-link .nav-item .nav-link{
+.footer-link .nav-item .nav-link {
     padding: 0 5px !important;
 }
-
+.slide-img {
+    width: 90%;
+    padding: 5% 0;
+}
+.slide-text p {
+    line-height: 1.2;
+}
 @media only screen and (max-width: 640px) {
+    .slide-img {
+        width: 70%;
+        padding: 5% 0;
+    }
+    .body {
+        padding-top: 60px;
+    }
     .section-banner {
         position: relative;
         min-height: 300px;
@@ -163,7 +176,7 @@ footer * {
     h3 {
         font-size: 14px;
     }
-    h4{
+    h4 {
         font-size: 18px;
     }
     .section-banner p {
@@ -193,7 +206,7 @@ footer * {
     .card-body {
         padding: 0.75rem;
     }
-    .card-body{
+    .card-body {
         font-size: 13px;
         line-height: 1.3;
     }
@@ -201,19 +214,19 @@ footer * {
         font-size: 14px;
         line-height: 1.4;
     }
-    .navbar-collapse.show, .navbar-collapse.collapsing {
+    .navbar-collapse.show,
+    .navbar-collapse.collapsing {
         position: static !important;
         width: auto;
         margin-left: -15px;
         margin-right: -15px;
     }
-    .navbar-nav{
+    .navbar-nav {
         margin-top: 10px;
         width: 50%;
         float: left;
     }
-    .navbar-nav + .btn-primary.rounded-pill{
+    .navbar-nav + .btn-primary.rounded-pill {
         margin-top: 15px;
     }
-    
 }
