@@ -308,7 +308,7 @@
                     <div class="form-row mb-2 border-bottom py-2"
                         v-for="(ol,olindex) in facilityOrders[facility.Id].OrderLines">
                         <div class="col-4">
-                            <img v-bind:src="'/attachments/view/'+ol.Inventory.Sku.Attachments[0].Id"
+                            <img v-bind:src="ol.Inventory.Sku.Attachments[0].AttachmentUrl"
                                 v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
                                 class="w-100" data-toggle="modal" v-bind:data-target="'#sku-img-'+ol.Inventory.Sku.Id" />
                             <!-- Modal View Images-->
@@ -324,7 +324,7 @@
                                         </div>
                                         <div class="modal-body">
                                             <img class="img-fluid w-100 h-100" v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
-                                                v-bind:src="'/attachments/view/'+ol.Inventory.Sku.Attachments[0].Id" />
+                                                v-bind:src="ol.Inventory.Sku.Attachments[0].AttachmentUrl" />
                                         </div>
                                     </div>
                                 </div>

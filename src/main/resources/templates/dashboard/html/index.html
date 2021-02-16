@@ -472,7 +472,7 @@
                         <div class="form-row">
                             <div class="col-4 img-holder">
                                 <img class="img-fluid w-100 h-100"
-                                    v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id"
+                                    v-bind:src="result.Sku.Attachments[0].AttachmentUrl"
                                     v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
                                     data-toggle="modal" v-bind:data-target="'#sku-img-'+result.Sku.Id" />
                                 <!-- Modal View Images-->
@@ -490,7 +490,7 @@
                                             <div class="modal-body">
                                                 <img class="img-fluid w-100 h-100"
                                                     v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
-                                                    v-bind:src="'/attachments/view/'+result.Sku.Attachments[0].Id" />
+                                                    v-bind:src="result.Sku.Attachments[0].AttachmentUrl" />
                                             </div>
                                         </div>
                                     </div>
