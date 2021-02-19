@@ -11,9 +11,13 @@
             el: "#app",
             data : {
                 User: Lockr.get("User"),
+                guest: Lockr.get("User") && !Lockr.get("User").Name,
             },
             created : function(){
                 let self = this;
+                if (!self.User){
+                    window.location.replace("/index");
+                }
                 self.showApp();
             },
             methods : {

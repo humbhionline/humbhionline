@@ -5,6 +5,7 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path._IPath;
+import com.venky.swf.plugins.security.db.model.Role;
 import com.venky.swf.plugins.security.db.model.UserRole;
 import com.venky.swf.pm.DataSecurityFilter;
 import com.venky.swf.routing.Config;
@@ -17,6 +18,7 @@ import in.succinct.plugins.ecommerce.db.model.participation.Company;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.stream.Collectors;
 
 public class CompanyUtil {
     public static Long getCompanyId(){
@@ -97,6 +99,14 @@ public class CompanyUtil {
         }
         return dataEntry && user.getName().startsWith("old");
     }
-    
 
+
+    public static List<User> getAdminUsers() {
+
+        Role role = Role.getRole("ADMIN");
+        if (role != null){
+            return role.getUserRoles().stream().map(ur->ur.getUser().getRawRecord().getAsProxy(User.class)).collect(Collectors.toList());
+        }
+        return new ArrayList<>();
+    }
 }

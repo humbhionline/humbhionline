@@ -52,7 +52,7 @@
                         self.User.UserPhones = [];
                     }
                     Lockr.set("User", self.User);
-                    let guest = self.User.Name == 'guest';
+                    let guest = !self.User.Name;
                     let validated = guest || self.User.Id == 1 || self.User.UserPhones.length > 0;
                     if (!guest) {
                         if (self.User.SignUps && self.User.SignUps.length > 0) {

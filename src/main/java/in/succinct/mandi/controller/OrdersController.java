@@ -279,6 +279,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             users.add(user);
         }
         users.add(order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class));
+        users.addAll(CompanyUtil.getAdminUsers());
         for (User user: users){
             Map<String,Object> entityMap = TemplateEngine.getInstance().createEntityMap(Arrays.asList(order));
             TemplateEngine.getInstance().send(user,"New Order #" +order.getId() + " arrived." , "New_Order.ftlh",entityMap, getIncludedModelFields(),new HashMap<>());
