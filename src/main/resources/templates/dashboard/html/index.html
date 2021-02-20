@@ -395,11 +395,11 @@
                         {{search.Facility.AddressLine1}}, {{search.Facility.AddressLine2}},
                         {{search.Facility.City.Name}}, {{search.Facility.State.Name}}
                         {{search.Facility.PinCode.PinCode}}, <a
-                            v-bind:href="'tel://'+ search.Facility.PhoneNumber">{{search.Facility.PhoneNumber}}</a>
+                            v-bind:href="'tel:'+ search.Facility.PhoneNumber">{{search.Facility.PhoneNumber}}</a>
                     </p>
                     <div class="row">
                         <div class="col">
-                            <!-- <a class="btn btn-link" v-bind:href="'tel://'+ search.Facility.PhoneNumber"
+                            <!-- <a class="btn btn-link" v-bind:href="'tel:'+ search.Facility.PhoneNumber"
                                 v-if="Mobile && search.Facility.PhoneNumber">
                                 <i class="fa-phone-alt fas"></i>
                             </a> -->

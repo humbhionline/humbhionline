@@ -613,12 +613,6 @@
 
   <tr class="information">
       <td colspan="2">
-       <b>
-        <!--
-         Head Office: Sixth Sense Retail Pvt. Ltd., Baner, Pune, Maharashtra - 411 045<br/> India<br/>
-         Customer care: <a href="tel: +91 8431620000" target="_blank">+91 8431620000</a>, Email us: <a href="mailto: support@wiggles.in" target="_blank">support@wiggles.in</a><br/>
-         -->
-       </b>
       </td>
   </tr>
   <tr>

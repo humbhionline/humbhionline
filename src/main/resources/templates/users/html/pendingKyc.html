@@ -81,7 +81,7 @@
                         <div class="form-row">
                             <div class="col">
                                 <h6 class="m-0">{{ User.LongName }}
-                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel://'+ User.PhoneNumber" v-if="Mobile">
+                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel:'+ User.PhoneNumber" v-if="Mobile">
                                          <i class="fa-phone-alt fas"></i>
                                     </a>
                                     <a v-bind:href="'whatsapp://send?phone='+User.PhoneNumber"

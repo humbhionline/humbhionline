@@ -577,7 +577,7 @@
                                         , {{o.Facility.City.Name}}-{{o.Facility.State.Name}},
                                         {{o.Facility.PinCode.PinCode}}
                                         <br>
-                                        <span v-if="o.Facility.PhoneNumber"><i class="fa-phone-alt fas"></i> : <a v-bind:href="'tel://'+ o.Facility.PhoneNumber">{{o.Facility.PhoneNumber}}</a></span> <a v-bind:href="'whatsapp://send?phone='+ o.Facility.PhoneNumber"
+                                        <span v-if="o.Facility.PhoneNumber"><i class="fa-phone-alt fas"></i> : <a v-bind:href="'tel:'+ o.Facility.PhoneNumber">{{o.Facility.PhoneNumber}}</a></span> <a v-bind:href="'whatsapp://send?phone='+ o.Facility.PhoneNumber"
                                         data-action="share/whatsapp/share" class="btn-link btn py-0 px-2" v-if="Mobile && o.Facility.PhoneNumber && purchases">
                                         <i class="fab fa-whatsapp"></i>
                                     </a>
@@ -615,7 +615,7 @@
                         <div class="form-row" v-if="!o.RefOrder">
                             <div class="col">
                                 <p class="mb-0 font-weight-bold">{{o.CreatorUser.LongName}}
-                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel://'+ o.CreatorUser.PhoneNumber" v-if="Mobile && o.CreatorUser.PhoneNumber && sales">
+                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel:'+ o.CreatorUser.PhoneNumber" v-if="Mobile && o.CreatorUser.PhoneNumber && sales">
                                          <i class="fa-phone-alt fas"></i>
                                     </a>
                                     <a v-bind:href="'whatsapp://send?phone='+ o.CreatorUser.PhoneNumber"
