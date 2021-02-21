@@ -214,6 +214,7 @@
                         let formData = new FormData();
                         formData.append('zipfile', datafile);
                         formData.append('password', password);
+                        formData.append('id',self.User.Id);
                         showSpinner();
                         api().url("/users/doAadharKyc").parameters(formData).headers({ "Content-Type": "multipart-formdata", "Accept": "application/json" }).post().then(function (response) {
                             console.log(response);

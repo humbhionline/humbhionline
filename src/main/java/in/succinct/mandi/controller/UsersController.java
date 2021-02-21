@@ -77,7 +77,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
             throw new RuntimeException("Cannot call save in any other method other than POST");
         }
         Map<String,Object> formFields = getPath().getFormFields();
-        User user = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
+        User verifyingUser = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
 
         if (!formFields.isEmpty()) {
             String sFileData = (String) formFields.get("zipfile");
@@ -93,6 +93,20 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
                 throw new RuntimeException("Nothing uploaded!");
             }
             String password = (String) formFields.get("password");
+            String id = (String)formFields.get("id");
+            User user = null;
+            if (!ObjectUtil.isVoid(id)){
+                user = Database.getTable(User.class).get(Long.valueOf(id));
+            }
+            if (user != null ){
+                if (user.getId() != verifyingUser.getId() && !verifyingUser.isStaff()){
+                    user = null;
+                }
+            }
+            if (user == null){
+                throw new RuntimeException("Don't know which user you are verifying for?");
+            }
+
             AadharEKyc.AadharData data = AadharEKyc.getInstance().parseZip(in, password);
             if (data != null) {
                 if (!ObjectUtil.isVoid(user.getEmail())) {
