@@ -78,6 +78,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         }
         Map<String,Object> formFields = getPath().getFormFields();
         User verifyingUser = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
+        User user = null;
 
         if (!formFields.isEmpty()) {
             String sFileData = (String) formFields.get("zipfile");
@@ -94,7 +95,6 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
             }
             String password = (String) formFields.get("password");
             String id = (String)formFields.get("id");
-            User user = null;
             if (!ObjectUtil.isVoid(id)){
                 user = Database.getTable(User.class).get(Long.valueOf(id));
             }
