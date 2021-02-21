@@ -372,8 +372,8 @@
 
                 onTagChange: function (e) {
                     e && e.preventDefault();
-                    let triggerLength  = 1
-                    if (!this.isKeyTriggerable(e,triggerLength)) {
+                    let triggerLength = 1
+                    if (!this.isKeyTriggerable(e, triggerLength)) {
                         return;
                     }
 
@@ -914,13 +914,19 @@
                             <div class="col-4 img-holder">
                                 <span v-for="(attachment,ai) in inv.Sku.Attachments">
                                     <div class="img-box">
-                                        <img v-for="(attachment,ai) in inv.Sku.Attachments"
+                                        <img v-for="(attachment,ai) in "
                                             v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl : attachment.Attachment"
                                             v-if="attachment.Id || attachment.Dirty" class="w-100" data-toggle="modal"
                                             v-bind:data-target="'#sku-img-'+inv.Sku.Item.Id" />
                                         </img>
+                                        <div v-else
+                                            class="default-img d-flex bg-light align-items-center justify-content-center border rounded-sm"
+                                            >
+                                            <span class="font-weight-bold text-muted">{{inv.Sku.Item.Name}}</span>
+                                        </div>
                                         <!-- Modal View Images-->
-                                        <div class="modal fade" v-bind:id="'sku-img-'+inv.Sku.Item.Id" tabindex="-1"
+                                        <div v-if="attachment.Id || attachment.Dirty" class="modal fade"
+                                            v-bind:id="'sku-img-'+inv.Sku.Item.Id" tabindex="-1"
                                             aria-labelledby="exampleModalLabel" aria-hidden="true">
                                             <div class="modal-dialog">
                                                 <div class="modal-content">
@@ -941,9 +947,6 @@
                                         </div>
                                     </div>
                                     <!--
-                                    <div class="default-img d-flex align-items-center justify-content-center border rounded-sm">
-                                        <i class="fa fa-image text-muted"></i>
-                                    </div>
                                     <button type="button" class="btn btn-camera btn-sm btn-outline-primary"
                                         data-toggle="modal" v-bind:data-target="'#sku-modal-'+i">
                                         <i class="fa fa-camera"></i>

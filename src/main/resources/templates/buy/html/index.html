@@ -310,20 +310,27 @@
                         <div class="col-4">
                             <img v-bind:src="'/attachments/view/'+ol.Inventory.Sku.Attachments[0].Id"
                                 v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
-                                class="w-100" data-toggle="modal" v-bind:data-target="'#sku-img-'+ol.Inventory.Sku.Id" />
+                                class="w-100" data-toggle="modal"
+                                v-bind:data-target="'#sku-img-'+ol.Inventory.Sku.Id" />
+                            <div v-else class="default-img d-flex bg-light align-items-center justify-content-center border p-1 rounded-sm">
+                                <span class="font-weight-bold text-muted small">{{ol.Inventory.Sku.Item.Name}}</span>
+                            </div>
                             <!-- Modal View Images-->
-                            <div class="modal fade" v-bind:id="'sku-img-'+ol.Inventory.Sku.Id" tabindex="-1"
+                            <div v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
+                                class="modal fade" v-bind:id="'sku-img-'+ol.Inventory.Sku.Id" tabindex="-1"
                                 aria-labelledby="exampleModalLabel" aria-hidden="true">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title" id="exampleModalLabel">{{ol.Inventory.Sku.Name}}</h5>
+                                            <h5 class="modal-title" id="exampleModalLabel">{{ol.Inventory.Sku.Name}}
+                                            </h5>
                                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                                 <span aria-hidden="true">&times;</span>
                                             </button>
                                         </div>
                                         <div class="modal-body">
-                                            <img class="img-fluid w-100 h-100" v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
+                                            <img class="img-fluid w-100 h-100"
+                                                v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
                                                 v-bind:src="'/attachments/view/'+ol.Inventory.Sku.Attachments[0].Id" />
                                         </div>
                                     </div>
