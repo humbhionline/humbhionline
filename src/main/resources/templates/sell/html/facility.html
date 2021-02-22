@@ -800,8 +800,9 @@
                     if (blank(self.search.term)) {
                         self.search.results = self.Facility.Inventories
                     } else {
+                        let term = self.search.term.toLowerCase();
                         self.search.results = self.Facility.Inventories.filter(function (inv, index) {
-                            return inv.Sku.Name.indexOf(self.search.term) >= 0 || (inv.Tags && inv.Tags.indexOf(self.search.term) >= 0);
+                            return inv.Sku.Name.toLowerCase().indexOf(term) >= 0 || (inv.Tags && inv.Tags.toLowerCase().indexOf(term) >= 0);
                         });
                     }
                     console.log(self.search.results);
