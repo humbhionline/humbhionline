@@ -1,28 +1,48 @@
 package in.succinct.mandi.controller;
 
-import com.venky.extension.Registry;
+import com.venky.core.collections.SequenceMap;
+import com.venky.core.string.StringUtil;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.path.Path;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import com.venky.swf.views.View;
+import com.venky.swf.views.model.FileUploadView;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
-import in.succinct.mandi.extensions.FacilityParticipantExtension;
+import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
+import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
+import in.succinct.plugins.ecommerce.db.model.inventory.AdjustmentRequest;
 import in.succinct.plugins.ecommerce.db.model.inventory.Inventory;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.json.simple.JSONObject;
 
+import javax.servlet.http.HttpServletRequest;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.StringTokenizer;
 
 public class FacilitiesController extends ModelController<Facility> {
     public FacilitiesController(Path path) {
@@ -96,5 +116,91 @@ public class FacilitiesController extends ModelController<Facility> {
     @RequireLogin(false)
     public View show(long id) {
         return super.show(id);
+    }
+
+
+
+    public View importInventory(long id) throws Exception {
+        ensureUI();
+        HttpServletRequest request = getPath().getRequest();
+
+        if (request.getMethod().equalsIgnoreCase("GET")) {
+            return dashboard(new FileUploadView(getPath()));
+        } else {
+            Facility f = Database.getTable(getModelClass()).get(id);
+            Map<String, Object> formFields = getFormFields();
+            String sFileData = (String) formFields.get("datafile");
+
+            InputStream in = null;
+
+            String[] parts = sFileData.split("^data:[^;]+;base64,");
+            if (parts.length == 2){
+                in = new ByteArrayInputStream(Base64.getDecoder().decode(parts[1]));
+            }
+            if (in == null) {
+                throw new RuntimeException("Nothing uploaded!");
+            }
+
+            Workbook book = new XSSFWorkbook(in);
+            Sheet sheet = book.getSheetAt(0);
+            Row header = null;
+            Map<String, Integer> headingIndexMap = new HashMap<>();
+            FormatHelper<JSONObject> helper = FormatHelper.instance(new JSONObject());
+            for (Iterator<Row> i = sheet.iterator(); i.hasNext(); ) {
+                Row row = i.next();
+                if (header == null) {
+                    header = row;
+                    headingIndexMap = headingIndexMap(header);
+                    continue;
+                }
+                FormatHelper<JSONObject> oneHelper = FormatHelper.instance(helper.createChildElement("AdjustmentRequest"));
+
+                makeJson(oneHelper, headingIndexMap, row);
+                FormatHelper<JSONObject> invHelper = FormatHelper.instance(oneHelper.getElementAttribute("Inventory"));
+                FormatHelper<JSONObject> skuHelper = FormatHelper.instance(invHelper.getElementAttribute("Sku"));
+                FormatHelper<JSONObject> itemHelper = FormatHelper.instance(skuHelper.getElementAttribute("Item"));
+                FormatHelper<JSONObject> packHelper = FormatHelper.instance(skuHelper.getElementAttribute("PackagingUOM"));
+
+                oneHelper.setAttribute("AdjustmentQuantity","0");
+                invHelper.setAttribute("CompanyId", StringUtil.valueOf(CompanyUtil.getCompanyId()));
+                invHelper.setAttribute("FacilityId",StringUtil.valueOf(f.getId()));
+                itemHelper.setAttribute("CompanyId", StringUtil.valueOf(CompanyUtil.getCompanyId()));
+                skuHelper.setAttribute("CompanyId", StringUtil.valueOf(CompanyUtil.getCompanyId()));
+                skuHelper.setAttribute("Published","N");
+                packHelper.setAttribute("Measures", UnitOfMeasure.MEASURES_PACKAGING);
+
+            }
+            List<AdjustmentRequest> requests = AdjustmentRequest.adjust(helper);
+            return show(f);
+        }
+    }
+
+    private void makeJson(FormatHelper<JSONObject> helper, Map<String, Integer> headingIndexMap, Row row) {
+        for (Entry<String,Integer> entry : headingIndexMap.entrySet()){
+            String key = entry.getKey();
+            int index = entry.getValue();
+            Cell cell  = row.getCell(index);
+            String value = cell == null ? null : cell.getCellType() == CellType.NUMERIC ? StringUtil.valueOf(cell.getNumericCellValue()) : cell.getStringCellValue();
+            StringTokenizer tokenizer = new StringTokenizer(key,".");
+
+            FormatHelper<JSONObject> tmp =  helper;
+            while (tokenizer.hasMoreTokens()) {
+                String k1 = tokenizer.nextToken();
+                if (tokenizer.hasMoreTokens()){
+                    tmp = FormatHelper.instance(tmp.createElementAttribute(k1));
+                }else {
+                    tmp.setAttribute(k1, StringUtil.valueOf(value));
+                }
+            }
+        }
+
+    }
+
+    private Map<String,Integer> headingIndexMap(Row header){
+        Map<String,Integer> headingIndexMap = new SequenceMap<String, Integer>();
+        for (int i = 0 ; i < header.getLastCellNum() ; i ++ ){
+            headingIndexMap.put(header.getCell(i).getStringCellValue(), i);
+        }
+        return headingIndexMap;
     }
 }

@@ -23,5 +23,8 @@ public class BeforeValidateSku  extends BeforeModelValidateExtension<Sku> {
         if (model.getReflector().isVoid(model.getName()) && uom != null){
             model.setName(item.getName() + "-" + uom.getName());
         }
+        if (model.getCompanyId() == null){
+            model.setCompanyId(item.getCompanyId());
+        }
     }
 }

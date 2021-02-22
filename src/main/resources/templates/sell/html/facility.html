@@ -22,6 +22,7 @@
                 Facility: { Inventories: [] },
                 facilityBannerBeingEdited: false,
                 timer: -1,
+                selectedDataFileName : "",
                 current: {
                     index: -1,
                     Items: [],
@@ -41,22 +42,7 @@
                 let self = this;
                 showSpinner();
                 api().url("/facilities/show/" + id).get().then(function (response) {
-                    if (!response.Facility.Inventories) {
-                        response.Facility.Inventories = [];
-                    }
-                    response.Facility.Inventories.forEach((inv, i) => {
-                        if (!inv.Sku.Item.AssetCode) {
-                            inv.Sku.Item.AssetCode = { Code: "" };
-                        }
-                        if (!inv.Sku.Attachments) {
-                            inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
-                        }
-                    });
-                    if (!response.Facility.Attachments) {
-                        response.Facility.Attachments = [];
-                    }
-                    self.search.results = response.Facility.Inventories;
-                    Vue.set(self, "Facility", response.Facility);
+                    self.fixFacilityAttributes(response.Facility);
                     self.showApp();
                 }).catch(function (err) {
                     self.showApp();
@@ -66,6 +52,26 @@
                 });
             },
             methods: {
+                fixFacilityAttributes: function(f){
+                    let self = this;
+                    if (!f.Inventories) {
+                        f.Inventories = [];
+                    }
+                    f.Inventories.forEach((inv, i) => {
+                        if (!inv.Sku.Item.AssetCode) {
+                            inv.Sku.Item.AssetCode = { Code: "" };
+                        }
+                        if (!inv.Sku.Attachments) {
+                            inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
+                        }
+                    });
+                    if (!f.Attachments) {
+                        f.Attachments = [];
+                    }
+                    self.Facility = f;
+                    self.search.results = f.Inventories;
+                    //Vue.set(self, "Facility", response.Facility);
+                },
                 showApp: function () {
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
@@ -160,6 +166,41 @@
                         }
                     });
                 },
+                onDataFileChange: function (e) {
+                    e.preventDefault();
+                    let self = this;
+                    self.selectedDataFileName = e.target.files[0].name;
+                },
+                upload: function(event){
+                    event && event.preventDefault();
+                    let self = this;
+                    var files = $("#datafile")[0].files;
+                    if (!files.length) {
+                        return;
+                    }
+                    var file = files[0];
+
+                    this.createDataFile(file, function (datafile) {
+                        let formData = new FormData();
+                        formData.append('datafile', datafile);
+                        showSpinner();
+                        api().url("/facilities/importInventory/"+self.Facility.Id).parameters(formData).headers({ "Content-Type": "multipart-formdata", "Accept": "application/json" }).post().then(function (response) {
+                            console.log(response);
+                            fixFacilityAttributes(response.Facility);
+                        }).catch(function (err) {
+                            showError(err);
+                        }).finally(function(){
+                            hideSpinner();
+                        });
+                    });
+                },
+                createDataFile: function (file, callback) {
+                    var reader = new FileReader();
+                    reader.onload = (e) => {
+                        callback(e.target.result);
+                    }
+                    reader.readAsDataURL(file);
+                },
                 save: function (event) {
                     if (event) {
                         event.preventDefault();
@@ -176,7 +217,7 @@
                     showSpinner();
                     api().url("/api/adjust").parameters({
                         AdjustmentRequest: {
-                            NewProduct: newProduct, "Inventory": i, AdjustmentQuantity: self.current.AdjustmentQuantity,
+                                NewProduct: newProduct, "Inventory": i, AdjustmentQuantity: self.current.AdjustmentQuantity,
                             Comment: "Adjust"
                         }
                     }).post().then(function (response) {
@@ -833,6 +874,22 @@
                                         {{Facility.City.Name}}-{{Facility.City.State.Name}}
                                         ,{{Facility.PinCode.PinCode}}
                                     </p>
+                                </div>
+                            </div>
+                            <div class="form-row no-gutters">
+                                <div class="col-8">
+                                    <input type="file" class="file-upload" id="datafile"
+                                        v-on:input="onDataFileChange($event)" />
+                                    <label class="btn btn-sm btn-primary w-100" for="datafile">
+                                        {{ selectedDataFileName && selectedDataFileName.length > 0 ? selectedDataFileName :
+                                            "Select Inventory xls"}}
+                                    </label>
+                                </div>
+                                <div class="col-4 text-right">
+                                    <a href="#" class="btn btn-sm btn-block btn-primary" role="button" title="Upload"
+                                        v-on:click="upload($event)">
+                                        Upload
+                                    </a>
                                 </div>
                             </div>
                             <hr class="my-2" />
