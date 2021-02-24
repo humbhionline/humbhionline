@@ -548,18 +548,18 @@
 
                 <div class="content-box">
                     <div class="row">
-                        <div class="col">
+                        <div class="col-12">
                             <p class="mb-0 text-muted">UPI ID **</p>
                             <p class="mb-0">{{User.VirtualPaymentAddress}}</p>
                         </div>
-                        <div class="col">
-                            <p class="mb-0 text-muted">Name As In Bank</p>
-                            <p class="mb-0">{{User.NameAsInBankAccount}}</p>
-                        </div>
-                        <div class="col d-flex justify-content-end align-items-end">
+                        <div class="col-12 d-flex justify-content-end align-items-end">
                             <a href="#/" class="btn-close fas fa-edit mb-3" role="button" v-on:click="viewAddVPA($event,true)"
                                 v-if="!userVpaBeingEdited">
                             </a>
+                        </div>
+                        <div class="col-12">
+                            <p class="mb-0 text-muted">Name As In Bank</p>
+                            <p class="mb-0">{{User.NameAsInBankAccount}}</p>
                         </div>
                     </div>
                 </div>
