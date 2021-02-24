@@ -1,9 +1,13 @@
 package in.succinct.mandi.extensions;
 
 import com.venky.swf.db.extensions.BeforeModelValidateExtension;
+import com.venky.swf.plugins.lucene.index.LuceneIndexer;
+import in.succinct.mandi.db.model.Inventory;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
+
+import java.io.IOException;
 
 public class BeforeValidateSku  extends BeforeModelValidateExtension<Sku> {
     static {
@@ -25,6 +29,15 @@ public class BeforeValidateSku  extends BeforeModelValidateExtension<Sku> {
         }
         if (model.getCompanyId() == null){
             model.setCompanyId(item.getCompanyId());
+        }
+        if (!model.getRawRecord().isNewRecord()){
+            model.getInventory().forEach(i->{
+                try {
+                    LuceneIndexer.instance(Inventory.class).updateDocument(i.getRawRecord());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
     }
 }

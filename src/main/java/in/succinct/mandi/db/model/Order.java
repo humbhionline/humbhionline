@@ -9,6 +9,7 @@ import com.venky.swf.db.annotations.column.indexing.Index;
 import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
 import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import com.venky.swf.db.annotations.column.validations.Enumeration;
+import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.participation.PreferredCarrier;
 
 public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Order {
@@ -99,5 +100,14 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
 
     @IS_VIRTUAL
     public Order getTransportOrder();
+
+
+
+    public Double getWeight();
+    public void setWeight(Double weight);
+
+    public Long getWeightUomId();
+    public void setWeightUomId(Long id);
+    public UnitOfMeasure getWeightUom();
 
 }

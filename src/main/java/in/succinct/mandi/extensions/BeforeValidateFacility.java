@@ -5,8 +5,12 @@ import com.venky.swf.db.Database;
 import com.venky.swf.db.extensions.BeforeModelValidateExtension;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
+import com.venky.swf.plugins.lucene.index.LuceneIndexer;
 import in.succinct.mandi.db.model.Facility;
+import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.User;
+
+import java.io.IOException;
 
 
 public class BeforeValidateFacility extends BeforeModelValidateExtension<Facility> {
@@ -24,6 +28,13 @@ public class BeforeValidateFacility extends BeforeModelValidateExtension<Facilit
         }
 
         validateAddress(model);
+        model.getInventoryList().forEach(i->{
+            try {
+                LuceneIndexer.instance(Inventory.class).updateDocument(i.getRawRecord());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private void validateAddress(Facility model){
