@@ -746,7 +746,7 @@
 
                     // var files = $('#sku-attachment-' + inventoryIndex)[0].files;
                     //Convert canvas image to Base64 $().cropper("getCroppedCanvas", { maxWidth: 4096, maxHeight: 4096 })
-                    var snap = $("#PrivewImage" + inventoryIndex).cropper("getCroppedCanvas", { maxWidth: 4096, maxHeight: 4096 });
+                    var snap = $("#PrivewImage" + inventoryIndex).cropper("getCroppedCanvas", { width: 500, height: 500 });
                     var img = snap.toDataURL();
                     // // Convert Base64 image to binary
                     var croppedfile = self.dataURItoBlob(img);
