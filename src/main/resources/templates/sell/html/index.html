@@ -489,6 +489,17 @@
                     </div>
                     <div class="form-row mb-2">
                         <div class="col">
+                            <input v-bind:key="'phone' + i" v-bind:id="'phone' + i" class="form-control form-control-sm"
+                                placeholder="PhoneNumber" v-model="current.Facility.PhoneNumber"/>
+                        </div>
+                        <div class="col">
+                            <input v-bind:key="'alternatePhone' + i" v-bind:id="'alternatePhone' + i"
+                                class="form-control form-control-sm" placeholder="Alternate PhoneNumber"
+                                v-model="current.Facility.AlternatePhoneNumber" />
+                        </div>
+                    </div>
+                    <div class="form-row mb-2">
+                        <div class="col">
                             <input v-bind:key="'gstin' + i" v-bind:id="'gstin' + i" class="form-control form-control-sm"
                                 placeholder="GSTIN" v-model="current.Facility.GSTIN" />
                         </div>
