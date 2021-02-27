@@ -807,6 +807,10 @@
                     }
                     console.log(self.search.results);
                 },
+                isDeliverySku: function (sku) {
+                    return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
+                },
+
             }
         });
     });
@@ -1162,18 +1166,29 @@
                                 placeholder="Tags" v-model="current.Inventory.Tags" v-on:input="onTagChange($event)"
                                 v-on:focus="removeList($event)" />
                         </div>
-
                     </div>
-                    <div class="form-row mb-2">
+                    <div class="form-row mb-2" >
+                        <div class="col-7">
+                            <label v-bind:for="'ManagedBy' + i" class="small mb-0">Managed By?</label>
+                            <select v-bind:key="'ManagedBy' + i" v-bind:id="'ManagedBy' + i" class="form-control form-control-sm"
+                                placeholder="Managed By" v-model="current.Inventory.ManagedBy"
+                                v-on:focus="removeList($event)" :disabled="!isDeliverySku(current.Inventory.Sku)" >
+                                <option value=" "></option>
+                                <option value="wefast">Wefast</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row mb-2" >
                         <div class="col-7">
                             <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
                             <input v-bind:key="'price' + i" v-bind:id="'price' + i" class="form-control form-control-sm"
-                                placeholder="&#x20B9;0" v-model="current.Inventory.SellingPrice" />
+                                placeholder="&#x20B9;0" v-model="current.Inventory.SellingPrice" :disabled="current.Inventory.ManagedBy && current.Inventory.ManagedBy.trim().length > 0" />
                         </div>
                         <div class="col-5">
                             <label class="small mb-0" v-bind:for="'mrp' + i">MRP</label>
                             <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
-                                placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" />
+                                placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" :disabled="current.Inventory.ManagedBy && current.Inventory.ManagedBy.trim().length > 0" />
                         </div>
                     </div>
                     <div class="form-row mb-2">

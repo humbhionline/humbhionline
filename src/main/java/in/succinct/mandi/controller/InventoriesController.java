@@ -23,6 +23,7 @@ import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.db.model.UserLocation;
+import in.succinct.mandi.integrations.courier.Wefast;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
@@ -87,13 +88,15 @@ public class InventoriesController extends ModelController<Inventory> {
             boolean pass = facility.isPublished();
             pass = pass && (record.isInfinite() || record.getQuantity() > 0);
             pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
-                    || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem() );
+                    || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem() ||
+                    !ObjectUtil.isVoid(record.getManagedBy()));
 
 
             if (order != null) {
                 //Return only delivery items
                 //
-                GeoLocation deliveryBoyLocation = getDeliveryBoyLocation(facility);
+                GeoLocation deliveryBoyLocation = getDeliveryBoyLocation(facility,record);
+
                 double distanceToDeliveryLocation = 0;
                 double distanceBetweenPickUpAndDeliveryLocation = 0 ;
                 double distanceToPickLocation = 0 ;
@@ -114,7 +117,12 @@ public class InventoriesController extends ModelController<Inventory> {
                 pass = pass && distanceToPickLocation < facility.getDeliveryRadius();
                 if (pass){
                     record.setDeliveryProvided(true);
-                    record.setDeliveryCharges(facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation));
+                    if (ObjectUtil.isVoid(record.getManagedBy())){
+                        record.setDeliveryCharges(facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation));
+                    }else if (ObjectUtil.equals(record.getManagedBy(),"wefast")){
+                        Wefast wefast = new Wefast();
+                        record.setDeliveryCharges(wefast.getPrice(order));
+                    }
                     record.setChargeableDistance(Math.max(facility.getMinFixedDistance(),new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue()));
                     facility.setDistance(new DoubleHolder(new GeoCoordinate(deliveryBoyLocation).distanceTo(new GeoCoordinate(order.getFacility())),2).getHeldDouble().doubleValue());
                 }
@@ -137,13 +145,17 @@ public class InventoriesController extends ModelController<Inventory> {
 
     }
 
-    private GeoLocation getDeliveryBoyLocation(Facility facility) {
-        User creator = facility.getCreatorUser().getRawRecord().getAsProxy(User.class);
-        if (!creator.getUserLocations().isEmpty()){
-            UserLocation location = creator.getUserLocations().get(0);
-            return location;
-        }else {
+    private GeoLocation getDeliveryBoyLocation(Facility facility, Inventory record) {
+        if (!ObjectUtil.isVoid(record.getManagedBy())){
             return facility;
+        }else {
+            User creator = facility.getCreatorUser().getRawRecord().getAsProxy(User.class);
+            if (!creator.getUserLocations().isEmpty()){
+                UserLocation location = creator.getUserLocations().get(0);
+                return location;
+            }else {
+                return facility;
+            }
         }
     }
 
@@ -155,30 +167,7 @@ public class InventoriesController extends ModelController<Inventory> {
             Order order = getOrder();
             GeoCoordinate reference = null;
             if (order == null){
-                com.venky.swf.db.model.User currentUser = Database.getInstance().getCurrentUser();
-                if (currentUser != null && currentUser.getCurrentLat() != null){
-                    reference = new GeoCoordinate(new GeoLocation() {
-                        @Override
-                        public BigDecimal getLat() {
-                            return currentUser.getCurrentLat();
-                        }
-
-                        @Override
-                        public void setLat(BigDecimal bigDecimal) {
-                            currentUser.setCurrentLat(bigDecimal);
-                        }
-
-                        @Override
-                        public BigDecimal getLng() {
-                            return currentUser.getCurrentLng();
-                        }
-
-                        @Override
-                        public void setLng(BigDecimal bigDecimal) {
-                            currentUser.setCurrentLng(bigDecimal);
-                        }
-                    });
-                }
+                reference = getCurrentUserLocation();
             }else {
                 reference = new GeoCoordinate(order.getFacility());
             }
@@ -194,6 +183,34 @@ public class InventoriesController extends ModelController<Inventory> {
             }
         }
         return where;
+    }
+
+    private GeoCoordinate getCurrentUserLocation() {
+        com.venky.swf.db.model.User currentUser = Database.getInstance().getCurrentUser();
+        if (currentUser != null && currentUser.getCurrentLat() != null){
+            return new GeoCoordinate(new GeoLocation() {
+                @Override
+                public BigDecimal getLat() {
+                    return currentUser.getCurrentLat();
+                }
+
+                @Override
+                public void setLat(BigDecimal bigDecimal) {
+                    currentUser.setCurrentLat(bigDecimal);
+                }
+
+                @Override
+                public BigDecimal getLng() {
+                    return currentUser.getCurrentLng();
+                }
+
+                @Override
+                public void setLng(BigDecimal bigDecimal) {
+                    currentUser.setCurrentLng(bigDecimal);
+                }
+            });
+        }
+        return null;
     }
 
     @Override

@@ -6,12 +6,18 @@ import com.venky.geo.GeoLocation;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.User;
 import com.venky.swf.db.table.ModelImpl;
+import com.venky.swf.sql.Conjunction;
+import com.venky.swf.sql.Expression;
+import com.venky.swf.sql.Operator;
+import com.venky.swf.sql.Select;
+import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasureConversionTable;
-import in.succinct.plugins.ecommerce.db.model.inventory.Inventory;
+
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 public class FacilityImpl extends ModelImpl<Facility> {
@@ -93,15 +99,12 @@ public class FacilityImpl extends ModelImpl<Facility> {
         Facility facility = getProxy();
         Double charges = null;
         if (facility.isDeliveryProvided()){
-            Optional<Inventory> inventoryOptional = facility.getInventoryList().stream().filter(i->{
-                Sku sku = i.getSku().getRawRecord().getAsProxy(Sku.class);
-                Item item = sku.getItem();
-                if (item.getAssetCodeId() != null){
-                    return (ObjectUtil.equals(item.getAssetCode().getCode(),"996813")) && !i.isPublished() ; //If pulished. It is courier and added as item in his order line.
-                }else {
-                    return false;
-                }
-            }).findFirst();
+            Select select = new Select().from(Inventory.class);
+            List<Inventory> inventoryList = select.where(new Expression(select.getPool(), Conjunction.AND)
+                            .add(new Expression(select.getPool(),"FACILITY_ID", Operator.EQ,facility.getId()))
+                            .add(new Expression(select.getPool(),"SKU_ID",Operator.IN, AssetCode.getDeliverySkuIds().toArray(new Long[]{})))).execute();
+
+            Optional<Inventory> inventoryOptional = inventoryList.stream().filter(i-> !i.isPublished()).findFirst();
             charges = facility.getFixedDeliveryCharges();
             if (inventoryOptional.isPresent()){
                 Inventory inventory = inventoryOptional.get();

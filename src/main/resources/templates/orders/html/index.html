@@ -517,7 +517,44 @@
                     if (event){
                         event.preventDefault();
                     }
-                    window.location.href = ("/orders/delivery_plan/"+o.Id);
+                    $.confirm({
+                        title : (o.Weight && o.Weight * 1.0 > 0? "Confirm Weight" : "Enter Weight"),
+                        content : '' +
+                           '<form action="" class="formName">' +
+                           '<div class="form-group">' +
+                           '<label>Weight in Kgs</label>' +
+                           '<input type="text" placeholder="Order Weight in Kgs" class="weight form-control" required />' +
+                           '</div>' +
+                           '</form>',
+                         buttons : {
+                             formSubmit : {
+                                 text : 'Done',
+                                 btnClass: 'btn-primary',
+                                 action :function(){
+                                     var  weight = this.$content.find('.weight').val();
+                                     if (weight && weight * 1 > 0 ){
+                                         api().url("/orders/save").parameters({Order : { Id:o.Id,Weight:weight , WeightUom : { Name :"Kgs" , Measures :"Weight"} }} ).post().then(function(response){
+                                             window.location.href = ("/orders/delivery_plan/"+o.Id);
+                                         });
+                                     }
+                                 }
+                             },
+                             cancel : function(){
+
+                             },
+
+                         },
+                         onContentReady: function () {
+                            // bind to events
+                            var jc = this;
+                            this.$content.find('.weight').val(o.Weight);
+                            this.$content.find('form').on('submit', function (e) {
+                                // if the user submits the form by pressing enter in the field.
+                                e.preventDefault();
+                                jc.$$formSubmit.trigger('click'); // reference the button and click it
+                            });
+                        },
+                    })
                 },
                 planningRequired: function (o){
                     let non_subscription_line = o.OrderLines.find(function(o1){
@@ -541,6 +578,7 @@
                 isDeliveryOrder: function (order){
                     return order.RefOrder && order.RefOrder.Id * 1.0 > 0 ;
                 },
+
 
             }
         });

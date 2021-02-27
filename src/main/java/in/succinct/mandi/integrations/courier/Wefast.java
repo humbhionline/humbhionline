@@ -1,8 +1,11 @@
 package in.succinct.mandi.integrations.courier;
 
+import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.db.Database;
 import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.routing.Config;
@@ -23,19 +26,18 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 public class Wefast {
-    public void createOrder(Order order){
+    public JSONObject createOrder(Order order){
         JSONObject orderJson = makeJson(order);
         Call<JSONObject> call = new Call<JSONObject>().url(Config.instance().getProperty("wefast.api.url") ,
                 "/create-order").
                 header("X-DV-Auth-Token",Config.instance().getProperty("wefast.api.token")).
-                inputFormat(InputFormat.JSON).input(orderJson);
+                inputFormat(InputFormat.JSON).input(orderJson).method(HttpMethod.POST);
 
         if (call.hasErrors()){
             throw new RuntimeException(call.getError());
         }
 
-        JSONObject response = call.getResponseAsJson();
-
+        return call.getResponseAsJson();
     }
 
 
@@ -44,48 +46,52 @@ public class Wefast {
         Call<JSONObject> call = new Call<JSONObject>().url(Config.instance().getProperty("wefast.api.url") ,
                 "/calculate-order").
                 header("X-DV-Auth-Token",Config.instance().getProperty("wefast.api.token")).
-                inputFormat(InputFormat.JSON).input(orderJson);
+                inputFormat(InputFormat.JSON).input(orderJson).method(HttpMethod.POST);
 
         if (call.hasErrors()){
             throw new RuntimeException(call.getError());
         }
 
         JSONObject response = call.getResponseAsJson();
-        Boolean success = (Boolean)response.get("is_successful");
-        if (success){
-            JSONObject jsonResponseOrder = (JSONObject) response.get("order");
-            return (Double)jsonResponseOrder.get("payment_amount");
-        }
-        return Double.POSITIVE_INFINITY;
+        return getPrice(response);
+
     }
 
     private JSONObject makeJson(Order order) {
         JSONObject obj = new JSONObject();
         Set<String> tags = new HashSet<>();
         Bucket weight = new Bucket();
-        JSONArray packages = new JSONArray();
-
         for (OrderLine line: order.getOrderLines()){
-            StringTokenizer tok = new StringTokenizer(line.getInventory().getRawRecord().getAsProxy(Inventory.class).getTags());
-            while (tok.hasMoreTokens()){
-                tags.add(tok.nextToken());
+            String stags = line.getInventory().getRawRecord().getAsProxy(Inventory.class).getTags();
+            if (!ObjectUtil.isVoid(stags)){
+                StringTokenizer tok = new StringTokenizer(StringUtil.valueOf(stags));
+                while (tok.hasMoreTokens()){
+                    tags.add(tok.nextToken());
+                }
+            }else if(!ObjectUtil.isVoid(line.getHsn())){
+                tags.add(line.getHsn());
+            }else {
+                tags.add(line.getSku().getName());
             }
         }
+
+        obj.put("matter",tags.toString());
+        obj.put("total_weight_kg", UnitOfMeasureConversionTable.convert(order.getWeight(), UnitOfMeasure.MEASURES_WEIGHT,order.getWeightUom(),
+        UnitOfMeasure.getMeasure(UnitOfMeasure.MEASURES_WEIGHT,"Kgs")));
+        JSONArray points = new JSONArray();
+        obj.put("points",points);
+        points.addAll(makePoints(order));
+
+        /*
+        JSONArray packages = new JSONArray();
+
         JSONObject p = new JSONObject();
         p.put("ware_code",order.getFacility().getName());
         p.put("description", "HumBhiOnline Order# " + order.getId());
         p.put("items_count", order.getOrderLines().size());
         packages.add(p);
-
-        obj.put("matter",tags.toString());
-        obj.put("total_weight", UnitOfMeasureConversionTable.convert(order.getWeight(), UnitOfMeasure.MEASURES_WEIGHT,order.getWeightUom(),
-        UnitOfMeasure.getMeasure(UnitOfMeasure.MEASURES_WEIGHT,"Kgs")));
-        obj.put("payment_method","cash");
-        JSONArray points = new JSONArray();
-        obj.put("points",points);
-        points.addAll(makePoints(order));
         ((JSONObject)points.get(0)).put("packages",packages);
-
+        */
 
         return obj;
     }
@@ -100,22 +106,34 @@ public class Wefast {
         JSONObject to = fillPoint(order,shipTo);
 
         to.put("is_order_payment_here",true);
-        to.put("delivery_id",1);
-        to.put("name",shipTo.getFirstName() + " " + shipTo.getLastName());
+        //to.put("delivery_id",order.getId());
+        ((JSONObject)to.get("contact_person")).put("name",shipTo.getFirstName() + " " + shipTo.getLastName());
 
         return Arrays.asList(from,to);
     }
     private JSONObject fillPoint(Order order,Address address){
         JSONObject point = new JSONObject();
         StringBuilder buff = new StringBuilder();
-        if (!ObjectUtil.isVoid(address.getAddressLine4())){
-            buff.append(address.getAddressLine4());
-        }else if (!ObjectUtil.isVoid(address.getAddressLine3())){
-            buff.append(address.getAddressLine3());
-        }else if (!ObjectUtil.isVoid(address.getAddressLine2())){
-            buff.append(address.getAddressLine2());
-        }else if (!ObjectUtil.isVoid(address.getAddressLine1())){
+        if (!ObjectUtil.isVoid(address.getAddressLine1())){
             buff.append(address.getAddressLine1());
+        }
+        if (!ObjectUtil.isVoid(address.getAddressLine2())){
+            if (buff.length() > 0){
+                buff.append(", ");
+            }
+            buff.append(address.getAddressLine2());
+        }
+        if (!ObjectUtil.isVoid(address.getAddressLine3())){
+            if (buff.length() > 0){
+                buff.append(", ");
+            }
+            buff.append(address.getAddressLine3());
+        }
+        if (!ObjectUtil.isVoid(address.getAddressLine4())){
+            if (buff.length() > 0){
+                buff.append(", ");
+            }
+            buff.append(address.getAddressLine4());
         }
         buff.append(",").append(address.getCity().getName()).append(",").append(address.getState().getName());
 
@@ -129,5 +147,45 @@ public class Wefast {
 
 
         return point;
+    }
+
+    public double getPrice(JSONObject response){
+        Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
+        if (success){
+            JSONObject jsonResponseOrder = (JSONObject) response.get("order");
+            return Database.getInstance().getJdbcTypeHelper("").getTypeRef(Double.class).getTypeConverter().valueOf(jsonResponseOrder.get("payment_amount"));
+        }
+        return Double.POSITIVE_INFINITY;
+    }
+    public double getDiscount(JSONObject response){
+        Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
+        if (success){
+            JSONObject jsonResponseOrder = (JSONObject) response.get("order");
+            return Database.getInstance().getJdbcTypeHelper("").getTypeRef(Double.class).getTypeConverter().valueOf(jsonResponseOrder.get("discount_amount"));
+        }
+        return Double.POSITIVE_INFINITY;
+    }
+
+    public Long getOrderId(JSONObject response) {
+        Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
+        if (success){
+            JSONObject jsonResponseOrder = (JSONObject) response.get("order");
+            return Database.getInstance().getJdbcTypeHelper("").getTypeRef(Long.class).getTypeConverter().valueOf(jsonResponseOrder.get("order_id"));
+        }
+        return 0L;
+    }
+
+    public String getTrackingUrl(JSONObject response) {
+        Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
+        String trackingUrl = null;
+        if (success){
+            JSONObject jsonResponseOrder = (JSONObject) response.get("order");
+            JSONArray points = (JSONArray) jsonResponseOrder.get("points");
+            for (int i = 0 ; i < points.size() && trackingUrl == null; i ++){
+                trackingUrl = Database.getInstance().getJdbcTypeHelper("").getTypeRef(String.class).getTypeConverter().
+                        valueOf(((JSONObject)points.get(i)).get("tracking_url"));
+            }
+        }
+        return trackingUrl;
     }
 }

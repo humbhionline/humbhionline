@@ -27,15 +27,18 @@ import com.venky.swf.routing.Config;
 import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
+import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.RefOrder;
 import in.succinct.mandi.db.model.User;
+import in.succinct.mandi.integrations.courier.Wefast;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
+import in.succinct.plugins.ecommerce.db.model.attributes.Attribute;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
-import in.succinct.plugins.ecommerce.db.model.inventory.Inventory;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
+import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 import in.succinct.plugins.ecommerce.db.model.order.OrderStatus;
 import org.json.simple.JSONObject;
@@ -178,13 +181,31 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             lineHelper.setAttribute("SkuId",StringUtil.valueOf(inventory.getSkuId()));
 
             OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement);
-            line.setSellingPrice(inventory.getSellingPrice() *line.getOrderedQuantity());
 
-            line.setMaxRetailPrice(inventory.getReflector().getJdbcTypeHelper().
-                    getTypeRef(double.class).getTypeConverter().valueOf(inventory.getMaxRetailPrice()) * line.getOrderedQuantity());
+            if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && ObjectUtil.equals(inventory.getManagedBy(),Inventory.WEFAST)){
+                Wefast wefast = new Wefast();
+                JSONObject wefastResponse = wefast.createOrder(order.getParentOrder());
+                double sellingPrice = wefast.getPrice(wefastResponse);
+                double discount = wefast.getDiscount(wefastResponse);
+                long orderId = wefast.getOrderId(wefastResponse);
+                String tracking_url = wefast.getTrackingUrl(wefastResponse);
+                line.setSellingPrice(sellingPrice);
+                line.setMaxRetailPrice(sellingPrice + discount);
+                order.setReference("Wefast Order Id:" + orderId);
+                Map<String, OrderAttribute> map = order.getAttributeMap();
+                map.get("courier").setValue(Inventory.WEFAST);
+                map.get("order_id").setValue(StringUtil.valueOf(orderId));
+                order.saveAttributeMap(map);
+            }else {
+                line.setSellingPrice(inventory.getSellingPrice() * line.getOrderedQuantity());
+                line.setMaxRetailPrice(inventory.getReflector().getJdbcTypeHelper().
+                        getTypeRef(double.class).getTypeConverter().valueOf(inventory.getMaxRetailPrice()) * line.getOrderedQuantity());
+            }
+
             if (line.getMaxRetailPrice() == 0){
                 line.setMaxRetailPrice(line.getSellingPrice());
             }
+
             line.setDiscountPercentage((line.getMaxRetailPrice()  - line.getSellingPrice())/line.getMaxRetailPrice());
 
             if (!line.getRawRecord().isNewRecord()){
