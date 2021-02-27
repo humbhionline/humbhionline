@@ -15,6 +15,8 @@
         var params = (new URL(window.location)).searchParams;
         let id = params.get("id");
 
+
+
         new Vue({
             el: "#app",
             data: {
@@ -22,7 +24,7 @@
                 Facility: { Inventories: [] },
                 facilityBannerBeingEdited: false,
                 timer: -1,
-                selectedDataFileName : "",
+                selectedDataFileName: "",
                 current: {
                     index: -1,
                     Items: [],
@@ -50,9 +52,10 @@
                 }).finally(function () {
                     hideSpinner();
                 });
+
             },
             methods: {
-                fixFacilityAttributes: function(f){
+                fixFacilityAttributes: function (f) {
                     let self = this;
                     if (!f.Inventories) {
                         f.Inventories = [];
@@ -76,8 +79,9 @@
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
                         $(".navbar").addClass("bg-clear");
-                        $(".body").css("padding-top", "300px");
                         $("#root").show();
+                        let facilityHeader = $(".facility-header").height() + 10;
+                        $(".body").css("padding-top", facilityHeader);
                         $("#pageTitle").html("Sales-Facilities");
                     });
                 },
@@ -171,7 +175,7 @@
                     let self = this;
                     self.selectedDataFileName = e.target.files[0].name;
                 },
-                upload: function(event){
+                upload: function (event) {
                     event && event.preventDefault();
                     let self = this;
                     var files = $("#datafile")[0].files;
@@ -184,12 +188,12 @@
                         let formData = new FormData();
                         formData.append('datafile', datafile);
                         showSpinner();
-                        api().url("/facilities/importInventory/"+self.Facility.Id).parameters(formData).headers({ "Content-Type": "multipart-formdata", "Accept": "application/json" }).post().then(function (response) {
+                        api().url("/facilities/importInventory/" + self.Facility.Id).parameters(formData).headers({ "Content-Type": "multipart-formdata", "Accept": "application/json" }).post().then(function (response) {
                             console.log(response);
                             fixFacilityAttributes(response.Facility);
                         }).catch(function (err) {
                             showError(err);
-                        }).finally(function(){
+                        }).finally(function () {
                             hideSpinner();
                         });
                     });
@@ -217,7 +221,7 @@
                     showSpinner();
                     api().url("/api/adjust").parameters({
                         AdjustmentRequest: {
-                                NewProduct: newProduct, "Inventory": i, AdjustmentQuantity: self.current.AdjustmentQuantity,
+                            NewProduct: newProduct, "Inventory": i, AdjustmentQuantity: self.current.AdjustmentQuantity,
                             Comment: "Adjust"
                         }
                     }).post().then(function (response) {
@@ -497,7 +501,7 @@
                         api().url("/skus/search").get(q).then(function (response) {
                             if (response.Skus.length === 1) {
                                 let sku = response.Skus[0];
-                                if (sku.PackagingUOM.Name  === uom.Name && sku.Item.Name === self.current.Inventory.Sku.Item.Name) {
+                                if (sku.PackagingUOM.Name === uom.Name && sku.Item.Name === self.current.Inventory.Sku.Item.Name) {
                                     self.current.Inventory.Sku = sku;
                                     self.current.Inventory.MaxRetailPrice = self.current.Inventory.MaxRetailPrice || self.current.Inventory.Sku.MaxRetailPrice || 0;
                                     self.current.Inventory.SellingPrice = self.current.Inventory.SellingPrice || self.current.Inventory.MaxRetailPrice || 0;
@@ -870,8 +874,8 @@
                         <div class="content-box">
                             <div class="form-row">
                                 <div class="col">
-                                    <h6 class="mb-0"> {{Facility.Name}} </h6>
-                                    <p class="text-muted small mb-0" v-if="Facility.City">
+                                    <h6 class="mb-2"> {{Facility.Name}} </h6>
+                                    <p class="text-muted small mb-2" v-if="Facility.City">
                                         {{Facility.AddressLine1}}
                                         {{!blank(Facility.AddressLine2) ? "," : "" }} {{ Facility.AddressLine2}}
                                         {{!blank(Facility.AddressLine3) ? "," : "" }} {{Facility.AddressLine3}}
@@ -882,16 +886,27 @@
                                 </div>
                             </div>
                             <div class="form-row no-gutters">
-                                <div class="col-8">
-                                    <input type="file" class="file-upload" id="datafile"
-                                        v-on:input="onDataFileChange($event)" />
-                                    <label class="btn btn-sm btn-primary w-100" for="datafile">
-                                        {{ selectedDataFileName && selectedDataFileName.length > 0 ? selectedDataFileName :
-                                            "Select Inventory xls"}}
+                                <div v-bind:class="[!selectedDataFileName ? 'col-6':'col-9']">
+                                    <a v-if="!selectedDataFileName" href="#xls Template file">Inventory Template</a>
+                                    <label v-else
+                                        v-bind:class="[!selectedDataFileName ? 'btn btn-sm btn-primary w-100' :'mb-0 small d-block']"
+                                        for="datafile">
+                                        Click to Update File:
+                                        <p class="mb-0 color-blue text-truncate">{{selectedDataFileName}}</p>
                                     </label>
                                 </div>
-                                <div class="col-4 text-right">
-                                    <a href="#" class="btn btn-sm btn-block btn-primary" role="button" title="Upload"
+                                <div v-bind:class="[!selectedDataFileName ? 'col-6':'col-3']">
+                                    <input type="file" class="file-upload" id="datafile"
+                                        v-on:input="onDataFileChange($event)" />
+                                    <label v-if="!selectedDataFileName"
+                                        v-bind:class="[!selectedDataFileName ? 'btn btn-sm btn-primary w-100' :'']"
+                                        for="datafile">
+                                        {{ selectedDataFileName && selectedDataFileName.length > 0 ?
+                                        selectedDataFileName :
+                                        "Upload Inventory"}}
+                                    </label>
+                                    <a href="#" v-if="selectedDataFileName && selectedDataFileName.length > 0"
+                                        class="btn btn-sm btn-block btn-primary" role="button" title="Upload"
                                         v-on:click="upload($event)">
                                         Upload
                                     </a>
@@ -985,8 +1000,7 @@
                                             v-bind:data-target="'#sku-img-'+inv.Sku.Item.Id" />
                                         </img>
                                         <div v-else
-                                            class="default-img d-flex bg-light align-items-center justify-content-center border rounded-sm"
-                                            >
+                                            class="default-img d-flex bg-light align-items-center justify-content-center border rounded-sm">
                                             <span class="font-weight-bold text-muted">{{inv.Sku.Item.Name}}</span>
                                         </div>
                                         <!-- Modal View Images-->

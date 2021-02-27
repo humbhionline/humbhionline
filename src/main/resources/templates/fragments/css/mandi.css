@@ -214,7 +214,7 @@
     }
     .content-box p,
     .content-sub-box p {
-        line-height: 1.1;
+        line-height: 1.3;
     }
     .btn-order-cancel {
         position: absolute;
@@ -686,7 +686,7 @@
         height: 100px;
         overflow: hidden;
     }
-    .PrivewImage{
+    .PrivewImage {
         width: 100%;
     }
     .img-holder i.fa-image {
@@ -704,10 +704,13 @@
         font-size: 50% !important;
         font-weight: 900 !important;
     }
-    .price-box{
+    .price-box {
         position: absolute;
         bottom: 0;
         margin: 0;
         margin-bottom: 2px;
+    }
+    .color-blue {
+        color: #007bff;
     }
 }
