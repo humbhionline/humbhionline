@@ -23,6 +23,7 @@
                 User: Lockr.get("User"),
                 Facility: { Inventories: [] },
                 facilityBannerBeingEdited: false,
+                facilityCropperBeingEdited: false,
                 timer: -1,
                 selectedDataFileName: "",
                 current: {
@@ -613,36 +614,64 @@
                 },
                 onFacilityBannerFileChange: function (e, index) {
                     let self = this;
-                    self.Facility.Attachments[index].AttachmentContentName = e.target.files[0].name;
-                    self.Facility.Attachments[index].Dirty = true;
-                    Vue.set(self.Facility.Attachments, index, self.Facility.Attachments[index]);
-                    self.readFacilityBannerUrl(e.target.files[0], index);
-                    self.uploadFacilityBannerFile(e, index);
+                    // self.Facility.Attachments[index].AttachmentContentName = e.target.files[0].name;
+                    // self.Facility.Attachments[index].Dirty = true;
+                    // Vue.set(self.Facility.Attachments, index, self.Facility.Attachments[index]);
+                    self.readFacilityBannerUrl(e, e.target.files[0], index);
+                    // self.uploadFacilityBannerFile(e, index);
                 },
-                readFacilityBannerUrl: function (file, index) {
+                onCancelUpload: function (e, index) {
+                    let self = this;
+                    self.facilityCropperBeingEdited = false;
+                    $("#show-updated-img").cropper('destroy').attr("src", "");
+                    $("#attachment-" + index).value(null);
+                },
+                readFacilityBannerUrl: function (event, file, index) {
                     var reader = new FileReader();
                     let self = this;
 
                     reader.onload = function (e) {
-                        self.Facility.Attachments[index].Attachment = e.target.result;
-                        Vue.set(self.Facility.Attachments, index, self.Facility.Attachments[index]);
+                        // self.Facility.Attachments[index].Attachment = e.target.result;
+                        // Vue.set(self.Facility.Attachments, index, self.Facility.Attachments[index]);
+                        self.facilityCropperBeingEdited = true;
+                        $("#updated-image").attr("for", "attachment-" + index);
+                        $("#show-updated-img").cropper('destroy').attr('src', e.target.result).cropper({
+                            aspectRatio: 9 / 5,
+                            // preview: '.img-preview',
+                            crop: function (e) {
+                                // console.log("Croppimage Data", e)
+                            }
+                        });
                     }
-
                     reader.readAsDataURL(file);
+                    $("#cancle-update").click(function (e) {
+                        self.onCancelUpload(e, index);
+                    });
+                    $("#UploadImage").click(function (e) {
+                        self.uploadFacilityBannerFile(e, index);
+                    });
                 },
                 uploadFacilityBannerFile: function (e, index) {
                     if (e) {
                         e.preventDefault();
                     }
+                    console.log("uploadFacilityBannerFile", e, index);
 
-                    var files = $('#attachment-' + index)[0].files;
+                    // var files = $('#attachment-' + index)[0].files;
 
-                    if (!files.length) {
-                        return;
-                    };
+                    // if (!files.length) {
+                    //     return;
+                    // };
 
-                    var file = files[0];
                     let self = this;
+                    // var files = $('#sku-attachment-' + inventoryIndex)[0].files;
+                    //Convert canvas image to Base64 $().cropper("getCroppedCanvas", { maxWidth: 4096, maxHeight: 4096 })
+                    var snap = $("#show-updated-img").cropper("getCroppedCanvas", { width: 360, height: 200 });
+                    var img = snap.toDataURL();
+                    // // Convert Base64 image to binary
+                    var croppedfile = self.dataURItoBlob(img);
+
+                    var file = croppedfile;
                     let formData = new FormData();
                     formData.append("ATTACHMENT", file);
                     formData.append("FACILITY_ID", self.Facility.Id);
@@ -656,6 +685,7 @@
                             response.Attachment.AttachmentUrl = "/attachments/show/0" + response.Attachment.AttachmentUrl;
                         }
                         self.Facility.Attachments.splice(index, 1, response.Attachment);
+                        self.facilityCropperBeingEdited = false;
                     }).finally(function () {
                         hideSpinner();
                     });
@@ -938,20 +968,22 @@
             <div id="banners" class="show-update" v-if="facilityBannerBeingEdited">
                 <div class="form-row">
                     <div class="col">
-                        <h6>Update/ Add New banner</h6>
+                        <label id="updated-image" v-bind:hidden="!facilityCropperBeingEdited"
+                            class="btn btn-outline-primary btn-sm mb-2 float-right">Change Image</label>
+                        <h6>{{facilityCropperBeingEdited ? "Upload banner Image" : "Update/ Add New banner"}}</h6>
                     </div>
                     <!-- <div class="col-2 text-right">
                         <a href="#" @click="bannerEditComplete($event)" v-if="facilityBannerBeingEdited"><i
                                 class="fas fa-times"></i></a>
                     </div> -->
                 </div>
-                <div class="form-row mb-2">
+                <div class="form-row mb-2" v-bind:hidden="facilityCropperBeingEdited">
                     <div class="col text-right">
                         <a href="#." @click="bannerEditComplete($event)" class="btn btn-sm btn-secondery">Close</a><a
                             href="#." class="btn btn-sm btn-primary" @click="addBanner($event)">Add New</a>
                     </div>
                 </div>
-                <div class="form-row">
+                <div class="form-row" v-bind:hidden="facilityCropperBeingEdited">
                     <div class="col-4 my-1" v-for="(attachment,i) in Facility.Attachments">
                         <span v-if="attachment.AttachmentUrl || attachment.Attachment"
                             @click="chooseBannerFile($event,i)" class="img-holder">
@@ -969,15 +1001,23 @@
                             v-on:click="removeBannner($event,i)">
                             <i class="small fas fa-trash"></i>
                         </a>
-
                         <input type="file" class="file-upload" v-bind:key="'attachment-'+i" v-bind:id="'attachment-'+i"
                             v-on:input="onFacilityBannerFileChange($event,i)" accept="image/*" />
-
+                    </div>
+                </div>
+                <div class="form-row" v-bind:hidden="!facilityCropperBeingEdited">
+                    <div class="col">
+                        <img src="" id="show-updated-img" class="img-fluid w-100" alt="">
+                    </div>
+                </div>
+                <div class="form-row mt-2" v-bind:hidden="!facilityCropperBeingEdited">
+                    <div class="col text-right">
+                        <button id="cancle-update" class="btn btn-sm btn-secondery">Cancel</button>
+                        <button id="UploadImage" class="btn btn-primary btn-sm mb-0 ml-2">Upload Image</button>
                     </div>
                 </div>
             </div>
             <div class="pop-overlay" v-if="facilityBannerBeingEdited"></div>
-
             <div class="form-row">
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
@@ -1181,28 +1221,31 @@
                                 v-on:focus="removeList($event)" />
                         </div>
                     </div>
-                    <div class="form-row mb-2" >
-                        <div class="col-7">
+                    <div class="form-row mb-2">
+                        <div class="col">
                             <label v-bind:for="'ManagedBy' + i" class="small mb-0">Managed By?</label>
-                            <select v-bind:key="'ManagedBy' + i" v-bind:id="'ManagedBy' + i" class="form-control form-control-sm"
-                                placeholder="Managed By" v-model="current.Inventory.ManagedBy"
-                                v-on:focus="removeList($event)" :disabled="!isDeliverySku(current.Inventory.Sku)" >
+                            <select v-bind:key="'ManagedBy' + i" v-bind:id="'ManagedBy' + i"
+                                class="form-control form-control-sm" placeholder="Managed By"
+                                v-model="current.Inventory.ManagedBy" v-on:focus="removeList($event)"
+                                :disabled="!isDeliverySku(current.Inventory.Sku)">
                                 <option value=" "></option>
                                 <option value="wefast">Wefast</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="form-row mb-2" >
+                    <div class="form-row mb-2">
                         <div class="col-7">
                             <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
                             <input v-bind:key="'price' + i" v-bind:id="'price' + i" class="form-control form-control-sm"
-                                placeholder="&#x20B9;0" v-model="current.Inventory.SellingPrice" :disabled="current.Inventory.ManagedBy && current.Inventory.ManagedBy.trim().length > 0" />
+                                placeholder="&#x20B9;0" v-model="current.Inventory.SellingPrice"
+                                :disabled="current.Inventory.ManagedBy && current.Inventory.ManagedBy.trim().length > 0" />
                         </div>
                         <div class="col-5">
                             <label class="small mb-0" v-bind:for="'mrp' + i">MRP</label>
                             <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
-                                placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" :disabled="current.Inventory.ManagedBy && current.Inventory.ManagedBy.trim().length > 0" />
+                                placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice"
+                                :disabled="current.Inventory.ManagedBy && current.Inventory.ManagedBy.trim().length > 0" />
                         </div>
                     </div>
                     <div class="form-row mb-2">
