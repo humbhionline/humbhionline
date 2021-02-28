@@ -73,4 +73,7 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
 
 
     public List<Order> getOrders();
+
+    @IS_VIRTUAL
+    public int getNumSkus();
 }

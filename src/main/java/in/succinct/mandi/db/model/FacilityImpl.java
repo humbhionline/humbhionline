@@ -4,7 +4,9 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
 import com.venky.swf.db.Database;
+import com.venky.swf.db.model.Count;
 import com.venky.swf.db.model.User;
+import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.ModelImpl;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
@@ -127,4 +129,17 @@ public class FacilityImpl extends ModelImpl<Facility> {
 
     }
 
+    public int getNumSkus(){
+        if (getProxy().getRawRecord().isNewRecord() ){
+            return 0;
+        }
+        ModelReflector<Inventory> ref = ModelReflector.instance(Inventory.class);
+        List<Count> counts = new Select("count(1) AS COUNT","MAX(ID) AS ID").from(Inventory.class).where(
+                new Expression(ref.getPool(),"FACILITY_ID",Operator.EQ,getProxy().getId())
+        ).execute(Count.class);
+        if (counts.isEmpty()){
+            return 0;
+        }
+        return counts.get(0).getCount();
+    }
 }

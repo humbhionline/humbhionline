@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 public class Wefast {
-    Cache<JSONObject, JSONObject> pricingApiResponse = new Cache<JSONObject, JSONObject>(100,0.2) {
+    private static Cache<JSONObject, JSONObject> pricingApiResponse = new Cache<JSONObject, JSONObject>(100,0.2) {
         @Override
         protected JSONObject getValue(JSONObject orderJson) {
             Call<JSONObject> call = new Call<JSONObject>().url(Config.instance().getProperty("wefast.api.url") ,
@@ -59,32 +59,10 @@ public class Wefast {
 
 
     public JSONObject getPrice(Order order){
-        JSONObject orderJson = makeJson(order);
-        Call<JSONObject> call = new Call<JSONObject>().url(Config.instance().getProperty("wefast.api.url") ,
-                "/calculate-order").
-                header("X-DV-Auth-Token",Config.instance().getProperty("wefast.api.token")).
-                inputFormat(InputFormat.JSON).input(orderJson).method(HttpMethod.POST);
-
-        if (call.hasErrors()){
-            throw new RuntimeException(call.getError());
-        }
-
-        JSONObject response = call.getResponseAsJson();
-        return response;
+        return pricingApiResponse.get(makeJson(order));
     }
-    public double getPrice(Address from, Address to, Inventory inventory){
-        JSONObject orderJson = makeJson(from,to,inventory);
-        Call<JSONObject> call = new Call<JSONObject>().url(Config.instance().getProperty("wefast.api.url") ,
-                "/calculate-order").
-                header("X-DV-Auth-Token",Config.instance().getProperty("wefast.api.token")).
-                inputFormat(InputFormat.JSON).input(orderJson).method(HttpMethod.POST);
-
-        if (call.hasErrors()){
-            throw new RuntimeException(call.getError());
-        }
-
-        JSONObject response = call.getResponseAsJson();
-        return getPrice(response);
+    public JSONObject getPrice(Address from, Address to, Inventory inventory){
+        return pricingApiResponse.get(makeJson(from,to,inventory));
     }
     private JSONObject makeJson(Address from, Address to, Inventory inventory) {
         JSONObject obj = new JSONObject();

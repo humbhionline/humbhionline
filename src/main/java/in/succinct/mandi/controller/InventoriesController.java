@@ -137,7 +137,7 @@ public class InventoriesController extends ModelController<Inventory> {
                             record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
                         }else if (ObjectUtil.equals(deliveryRule.getManagedBy(),"wefast")){
                             Wefast wefast = new Wefast();
-                            record.setDeliveryCharges(wefast.getPrice(facility,getCurrentUser(),record));
+                            record.setDeliveryCharges(wefast.getPrice(wefast.getPrice(facility,getCurrentUser(),record)));
                         }else {
                             throw new RuntimeException("Unknown courier:" + deliveryRule.getManagedBy());
                         }
