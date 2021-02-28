@@ -10,6 +10,7 @@ import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import in.succinct.mandi.integrations.courier.Wefast;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
@@ -19,6 +20,7 @@ import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasureConversionTab
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class FacilityImpl extends ModelImpl<Facility> {
     public FacilityImpl() {
@@ -94,23 +96,31 @@ public class FacilityImpl extends ModelImpl<Facility> {
         this.atLocation = currentlyAtLocation;
     }
 
+    public Inventory getDeliveryRule(){
+        Select select = new Select().from(Inventory.class);
+        List<Inventory> inventoryList = select.where(new Expression(select.getPool(), Conjunction.AND)
+                .add(new Expression(select.getPool(),"FACILITY_ID", Operator.EQ,getProxy().getId()))
+                .add(new Expression(select.getPool(),"SKU_ID",Operator.IN, AssetCode.getDeliverySkuIds().toArray(new Long[]{})))).execute();
+        inventoryList = inventoryList.stream().filter(i-> !i.isPublished()).collect(Collectors.toList());
 
+        if (inventoryList.isEmpty()){
+            return null;
+        }else if (inventoryList.size() > 1){
+            throw new RuntimeException("Multiple Delivery Rules found!!");
+        }else {
+            return inventoryList.get(0);
+        }
+    }
     public double getDeliveryCharges(double distance) {
         Facility facility = getProxy();
         Double charges = null;
         if (facility.isDeliveryProvided()){
-            Select select = new Select().from(Inventory.class);
-            List<Inventory> inventoryList = select.where(new Expression(select.getPool(), Conjunction.AND)
-                            .add(new Expression(select.getPool(),"FACILITY_ID", Operator.EQ,facility.getId()))
-                            .add(new Expression(select.getPool(),"SKU_ID",Operator.IN, AssetCode.getDeliverySkuIds().toArray(new Long[]{})))).execute();
-
-            Optional<Inventory> inventoryOptional = inventoryList.stream().filter(i-> !i.isPublished()).findFirst();
-            charges = facility.getFixedDeliveryCharges();
-            if (inventoryOptional.isPresent()){
-                Inventory inventory = inventoryOptional.get();
-                double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, inventory.getSku().getPackagingUOM().getName());
-
-                charges += inventory.getSellingPrice() * Math.round( (Math.max(0,distance - facility.getMinFixedDistance()))/Math.max(cf,1));
+            Inventory deliveryRule = getDeliveryRule();
+            charges =  facility.getFixedDeliveryCharges();
+            if (deliveryRule != null && ObjectUtil.isVoid(deliveryRule.getManagedBy())){
+                charges = facility.getFixedDeliveryCharges();
+                double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, deliveryRule.getSku().getPackagingUOM().getName());
+                charges += deliveryRule.getSellingPrice() * Math.round( (Math.max(0,distance - facility.getMinFixedDistance()))/Math.max(cf,1));
             }
         }
         return charges;

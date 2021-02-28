@@ -15,6 +15,7 @@ import com.venky.swf.sql.Select;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Tag;
+import in.succinct.mandi.db.model.User;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
@@ -52,15 +53,14 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
             }
         }
         if (inventory.isInfinite() || inventory.getQuantity() > 0 ){
-            List<AssetCode> assetCodes = new Select().from(AssetCode.class).where(new Expression(ModelReflector.instance(AssetCode.class).getPool(),"CODE",Operator.LK,"99681%")).execute();
-            List<Long> deliverySkuIds = new SequenceSet<>();
-            for (AssetCode ac : assetCodes){
-                List<in.succinct.plugins.ecommerce.db.model.catalog.Item> items = ac.getItems();
-                for (in.succinct.plugins.ecommerce.db.model.catalog.Item i :items){
-                    deliverySkuIds.addAll(DataSecurityFilter.getIds(i.getSkus()));
+            List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
+            boolean currentSkuIsDeliveryAsset = deliverySkuIds.contains(inventory.getSkuId());
+            if (currentSkuIsDeliveryAsset && !ObjectUtil.isVoid(inventory.getManagedBy())){
+                if (!inventory.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).isStaff()){
+                    throw new RuntimeException("Courier integrations are maintained by HumBhiOnline!");
                 }
             }
-            boolean currentSkuIsDeliveryAsset = deliverySkuIds.contains(inventory.getSkuId());
+
 
             Expression where = new Expression(inventory.getReflector().getPool(),Conjunction.AND);
             where.add(new Expression(inventory.getReflector().getPool(),"FACILITY_ID",Operator.EQ,inventory.getFacilityId()));
@@ -80,7 +80,6 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
             if (!inventoryList.isEmpty()){
                 throw new RuntimeException("Delivery Services and products cannot be Published from the same facility.");
             }
-
         }
 
         if (!ObjectUtil.isVoid(inventory.getTags()) &&
@@ -114,6 +113,7 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
                 TaskManager.instance().executeAsync(tasks,false);
             }
         }
+
 
 
     }

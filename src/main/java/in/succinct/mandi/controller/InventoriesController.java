@@ -121,7 +121,7 @@ public class InventoriesController extends ModelController<Inventory> {
                         record.setDeliveryCharges(facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation));
                     }else if (ObjectUtil.equals(record.getManagedBy(),"wefast")){
                         Wefast wefast = new Wefast();
-                        record.setDeliveryCharges(wefast.getPrice(order));
+                        record.setDeliveryCharges(wefast.getPrice(wefast.getPrice(order)));
                     }
                     record.setChargeableDistance(Math.max(facility.getMinFixedDistance(),new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue()));
                     facility.setDistance(new DoubleHolder(new GeoCoordinate(deliveryBoyLocation).distanceTo(new GeoCoordinate(order.getFacility())),2).getHeldDouble().doubleValue());
@@ -132,7 +132,15 @@ public class InventoriesController extends ModelController<Inventory> {
                 if (pass){
                     record.setDeliveryProvided(facility.isDeliveryProvided() && facility.getDeliveryRadius() > facility.getDistance());
                     if (record.isDeliveryProvided()){
-                        record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
+                        Inventory deliveryRule = facility.getDeliveryRule();
+                        if (deliveryRule == null || ObjectUtil.isVoid(deliveryRule.getManagedBy())){
+                            record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
+                        }else if (ObjectUtil.equals(deliveryRule.getManagedBy(),"wefast")){
+                            Wefast wefast = new Wefast();
+                            record.setDeliveryCharges(wefast.getPrice(facility,getCurrentUser(),record));
+                        }else {
+                            throw new RuntimeException("Unknown courier:" + deliveryRule.getManagedBy());
+                        }
                         record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
                     }
                 }
@@ -184,7 +192,13 @@ public class InventoriesController extends ModelController<Inventory> {
         }
         return where;
     }
-
+    private User getCurrentUser(){
+        com.venky.swf.db.model.User currentUser = Database.getInstance().getCurrentUser();
+        if (currentUser != null){
+            return currentUser.getRawRecord().getAsProxy(User.class);
+        }
+        return null;
+    }
     private GeoCoordinate getCurrentUserLocation() {
         com.venky.swf.db.model.User currentUser = Database.getInstance().getCurrentUser();
         if (currentUser != null && currentUser.getCurrentLat() != null){
