@@ -10,10 +10,13 @@ import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.templates.controller.TemplatedController;
 import com.venky.swf.routing.Config;
 import com.venky.swf.views.View;
+import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.integrations.courier.Wefast;
 import in.succinct.plugins.ecommerce.agents.order.tasks.deliver.DeliverOrderTask;
+import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
+import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -25,7 +28,9 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.StringWriter;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class WefastController extends TemplatedController {
     public WefastController(Path path) {
@@ -40,11 +45,6 @@ public class WefastController extends TemplatedController {
         }
 
         String payload = StringUtil.read(getPath().getInputStream());
-        String hash = createHMAC("HmacSHA1", Config.instance().getProperty("wefast.callback.token"),payload);
-        if (!ObjectUtil.equals(hash,sign)){
-            throw new RuntimeException("Signature does not match");
-        }
-
         JSONObject input = (JSONObject) JSONValue.parse(payload);
         if (ObjectUtil.equals(input.get("event_type"),"order_changed")){
             Wefast wefast = new Wefast();
@@ -55,6 +55,12 @@ public class WefastController extends TemplatedController {
             Order productOrder = Database.getTable(Order.class).get(productOrderId);
             if (productOrder != null){
                 Order transportOrder = productOrder.getTransportOrder();
+
+                String hash = createHMAC("HmacSHA1", getCallBackToken(transportOrder),payload);
+                if (!ObjectUtil.equals(hash,sign)){
+                    throw new RuntimeException("Signature does not match");
+                }
+
                 String trackingUrl = wefast.getTrackingUrl(input);
                 if (!ObjectUtil.isVoid(trackingUrl)){
                     Map<String, OrderAttribute> map = transportOrder.getAttributeMap();
@@ -79,6 +85,18 @@ public class WefastController extends TemplatedController {
 
 
         return IntegrationAdaptor.instance(SWFHttpResponse.class, JSONObject.class).createStatusResponse(getPath(),null);
+    }
+
+    private String getCallBackToken(Order transportOrder) {
+        List<OrderLine> lines = transportOrder.getOrderLines();
+        List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
+        List<OrderLine> deliveryLines = lines.stream().filter(l-> deliverySkuIds.contains(l.getSkuId())).collect(Collectors.toList());
+        if (deliveryLines.size() != 1){
+            throw new RuntimeException("Don't know how to verify signature");
+        }
+        OrderLine deliveryLine = deliveryLines.get(0);
+        return deliveryLine.getInventory().getRawRecord().getAsProxy(Inventory.class).getCallbackToken();
+
     }
 
 

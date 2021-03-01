@@ -58,7 +58,7 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
     public double getDeliveryCharges(double distance);
 
     @IS_VIRTUAL
-    public Inventory getDeliveryRule();
+    public Inventory getDeliveryRule(boolean published);
 
     public void publish();
     public void unpublish();

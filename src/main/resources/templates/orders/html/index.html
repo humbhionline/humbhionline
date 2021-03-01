@@ -197,6 +197,48 @@
                         $("#root").show();
                     });
                 },
+                enterWeight: function(o){
+                    return new Promise(function(resolve,reject){
+                        $.confirm({
+                            title : (o.Weight && o.Weight * 1.0 > 0? "Confirm Weight" : "Enter Weight"),
+                            content : '' +
+                               '<form action="" class="formName">' +
+                               '<div class="form-group">' +
+                               '<label>Weight in Kgs</label>' +
+                               '<input type="text" placeholder="Order Weight in Kgs" class="weight form-control" required />' +
+                               '</div>' +
+                               '</form>',
+                             buttons : {
+                                 formSubmit : {
+                                     text : 'Done',
+                                     btnClass: 'btn-primary',
+                                     action :function(){
+                                         var  weight = this.$content.find('.weight').val();
+                                         if (weight && weight * 1 > 0 ){
+                                             api().url("/orders/save").parameters({Order : { Id:o.Id,Weight:weight , WeightUom : { Name :"Kgs" , Measures :"Weight"} }} ).post().then(function(response){
+                                                 resolve(response.Orders[0]);
+                                             });
+                                         }
+                                     }
+                                 },
+                                 cancel : function(){
+                                     reject("Weight not updated!");
+                                 },
+
+                             },
+                             onContentReady: function () {
+                                // bind to events
+                                var jc = this;
+                                this.$content.find('.weight').val(o.Weight);
+                                this.$content.find('form').on('submit', function (e) {
+                                    // if the user submits the form by pressing enter in the field.
+                                    e.preventDefault();
+                                    jc.$$formSubmit.trigger('click'); // reference the button and click it
+                                });
+                            },
+                        })
+                    });
+                },
                 pack: function (event, order) {
                     if (event) {
                         event.preventDefault();
@@ -209,14 +251,18 @@
                         return;
                     }
                     showSpinner();
-                    api().url("/orders/pack/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index, 1, response.Order);
-                        self.update_status_array(response.Order);
+                    self.enterWeight(order).then(function(o){
+                        api().url("/orders/pack/" + o.Id).get().then(function (response) {
+                            self.Orders.splice(index, 1, response.Order);
+                            self.update_status_array(response.Order);
+                        })
                     }).catch(function (err) {
                         showError(err);
                     }).finally(function(){
                         hideSpinner();
                     });
+
+
                 },
                 ship: function (event, order) {
                     if (event) {
@@ -512,7 +558,7 @@
                     });
 
                 },
-                plan :function(event,o){
+                plan: function(event,o){
                     let self = this;
                     if (event){
                         event.preventDefault();
@@ -566,7 +612,7 @@
                     if (o.RefOrder){
                         return false; //A Delivery Order
                     }else if (sales){
-                        return  o.DeliveryPlanned !== 'Y' ;
+                        return  o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y';
                     }else{
                         if (o.CustomerPickup === 'N') {
                            return  false;
@@ -719,6 +765,7 @@
                                     <!-- If a seller provides delivery, then he owns the transportation responsibility -->
                                     <a href="#/" class="btn btn-sm btn-outline-primary" role="button"
                                         v-on:click="plan($event,o)" v-if="planningRequired(o) &&
+                                        packed.findIndex(x=> x === o.Id ) >= 0  &&
                                         cancelled.findIndex(x => x === o.Id) < 0 &&
                                         shipped.findIndex(x => x === o.Id) < 0 &&
                                         delivered.findIndex(x=> x===o.Id) < 0 ">
@@ -753,9 +800,8 @@
                                                     Pickup
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                                    v-on:click="deliver($event,o)" v-else-if="sales &&
-                                                        delivered.findIndex(x=> x===o.Id) < 0">
-                                                    Deliver
+                                                    v-on:click="deliver($event,o)" v-else-if="delivered.findIndex(x=> x===o.Id) < 0">
+                                                    {{sales ? "Deliver" : "Package Received" }}
                                                 </a>
                                             </p>
                                             <p class="m-0" v-else-if="cancelled.findIndex(x => x === o.Id) < 0">

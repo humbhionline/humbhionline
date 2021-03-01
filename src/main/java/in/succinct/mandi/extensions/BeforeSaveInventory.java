@@ -52,16 +52,14 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
                 throw new RuntimeException("Sku can be sold only from " + inventoryList.get(0).getFacility().getName() );
             }
         }
-        if (inventory.isInfinite() || inventory.getQuantity() > 0 ){
-            List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
-            boolean currentSkuIsDeliveryAsset = deliverySkuIds.contains(inventory.getSkuId());
-            if (currentSkuIsDeliveryAsset && !ObjectUtil.isVoid(inventory.getManagedBy())){
-                if (!inventory.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).isStaff()){
-                    throw new RuntimeException("Courier integrations are maintained by HumBhiOnline!");
-                }
+        List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
+        boolean currentSkuIsDeliveryAsset = deliverySkuIds.contains(inventory.getSkuId());
+        if (currentSkuIsDeliveryAsset && !ObjectUtil.isVoid(inventory.getManagedBy())){
+            if (!inventory.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).isStaff()){
+                throw new RuntimeException("Courier integrations are maintained by HumBhiOnline!");
             }
-
-
+        }
+        if (inventory.isInfinite() || inventory.getQuantity() > 0 ){
             Expression where = new Expression(inventory.getReflector().getPool(),Conjunction.AND);
             where.add(new Expression(inventory.getReflector().getPool(),"FACILITY_ID",Operator.EQ,inventory.getFacilityId()));
             if (currentSkuIsDeliveryAsset){

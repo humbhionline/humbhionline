@@ -132,7 +132,7 @@ public class InventoriesController extends ModelController<Inventory> {
                 if (pass){
                     record.setDeliveryProvided(facility.isDeliveryProvided() && facility.getDeliveryRadius() > facility.getDistance());
                     if (record.isDeliveryProvided()){
-                        Inventory deliveryRule = facility.getDeliveryRule();
+                        Inventory deliveryRule = facility.getDeliveryRule(false);
                         if (deliveryRule == null || ObjectUtil.isVoid(deliveryRule.getManagedBy())){
                             record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
                         }else if (ObjectUtil.equals(deliveryRule.getManagedBy(),"wefast")){

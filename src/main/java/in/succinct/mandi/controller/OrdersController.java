@@ -184,18 +184,24 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
             if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && ObjectUtil.equals(inventory.getManagedBy(),Inventory.WEFAST)){
                 Wefast wefast = new Wefast();
-                JSONObject wefastResponse = wefast.createOrder(order.getParentOrder());
+                JSONObject wefastResponse = wefast.createOrder(order,order.getParentOrder());
                 double sellingPrice = wefast.getPrice(wefastResponse);
                 double discount = wefast.getDiscount(wefastResponse);
                 long orderId = wefast.getOrderId(wefastResponse);
                 String tracking_url = wefast.getTrackingUrl(wefastResponse);
-                line.setSellingPrice(sellingPrice);
-                line.setMaxRetailPrice(sellingPrice + discount);
+
                 order.setReference("Wefast Order Id:" + orderId);
+                order.setShippingSellingPrice(sellingPrice);
+                order.setShippingPrice(sellingPrice);
                 Map<String, OrderAttribute> map = order.getAttributeMap();
                 map.get("courier").setValue(Inventory.WEFAST);
                 map.get("order_id").setValue(StringUtil.valueOf(orderId));
+                if (!ObjectUtil.isVoid(tracking_url)){
+                    map.get("tracking_url").setValue(tracking_url);
+                }
                 order.saveAttributeMap(map);
+                line.setSellingPrice(0);
+                line.setMaxRetailPrice(0);
             }else {
                 line.setSellingPrice(inventory.getSellingPrice() * line.getOrderedQuantity());
                 line.setMaxRetailPrice(inventory.getReflector().getJdbcTypeHelper().
@@ -206,7 +212,11 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
                 line.setMaxRetailPrice(line.getSellingPrice());
             }
 
-            line.setDiscountPercentage((line.getMaxRetailPrice()  - line.getSellingPrice())/line.getMaxRetailPrice());
+            if (line.getMaxRetailPrice() > 0) {
+                line.setDiscountPercentage((line.getMaxRetailPrice() - line.getSellingPrice()) / line.getMaxRetailPrice());
+            }else {
+                line.setDiscountPercentage(0);
+            }
 
             if (!line.getRawRecord().isNewRecord()){
                 existingOrderLineMap.remove(line.getId());
@@ -265,7 +275,9 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         }
 
         if (order.getShippingSellingPrice() > 0){
-            order.setShippingPrice(new DoubleHolder(order.getShippingSellingPrice()/(1+defaultGSTPct/100.0) , 2).getHeldDouble().doubleValue());
+            if (order.getShippingPrice() == 0){
+                order.setShippingPrice(new DoubleHolder(order.getShippingSellingPrice()/(1+defaultGSTPct/100.0) , 2).getHeldDouble().doubleValue());
+            }
             double shippingTax= order.getShippingSellingPrice() - order.getShippingPrice();
             if (shippingWithinSameState){
                 buckets.get("C_GST").increment(shippingTax/2.0);

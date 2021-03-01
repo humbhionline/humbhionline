@@ -42,11 +42,12 @@ public class Wefast {
             return call.getResponseAsJson();
         }
     };
-    public JSONObject createOrder(Order order){
+    public JSONObject createOrder(Order transportOrder, Order order){
         JSONObject orderJson = makeJson(order);
+
         Call<JSONObject> call = new Call<JSONObject>().url(Config.instance().getProperty("wefast.api.url") ,
                 "/create-order").
-                header("X-DV-Auth-Token",Config.instance().getProperty("wefast.api.token")).
+                header("X-DV-Auth-Token",getApiToken(transportOrder)).
                 inputFormat(InputFormat.JSON).input(orderJson).method(HttpMethod.POST);
 
         if (call.hasErrors()){
@@ -54,6 +55,14 @@ public class Wefast {
         }
 
         return call.getResponseAsJson();
+    }
+
+    public String getApiToken(Order transportOrder){
+        Inventory rule = transportOrder.getFacility().getDeliveryRule(true);
+        if (rule == null || ObjectUtil.isVoid(rule.getApiToken())){
+            throw new RuntimeException(transportOrder.getFacility().getName() + " does not have integration with wefast");
+        }
+        return rule.getApiToken();
     }
 
 

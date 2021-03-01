@@ -98,12 +98,12 @@ public class FacilityImpl extends ModelImpl<Facility> {
         this.atLocation = currentlyAtLocation;
     }
 
-    public Inventory getDeliveryRule(){
+    public Inventory getDeliveryRule(boolean published){
         Select select = new Select().from(Inventory.class);
         List<Inventory> inventoryList = select.where(new Expression(select.getPool(), Conjunction.AND)
                 .add(new Expression(select.getPool(),"FACILITY_ID", Operator.EQ,getProxy().getId()))
                 .add(new Expression(select.getPool(),"SKU_ID",Operator.IN, AssetCode.getDeliverySkuIds().toArray(new Long[]{})))).execute();
-        inventoryList = inventoryList.stream().filter(i-> !i.isPublished()).collect(Collectors.toList());
+        inventoryList = inventoryList.stream().filter(i-> (published == i.isPublished())).collect(Collectors.toList());
 
         if (inventoryList.isEmpty()){
             return null;
@@ -117,7 +117,7 @@ public class FacilityImpl extends ModelImpl<Facility> {
         Facility facility = getProxy();
         Double charges = null;
         if (facility.isDeliveryProvided()){
-            Inventory deliveryRule = getDeliveryRule();
+            Inventory deliveryRule = getDeliveryRule(false);
             charges =  facility.getFixedDeliveryCharges();
             if (deliveryRule != null && ObjectUtil.isVoid(deliveryRule.getManagedBy())){
                 charges = facility.getFixedDeliveryCharges();

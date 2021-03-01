@@ -30,4 +30,11 @@ public interface Inventory extends in.succinct.plugins.ecommerce.db.model.invent
     @IS_NULLABLE
     public String getManagedBy();
     public void setManagedBy(String managedBy);
+
+    public String getApiToken();
+    public void setApiToken(String token);
+
+    public String getCallbackToken();
+    public void setCallbackToken(String token);
+
 }
