@@ -141,7 +141,7 @@
                         }
                         this.current.AdjustmentQuantity = 0;
                     }
-                    this.current.Inventory.ManagedBy ||= "" ;
+                    this.current.Inventory.ManagedBy ||= "";
                 },
                 cancel: function (event) {
                     if (event) {
@@ -200,6 +200,7 @@
                         }).catch(function (err) {
                             showError(err);
                         }).finally(function () {
+                            self.selectedDataFileName = ""
                             hideSpinner();
                         });
                     });
@@ -641,7 +642,7 @@
                         self.facilityCropperBeingEdited = true;
                         $("#updated-image").attr("for", "attachment-" + index);
                         $("#show-updated-img").cropper('destroy').attr('src', e.target.result).cropper({
-                            aspectRatio: 9 / 5,
+                            aspectRatio: 16 / 9,
                             // preview: '.img-preview',
                             crop: function (e) {
                                 // console.log("Croppimage Data", e)
@@ -671,7 +672,7 @@
                     let self = this;
                     // var files = $('#sku-attachment-' + inventoryIndex)[0].files;
                     //Convert canvas image to Base64 $().cropper("getCroppedCanvas", { maxWidth: 4096, maxHeight: 4096 })
-                    var snap = $("#show-updated-img").cropper("getCroppedCanvas", { width: 360, height: 200 });
+                    var snap = $("#show-updated-img").cropper("getCroppedCanvas", { width: 360, height: 165 });
                     var img = snap.toDataURL();
                     // // Convert Base64 image to binary
                     var croppedfile = self.dataURItoBlob(img);
@@ -876,6 +877,27 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
+        <div class="modal fade" id="address-text" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            Facility Address</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        {{Facility.AddressLine1}}
+                        {{!blank(Facility.AddressLine2) ? "," : "" }} {{ Facility.AddressLine2}}
+                        {{!blank(Facility.AddressLine3) ? "," : "" }} {{Facility.AddressLine3}}
+                        {{!blank(Facility.AddressLine4) ? "," : "" }} {{Facility.AddressLine4}}
+                        {{Facility.City.Name}}-{{Facility.City.State.Name}}
+                        ,{{Facility.PinCode.PinCode}}
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="facility-header">
             <div id="banner-slider" class="carousel slide" data-ride="carousel">
                 <!-- Indicators -->
@@ -900,8 +922,8 @@
                 <a class="carousel-control-next" href="#banner-slider" data-slide="next">
                     <span class="carousel-control-next-icon"></span>
                 </a>
-                <a href="#" class="banner-edit btn btn-camera btn-sm btn-outline-primary" @click="editBanner($event)"
-                    v-if="!facilityBannerBeingEdited"><i class="fas fa-camera"></i> Banner</a>
+                <a href="#" class="banner-edit btn btn-camera btn-sm btn-outline-primary border-0"
+                    @click="editBanner($event)" v-if="!facilityBannerBeingEdited"><i class="fas fa-edit"></i> Banner</a>
             </div>
             <div class="container facility-info">
                 <div class="row">
@@ -909,8 +931,9 @@
                         <div class="content-box">
                             <div class="form-row">
                                 <div class="col">
-                                    <h6 class="mb-2"> {{Facility.Name}} </h6>
-                                    <p class="text-muted small mb-2" v-if="Facility.City">
+                                    <h6 class="mb-1"> {{Facility.Name}} </h6>
+                                    <p class="text-muted address-text small mb-1" v-if="Facility.City"
+                                        data-toggle="modal" data-target="#address-text">
                                         {{Facility.AddressLine1}}
                                         {{!blank(Facility.AddressLine2) ? "," : "" }} {{ Facility.AddressLine2}}
                                         {{!blank(Facility.AddressLine3) ? "," : "" }} {{Facility.AddressLine3}}
@@ -918,11 +941,13 @@
                                         {{Facility.City.Name}}-{{Facility.City.State.Name}}
                                         ,{{Facility.PinCode.PinCode}}
                                     </p>
+
                                 </div>
                             </div>
                             <div class="form-row no-gutters">
-                                <div v-bind:class="[!selectedDataFileName ? 'col-6':'col-9']">
-                                    <a v-if="!selectedDataFileName" href="/sell/template">Inventory Template</a>
+                                <div v-bind:class="[!selectedDataFileName ? 'col':'col-9']">
+                                    <a v-if="!selectedDataFileName" class="small" href="/sell/template">Inventory
+                                        Template</a>
                                     <label v-else
                                         v-bind:class="[!selectedDataFileName ? 'btn btn-sm btn-primary w-100' :'mb-0 small d-block']"
                                         for="datafile">
@@ -930,15 +955,16 @@
                                         <p class="mb-0 color-blue text-truncate">{{selectedDataFileName}}</p>
                                     </label>
                                 </div>
-                                <div v-bind:class="[!selectedDataFileName ? 'col-6':'col-3']">
+                                <div v-bind:class="[!selectedDataFileName ? 'col-4 text-right':'col-3']">
                                     <input type="file" class="file-upload" id="datafile"
                                         v-on:input="onDataFileChange($event)" />
                                     <label v-if="!selectedDataFileName"
-                                        v-bind:class="[!selectedDataFileName ? 'btn btn-sm btn-primary w-100' :'']"
+                                        v-bind:class="[!selectedDataFileName ? 'btn-outline-primary mb-0 w-100' :'']"
                                         for="datafile">
+                                        <i class="fas fa-upload"></i>
                                         {{ selectedDataFileName && selectedDataFileName.length > 0 ?
                                         selectedDataFileName :
-                                        "Upload Inventory"}}
+                                        "Template"}}
                                     </label>
                                     <a href="#" v-if="selectedDataFileName && selectedDataFileName.length > 0"
                                         class="btn btn-sm btn-block btn-primary" role="button" title="Upload"
@@ -950,18 +976,25 @@
                             <hr class="my-2" />
                             <div class="form-row mt-2">
                                 <div class="col small">
-                                    <span>Credit Balance: {{User.BalanceOrderLineCount}}</span>
+                                    <span>Credit Balance: {{parseInt(User.BalanceOrderLineCount,10)}}</span>
                                 </div>
-                                <div class="col small text-right">
-                                    <span>{{blank(search.term)? "Store" : "Filtered"}} Items: {{search.results.length}}</span>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="col text-right">
-                                    <a href="#/" class="mt-1 btn btn-sm btn-outline-primary" role="button"
+                                <div class="col-7 small text-right">
+                                    <span>{{blank(search.term)? "Store" : "Filtered"}} Items:
+                                        {{search.results.length}}</span> |
+                                    <a href="#/" class="mt-1 btn-outline-primary" role="button"
                                         v-on:click="create($event)" v-if="blank(search.term)">
                                         + New Product
                                     </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col-12">
+                                <div class="d-flex flex-row align-items-center">
+                                    <input key="search" id="search" class="search-control"
+                                        placeholder="Search for Items or Store" v-on:input="find($event)"
+                                        v-model="search.term" />
+                                    <i class="fa fa-search"></i>
                                 </div>
                             </div>
                         </div>
@@ -1023,15 +1056,7 @@
                 </div>
             </div>
             <div class="pop-overlay" v-if="facilityBannerBeingEdited"></div>
-            <div class="form-row">
-                <div class="col-12">
-                    <div class="d-flex flex-row align-items-center">
-                        <input key="search" id="search" class="search-control" placeholder="Search for Items or Store"
-                            v-on:input="find($event)" v-model="search.term" />
-                        <i class="fa fa-search"></i>
-                    </div>
-                </div>
-            </div>
+
             <div v-bind:id="'inventory-' + i " class="mt-1 form-row" v-for="(inv,i) in search.results">
                 <div class="col-12">
                     <div class="item-list">
@@ -1228,43 +1253,44 @@
                     </div>
                     <div class="form-row mb-2">
                         <div class="col">
-                            <label v-bind:for="'ManagedBy' + i" class="small mb-0">{{current.Inventory.Published ===  "Y" ? "Primary" : "Outsourced"}} Courier</label>
+                            <label v-bind:for="'ManagedBy' + i" class="small mb-0">{{current.Inventory.Published === "Y"
+                                ? "Primary" : "Outsourced"}} Courier</label>
                             <select v-bind:key="'ManagedBy' + i" v-bind:id="'ManagedBy' + i"
                                 class="form-control form-control-sm" placeholder="Managed By"
                                 v-model="current.Inventory.ManagedBy" v-on:focus="removeList($event)"
                                 :disabled="!isDeliverySku(current.Inventory.Sku) || User.Staff !== 'Y'">
-                                <option value="" >Myself</option>
+                                <option value="">Myself</option>
                                 <option value="wefast">Wefast</option>
                             </select>
                         </div>
                     </div>
-                    <div class="form-row mb-2" v-if="current.Inventory.ManagedBy &&  current.Inventory.ManagedBy.trim().length > 0">
+                    <div class="form-row mb-2"
+                        v-if="current.Inventory.ManagedBy &&  current.Inventory.ManagedBy.trim().length > 0">
                         <div class="col-7">
                             <label class="small mb-0" v-bind:for="'ApiToken' + i">Api Token</label>
-                            <input v-bind:key="'ApiToken' + i" v-bind:id="'ApiToken' + i" class="form-control form-control-sm"
-                                placeholder="Api Token" v-model="current.Inventory.ApiToken"
-                                 />
+                            <input v-bind:key="'ApiToken' + i" v-bind:id="'ApiToken' + i"
+                                class="form-control form-control-sm" placeholder="Api Token"
+                                v-model="current.Inventory.ApiToken" />
                         </div>
                         <div class="col-5">
                             <label class="small mb-0" v-bind:for="'CallbackToken' + i">Callback Token</label>
-                            <input v-bind:key="'CallbackToken' + i" v-bind:id="'CallbackToken' + i" class="form-control form-control-sm"
-                                placeholder="Callback Token" v-model="current.Inventory.CallbackToken"
-                                />
+                            <input v-bind:key="'CallbackToken' + i" v-bind:id="'CallbackToken' + i"
+                                class="form-control form-control-sm" placeholder="Callback Token"
+                                v-model="current.Inventory.CallbackToken" />
                         </div>
                     </div>
 
-                    <div class="form-row mb-2" v-if="!current.Inventory.ManagedBy || current.Inventory.ManagedBy.trim().length === 0">
+                    <div class="form-row mb-2"
+                        v-if="!current.Inventory.ManagedBy || current.Inventory.ManagedBy.trim().length === 0">
                         <div class="col-7">
                             <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
                             <input v-bind:key="'price' + i" v-bind:id="'price' + i" class="form-control form-control-sm"
-                                placeholder="&#x20B9;0" v-model="current.Inventory.SellingPrice"
-                                 />
+                                placeholder="&#x20B9;0" v-model="current.Inventory.SellingPrice" />
                         </div>
                         <div class="col-5">
                             <label class="small mb-0" v-bind:for="'mrp' + i">MRP</label>
                             <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
-                                placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice"
-                                 />
+                                placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" />
                         </div>
                     </div>
                     <div class="form-row mb-2">
