@@ -47,6 +47,7 @@ public class UserImpl  extends ModelImpl<User> {
         Expression where = new Expression(getReflector().getPool(), Conjunction.OR);
         if (!phoneNumbers.isEmpty()){
             where.add(new Expression(getReflector().getPool(),"PHONE_NUMBER", Operator.IN, phoneNumbers.toArray()));
+            where.add(new Expression(getReflector().getPool(),"ALTERNATE_PHONE_NUMBER", Operator.IN, phoneNumbers.toArray()));
         }
         where.add(new Expression(getReflector().getPool(), "CREATOR_ID",Operator.EQ, user.getId()) );
         List<Facility> facilities = new Select().from(Facility.class).where(where).execute();
