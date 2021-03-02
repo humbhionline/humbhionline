@@ -19,10 +19,10 @@
     $(function () {
         //$("#header").load("/fragments/html/header");
         var params = (new URL(window.location)).searchParams;
-        let type = params.get("type");
+        var type = params.get("type");
         var history = params.get("history");
         if (!type){
-            window.history.back();
+            type = "sales";
         }
         let purchases = type && (type === "purchases");
         let sales = type && (type === "sales");

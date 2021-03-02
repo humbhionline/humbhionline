@@ -77,7 +77,7 @@ public class FacilitiesController extends ModelController<Facility> {
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map =  super.getIncludedModelFields();
 
-        if (getPath().action().equals("show")) {
+        if (getPath().action().equals("show") || getPath().action().equals("importInventory")) {
             map.put(Inventory.class, ModelReflector.instance(Inventory.class).getFields());
             List<String> itemFields = ModelReflector.instance(Item.class).getUniqueFields();
             itemFields.add("ASSET_CODE_ID");
@@ -173,7 +173,7 @@ public class FacilitiesController extends ModelController<Facility> {
 
             }
             List<AdjustmentRequest> requests = AdjustmentRequest.adjust(helper);
-            return show(f);
+            return show(f.getId());
         }
     }
 

@@ -196,7 +196,7 @@
                         showSpinner();
                         api().url("/facilities/importInventory/" + self.Facility.Id).parameters(formData).headers({ "Content-Type": "multipart-formdata", "Accept": "application/json" }).post().then(function (response) {
                             console.log(response);
-                            fixFacilityAttributes(response.Facility);
+                            self.fixFacilityAttributes(response.Facility);
                         }).catch(function (err) {
                             showError(err);
                         }).finally(function () {
