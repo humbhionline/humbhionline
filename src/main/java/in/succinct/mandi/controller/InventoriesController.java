@@ -41,7 +41,7 @@ public class InventoriesController extends ModelController<Inventory> {
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map =  super.getIncludedModelFields();
-        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG","DELIVERY_PROVIDED","DELIVERY_RADIUS","FIXED_DELIVERY_CHARGES","MIN_FIXED_DISTANCE"));
+        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG","DELIVERY_PROVIDED","COD_ENABLED","DELIVERY_RADIUS","MIN_CHARGEABLE_DISTANCE","MIN_DELIVERY_CHARGE"));
         {
             List<String> itemFields = ModelReflector.instance(Item.class).getUniqueFields();
             itemFields.add("ASSET_CODE_ID");
@@ -123,7 +123,7 @@ public class InventoriesController extends ModelController<Inventory> {
                         Wefast wefast = new Wefast();
                         record.setDeliveryCharges(wefast.getPrice(wefast.getPrice(order)));
                     }
-                    record.setChargeableDistance(Math.max(facility.getMinFixedDistance(),new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue()));
+                    record.setChargeableDistance(Math.max(facility.getMinChargeableDistance(),new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue()));
                     facility.setDistance(new DoubleHolder(new GeoCoordinate(deliveryBoyLocation).distanceTo(new GeoCoordinate(order.getFacility())),2).getHeldDouble().doubleValue());
                 }
             }else {
@@ -145,6 +145,7 @@ public class InventoriesController extends ModelController<Inventory> {
                     }
                 }
             }
+            pass =  (record.getDeliveryCharges() != null && !record.getDeliveryCharges().isInfinite());
             pass = pass && facility.getDistance() < getMaxDistance() ;
             pass = pass &&  superFilter.pass(record);
 

@@ -6,22 +6,27 @@ import com.venky.geo.GeoLocation;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Count;
 import com.venky.swf.db.model.User;
+import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.ModelImpl;
+import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.plugins.background.core.Task;
+import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
-import in.succinct.mandi.integrations.courier.Wefast;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
-import in.succinct.plugins.ecommerce.db.model.catalog.Item;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasureConversionTable;
+import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
+import org.json.simple.JSONObject;
 
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class FacilityImpl extends ModelImpl<Facility> {
@@ -113,16 +118,17 @@ public class FacilityImpl extends ModelImpl<Facility> {
             return inventoryList.get(0);
         }
     }
+
+
     public double getDeliveryCharges(double distance) {
         Facility facility = getProxy();
         Double charges = null;
         if (facility.isDeliveryProvided()){
+            charges =  facility.getMinDeliveryCharge();
             Inventory deliveryRule = getDeliveryRule(false);
-            charges =  facility.getFixedDeliveryCharges();
             if (deliveryRule != null && ObjectUtil.isVoid(deliveryRule.getManagedBy())){
-                charges = facility.getFixedDeliveryCharges();
                 double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, deliveryRule.getSku().getPackagingUOM().getName());
-                charges += deliveryRule.getSellingPrice() * Math.round( (Math.max(0,distance - facility.getMinFixedDistance()))/Math.max(cf,1));
+                charges += deliveryRule.getSellingPrice() * Math.round( (Math.max(0,distance - facility.getMinChargeableDistance()))/Math.max(cf,1));
             }
         }
         return charges;
@@ -141,5 +147,50 @@ public class FacilityImpl extends ModelImpl<Facility> {
             return 0;
         }
         return counts.get(0).getCount();
+    }
+
+    public void notifyEvent(String event, Order order) {
+        Facility facility = getProxy();
+        JSONObject eventJSON = new JSONObject();
+        eventJSON.put("Event",event);
+        JSONObject orderJSON = new JSONObject();
+        eventJSON.put("Order",orderJSON);
+
+        ModelIOFactory.getWriter(Order.class,JSONObject.class).write(order,orderJSON,Order.getIncludedModelFields().get(Order.class),
+                new HashSet<>(), Order.getIncludedModelFields());
+
+        Call<?> call = new Call<>().url(facility.getNotificationUrl()).inputFormat(InputFormat.JSON).input(eventJSON).
+                header("content-type","application/json").header("HumBhiOnline-Token",facility.getToken());
+        TaskManager.instance().executeAsync(new ServerPushNotificationTask(call),true);
+    }
+    public void notifyEvent(String event, OrderLine line) {
+        if (ObjectUtil.equals(line.getCancellationInitiator(),OrderLine.CANCELLATION_INITIATOR_COMPANY)){
+            return;
+        }
+        Facility facility = getProxy();
+        JSONObject eventJSON = new JSONObject();
+        eventJSON.put("Event",event);
+        JSONObject orderLineJSON = new JSONObject();
+        eventJSON.put("OrderLine",orderLineJSON);
+
+        ModelIOFactory.getWriter(OrderLine.class,JSONObject.class).write(line,orderLineJSON,Order.getIncludedModelFields().get(OrderLine.class),
+                new HashSet<>(), Order.getIncludedModelFields());
+
+        Call<?> call = new Call<>().url(facility.getNotificationUrl()).inputFormat(InputFormat.JSON).input(eventJSON).
+                header("content-type","application/json").header("HumBhiOnline-Token",facility.getToken());
+        TaskManager.instance().executeAsync(new ServerPushNotificationTask(call),true);
+    }
+
+    public static class ServerPushNotificationTask implements Task {
+        Call<?> call = null;
+        public ServerPushNotificationTask(Call<?> call){
+            this.call = call;
+        }
+        @Override
+        public void execute() {
+            if (this.call.hasErrors()){
+                throw new RuntimeException(this.call.getError());
+            }
+        }
     }
 }

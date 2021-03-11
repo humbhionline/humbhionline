@@ -11,6 +11,5 @@ public class BeforeSaveAttachment  extends BeforeModelSaveExtension<Attachment> 
     @Override
     public void beforeSave(Attachment model) {
         new AttachmentResolutionReducer().resize(model);
-
     }
 }

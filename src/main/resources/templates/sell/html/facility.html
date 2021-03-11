@@ -21,7 +21,7 @@
             el: "#app",
             data: {
                 User: Lockr.get("User"),
-                Facility: { Inventories: [] },
+                Facility: { Name :"" , City : { Name :"" , State : { Name : "" , Country : {"Name":"India"} }}, PinCode: { PinCode: ""} , Inventories: [] },
                 facilityBannerBeingEdited: false,
                 facilityCropperBeingEdited: false,
                 timer: -1,
@@ -57,28 +57,33 @@
             },
             methods: {
                 fixFacilityAttributes: function (f) {
-                    let self = this;
-                    if (!f.Inventories) {
-                        f.Inventories = [];
-                    }
-                    f.Inventories.forEach((inv, i) => {
-                        if (!inv.Sku.Item.AssetCode) {
-                            inv.Sku.Item.AssetCode = { Code: "" };
+                    try {
+                        let self = this;
+                        if (!f.Inventories) {
+                            f.Inventories = [];
                         }
-                        if (!inv.Sku.Attachments) {
-                            inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
+                        f.Inventories.forEach((inv, i) => {
+                            if (!inv.Sku.Item.AssetCode) {
+                                inv.Sku.Item.AssetCode = { Code: "" };
+                            }
+                            if (!inv.Sku.Attachments) {
+                                inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
+                            }
+                        });
+                        if (!f.Attachments) {
+                            f.Attachments = [];
                         }
-                    });
-                    if (!f.Attachments) {
-                        f.Attachments = [];
-                    }
-                    self.Facility = f;
-                    self.search.results = f.Inventories;
-                    f.Inventories.forEach((inventory, i) => {
-                        inventory.ManagedBy ||= "";
-                    });
+                        self.Facility = f;
+                        self.search.results = f.Inventories;
+                        f.Inventories.forEach((inventory, i) => {
+                            inventory.ManagedBy ||= "";
+                        });
 
-                    //Vue.set(self, "Facility", response.Facility);
+
+                    }catch (err){
+                        console.log(err);
+                    }
+                   //Vue.set(self, "Facility", response.Facility);
                 },
                 showApp: function () {
                     $("#header").load("/fragments/html/header", {}, function () {
@@ -238,7 +243,7 @@
                         }
                         if (!inv.Sku.Attachments) {
                             inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
-                            api().url("/skus/show/" + inv.Sku.Id).get().then(function (sku_response) {
+                            api().  url("/skus/show/" + inv.Sku.Id).get().then(function (sku_response) {
                                 inv.Sku.Attachments = sku_response.Sku.Attachments || [{ Sku: { Id: inv.Sku.Id } }];
                             });
                         }
@@ -875,7 +880,7 @@
         z-index: 2;
     }
 </style>
-<div id="root" style="display:none;">
+<div id="root" style="display:none;" v-if="Facility.Id">
     <div id="header">
     </div>
     <div id="app" class="app-body">

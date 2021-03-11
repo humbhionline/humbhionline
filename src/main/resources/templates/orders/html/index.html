@@ -624,6 +624,9 @@
                 isDeliveryOrder: function (order){
                     return order.RefOrder && order.RefOrder.Id * 1.0 > 0 ;
                 },
+                isPaymentButtonEnabled: function(o){
+                    return o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'
+                }
 
 
             }
@@ -673,7 +676,7 @@
                                 {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
                                 <a v-bind:href="o._phref ? o._phref : '#'" class="btn btn-sm btn-primary mb-1 mt-1"
                                     role="button"
-                                    v-if="purchases && o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'"
+                                    v-if="isPaymentButtonEnabled(o) && purchases"
                                     v-on:click="initialize_payment($event,o)">
                                     Pay
                                 </a>
@@ -759,7 +762,7 @@
                             <div class="col">
                                 <p class="d-block mb-1">Order : {{o.Id }} {{ ( isDeliveryOrder(o) ? "/(" + o.RefOrder.Id + ")" : "" ) }}
                                 </p>
-                                <p class="m-0">{{o.FulfillmentStatus}}
+                                <p class="m-0">{{ (o.Facility.CodEnabled !== 'Y' && isPaymentButtonEnabled(o) ) ? 'AWAITING PAYMENT' : o.FulfillmentStatus}}
                                     <a class="fas fa-print btn" href="#" @click="print($event,o)"  v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
                                     </a>
                                     <!-- If a seller provides delivery, then he owns the transportation responsibility -->

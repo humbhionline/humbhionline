@@ -1,5 +1,6 @@
 package in.succinct.mandi.db.model;
 
+import com.venky.core.collections.SequenceSet;
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.COLUMN_SIZE;
 import com.venky.swf.db.annotations.column.IS_NULLABLE;
@@ -9,10 +10,73 @@ import com.venky.swf.db.annotations.column.indexing.Index;
 import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
 import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import com.venky.swf.db.annotations.column.validations.Enumeration;
+import com.venky.swf.db.model.Model;
+import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
+import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
+import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
+import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
+import in.succinct.plugins.ecommerce.db.model.order.OrderStatus;
 import in.succinct.plugins.ecommerce.db.model.participation.PreferredCarrier;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Order {
+
+    static Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
+        Map<Class<? extends Model>,List<String>> map = new HashMap<>();
+        map.put(Order.class, ModelReflector.instance(Order.class).getVisibleFields(Arrays.asList("ID","LOCK_ID","CREATED_AT" ,"UPDATED_AT","CREATOR_USER_ID")));
+        List<String> refOrderFields = new SequenceSet<>();
+        refOrderFields.addAll(map.get(Order.class));
+        refOrderFields.removeAll(Arrays.asList("MANIFEST_ID"));
+
+        map.put(RefOrder.class,refOrderFields);
+
+        ModelReflector<OrderLine> orderLineModelReflector = ModelReflector.instance(OrderLine.class);
+        map.put(OrderLine.class,orderLineModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
+        map.get(OrderLine.class).removeAll(Arrays.asList("CHANNEL_ORDER_LINE_REF","ORDER_ID","SHIP_FROM_ID","INVENTORY_ID"));
+
+        ModelReflector<OrderStatus> orderStatusModelReflector = ModelReflector.instance(OrderStatus.class);
+        map.put(OrderStatus.class,orderStatusModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
+        map.get(OrderStatus.class).remove("ORDER_ID");
+
+        ModelReflector<in.succinct.plugins.ecommerce.db.model.inventory.Sku> skuModelReflector = ModelReflector.instance(in.succinct.plugins.ecommerce.db.model.inventory.Sku.class);
+        map.put(Sku.class,skuModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
+        map.put(in.succinct.mandi.db.model.Item.class,ModelReflector.instance(in.succinct.plugins.ecommerce.db.model.catalog.Item.class).getUniqueFields());
+        map.get(in.succinct.mandi.db.model.Item.class).add("HUM_BHI_ONLINE_SUBSCRIPTION_ITEM");
+
+        List<String> userFields = new ArrayList<>();
+        List<String> facilityFields = new ArrayList<>();
+
+        for (String addressField : Address.getAddressFields()) {
+            userFields.add(addressField);
+            facilityFields.add(addressField);
+        }
+        userFields.add("PHONE_NUMBER");
+        facilityFields.add("PHONE_NUMBER");
+
+
+        userFields.addAll(ModelReflector.instance(User.class).getUniqueFields());
+        userFields.retainAll(ModelReflector.instance(User.class).getVisibleFields());
+        userFields.addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
+
+        facilityFields.addAll(ModelReflector.instance(Facility.class).getUniqueFields());
+        facilityFields.add("DELIVERY_PROVIDED");
+        facilityFields.add("COD_ENABLED");
+        facilityFields.add("CREATOR_USER_ID");
+        facilityFields.add("MERCHANT_FACILITY_REFERENCE");
+
+        map.put(User.class,userFields);
+        map.put(Facility.class,facilityFields);
+
+        return map;
+
+    }
 
     @COLUMN_DEF(StandardDefault.NULL)
     public String getPreferredCarrierName();

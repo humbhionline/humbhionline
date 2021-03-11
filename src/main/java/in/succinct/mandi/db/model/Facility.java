@@ -2,6 +2,7 @@ package in.succinct.mandi.db.model;
 
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.COLUMN_NAME;
+import com.venky.swf.db.annotations.column.ENCRYPTED;
 import com.venky.swf.db.annotations.column.HOUSEKEEPING;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
@@ -9,6 +10,7 @@ import com.venky.swf.db.annotations.column.indexing.Index;
 import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
 import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import com.venky.swf.db.annotations.column.ui.PROTECTION;
+import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 
 import java.util.List;
 
@@ -47,12 +49,19 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
     public void setDeliveryRadius(double deliveryRadius);
 
     @COLUMN_DEF(StandardDefault.ZERO)
-    public double getMinFixedDistance();
-    public void setMinFixedDistance(double fixedDistance);
+    @COLUMN_NAME("MIN_FIXED_DISTANCE")
+    public double getMinChargeableDistance();
+    public void setMinChargeableDistance(double fixedDistance);
 
     @COLUMN_DEF(StandardDefault.ZERO)
-    public double getFixedDeliveryCharges();
-    public void setFixedDeliveryCharges(double charges);
+    @COLUMN_NAME("FIXED_DELIVERY_CHARGES")
+    public double getMinDeliveryCharge();
+    public void setMinDeliveryCharge(double charges);
+
+
+    @COLUMN_DEF(StandardDefault.ZERO)
+    public double getChargesPerKm();
+    public void setChargesPerKm(double chargesPerKm);
 
     @IS_VIRTUAL
     public double getDeliveryCharges(double distance);
@@ -74,6 +83,30 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
 
     public List<Order> getOrders();
 
+    @COLUMN_DEF(StandardDefault.BOOLEAN_TRUE)
+    public boolean isCodEnabled();
+    public void setCodEnabled(boolean enabled);
+
+
     @IS_VIRTUAL
     public int getNumSkus();
+
+
+    public String getNotificationUrl();
+    public void setNotificationUrl(String baseUrl);
+
+    @ENCRYPTED
+    public String getToken();
+    public void setToken(String token);
+
+    public static final String EVENT_TYPE_BOOK_ORDER = "book_order";
+    public static final String EVENT_TYPE_DELIVERED = "order_delivered";
+    public void notifyEvent(String event, Order order);
+
+    public static final String EVENT_TYPE_CANCEL_ORDER_LINE = "order_line_cancelled";
+    public void notifyEvent(String event, OrderLine orderLine);
+
+    public String getMerchantFacilityReference();
+    public void setMerchantFacilityReference(String merchantFacilityReference);
+
 }

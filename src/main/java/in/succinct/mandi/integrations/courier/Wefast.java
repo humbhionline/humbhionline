@@ -241,18 +241,27 @@ public class Wefast {
 
         return point;
     }
+    public boolean isSuccessful(JSONObject response){
+        Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
+        if (success && response.containsKey("warnings")){
+            JSONArray warnings = (JSONArray) response.get("warnings");
+            if (warnings.size() >0 ){
+                success = !warnings.stream().filter(w->w.equals("invalid_parameters")).findAny().isPresent();
+            }
+        }
+        return success;
+
+    }
 
     public double getPrice(JSONObject response){
-        Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
-        if (success){
+        if (isSuccessful(response)){
             JSONObject jsonResponseOrder = (JSONObject) response.get("order");
             return Database.getInstance().getJdbcTypeHelper("").getTypeRef(Double.class).getTypeConverter().valueOf(jsonResponseOrder.get("payment_amount"));
         }
         return Double.POSITIVE_INFINITY;
     }
     public double getDiscount(JSONObject response){
-        Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
-        if (success){
+        if (isSuccessful(response)){
             JSONObject jsonResponseOrder = (JSONObject) response.get("order");
             return Database.getInstance().getJdbcTypeHelper("").getTypeRef(Double.class).getTypeConverter().valueOf(jsonResponseOrder.get("discount_amount"));
         }
@@ -260,8 +269,7 @@ public class Wefast {
     }
 
     public Long getOrderId(JSONObject response) {
-        Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
-        if (success){
+        if (isSuccessful(response)){
             JSONObject jsonResponseOrder = (JSONObject) response.get("order");
             return Database.getInstance().getJdbcTypeHelper("").getTypeRef(Long.class).getTypeConverter().valueOf(jsonResponseOrder.get("order_id"));
         }
@@ -269,9 +277,8 @@ public class Wefast {
     }
 
     public String getTrackingUrl(JSONObject response) {
-        Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
         String trackingUrl = null;
-        if (success){
+        if (isSuccessful(response)){
             JSONObject jsonResponseOrder = (JSONObject) response.get("order");
             JSONArray points = (JSONArray) jsonResponseOrder.get("points");
             for (int i = 0 ; i < points.size() && trackingUrl == null; i ++){

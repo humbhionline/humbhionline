@@ -515,46 +515,58 @@
                                     v-bind:for="'DeliveryProvided' + i">Delivery
                                     Provided</label>
                             </div>
-                        </div>
-                    </div>
-                    <!--
-                    <div class="form-row mb-2">
-                        <div class="col">
                             <div class="form-check">
                                 <input class="form-check-input align-middle" type="checkbox"
-                                    v-bind:key="'AtLocation' + i" v-bind:id="'AtLocation' + i"
-                                    placeholder="At Location" v-model="current.Facility.CurrentlyAtLocation"
+                                    v-bind:key="'CodEnabled' + i" v-bind:id="'CodEnabled' + i"
+                                    placeholder="Cod Enabled" v-model="current.Facility.CodEnabled"
                                     true-value="Y" false-value="N">
                                 <label class="form-check-label align-middle"
-                                    v-bind:for="'AtLocation' + i">I'm currently at this location</label>
+                                    v-bind:for="'CodEnabled' + i">Supports Cash On Delivery
+                                </label>
                             </div>
                         </div>
                     </div>
-                    -->
+                    <hr v-if="current.Facility.DeliveryProvided === 'Y'"/>
                     <div class="form-row mb-2" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules' + i"
                         v-if="current.Facility.DeliveryProvided === 'Y'">
                         <div class="col">
-                            <label class="text-muted small" v-bind:for="'DeliveryRadius' + i">Maximum Upto Kms</label>
-                            <input class="form-control form-control-sm" v-bind:key="'DeliveryRadius' + i"
-                            v-bind:id="'DeliveryRadius' + i" placeholder="Upto how many Kms"
+                            <label class="small" v-bind:for="'DeliveryRadius' + i">Upto </label>
+                            <input class="mx-1 w-25 form-control form-control-sm d-inline-block " v-bind:key="'DeliveryRadius' + i"
+                            v-bind:id="'DeliveryRadius' + i" placeholder="?"
                             v-model="current.Facility.DeliveryRadius" />
+                            <label class="small" >Kms around my facility</label>
+
                         </div>
                     </div>
-                    <div class="form-row mb-2" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules-fixed' + i"
+                    <div class="form-row mb-2 small" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules-fixed' + i"
+                        v-if="current.Facility.DeliveryProvided === 'Y'" >
+
+                        <div class="col">
+                            <span class="align-middle">Charge &#x20B9</span>
+                            <input v-bind:key="'MinDeliveryCharge' + i"  class="mx-1 w-25 form-control form-control-sm d-inline-block "
+                                v-bind:id="'MinDeliveryCharge' + i" placeholder="?"
+                                v-model="current.Facility.MinDeliveryCharge" />
+                            <span class="align-middle">For first</span>
+                             <input v-bind:key="'MinChargeableDistance' + i"  class="mx-1 w-25 form-control form-control-sm d-inline-block "
+                                v-bind:id="'MinChargeableDistance' + i" placeholder="?"
+                                v-model="current.Facility.MinChargeableDistance" />
+                            <span class="align-middle">Kms</span>
+                        </div>
+
+
+                    </div>
+                    <div class="form-row mb-2 small" v-bind:id="'Deliveryrules' + i" v-bind:id="'Deliveryrules-fixed' + i"
                         v-if="current.Facility.DeliveryProvided === 'Y'" >
                         <div class="col">
-                            <label class="text-muted small" v-bind:for="'MinFixedDistance' + i">Upto First Few Kms</label>
-                            <input class="form-control form-control-sm" v-bind:key="'MinFixedDistance' + i"
-                                v-bind:id="'MinFixedDistance' + i" placeholder="Min Kms"
-                                v-model="current.Facility.MinFixedDistance" />
-                        </div>
-                        <div class="col">
-                            <label class="text-muted small" v-bind:for="'FixedDeliveryCharges' + i">Fixed Charges</label>
-                            &#x20B9 <input class="form-control form-control-sm" v-bind:key="'FixedDeliveryCharges' + i"
-                                v-bind:id="'FixedDeliveryCharges' + i" placeholder="0"
-                                v-model="current.Facility.FixedDeliveryCharges" />
+                            <span class="align-middle">And then Charge &#x20B9</span>
+                            <input v-bind:key="'ChargesPerKm' + i"  class="mx-1 w-25 form-control form-control-sm d-inline-block "
+                                v-bind:id="'ChargesPerKm' + i" placeholder="?"
+                                v-model="current.Facility.ChargesPerKm" />
+
+                            <span class="align-middle">Per Km</span>
                         </div>
                     </div>
+                    <hr v-if="current.Facility.DeliveryProvided === 'Y'"/>
                     <div class="form-row">
                         <div class="col text-right">
                             <a href="#/" class="btn btn-light btn-sm" role="button" v-on:click="cancel($event)">

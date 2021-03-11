@@ -188,7 +188,7 @@
                     let self = this;
                     let result = self.facilityOrders[f.Id].OrderLines[index];
                     //result.OrderedQuantity -= 1;
-                    result.OrderedQuantity -= (!self.isDeliverySku(result.Inventory.Sku) ? 1.0 : Math.max(result.Inventory.ChargeableDistance * 1.0 - result.Inventory.Facility.MinFixedDistance * 1.0, 0.001));
+                    result.OrderedQuantity -= (!self.isDeliverySku(result.Inventory.Sku) ? 1.0 : Math.max(result.Inventory.ChargeableDistance * 1.0 - result.Inventory.Facility.MinChargeableDistance * 1.0, 0.001));
 
                     self.onOrderLineQtyChange(event, f, index);
                 },
@@ -212,7 +212,7 @@
                         result.OrderedQuantity = 0.0;
                     }
 
-                    result.OrderedQuantity += (!self.isDeliverySku(result.Inventory.Sku) ? 1.0 : Math.max(result.Inventory.ChargeableDistance * 1.0 - result.Inventory.Facility.MinFixedDistance * 1.0, 0.001));
+                    result.OrderedQuantity += (!self.isDeliverySku(result.Inventory.Sku) ? 1.0 : Math.max(result.Inventory.ChargeableDistance * 1.0 - result.Inventory.Facility.MinChargeableDistance * 1.0, 0.001));
 
                     self.onOrderLineQtyChange(event, f, index);
                 },

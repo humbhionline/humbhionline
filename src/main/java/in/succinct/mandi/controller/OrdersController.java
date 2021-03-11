@@ -14,6 +14,8 @@ import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
+import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.CompositeTask;
 import com.venky.swf.plugins.background.core.Task;
@@ -358,55 +360,9 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
-        Map<Class<? extends Model>,List<String>> map =  super.getIncludedModelFields();
-        map.put(Order.class,ModelReflector.instance(Order.class).getVisibleFields(Arrays.asList("ID","LOCK_ID","CREATED_AT" ,"UPDATED_AT","CREATOR_USER_ID")));
-        List<String> refOrderFields = new SequenceSet<>();
-        refOrderFields.addAll(map.get(Order.class));
-        refOrderFields.removeAll(Arrays.asList("MANIFEST_ID"));
-
-        map.put(RefOrder.class,refOrderFields);
-
-        ModelReflector<OrderLine> orderLineModelReflector = ModelReflector.instance(OrderLine.class);
-        map.put(OrderLine.class,orderLineModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
-        map.get(OrderLine.class).removeAll(Arrays.asList("ORDER_ID","SHIP_FROM_ID","INVENTORY_ID"));
-        /*
-        ModelReflector<OrderAddress> orderAddressModelReflector = ModelReflector.instance(OrderAddress.class);
-        map.put(OrderAddress.class, orderAddressModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
-        map.get(OrderAddress.class).remove("ORDER_ID");
-        */
+        Map<Class<? extends Model>,List<String>> map= super.getIncludedModelFields();
+        map.putAll(Order.getIncludedModelFields());
         map.remove(OrderAddress.class);
-
-        ModelReflector<OrderStatus> orderStatusModelReflector = ModelReflector.instance(OrderStatus.class);
-        map.put(OrderStatus.class,orderStatusModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
-        map.get(OrderStatus.class).remove("ORDER_ID");
-
-        ModelReflector<Sku> skuModelReflector = ModelReflector.instance(Sku.class);
-        map.put(Sku.class,skuModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
-        map.put(in.succinct.mandi.db.model.Item.class,ModelReflector.instance(Item.class).getUniqueFields());
-        map.get(in.succinct.mandi.db.model.Item.class).add("HUM_BHI_ONLINE_SUBSCRIPTION_ITEM");
-
-        List<String> userFields = new ArrayList<>();
-        List<String> facilityFields = new ArrayList<>();
-
-        for (String addressField : Address.getAddressFields()) {
-            userFields.add(addressField);
-            facilityFields.add(addressField);
-        }
-        userFields.add("PHONE_NUMBER");
-        facilityFields.add("PHONE_NUMBER");
-
-
-        userFields.addAll(ModelReflector.instance(User.class).getUniqueFields());
-        userFields.retainAll(ModelReflector.instance(User.class).getVisibleFields());
-        userFields.addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
-
-        facilityFields.addAll(ModelReflector.instance(Facility.class).getUniqueFields());
-        facilityFields.add("DELIVERY_PROVIDED");
-        facilityFields.add("CREATOR_USER_ID");
-
-        map.put(User.class,userFields);
-        map.put(Facility.class,facilityFields);
-
         return map;
     }
 

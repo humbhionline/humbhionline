@@ -266,7 +266,7 @@
                 reduce: function (event, index) {
                     let self = this;
                     let result = self.search.results[index];
-                    result.OrderedQuantity -= (!self.isDeliverySku(result.Sku) ? 1.0 : Math.max(result.ChargeableDistance * 1.0 - result.Facility.MinFixedDistance * 1.0, 0.001));
+                    result.OrderedQuantity -= (!self.isDeliverySku(result.Sku) ? 1.0 : Math.max(result.ChargeableDistance * 1.0 - result.Facility.MinChargeableDistance * 1.0, 0.001));
                     result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
@@ -285,7 +285,7 @@
                     if (self.isDeliverySku(result.Sku) && result.OrderedQuantity * 1.0 > 0) {
                         return;
                     }
-                    result.OrderedQuantity += (!self.isDeliverySku(result.Sku) ? 1.0 : Math.max(result.ChargeableDistance * 1.0 - result.Facility.MinFixedDistance * 1.0, 0.00001));
+                    result.OrderedQuantity += (!self.isDeliverySku(result.Sku) ? 1.0 : Math.max(result.ChargeableDistance * 1.0 - result.Facility.MinChargeableDistance * 1.0, 0.00001));
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
                     self.addToCart(event, result);
@@ -557,13 +557,13 @@
                             </div>
                             <div class="col text-right d-flex align-items-center justify-content-end">
                                 <small>
+                                    <del v-if="result.Facility.CodEnabled !== 'Y'">COD</del>
                                     <del v-if="result.DeliveryProvided !== 'Y'">Delivery</del>
                                     <span v-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) &&
                                             ( !result.DeliveryCharges || result.DeliveryCharges * 1.0 === 0 )">
                                         Delivery - Free
                                     </span>
-                                    <span
-                                        v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0"
+                                    <span v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0"
                                         class="text-muted">
                                         {{ (isDeliverySku(result.Sku) ? "Fixed Charges" : "Delivery") }} - &#x20B9; {{
                                         result.DeliveryCharges }}
