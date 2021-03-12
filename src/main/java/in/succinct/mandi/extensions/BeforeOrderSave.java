@@ -54,7 +54,7 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
 
     }
     private boolean isBeingPaid(Order model){
-        return (model.getRawRecord().isFieldDirty("AMOUNT_PAID") && model.getAmountPendingPayment() == 0);
+        return (!model.getRawRecord().isNewRecord() && model.getRawRecord().isFieldDirty("AMOUNT_PAID") && model.getAmountPaid() > 0 && model.getAmountPendingPayment() == 0);
     }
     private boolean isBeingDelivered(Order model) {
         return (model.getRawRecord().isFieldDirty("FULFILLMENT_STATUS") &&
