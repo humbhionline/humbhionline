@@ -804,7 +804,7 @@
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary" role="button"
                                                     v-on:click="deliver($event,o)" v-else-if="delivered.findIndex(x=> x===o.Id) < 0">
-                                                    {{sales ? "Deliver" : "Package Received" }}
+                                                    {{sales ? "Deliver" : "Pkg Received" }}
                                                 </a>
                                             </p>
                                             <p class="m-0" v-else-if="cancelled.findIndex(x => x === o.Id) < 0">
@@ -830,9 +830,9 @@
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
                                                     v-on:click="deliver($event,o)" v-else-if="purchases
-                                                    && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided !== 'Y'  &&
+                                                    && o.DeliveryPlanned !== 'Y'   &&
                                                     delivered.findIndex(x => x === o.Id) < 0">
-                                                    Pickup
+                                                    Pkg Received
                                                 </a>
                                             </p>
                                         </div>

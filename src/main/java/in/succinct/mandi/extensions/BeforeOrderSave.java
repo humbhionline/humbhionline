@@ -24,11 +24,17 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
                     transportOrder.cancel("Original Order cancelled");
                 }
             }
+            Facility facility = model.getFacility();
             if (isBeingDelivered(model)){
-                model.getFacility().notifyEvent(Facility.EVENT_TYPE_DELIVERED,model);
+                facility.notifyEvent(Facility.EVENT_TYPE_DELIVERED,model);
             }
-            if (isBeingPaid(model)){
-                model.getFacility().notifyEvent(Facility.EVENT_TYPE_BOOK_ORDER,model);
+
+            if (facility.isCodEnabled()){
+                if (model.getRawRecord().isNewRecord()){
+                    facility.notifyEvent(Facility.EVENT_TYPE_BOOK_ORDER,model);
+                }
+            }else if (isBeingPaid(model)) {
+                facility.notifyEvent(Facility.EVENT_TYPE_BOOK_ORDER,model);
             }
             return;
         }

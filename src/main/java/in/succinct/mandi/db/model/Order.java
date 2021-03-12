@@ -39,7 +39,7 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
 
         ModelReflector<OrderLine> orderLineModelReflector = ModelReflector.instance(OrderLine.class);
         map.put(OrderLine.class,orderLineModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
-        map.get(OrderLine.class).removeAll(Arrays.asList("CHANNEL_ORDER_LINE_REF","ORDER_ID","SHIP_FROM_ID","INVENTORY_ID"));
+        map.get(OrderLine.class).removeAll(Arrays.asList("ORDER_ID","SHIP_FROM_ID","INVENTORY_ID"));
 
         ModelReflector<OrderStatus> orderStatusModelReflector = ModelReflector.instance(OrderStatus.class);
         map.put(OrderStatus.class,orderStatusModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
@@ -66,6 +66,7 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
         userFields.addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
 
         facilityFields.addAll(ModelReflector.instance(Facility.class).getUniqueFields());
+        facilityFields.add("ID");
         facilityFields.add("DELIVERY_PROVIDED");
         facilityFields.add("COD_ENABLED");
         facilityFields.add("CREATOR_USER_ID");

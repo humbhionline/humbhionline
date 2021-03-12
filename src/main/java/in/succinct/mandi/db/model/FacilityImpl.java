@@ -10,6 +10,7 @@ import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.ModelImpl;
 import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
@@ -173,7 +174,10 @@ public class FacilityImpl extends ModelImpl<Facility> {
         JSONObject orderLineJSON = new JSONObject();
         eventJSON.put("OrderLine",orderLineJSON);
 
-        ModelIOFactory.getWriter(OrderLine.class,JSONObject.class).write(line,orderLineJSON,Order.getIncludedModelFields().get(OrderLine.class),
+        List<String> orderLineFields = Order.getIncludedModelFields().get(OrderLine.class);
+        orderLineFields.add("SHIP_FROM_ID");
+
+        ModelIOFactory.getWriter(OrderLine.class,JSONObject.class).write(line,orderLineJSON,orderLineFields,
                 new HashSet<>(), Order.getIncludedModelFields());
 
         Call<?> call = new Call<>().url(facility.getNotificationUrl()).inputFormat(InputFormat.JSON).input(eventJSON).
@@ -186,9 +190,12 @@ public class FacilityImpl extends ModelImpl<Facility> {
         public ServerPushNotificationTask(Call<?> call){
             this.call = call;
         }
+        public ServerPushNotificationTask(){
+
+        }
         @Override
         public void execute() {
-            if (this.call.hasErrors()){
+            if (this.call.method(HttpMethod.POST).hasErrors()){
                 throw new RuntimeException(this.call.getError());
             }
         }
