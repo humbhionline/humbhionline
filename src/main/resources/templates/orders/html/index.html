@@ -803,7 +803,7 @@
                                                     Pickup
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                                    v-on:click="deliver($event,o)" v-else-if="delivered.findIndex(x=> x===o.Id) < 0">
+                                                    v-on:click="deliver($event,o)" v-else-if="delivered.findIndex(x=> x===o.Id) < 0 && ( o.Facility.CodEnabled === 'Y' || !isPaymentButtonEnabled(o) ) ">
                                                     {{sales ? "Deliver" : "Pkg Received" }}
                                                 </a>
                                             </p>
@@ -830,7 +830,7 @@
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
                                                     v-on:click="deliver($event,o)" v-else-if="purchases
-                                                    && o.DeliveryPlanned !== 'Y'   &&
+                                                    && o.DeliveryPlanned !== 'Y'  && ( o.Facility.CodEnabled === 'Y' || (o.AmountPendingPayment *1.0) === 0 ) && 
                                                     delivered.findIndex(x => x === o.Id) < 0">
                                                     Pkg Received
                                                 </a>

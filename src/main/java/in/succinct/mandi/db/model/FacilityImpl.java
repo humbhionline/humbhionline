@@ -152,6 +152,9 @@ public class FacilityImpl extends ModelImpl<Facility> {
 
     public void notifyEvent(String event, Order order) {
         Facility facility = getProxy();
+        if (ObjectUtil.isVoid(facility.getNotificationUrl())){
+            return;
+        }
         JSONObject eventJSON = new JSONObject();
         eventJSON.put("Event",event);
         JSONObject orderJSON = new JSONObject();
@@ -169,6 +172,9 @@ public class FacilityImpl extends ModelImpl<Facility> {
             return;
         }
         Facility facility = getProxy();
+        if (ObjectUtil.isVoid(facility.getNotificationUrl())){
+            return;
+        }
         JSONObject eventJSON = new JSONObject();
         eventJSON.put("Event",event);
         JSONObject orderLineJSON = new JSONObject();

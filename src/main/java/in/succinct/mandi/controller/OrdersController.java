@@ -319,6 +319,9 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             Map<String,Object> entityMap = TemplateEngine.getInstance().createEntityMap(Arrays.asList(order));
             TemplateEngine.getInstance().send(user,"New Order #" +order.getId() + " arrived." , "New_Order.ftlh",entityMap, getIncludedModelFields(),new HashMap<>());
         }
+        if (order.getFacility().isCodEnabled()){
+            order.getFacility().notifyEvent(Facility.EVENT_TYPE_BOOK_ORDER,order);
+        }
 
         return order;
     }

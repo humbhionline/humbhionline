@@ -29,11 +29,7 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
                 facility.notifyEvent(Facility.EVENT_TYPE_DELIVERED,model);
             }
 
-            if (facility.isCodEnabled()){
-                if (model.getRawRecord().isNewRecord()){
-                    facility.notifyEvent(Facility.EVENT_TYPE_BOOK_ORDER,model);
-                }
-            }else if (isBeingPaid(model)) {
+            if (!facility.isCodEnabled() && isBeingPaid(model)) {
                 facility.notifyEvent(Facility.EVENT_TYPE_BOOK_ORDER,model);
             }
             return;
