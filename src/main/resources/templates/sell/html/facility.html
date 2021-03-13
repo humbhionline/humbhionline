@@ -225,7 +225,6 @@
                     let index = self.current.index;
                     let i = self.current.Inventory;
                     let newRecord = !i.Id;
-                    let newProduct = !i.Sku.Item.Id;
                     delete i.Quantity;
 
 
@@ -233,7 +232,7 @@
                     showSpinner();
                     api().url("/api/adjust").parameters({
                         AdjustmentRequest: {
-                            NewProduct: newProduct, "Inventory": i, AdjustmentQuantity: self.current.AdjustmentQuantity,
+                            "Inventory": i, AdjustmentQuantity: self.current.AdjustmentQuantity,
                             Comment: "Adjust"
                         }
                     }).post().then(function (response) {
@@ -270,7 +269,7 @@
                     if (!newRecord) {
                         i.Infinite = "N";
                         showSpinner();
-                        api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Remove Inventory", NewProduct: "N" } }).post().then(function (response) {
+                        api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Remove Inventory"} }).post().then(function (response) {
                             var inv = deepmerge(i, response.AdjustmentRequests[0].Inventory);
                             if (!inv.Sku.Item.AssetCode) {
                                 inv.Sku.Item.AssetCode = { Code: "" };
@@ -320,7 +319,7 @@
                     if (!newRecord) {
                         i.Infinite = "Y";
                         showSpinner();
-                        api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Mark Infinite Inventory", NewProduct: "N" } }).post().then(function (response) {
+                        api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Mark Infinite Inventory"} }).post().then(function (response) {
                             var inv = deepmerge(i, response.AdjustmentRequests[0].Inventory);
                             if (!inv.Sku.Item.AssetCode) {
                                 inv.Sku.Item.AssetCode = { Code: "" };

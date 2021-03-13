@@ -9,6 +9,8 @@ import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.path.Path;
+import com.venky.swf.plugins.background.core.Task;
+import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
@@ -63,6 +65,42 @@ public class FacilitiesController extends ModelController<Facility> {
         f.unpublish();
         return show(f);
     }
+
+    @RequireLogin
+    public View startCount(long id){
+        if (Database.getTable(Facility.class).get(id) == null){
+            throw new RuntimeException("Invalid facility Id");
+        }
+        TaskManager.instance().executeAsync(new StartCountTask(id));
+        return getReturnIntegrationAdaptor().createStatusResponse(getPath(),null);
+    }
+    @RequireLogin
+    public View stopCount(long id){
+        Facility f = Database.getTable(Facility.class).get(id);
+        f.publish();
+        return getReturnIntegrationAdaptor().createStatusResponse(getPath(),null);
+    }
+
+    public static class StartCountTask implements Task{
+        long id = -1;
+        public StartCountTask(long id){
+            this.id = id;
+        }
+        public StartCountTask(){
+
+        }
+
+        @Override
+        public void execute() {
+            Facility f = Database.getTable(Facility.class).get(id);
+            f.unpublish();
+            f.getInventoryList().forEach(i->{
+                i.setInfinite(false);
+                i.adjust(0,"StartCount");
+            });
+        }
+    }
+
 
     @RequireLogin
     public View mine(){
