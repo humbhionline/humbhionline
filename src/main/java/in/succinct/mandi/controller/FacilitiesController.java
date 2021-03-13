@@ -37,6 +37,7 @@ import org.json.simple.JSONObject;
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
@@ -71,36 +72,13 @@ public class FacilitiesController extends ModelController<Facility> {
         if (Database.getTable(Facility.class).get(id) == null){
             throw new RuntimeException("Invalid facility Id");
         }
-        TaskManager.instance().executeAsync(new StartCountTask(id));
+        Facility f = Database.getTable(Facility.class).lock(id);
+        f.getInventoryList().forEach(i->{
+            i.setInfinite(false);
+            i.adjust(-1*i.getQuantity(),"StartCount"); //Unpublish inventory.
+        });
         return getReturnIntegrationAdaptor().createStatusResponse(getPath(),null);
     }
-    @RequireLogin
-    public View stopCount(long id){
-        Facility f = Database.getTable(Facility.class).get(id);
-        f.publish();
-        return getReturnIntegrationAdaptor().createStatusResponse(getPath(),null);
-    }
-
-    public static class StartCountTask implements Task{
-        long id = -1;
-        public StartCountTask(long id){
-            this.id = id;
-        }
-        public StartCountTask(){
-
-        }
-
-        @Override
-        public void execute() {
-            Facility f = Database.getTable(Facility.class).get(id);
-            f.unpublish();
-            f.getInventoryList().forEach(i->{
-                i.setInfinite(false);
-                i.adjust(0,"StartCount");
-            });
-        }
-    }
-
 
     @RequireLogin
     public View mine(){
