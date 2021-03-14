@@ -109,4 +109,5 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
     public String getMerchantFacilityReference();
     public void setMerchantFacilityReference(String merchantFacilityReference);
 
+
 }
