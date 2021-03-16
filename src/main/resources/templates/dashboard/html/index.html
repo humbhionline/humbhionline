@@ -103,7 +103,7 @@
                                         var query = "(FACILITY_ID:" + ho.Facility.Id + " AND ( SKU_ID:"
                                         ho.OrderLines.forEach((ol, i) => {
                                             query += ol.Sku.Id + " OR SKU_ID:";
-                                            qtyHash[ol.Sku.Id] = ol.OrderedQuantity;
+                                            qtyHash[ol.Sku.Id] = ol.OrderedQuantity * 1.0;
                                         });
                                         query += "0))" ;
                                         let q = {"q" : query};
@@ -111,7 +111,7 @@
                                             response.Inventories.forEach((inventory, inventoryIndex) => {
                                                 var result = {};
                                                 result = inventory;
-                                                result.OrderedQuantity = qtyHash[result.Sku.Id];
+                                                result.OrderedQuantity = qtyHash[result.Sku.Id] ;
                                                 self.addToCart(null,result);
                                             });
                                             if (response.Inventories.length > 0){
