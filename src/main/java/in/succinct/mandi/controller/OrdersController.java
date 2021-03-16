@@ -238,14 +238,14 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             if (ObjectUtil.isVoid(shipFrom.getGSTIN())){
                 taxRate = 0.0;
             }
-            line.setPrice(line.getSellingPrice()/(1.0 + taxRate/100.0));
+            line.setPrice(new DoubleHolder(line.getSellingPrice()/(1.0 + taxRate/100.0),2).getHeldDouble().doubleValue());
 
 
             if (shippingWithinSameState == null) {
                 shippingWithinSameState = ObjectUtil.equals(line.getShipFrom().getStateId(), shipTo.getStateId());
             }
 
-            double tax = (taxRate/100.0)*line.getPrice();
+            double tax = new DoubleHolder((taxRate/100.0)*line.getPrice(),2).getHeldDouble().doubleValue();
             if (shippingWithinSameState){
                 line.setCGst(tax/2.0);
                 line.setSGst(tax/2.0);

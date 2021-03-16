@@ -15,6 +15,7 @@
         var term = params.get("search");
         var facility_id = params.get("facility_id");
         var order_id = params.get("order_id");
+        var clone_order_id = params.get("clone_order_id");
 
         let PreferredMaxDistance = Lockr.get("PreferredMaxDistance");
         if (!PreferredMaxDistance) {
@@ -35,6 +36,7 @@
                     MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
                     facility_id: facility_id,
                     order_id: order_id,
+                    clone_order_id : clone_order_id,
                     Facility: {},
                     Order: {},
                     term: term || "",
@@ -95,8 +97,32 @@
                                 if (self.search.Order.Id) {
                                     self.search.termLengthTrigger = 0;
                                 }
-                                self.find(null);
-                                self.showApp();
+                                self.loadHistoryOrder().then(function(ho){
+                                    if (ho.Id) {
+                                        var qtyHash = {};
+                                        var query = "(FACILITY_ID:" + ho.Facility.Id + " AND ( SKU_ID:"
+                                        ho.OrderLines.forEach((ol, i) => {
+                                            query += ol.Sku.Id + " OR SKU_ID:";
+                                            qtyHash[ol.Sku.Id] = ol.OrderedQuantity;
+                                        });
+                                        query += "0))" ;
+                                        let q = {"q" : query};
+                                        return api().url("/inventories/search").get(q).then(function(response){
+                                            response.Inventories.forEach((inventory, inventoryIndex) => {
+                                                var result = {};
+                                                result = inventory;
+                                                result.OrderedQuantity = qtyHash[result.Sku.Id];
+                                                self.addToCart(null,result);
+                                            });
+                                            if (response.Inventories.length > 0){
+                                                self.buy(null);
+                                            }
+                                        });
+                                    }
+                                }).then(function(){
+                                    self.find(null);
+                                    self.showApp();
+                                });
                             });
                         });
                     }
@@ -150,6 +176,23 @@
                         if (self.search.order_id && self.search.order_id * 1.0 > 0) {
                             showSpinner();
                             api().url("orders/show/" + self.search.order_id).get().then(function (response) {
+                                resolve(response.Order);
+                            }).catch(function (err) {
+                                reject(err);
+                            }).finally(function () {
+                                hideSpinner();
+                            });
+                        } else {
+                            resolve({});
+                        }
+                    });
+                },
+                loadHistoryOrder: function () {
+                    let self = this;
+                    return new Promise(function (resolve, reject) {
+                        if (self.search.clone_order_id && self.search.clone_order_id * 1.0 > 0) {
+                            showSpinner();
+                            api().url("orders/show/" + self.search.clone_order_id).get().then(function (response) {
                                 resolve(response.Order);
                             }).catch(function (err) {
                                 reject(err);
@@ -329,7 +372,9 @@
                             order.CustomerPickup = order.CustomerPickup || (ol.Inventory.DeliveryProvided === 'N' ? 'Y' : 'N');
                         }
                     }
-                    self.reloadCounts();
+                    if (event) {
+                        self.reloadCounts();
+                    }
                     Lockr.set("facilityOrders", self.facilityOrders);
                 },
                 setPreferredDistance: function (distance) {

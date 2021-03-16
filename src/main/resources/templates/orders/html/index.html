@@ -626,6 +626,10 @@
                 },
                 isPaymentButtonEnabled: function(o){
                     return o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'
+                },
+                rebook : function(ev,o){
+                    ev && ev.preventDefault();
+                    window.location.replace('/dashboard/index?facility_id=' + o.Facility.Id +"&clone_order_id="+o.Id);
                 }
 
 
@@ -830,10 +834,16 @@
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
                                                     v-on:click="deliver($event,o)" v-else-if="purchases
-                                                    && o.DeliveryPlanned !== 'Y'  && ( o.Facility.CodEnabled === 'Y' || (o.AmountPendingPayment *1.0) === 0 ) && 
+                                                    && o.DeliveryPlanned !== 'Y'  && ( o.Facility.CodEnabled === 'Y' || (o.AmountPendingPayment *1.0) === 0 ) &&
                                                     delivered.findIndex(x => x === o.Id) < 0">
                                                     Pkg Received
                                                 </a>
+                                                <a href="#" class="btn btn-sm btn-primary w-100" role="button"
+                                                    v-on:click="rebook($event,o)" v-else-if="purchases && (o.AmountPendingPayment * 1.0 === 0 ) && o.AmountToRefund * 1.0 === 0
+                                                        && delivered.findIndex(x=> x===o.Id) >= 0 ">
+                                                    Rebook
+                                                </a>
+
                                             </p>
                                         </div>
                                     </div>

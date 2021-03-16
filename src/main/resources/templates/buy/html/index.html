@@ -45,7 +45,7 @@
                     if (event) {
                         event.preventDefault();
                     }
-                    window.location.replace(document.referrer && document.referrer.indexOf("dashboard") > 0 ? document.referrer : "/index");
+                    window.location.replace(document.referrer && document.referrer.indexOf("dashboard") > 0 ? document.referrer.replace(/&clone_order_id=[0-9]+/g,"") : "/index");
                 },
                 showApp: function () {
                     let self = this;
@@ -329,7 +329,7 @@
                                             </button>
                                         </div>
                                         <div class="modal-body">
-                                            <img class="img-fluid w-100 h-100" 
+                                            <img class="img-fluid w-100 h-100"
                                                 v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
                                                 v-bind:src="ol.Inventory.Sku.Attachments[0].AttachmentUrl" />
                                         </div>
