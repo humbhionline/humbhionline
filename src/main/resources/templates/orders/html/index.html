@@ -78,7 +78,7 @@
                     } else if (self.purchases) {
                         query = "CREATOR_USER_ID:" + self.User.Id;
                     }
-                    query += (!history ? " AND OPEN:Y " : "" );
+                    query += (!history ? " AND OPEN:Y " : " AND OPEN:N " );
                     self.Orders = [];
                     if (!query) {
                         self.showApp();
@@ -766,7 +766,7 @@
                             <div class="col">
                                 <p class="d-block mb-1">Order : {{o.Id }} {{ ( isDeliveryOrder(o) ? "/(" + o.RefOrder.Id + ")" : "" ) }}
                                 </p>
-                                <p class="m-0">{{ (o.Facility.CodEnabled !== 'Y' && isPaymentButtonEnabled(o) ) ? 'AWAITING PAYMENT' : o.FulfillmentStatus}}
+                                <p class="m-0">{{ (o.Facility.CodEnabled !== 'Y' && o.AmountPendingPayment * 1.0 > 0  ) ? 'AWAITING PAYMENT' : o.FulfillmentStatus}}
                                     <a class="fas fa-print btn" href="#" @click="print($event,o)"  v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
                                     </a>
                                     <!-- If a seller provides delivery, then he owns the transportation responsibility -->
