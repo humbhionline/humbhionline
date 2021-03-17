@@ -38,11 +38,6 @@
                 sales: sales,
                 User: Lockr.get("User"),
                 Orders: [],
-                cancelled: [],
-                delivered: [],
-                shipped: [],
-                packed: [],
-                acknowledged: [],
                 blank: blank,
                 orderInitiatedForPayment : {},
                 orderInitiatedForReturn : {},
@@ -167,6 +162,21 @@
                     });
 
                 },
+                isCancelled: function(order){
+                    return o.CANCELLED || o.RETURNED;
+                },
+                isPacked:function(order){
+                    return o.PACKED;
+                },
+                isShipped :function(order){
+                    return o.SHIPPED;
+                },
+                isDelivered: function(order){
+                    return  o.DELIVERED;
+                },
+                isAcknowledged: function(order){
+                    return o.ACKNOWLEDGED;
+                },
                 update_status_array: function (o) {
                     let self = this;
                     if (!o.OrderStatuses) {
@@ -176,15 +186,15 @@
 
                     o.OrderStatuses.forEach((os, j) => {
                         if (os.FulfillmentStatus === 'CANCELLED' || os.FulfillmentStatus === 'RETURNED') {
-                            self.cancelled.push(o.Id);
+                            o.CANCELLED = true;
                         } else if (os.FulfillmentStatus === "DELIVERED") {
-                            self.delivered.push(o.Id);
+                            o.DELIVERED = true;
                         } else if (os.FulfillmentStatus === "SHIPPED") {
-                            self.shipped.push(o.Id);
+                            o.SHIPPED = true;
                         } else if (os.FulfillmentStatus === "PACKED") {
-                            self.packed.push(o.Id);
+                            o.PACKED = true;
                         } else if (os.FulfillmentStatus !== 'DOWNLOADED') {
-                            self.acknowledged.push(o.Id);
+                            o.ACKNOWLEDGED = true;
                         }
                     });
 
@@ -645,7 +655,7 @@
         <h6 v-if="Orders.length === 0" class="text-center">No Orders</h6>
         <div v-bind:id="'Order-' + o.Id" class="my-4 container position-relative" v-for="(o,i) in Orders">
             <button class="btn-order-cancel d-flex  align-content-center justify-content-center" v-on:click="cancel($event,o)"
-                v-if="cancelled.findIndex(x => x === o.Id) < 0">
+                v-if="!o.CANCELLED">
                 <i class="mt-1 fas fa-times"></i>
             </button>
             <div class="row">
@@ -772,10 +782,7 @@
                                     <!-- If a seller provides delivery, then he owns the transportation responsibility -->
                                     <a href="#/" class="btn btn-sm btn-outline-primary" role="button"
                                         v-on:click="plan($event,o)" v-if="planningRequired(o) &&
-                                        packed.findIndex(x=> x === o.Id ) >= 0  &&
-                                        cancelled.findIndex(x => x === o.Id) < 0 &&
-                                        shipped.findIndex(x => x === o.Id) < 0 &&
-                                        delivered.findIndex(x=> x===o.Id) < 0 ">
+                                        o.PACKED  && !o.CANCELLED && !o.SHIPPED && !o.DELIVERED ">
                                         Plan Courier?
                                     </a>
                                 </p>
@@ -799,48 +806,43 @@
                                     </div>
                                     <div class="row h-50">
                                         <div class="col-12 d-flex align-items-end justify-content-end">
-                                            <p class="m-0" v-if="cancelled.findIndex(x => x === o.Id) < 0 && o.RefOrder">
+                                            <p class="m-0" v-if="!o.CANCELLED && o.RefOrder">
                                                 <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                                    v-on:click="ship($event,o)" v-if="sales &&
-                                                shipped.findIndex(x => x === o.Id) < 0 &&
-                                                delivered.findIndex(x=> x===o.Id) < 0 ">
+                                                    v-on:click="ship($event,o)" v-if="sales && !o.SHIPPED && !o.DELIVERED">
                                                     Pickup
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                                    v-on:click="deliver($event,o)" v-else-if="delivered.findIndex(x=> x===o.Id) < 0 && ( o.Facility.CodEnabled === 'Y' || !isPaymentButtonEnabled(o) ) ">
+                                                    v-on:click="deliver($event,o)" v-else-if="!o.DELIVERED &&
+                                                    ( o.Facility.CodEnabled === 'Y' || !isPaymentButtonEnabled(o) ) ">
                                                     {{sales ? "Deliver" : "Pkg Received" }}
                                                 </a>
                                             </p>
-                                            <p class="m-0" v-else-if="cancelled.findIndex(x => x === o.Id) < 0">
+                                            <p class="m-0" v-else-if="!o.RefOrder">
                                                 <a href="#/" class="btn btn-sm btn-primary" role="button"
                                                     v-on:click="pack($event,o)" v-if="sales &&
-                                                packed.findIndex(x => x === o.Id) < 0 &&
-                                                shipped.findIndex(x=> x=== o.Id) < 0 &&
-                                                delivered.findIndex(x=> x===o.Id) < 0">
+                                                        !o.CANCELLED && !o.PACKED && !o.SHIPPED && !o.DELIVERED">
                                                     Pack
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary" role="button"
-                                                    v-on:click="ship($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' &&
-                                                    o.Facility.DeliveryProvided === 'Y' &&
-                                                shipped.findIndex(x => x === o.Id) < 0 &&
-                                                delivered.findIndex(x=> x===o.Id) < 0 ">
+                                                    v-on:click="ship($event,o)" v-else-if="sales &&
+                                                    !o.CANCELLED && !o.SHIPPED && !o.DELIVERED &&
+                                                    o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y' ">
                                                     Ship
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
-                                                    v-on:click="deliver($event,o)" v-else-if="sales && o.DeliveryPlanned !== 'Y' &&
-                                                    o.Facility.DeliveryProvided === 'Y'  &&
-                                                    delivered.findIndex(x => x === o.Id) < 0">
+                                                    v-on:click="deliver($event,o)" v-else-if="sales
+                                                    && !o.CANCELLED && !o.DELIVERED
+                                                    && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y'">
                                                     Deliver
                                                 </a>
                                                 <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
                                                     v-on:click="deliver($event,o)" v-else-if="purchases
                                                     && o.DeliveryPlanned !== 'Y'  && ( o.Facility.CodEnabled === 'Y' || (o.AmountPendingPayment *1.0) === 0 ) &&
-                                                    delivered.findIndex(x => x === o.Id) < 0">
+                                                    !o.CANCELLED &&  !o.DELIVERED">
                                                     Pkg Received
                                                 </a>
                                                 <a href="#" class="btn btn-sm btn-primary w-100" role="button"
-                                                    v-on:click="rebook($event,o)" v-else-if="purchases && (o.AmountPendingPayment * 1.0 === 0 ) && o.AmountToRefund * 1.0 === 0
-                                                        && delivered.findIndex(x=> x===o.Id) >= 0 ">
+                                                    v-on:click="rebook($event,o)" v-else-if="purchases && o.Open === 'N'">
                                                     Rebook
                                                 </a>
 

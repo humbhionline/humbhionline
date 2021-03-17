@@ -42,6 +42,7 @@
                     term: term || "",
                     results: [],
                     termLengthTrigger: 1,
+                    timer : undefined,
                 },
                 facilityOrders: Lockr.get("facilityOrders") || {},
             },
@@ -244,16 +245,32 @@
                     let self = this;
                     return self.search.term.length >= length;
                 },
-                find: function (e) {
+                find: function (e){
                     let self = this;
                     if (e) {
                         e.preventDefault();
                         self.search.term = e.target.value;
                     }
                     self.search.results = [];
+                    if (self.search.timer) {
+                        clearTimeout(self.search.timer);
+                        self.search.timer = undefined;
+                    }
                     if (!self.isKeyTriggerable()) {
                         return;
                     }
+                    if (self.search.termLengthTrigger == 0){
+                        self._find();
+                    }else {
+                        self.search.timer = setTimeout(function(){
+                            self._find();
+                            self.search.timer = undefined;
+                        },600);
+                    }
+
+                },
+                _find: function () {
+                    let self = this;
                     let term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
                         term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND ( SKU:" + term + "* OR TAG:" + term + "* )" : "") + ")";
@@ -264,10 +281,11 @@
                     if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0) {
                         params.OrderId = self.search.Order.Id;
                     }
-
-
                     showSpinner();
                     api().url("/inventories/search/" + term).get(params).then(function (response) {
+                        if (self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim() != term) {
+                            return;
+                        }
                         if (!response) {
                             return
                         }
