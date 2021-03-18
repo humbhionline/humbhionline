@@ -259,19 +259,15 @@
                     if (!self.isKeyTriggerable()) {
                         return;
                     }
-                    if (self.search.termLengthTrigger == 0){
+                    self.search.timer = setTimeout(function(){
                         self._find();
-                    }else {
-                        self.search.timer = setTimeout(function(){
-                            self._find();
-                            self.search.timer = undefined;
-                        },600);
-                    }
-
+                        self.search.timer = undefined;
+                    },400);
                 },
                 _find: function () {
                     let self = this;
-                    let term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
+                    let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
+                    let term = search_term;
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
                         term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND ( SKU:" + term + "* OR TAG:" + term + "* )" : "") + ")";
                     }
@@ -283,7 +279,7 @@
                     }
                     showSpinner();
                     api().url("/inventories/search/" + term).get(params).then(function (response) {
-                        if (self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim() != term) {
+                        if (self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim() != search_term) {
                             return;
                         }
                         if (!response) {
