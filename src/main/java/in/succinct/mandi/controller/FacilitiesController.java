@@ -9,8 +9,6 @@ import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.path.Path;
-import com.venky.swf.plugins.background.core.Task;
-import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
@@ -37,7 +35,6 @@ import org.json.simple.JSONObject;
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
@@ -171,7 +168,7 @@ public class FacilitiesController extends ModelController<Facility> {
                     headingIndexMap = headingIndexMap(header);
                     continue;
                 }
-                FormatHelper<JSONObject> oneHelper = FormatHelper.instance(helper.createChildElement("AdjustmentRequest"));
+                FormatHelper<JSONObject> oneHelper = FormatHelper.instance(helper.createArrayElement("AdjustmentRequest"));
 
                 makeJson(oneHelper, headingIndexMap, row);
                 FormatHelper<JSONObject> invHelper = FormatHelper.instance(oneHelper.getElementAttribute("Inventory"));

@@ -1,7 +1,6 @@
 package in.succinct.mandi.controller;
 
 import com.venky.cache.Cache;
-import com.venky.core.collections.SequenceSet;
 import com.venky.core.date.DateUtils;
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.security.Crypt;
@@ -11,16 +10,12 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.io.ModelIOFactory;
-import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
-import com.venky.swf.integration.api.Call;
-import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.CompositeTask;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
-import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.UserFacility;
 import com.venky.swf.plugins.templates.controller.TemplateLoader;
 import com.venky.swf.plugins.templates.db.model.alerts.Device;
@@ -31,18 +26,15 @@ import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
-import in.succinct.mandi.db.model.RefOrder;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.integrations.courier.Wefast;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
-import in.succinct.plugins.ecommerce.db.model.attributes.Attribute;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
-import in.succinct.plugins.ecommerce.db.model.order.OrderStatus;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -106,7 +98,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         }
         FormatHelper<T> rootHelper = FormatHelper.instance(getPath().getProtocol(), request.getInputStream());
         //Orders
-        List<T> ordersElement = rootHelper.getChildElements("Orders");
+        List<T> ordersElement = rootHelper.getArrayElements("Orders");
         List<Order> orders = new ArrayList<>();
         for (T orderElement : ordersElement) {
             FormatHelper<T> helper = FormatHelper.instance(orderElement);
@@ -117,8 +109,8 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     }
     public <T> Order bookOrder(FormatHelper<T> helper){
 
-        List<T> orderLinesElement = helper.getChildElements("OrderLine");
-        List<T> orderAddressesElement = helper.getChildElements("OrderAddress");
+        List<T> orderLinesElement = helper.getArrayElements("OrderLine");
+        List<T> orderAddressesElement = helper.getArrayElements("OrderAddress");
         helper.removeAttribute("OrderLines");
         helper.removeAttribute("OrderAddresses");
 

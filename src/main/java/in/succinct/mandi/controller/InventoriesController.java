@@ -145,7 +145,7 @@ public class InventoriesController extends ModelController<Inventory> {
                     }
                 }
             }
-            pass =  !record.isDeliveryProvided() || (record.getDeliveryCharges() != null && !record.getDeliveryCharges().isInfinite());
+            pass =  pass && (!record.isDeliveryProvided() || (record.getDeliveryCharges() != null && !record.getDeliveryCharges().isInfinite()));
             pass = pass && facility.getDistance() < getMaxDistance() ;
             pass = pass &&  superFilter.pass(record);
 
