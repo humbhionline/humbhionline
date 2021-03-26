@@ -33,6 +33,7 @@ public class AfterSaveFacility extends AfterModelSaveExtension<Facility> {
             }
             if (inventory == null){
                 inventory = Database.getTable(Inventory.class).newRecord();
+                inventory.setInfinite(false);
                 Sku deliverySku = null;
                 for (Sku sku : AssetCode.getDeliverySkus()){
                     if (sku.getItem().getAssetCode().getGstPct() > 0){
