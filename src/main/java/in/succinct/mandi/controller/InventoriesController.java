@@ -135,7 +135,7 @@ public class InventoriesController extends ModelController<Inventory> {
                         Inventory deliveryRule = facility.getDeliveryRule(false);
                         if (deliveryRule == null || ObjectUtil.isVoid(deliveryRule.getManagedBy())){
                             record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
-                        }else if (ObjectUtil.equals(deliveryRule.getManagedBy(),"wefast")){
+                        }else if (ObjectUtil.equals(deliveryRule.getManagedBy(),Inventory.WEFAST)){
                             Wefast wefast = new Wefast();
                             record.setDeliveryCharges(wefast.getPrice(wefast.getPrice(facility,getCurrentUser(),record)));
                         }else {
@@ -146,7 +146,7 @@ public class InventoriesController extends ModelController<Inventory> {
                 }
             }
             pass =  pass && (!record.isDeliveryProvided() || (record.getDeliveryCharges() != null && !record.getDeliveryCharges().isInfinite()));
-            pass = pass && facility.getDistance() < getMaxDistance() ;
+            pass = pass && (record.isDeliveryProvided() || facility.getDistance() < getMaxDistance());
             pass = pass &&  superFilter.pass(record);
 
             return pass;
