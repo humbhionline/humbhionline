@@ -20,6 +20,7 @@
             },
             created: function () {
                 let self = this;
+                Lockr.rm("signup-triggered");
                 self.loadFacilities();
                 if (self.facilities.length > 0) {
                     self.showApp();
@@ -140,6 +141,12 @@
                     }
                     var Orders = [];
                     let self = this;
+                    if (self.guest){
+                        Lockr.set("signup-triggered",true);
+                        self.logout();
+                        return;
+                    }
+
                     self.facilities.forEach((f, i) => {
                         self.addOrderToBook(f, Orders);
                     });
@@ -275,12 +282,6 @@
                     Lockr.set("facilityOrders", self.facilityOrders);
                     self.$forceUpdate();
                 },
-                signup : function(e){
-                    let self = this;
-                    e && e.preventDefault();
-                    Lockr.set("signup-triggered",true);
-                    self.logout();
-                }
 
             }
         });
@@ -489,7 +490,7 @@
                         </div>
                         <div class="col-6 text-right">
                             <button class="btn btn-sm btn-block btn-primary"
-                                v-on:click="guest? signup($event) : bookOrders($event)">
+                                v-on:click="bookOrders($event)">
                                 <small>
                                     Place Orders
                                 </small>

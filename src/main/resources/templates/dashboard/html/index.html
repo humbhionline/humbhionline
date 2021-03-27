@@ -21,8 +21,6 @@
         if (!PreferredMaxDistance) {
             Lockr.set("PreferredMaxDistance", 10);
         }
-        let signupTriggered = Lockr.get("signup-triggered");
-        Lockr.rm("signup-triggered");
 
         new Vue({
             el: "#app",
@@ -233,7 +231,7 @@
                         $("#root").show();
                         $("#search").focus();
                         self.reloadCounts();
-                        if (self.OrderLineCount > 0 & signupTriggered){
+                        if (self.OrderLineCount > 0 && Lockr.get("signup-triggered") ){
                             self.buy(null);
                         }
                     });
