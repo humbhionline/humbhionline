@@ -58,7 +58,19 @@
                     });
 
 
+                },
+                whatsapp_url: function(u){
+                    var url = "";
+                    let self = this;
+                    if (isMobile()) {
+                        url += 'whatsapp://send';
+                    }else {
+                        url += 'https://web.whatsapp.com/send'
+                    }
+                    url += '?phone=' + u.PhoneNumber;
+                    return url;
                 }
+
             }
         });
     });
@@ -81,11 +93,11 @@
                         <div class="form-row">
                             <div class="col">
                                 <h6 class="m-0">{{ User.LongName }}
-                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel:'+ User.PhoneNumber" v-if="Mobile">
+                                    <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel:'+ User.PhoneNumber" v-if="Mobile && User.PhoneNumber">
                                          <i class="fa-phone-alt fas"></i>
                                     </a>
-                                    <a v-bind:href="'whatsapp://send?phone='+User.PhoneNumber"
-                                        data-action="share/whatsapp/share" class="btn-sm btn-outline-primary" v-if="Mobile">
+                                    <a v-bind:href="whatsapp_url(User)"
+                                        data-action="share/whatsapp/share" class="btn-sm btn-outline-primary" v-if="User.PhoneNumber">
                                         <i class="fab fa-whatsapp"></i>
                                     </a>
                                 </h6>

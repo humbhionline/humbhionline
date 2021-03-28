@@ -640,7 +640,19 @@
                 rebook : function(ev,o){
                     ev && ev.preventDefault();
                     window.location.replace('/dashboard/index?facility_id=' + o.Facility.Id +"&clone_order_id="+o.Id);
+                },
+                whatsapp_url: function(phoneable){
+                    var url = "";
+                    let self = this;
+                    if (isMobile()) {
+                        url += 'whatsapp://send';
+                    }else {
+                        url += 'https://web.whatsapp.com/send'
+                    }
+                    url += '?phone=' + phoneable.PhoneNumber;
+                    return url;
                 }
+
 
 
             }
@@ -678,8 +690,8 @@
                                         , {{o.Facility.City.Name}}-{{o.Facility.State.Name}},
                                         {{o.Facility.PinCode.PinCode}}
                                         <br>
-                                        <span v-if="o.Facility.PhoneNumber"><i class="fa-phone-alt fas"></i> : <a v-bind:href="'tel:'+ o.Facility.PhoneNumber">{{o.Facility.PhoneNumber}}</a></span> <a v-bind:href="'whatsapp://send?phone='+ o.Facility.PhoneNumber"
-                                        data-action="share/whatsapp/share" class="btn-link btn py-0 px-2" v-if="Mobile && o.Facility.PhoneNumber && purchases">
+                                        <span v-if="o.Facility.PhoneNumber"><i class="fa-phone-alt fas"></i> : <a v-bind:href="'tel:'+ o.Facility.PhoneNumber">{{o.Facility.PhoneNumber}}</a></span> <a v-bind:href="whatsapp_url(o.Facility)"
+                                        data-action="share/whatsapp/share" class="btn-link btn py-0 px-2" v-if="o.Facility.PhoneNumber && purchases">
                                         <i class="fab fa-whatsapp"></i>
                                     </a>
                                     </small>
@@ -719,8 +731,8 @@
                                     <a class="btn btn-sm btn-outline-less-primary" v-bind:href="'tel:'+ o.CreatorUser.PhoneNumber" v-if="Mobile && o.CreatorUser.PhoneNumber && sales">
                                          <i class="fa-phone-alt fas"></i>
                                     </a>
-                                    <a v-bind:href="'whatsapp://send?phone='+ o.CreatorUser.PhoneNumber"
-                                        data-action="share/whatsapp/share" class="btn btn-sm btn-outline-less-primary" v-if="Mobile && o.CreatorUser.PhoneNumber && sales">
+                                    <a v-bind:href="whatsapp_url(o.CreatorUser)"
+                                        data-action="share/whatsapp/share" class="btn btn-sm btn-outline-less-primary" v-if="o.CreatorUser.PhoneNumber && sales">
                                         <i class="fab fa-whatsapp"></i>
                                     </a>
                                 </p>

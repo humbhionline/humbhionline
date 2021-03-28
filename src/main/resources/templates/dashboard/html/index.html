@@ -404,6 +404,18 @@
                 buy: function (event) {
                     event && event.preventDefault();
                     window.location.href = ("/buy");
+                },
+                whatsapp_url:function(f){
+
+                    var url = "";
+                    let self = this;
+                    if (isMobile()) {
+                        url += 'whatsapp://send';
+                    }else {
+                        url += 'https://web.whatsapp.com/send'
+                    }
+                    url += '?phone='+ f.PhoneNumber;
+                    return url;
                 }
 
             }
@@ -465,9 +477,9 @@
                                 v-if="Mobile && search.Facility.PhoneNumber">
                                 <i class="fa-phone-alt fas"></i>
                             </a> -->
-                            <a v-bind:href="'whatsapp://send?phone='+ search.Facility.PhoneNumber"
+                            <a v-bind:href="whatsapp_url(search.Facility)"
                                 data-action="share/whatsapp/share" class="btn btn-link px-1"
-                                v-if="Mobile && search.Facility.PhoneNumber">
+                                v-if="search.Facility.PhoneNumber">
                                 <i class="fab fa-whatsapp"></i>
                             </a>
                         </div>
