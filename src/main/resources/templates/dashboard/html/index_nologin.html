@@ -12,6 +12,7 @@
                 SignUp: Lockr.get("SignUp"),
                 isAndroidApp: isAndroidApp(),
                 isMobile: isMobile(),
+                environment : "",
                 venkyText: "is a passionate technology enthusiast and has been part of the founding team in several successful\
                     supply chain startups after completing his MSc Statistics degree from IIT Kanpur. He is also the author of \
                     Succinct Web Framework (an opensource web application framework), that he has used effectively in several large scale \
@@ -30,7 +31,8 @@
                 console.log("Mobile :" + self.isMobile);
                 console.log("Android :" + self.isAndroidApp);
                 api().url("/properties/environment").get().then(function(r){
-                    if (self.isAndroidApp || (self.isMobile && r.value === "development")) {
+                    self.environment = r.value;
+                    if (self.isAndroidApp || (self.isMobile && self.environment === "development")) {
                         if ((self.User && self.User.Verified === 'Y') || (self.SignUp && self.SignUp.Verified === 'Y')) {
                             window.location.replace("/login");
                         }
@@ -116,7 +118,7 @@
                                         src="/dashboard/images/google-play-button.gif" class="play-btn" alt=""></a>
                                 <a href="/login"
                                     class="btn btn-primary rounded-pill btn-sm mx-lg-2 mx-1 d-inline-block d-sm-none"
-                                    type="submit" v-else>Get Started</a>
+                                    type="submit" v-if="(isMobile && (environment === 'development')) || isAndroidApp" >Get Started</a>
                             </div>
                         </div>
                         <div class="col-4 col-lg-3 offset-lg-1 text-center">
