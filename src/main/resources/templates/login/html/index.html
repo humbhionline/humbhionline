@@ -23,17 +23,22 @@
         login = new Vue({
             el : "#app",
             data : {
-                Android : undefined , //typeof Android == "undefined" ? undefined : Android,
+                Android : isAndroidApp(),
                 params: { "User": { "PhoneNumber": "" , "Password":"" } },
                 phoneNumberEntered : false,
             },
             created : function(){
                 let self  = this;
-
-                if (phoneNumber){
-                    self.params.User.PhoneNumber = phoneNumber;
-                }
-                self.signIn();
+                api().url("/properties/environment").get().then(function(r){
+                    if (self.Android || (isMobile() && r.value === "development")) {
+                        if (phoneNumber){
+                            self.params.User.PhoneNumber = phoneNumber;
+                        }
+                        self.signIn();
+                    }else {
+                        window.location.replace("/dashboard");
+                    }
+                })
             },
             methods : {
                 http: function(withCredentials){

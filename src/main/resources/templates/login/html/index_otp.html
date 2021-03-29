@@ -20,7 +20,7 @@
 
     $(function(){
         if (!isMobile()){
-            window.location.replace("/download");
+            window.location.replace("/dashboard");
             return;
         }
         var searchParams = (new URL(window.location)).searchParams;
@@ -34,7 +34,7 @@
         login = new Vue({
             el : "#app",
             data : {
-                Android : typeof Android == "undefined" ? undefined : Android,
+                Android : typeof Android == "undefined" ? undefined : Android ,
                 params: { "SignUp": { "PhoneNumber": "" } , "OtpRequested" : "N"},
                 Otp : "",
                 message : "",
@@ -47,10 +47,16 @@
             },
             created : function(){
                 let self  = this;
-                if (phoneNumber){
-                    self.params.SignUp.PhoneNumber = phoneNumber;
-                }
-                self.signIn();
+                api().url("/properties/environment").get().then(function(r){
+                    if (self.Android ||  ( isMobile() && r.value === "development")) {
+                        if (phoneNumber){
+                            self.params.SignUp.PhoneNumber = phoneNumber;
+                        }
+                        self.signIn();
+                    }else {
+                        window.location.replace("/dashboard");
+                    }
+                });
             },
             methods : {
                 waitForOtp : function(){

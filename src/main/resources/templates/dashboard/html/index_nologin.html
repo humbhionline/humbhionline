@@ -1,4 +1,5 @@
 <link rel="stylesheet" href="/dashboard/css/style.css">
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
 <script type="text/javascript" src="/fragments/js/util.js"></script>
@@ -28,11 +29,13 @@
                 let self = this;
                 console.log("Mobile :" + self.isMobile);
                 console.log("Android :" + self.isAndroidApp);
-                if (self.isMobile) {
-                    if ((self.User && self.User.Verified === 'Y') || (self.SignUp && self.SignUp.Verified === 'Y')) {
-                        window.location.replace("/login");
+                api().url("/properties/environment").get().then(function(r){
+                    if (self.isAndroidApp || (self.isMobile && r.value === "development")) {
+                        if ((self.User && self.User.Verified === 'Y') || (self.SignUp && self.SignUp.Verified === 'Y')) {
+                            window.location.replace("/login");
+                        }
                     }
-                }
+                })
             }
         });
     });
@@ -113,7 +116,7 @@
                                         src="/dashboard/images/google-play-button.gif" class="play-btn" alt=""></a>
                                 <a href="/login"
                                     class="btn btn-primary rounded-pill btn-sm mx-lg-2 mx-1 d-inline-block d-sm-none"
-                                    type="submit">Get Started</a>
+                                    type="submit" v-else>Get Started</a>
                             </div>
                         </div>
                         <div class="col-4 col-lg-3 offset-lg-1 text-center">
