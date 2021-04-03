@@ -7,13 +7,16 @@ import com.venky.geo.GeoLocation;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
+import com.venky.swf.db.PostgresqlHelper;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.util.BoundingBox;
 import com.venky.swf.pm.DataSecurityFilter;
+import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
+import com.venky.swf.sql.Select;
 import com.venky.swf.sql.Select.ResultFilter;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
@@ -181,9 +184,32 @@ public class InventoriesController extends ModelController<Inventory> {
                 reference = new GeoCoordinate(order.getFacility());
             }
             if (reference != null){
-                BoundingBox bb = new BoundingBox(reference,2,maxDistance);
+                List<Facility> facilities = null;
+                if (ModelReflector.instance(Facility.class).getJdbcTypeHelper() instanceof PostgresqlHelper){
+                    Select select = new Select().from(Facility.class);
+                    Expression or = new Expression(select.getPool(), Conjunction.OR);
+                    select.where(or);
 
-                List<Facility> facilities  = bb.find(Facility.class,getMaxListRecords());
+                    Expression where1 = new Expression(select.getPool(), Conjunction.AND);
+                    where1.add(new Expression(select.getPool(),"PUBLISHED",Operator.EQ,true));
+                    where1.add(new Expression(select.getPool(),"DELIVERY_PROVIDED",Operator.EQ,true));
+                    where1.add(new Expression(select.getPool(),false,"DELIVERY_RADIUS",
+                            Operator.GE, "(point(facilities.lat,facilities.lng) <@> point("+reference.getLat()+","+reference.getLng()+"))"));
+                    or.add(where1);
+
+                    Expression where2 = new Expression(select.getPool(),Conjunction.AND);
+
+                    where2.add(new Expression(select.getPool(),"PUBLISHED",Operator.EQ,true));
+                    where2.add(new Expression(select.getPool(),"DELIVERY_PROVIDED",Operator.EQ,false));
+                    where2.add(new Expression(select.getPool(),false,String.valueOf(maxDistance),
+                            Operator.GE, "(point(facilities.lat,facilities.lng) <@> point("+reference.getLat()+","+reference.getLng()+"))"));
+                    or.add(where2);
+                    facilities = select.orderBy("(point(facilities.lat,facilities.lng) <@> point("+reference.getLat()+","+reference.getLng()+"))").execute(MAX_LIST_RECORDS);
+                }else {
+                    BoundingBox bb = new BoundingBox(reference,2,maxDistance);
+
+                    List<Facility> facilities  = bb.find(Facility.class,getMaxListRecords());
+                }
                 if (!facilities.isEmpty()){
                     where.add(new Expression(getReflector().getPool(),"FACILITY_ID", Operator.IN, DataSecurityFilter.getIds(facilities).toArray()));
                 }else {
