@@ -208,7 +208,7 @@ public class InventoriesController extends ModelController<Inventory> {
                 }else {
                     BoundingBox bb = new BoundingBox(reference,2,maxDistance);
 
-                    List<Facility> facilities  = bb.find(Facility.class,getMaxListRecords());
+                    facilities  = bb.find(Facility.class,getMaxListRecords());
                 }
                 if (!facilities.isEmpty()){
                     where.add(new Expression(getReflector().getPool(),"FACILITY_ID", Operator.IN, DataSecurityFilter.getIds(facilities).toArray()));
