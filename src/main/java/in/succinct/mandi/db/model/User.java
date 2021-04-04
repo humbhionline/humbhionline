@@ -4,6 +4,7 @@ import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.indexing.Index;
+import com.venky.swf.db.annotations.column.relationship.CONNECTED_VIA;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 
 import java.sql.Date;
@@ -50,5 +51,6 @@ public interface User extends EncryptedAddress, com.venky.swf.plugins.mobilesign
     @IS_VIRTUAL
     public List<Long> getOperatingFacilityIds();
 
+    @CONNECTED_VIA("USER_ID")
     public List<UserLocation> getUserLocations();
 }

@@ -185,33 +185,38 @@ public class InventoriesController extends ModelController<Inventory> {
             }
             if (reference != null){
                 List<Facility> facilities = null;
+
+                ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);
+                Expression fWhere = new Expression(ref.getPool(),Conjunction.AND);
+                fWhere.add(new Expression(ref.getPool(),"PUBLISHED",Operator.EQ,true));
+
                 if (ModelReflector.instance(Facility.class).getJdbcTypeHelper() instanceof PostgresqlHelper){
                     Select select = new Select().from(Facility.class);
+
                     Expression or = new Expression(select.getPool(), Conjunction.OR);
-                    select.where(or);
+                    fWhere.add(or);
 
                     Expression where1 = new Expression(select.getPool(), Conjunction.AND);
-                    where1.add(new Expression(select.getPool(),"PUBLISHED",Operator.EQ,true));
                     where1.add(new Expression(select.getPool(),"DELIVERY_PROVIDED",Operator.EQ,true));
                     where1.add(new Expression(select.getPool(),false,"DELIVERY_RADIUS",
                             Operator.GE, "(point(facilities.lat,facilities.lng) <@> point("+reference.getLat()+","+reference.getLng()+"))"));
                     or.add(where1);
 
                     Expression where2 = new Expression(select.getPool(),Conjunction.AND);
-
-                    where2.add(new Expression(select.getPool(),"PUBLISHED",Operator.EQ,true));
-                    where2.add(new Expression(select.getPool(),"DELIVERY_PROVIDED",Operator.EQ,false));
                     where2.add(new Expression(select.getPool(),false,String.valueOf(maxDistance),
                             Operator.GE, "(point(facilities.lat,facilities.lng) <@> point("+reference.getLat()+","+reference.getLng()+"))"));
                     or.add(where2);
-                    facilities = select.orderBy("(point(facilities.lat,facilities.lng) <@> point("+reference.getLat()+","+reference.getLng()+"))").execute(MAX_LIST_RECORDS);
+
+
+                    facilities = select.where(fWhere).
+                            orderBy("(point(facilities.lat,facilities.lng) <@> point("+reference.getLat()+","+reference.getLng()+"))").
+                            execute(MAX_LIST_RECORDS);
                 }else {
                     BoundingBox bb = new BoundingBox(reference,2,maxDistance);
-
-                    facilities  = bb.find(Facility.class,getMaxListRecords());
+                    facilities  = bb.find(Facility.class,getMaxListRecords(),fWhere);
                 }
                 if (!facilities.isEmpty()){
-                    where.add(new Expression(getReflector().getPool(),"FACILITY_ID", Operator.IN, DataSecurityFilter.getIds(facilities).toArray()));
+                    where.add(Expression.createExpression(getReflector().getPool(),"FACILITY_ID", Operator.IN, DataSecurityFilter.getIds(facilities).toArray()));
                 }else {
                     where.add(new Expression(getReflector().getPool(), "ID",Operator.EQ, -1)); //Impossible!!
                 }
