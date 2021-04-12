@@ -561,6 +561,7 @@ h6 {
         border-top-left-radius: 6px;
         border-top-right-radius: 6px;
         box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+        margin: auto 0;
     }
     .status-message {
         position: absolute;
