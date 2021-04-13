@@ -373,6 +373,7 @@ h6 {
         left: 0;
         bottom: 0;
         width: 100%;
+        margin: auto 0;
     }
     .btn-close {
         position: absolute;
