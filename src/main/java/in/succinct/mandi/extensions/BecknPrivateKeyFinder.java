@@ -4,10 +4,10 @@ import com.venky.core.util.ObjectHolder;
 import com.venky.extension.Extension;
 import com.venky.extension.Registry;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.plugins.collab.db.model.Key;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
-import in.succinct.mandi.db.model.beckn.Key;
 
 import java.util.List;
 
