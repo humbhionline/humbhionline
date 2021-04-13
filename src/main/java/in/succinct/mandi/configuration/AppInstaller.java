@@ -19,10 +19,14 @@ import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.KeyGenerationParameters;
 import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator;
+import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters;
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 
+import java.security.KeyPairGenerator;
+import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
 
@@ -43,7 +47,9 @@ public class AppInstaller implements Installer {
         key.setAlias(BecknUtil.getDomainId() + ".k1");
         key = Database.getTable(Key.class).getRefreshed(key);
         if (key.getRawRecord().isNewRecord()){
-            AsymmetricCipherKeyPair pair = new Ed25519KeyPairGenerator().generateKeyPair();
+            Ed25519KeyPairGenerator gen = new Ed25519KeyPairGenerator();
+            gen.init(new Ed25519KeyGenerationParameters(new SecureRandom()));
+            AsymmetricCipherKeyPair pair = gen.generateKeyPair();
             key.setPrivateKey(Base64.getEncoder().encodeToString(
                     ((Ed25519PrivateKeyParameters)pair.getPrivate()).getEncoded()));
 

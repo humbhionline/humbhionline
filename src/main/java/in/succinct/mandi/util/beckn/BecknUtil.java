@@ -43,9 +43,9 @@ public class BecknUtil {
         String  pattern = String.format("^%s/(.*)@%s[.]%s$",getIdPrefix(),getIdSuffix(),becknEntity == null ? "" : "."+becknEntity.toString());
         Matcher matcher = Pattern.compile(pattern).matcher(beckId);
         List<String> ids = new ArrayList<>();
-        matcher.results().forEach(mr->{
-            ids.add(mr.group(1));
-        });
+        while(matcher.find()){
+            ids.add(matcher.group(1));
+        }
         if (ids.size() == 1){
             return ids.get(0);
         }
