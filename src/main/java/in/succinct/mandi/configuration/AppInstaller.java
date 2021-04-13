@@ -6,18 +6,24 @@ import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
 import com.venky.swf.db.table.Table;
+import com.venky.swf.plugins.collab.db.model.Key;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
-import com.venky.swf.sql.Update;
 import com.venky.swf.util.SharedKeys;
 import in.succinct.mandi.db.model.EncryptedModel;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.User;
+import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator;
+import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
+import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
 
+import java.util.Base64;
 import java.util.List;
 
 public class AppInstaller implements Installer {
@@ -29,6 +35,22 @@ public class AppInstaller implements Installer {
         encryptAddress(User.class,encryptionSupport);
         encryptAddress(OrderAddress.class,encryptionSupport);
         //installGuestUser();
+        generateBecknKeys();
+    }
+
+    private void generateBecknKeys() {
+        Key key = Database.getTable(Key.class).newRecord();
+        key.setAlias(BecknUtil.getDomainId() + ".k1");
+        key = Database.getTable(Key.class).getRefreshed(key);
+        if (key.getRawRecord().isNewRecord()){
+            AsymmetricCipherKeyPair pair = new Ed25519KeyPairGenerator().generateKeyPair();
+            key.setPrivateKey(Base64.getEncoder().encodeToString(
+                    ((Ed25519PrivateKeyParameters)pair.getPrivate()).getEncoded()));
+
+            key.setPublicKey(Base64.getEncoder().encodeToString(
+                    ((Ed25519PublicKeyParameters)pair.getPublic()).getEncoded()));
+            key.save();
+        }
     }
 
     private void installGuestUser() {

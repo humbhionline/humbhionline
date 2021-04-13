@@ -1,5 +1,7 @@
 package in.succinct.mandi.db.model;
 
+import com.venky.core.math.DoubleHolder;
+import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
@@ -129,7 +131,11 @@ public class FacilityImpl extends ModelImpl<Facility> {
             Inventory deliveryRule = getDeliveryRule(false);
             if (deliveryRule != null && ObjectUtil.isVoid(deliveryRule.getManagedBy())){
                 double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, deliveryRule.getSku().getPackagingUOM().getName());
-                charges += deliveryRule.getSellingPrice() * Math.round( (Math.max(0,distance - facility.getMinChargeableDistance()))/Math.max(cf,1));
+                cf = new DoubleHolder(cf,4).getHeldDouble().doubleValue();
+                if (cf == 0){
+                    throw new RuntimeException("Don't know how to convert " + deliveryRule.getSku().getPackagingUOM().getName() + " to " + UnitOfMeasure.KILOMETERS);
+                }
+                charges += ( deliveryRule.getSellingPrice() / cf ) * Math.round(Math.max(0,distance - facility.getMinChargeableDistance()));
             }
         }
         return charges;

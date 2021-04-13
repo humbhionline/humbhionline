@@ -5,6 +5,106 @@
 * {
     font-family: var(--hbo-font);
 }
+body {
+    padding-top: 0;
+}
+h6 {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+.title-text {
+    color: black;
+}
+.search-control {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border: 0;
+    border-radius: 6px;
+    background-color: white;
+    padding: 10px 25px 10px 15px;
+    width: 100%;
+    margin-top: 8px;
+}
+.search-control + i.fa.fa-search {
+    position: absolute;
+    right: 15px;
+}
+.search-control:focus {
+    outline: none;
+}
+.search-holder {
+    margin: 0;
+    padding: 0;
+}
+.default-img {
+    width: 100%;
+    height: 100%;
+}
+.img-holder {
+    height: 210px;
+    margin-bottom: 10px;
+    border-width: 2px !important;
+}
+.desk-price {
+    margin-bottom: 0;
+    font-size: 1.45rem;
+    color: var(--hbo-red);
+}
+.desk-price strike {
+    font-weight: 500;
+    font-size: 13px;
+    margin-right: 7px;
+    color: #212529;
+}
+.desk-price span {
+    font-size: 14px;
+    vertical-align: top;
+    color: var(--hbo-red);
+}
+.navbar {
+    padding: 0.5rem 0;
+}
+.nav-item {
+    position: relative;
+}
+
+.bottom-card {
+    bottom: 0;
+    position: fixed;
+    z-index: 1;
+    background: white;
+    width: 100%;
+    left: 0;
+    padding: 15px 20px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+    width: calc(100% - 100px);
+    margin: auto 50px;
+}
+
+.show-update {
+    background-color: white;
+    border-radius: 6px 6px 0 0;
+    padding: 15px;
+    box-shadow: var(--hbo-shadow);
+    position: fixed;
+    z-index: 4;
+    left: 0;
+    bottom: 0;
+    width: calc(100% - 100px);
+    margin: auto 50px;
+}
+
+.pop-overlay {
+    position: fixed;
+    z-index: 3;
+    background: rgba(0, 0, 0, 0.85);
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
 @media (max-width: 640px) {
     body,
     .body {
@@ -16,6 +116,12 @@
         font-size: 12px;
         line-height: 1.1;
         margin-top: 0.275rem;
+    }
+    h6 {
+        font-size: 1rem;
+    }
+    .title-text {
+        color: white;
     }
     .paragraph {
         margin: 0;
@@ -43,6 +149,7 @@
         background-color: var(--hbo-bg-header);
         z-index: 3;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        left: 0;
     }
 
     .navbar-light.bg-clear {
@@ -278,7 +385,7 @@
         border-radius: 6px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         padding: 6px;
-        margin-bottom: .65rem;
+        margin-bottom: 0.65rem;
         background-color: white;
     }
     .data-list .form-row {
@@ -686,6 +793,7 @@
         font-size: 11px;
         line-height: 1.1;
         overflow: hidden;
+        margin-bottom: 0;
     }
     .img-box {
         width: 100%;

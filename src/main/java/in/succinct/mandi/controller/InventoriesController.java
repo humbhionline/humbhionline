@@ -79,7 +79,6 @@ public class InventoriesController extends ModelController<Inventory> {
         return null;
     }
 
-    List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
     @Override
     protected ResultFilter<Inventory> getFilter() {
         final ResultFilter<Inventory> superFilter = super.getFilter();
@@ -89,7 +88,7 @@ public class InventoriesController extends ModelController<Inventory> {
             Order order = getOrder();
 
             boolean pass = facility.isPublished();
-            pass = pass && (record.isInfinite() || record.getQuantity() > 0);
+            pass = pass && record.isPublished();
             pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
                     || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem() ||
                     !ObjectUtil.isVoid(record.getManagedBy()));
@@ -156,6 +155,7 @@ public class InventoriesController extends ModelController<Inventory> {
         };
 
     }
+    List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
 
     private GeoLocation getDeliveryBoyLocation(Facility facility, Inventory record) {
         if (!ObjectUtil.isVoid(record.getManagedBy())){

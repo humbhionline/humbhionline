@@ -21,6 +21,10 @@ import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
 public class CompanyUtil {
+    public static Company getCompany(){
+        Long id = getCompanyId();
+        return Database.getTable(Company.class).get(id);
+    }
     public static Long getCompanyId(){
         String domainName = getFQDomainName();
         List<Company> companies = new ArrayList<>();
