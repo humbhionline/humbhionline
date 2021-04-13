@@ -496,7 +496,7 @@
             </div>
         </div>
         <div class="container">
-            <div id="search-holder" class="form-row search-holder">
+            <div id="search-holder" class="form-row search-holder mb-sm-6">
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
                         <input key="search" id="search" class="search-control" placeholder="Search for Items or Store"
@@ -522,7 +522,7 @@
 
                 </div>
             </div>
-            <div class="row">
+            <div class="row mt-sm-3">
                 <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,index) in search.results"
                     v-if="search.results.length > 0">
                     <div class="item-list" v-bind:id="'item-'+index">
@@ -538,7 +538,7 @@
                                         v-bind:style="{ height: itemWidth + 'px' }">
                                         <span class="font-weight-bold text-muted">{{result.Sku.Item.Name}}</span>
                                     </div>
-                                    <!-- Modal View Images-->
+                                    <!-- Modal View Images -->
                                     <div v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
                                         class="modal fade" v-bind:id="'sku-img-'+result.Sku.Id" tabindex="-1"
                                         aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -622,11 +622,6 @@
                                         v-on:click="increase($event,index)">
                                         <i class="fa fa-plus"></i>
                                     </button>
-                                </div>
-                                <div class="modal-body">
-                                    <img class="img-fluid w-100 h-100"
-                                        v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
-                                        v-bind:src="result.Sku.Attachments[0].AttachmentUrl" />
                                 </div>
                             </div>
                             <div
