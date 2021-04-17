@@ -79,6 +79,7 @@ public class InventoriesController extends ModelController<Inventory> {
         return null;
     }
 
+    List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
     @Override
     protected ResultFilter<Inventory> getFilter() {
         final ResultFilter<Inventory> superFilter = super.getFilter();
@@ -155,7 +156,7 @@ public class InventoriesController extends ModelController<Inventory> {
         };
 
     }
-    List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
+    
 
     private GeoLocation getDeliveryBoyLocation(Facility facility, Inventory record) {
         if (!ObjectUtil.isVoid(record.getManagedBy())){

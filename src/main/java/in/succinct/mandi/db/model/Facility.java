@@ -12,6 +12,7 @@ import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import com.venky.swf.db.annotations.column.ui.PROTECTION;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommerce.db.model.participation.Facility {
@@ -110,4 +111,6 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
     public void setMerchantFacilityReference(String merchantFacilityReference);
 
 
+    @IS_VIRTUAL
+    List<User> getOperatingUsers();
 }

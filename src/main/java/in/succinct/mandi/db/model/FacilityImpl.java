@@ -1,13 +1,12 @@
 package in.succinct.mandi.db.model;
 
+import com.venky.core.collections.SequenceSet;
 import com.venky.core.math.DoubleHolder;
-import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Count;
-import com.venky.swf.db.model.User;
 import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.ModelImpl;
@@ -16,6 +15,8 @@ import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.plugins.collab.db.model.user.UserFacility;
+import com.venky.swf.plugins.collab.db.model.user.UserPhone;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
@@ -25,7 +26,6 @@ import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasureConversionTable;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 import org.json.simple.JSONObject;
-
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -64,7 +64,8 @@ public class FacilityImpl extends ModelImpl<Facility> {
         if (facility.getLat() == null ){
             distance = 0.0;
         }else {
-            User currentUser = Database.getInstance().getCurrentUser();
+            com.venky.swf.db.model.User u = Database.getInstance().getCurrentUser();
+            User currentUser = u == null ? null : u.getRawRecord().getAsProxy(User.class);
             if (currentUser != null && currentUser.getCurrentLat() != null) {
                 distance = new GeoCoordinate(facility).distanceTo(new GeoCoordinate(new GeoLocation() {
                     @Override
@@ -211,5 +212,32 @@ public class FacilityImpl extends ModelImpl<Facility> {
                 throw new RuntimeException(this.call.getError());
             }
         }
+    }
+
+    public List<User> getOperatingUsers(){
+        List<Long> userIds = new SequenceSet<>();
+        Facility facility = getProxy();
+        userIds.add(facility.getCreatorUserId());
+
+        for (UserFacility facilityUser : facility.getFacilityUsers()) {
+            userIds.add(facilityUser.getUserId());
+        }
+
+        List<String> phoneNumbers = new SequenceSet<>();
+        if (!ObjectUtil.isVoid(facility.getPhoneNumber())) {
+            phoneNumbers.add(facility.getPhoneNumber());
+        }
+        if (ObjectUtil.isVoid(facility.getAlternatePhoneNumber())){
+            phoneNumbers.add(facility.getAlternatePhoneNumber());
+        }
+        if (!phoneNumbers.isEmpty()){
+            Select select = new Select().from(UserPhone.class);
+            List<UserPhone> userPhones = select.where(new Expression(select.getPool(), "PHONE_NUMBER",Operator.IN,phoneNumbers.toArray(new String[]{}))).execute();
+            userPhones.stream().forEach(up->userIds.add(up.getUserId()));
+        }
+        List<User> users = new Select().from(User.class).where(new Expression(ModelReflector.instance(User.class).getPool(),"ID",
+                Operator.IN , userIds.toArray(new Long[]{}))).execute();
+
+        return users;
     }
 }

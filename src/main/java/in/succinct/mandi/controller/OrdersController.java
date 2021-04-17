@@ -305,7 +305,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             User user = uf.getUser().getRawRecord().getAsProxy(User.class);
             users.add(user);
         }
-        users.add(order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class));
+        users.addAll(order.getFacility().getOperatingUsers());
         users.addAll(CompanyUtil.getAdminUsers());
         for (User user: users){
             Map<String,Object> entityMap = TemplateEngine.getInstance().createEntityMap(Arrays.asList(order));
@@ -385,7 +385,8 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             signedToVerify.append("JSESSIONID:"+getPath().getSession().getId()).append(",").append("fms.Token:" +fmsToken).append(",");
             signedToVerify.append("/orders/processUpi").append("|").append(payload);
             Config.instance().getLogger(getClass().getName()).info("Payload to verify:\n" + signedToVerify.toString());
-            verified = Crypt.getInstance().verifySignature(signedToVerify.toString(),signature,publicKey);
+            verified = Crypt.getInstance().verifySignature(signedToVerify.toString(),Crypt.SIGNATURE_ALGO,signature,
+                    Crypt.getInstance().getPublicKey(Crypt.KEY_ALGO,publicKey));
             if (verified){
                 break;
             }

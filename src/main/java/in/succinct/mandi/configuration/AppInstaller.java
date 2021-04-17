@@ -1,12 +1,13 @@
 package in.succinct.mandi.configuration;
 
+import com.venky.core.security.Crypt;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
 import com.venky.swf.db.table.Table;
-import com.venky.swf.plugins.collab.db.model.Key;
+import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
@@ -16,18 +17,12 @@ import com.venky.swf.util.SharedKeys;
 import in.succinct.mandi.db.model.EncryptedModel;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.User;
-import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
-import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
-import org.bouncycastle.crypto.KeyGenerationParameters;
-import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator;
-import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters;
-import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
-import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters;
+import org.bouncycastle.jcajce.spec.EdDSAParameterSpec;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import java.security.KeyPairGenerator;
-import java.security.SecureRandom;
-import java.util.Base64;
+import java.security.KeyPair;
+import java.security.Security;
 import java.util.List;
 
 public class AppInstaller implements Installer {
@@ -43,6 +38,11 @@ public class AppInstaller implements Installer {
     }
 
     private void generateBecknKeys() {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+
+        /*
         Key key = Database.getTable(Key.class).newRecord();
         key.setAlias(BecknUtil.getDomainId() + ".k1");
         key = Database.getTable(Key.class).getRefreshed(key);
@@ -57,6 +57,39 @@ public class AppInstaller implements Installer {
                     ((Ed25519PublicKeyParameters)pair.getPublic()).getEncoded()));
             key.save();
         }
+
+        Key encryptionKey = Database.getTable(Key.class).newRecord();
+        encryptionKey.setAlias(Config.instance().getHostName() + ".encrypt.k1");
+        encryptionKey = Database.getTable(Key.class).getRefreshed(encryptionKey);
+        if (encryptionKey.getRawRecord().isNewRecord()){
+            KeyPair pair = Crypt.getInstance().generateKeyPair(Crypt.KEY_ALGO);
+            encryptionKey.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
+            encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
+            encryptionKey.save();
+        }
+        */
+
+        CryptoKey key = Database.getTable(CryptoKey.class).newRecord();
+        key.setAlias(Config.instance().getHostName() + ".k1");
+        key = Database.getTable(CryptoKey.class).getRefreshed(key);
+        if (key.getRawRecord().isNewRecord()){
+
+            KeyPair pair = Crypt.getInstance().generateKeyPair(EdDSAParameterSpec.Ed25519,256);
+            key.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
+            key.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
+            key.save();
+        }
+
+        CryptoKey encryptionKey = Database.getTable(CryptoKey.class).newRecord();
+        encryptionKey.setAlias(Config.instance().getHostName() + ".encrypt.k1");
+        encryptionKey = Database.getTable(CryptoKey.class).getRefreshed(encryptionKey);
+        if (encryptionKey.getRawRecord().isNewRecord()){
+            KeyPair pair = Crypt.getInstance().generateKeyPair(Crypt.KEY_ALGO,2048);
+            encryptionKey.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
+            encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
+            encryptionKey.save();
+        }
+
     }
 
     private void installGuestUser() {
