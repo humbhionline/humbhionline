@@ -92,7 +92,7 @@
                         Inventories : []
                     };
                     if (self.User.Verified && self.Facilities.length == 0) {
-                        f.Name = "Residence of " + self.User.LongName;
+                        f.Name = self.User.LongName.replaceAll(" ",".") + ".home";
                         f.AddressLine1 = self.User.AddressLine1;
                         f.AddressLine2 = self.User.AddressLine2;
                         f.AddressLine3 = self.User.AddressLine3;
