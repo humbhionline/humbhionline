@@ -227,7 +227,7 @@ public class FacilityImpl extends ModelImpl<Facility> {
         if (!ObjectUtil.isVoid(facility.getPhoneNumber())) {
             phoneNumbers.add(facility.getPhoneNumber());
         }
-        if (ObjectUtil.isVoid(facility.getAlternatePhoneNumber())){
+        if (!ObjectUtil.isVoid(facility.getAlternatePhoneNumber())){
             phoneNumbers.add(facility.getAlternatePhoneNumber());
         }
         if (!phoneNumbers.isEmpty()){
