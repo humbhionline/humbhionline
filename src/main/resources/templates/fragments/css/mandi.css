@@ -66,6 +66,17 @@ h6 {
 .nav-item {
     position: relative;
 }
+.nav-item i {
+    display: none;
+}
+.navbar-expand-lg {
+    background-color: rgba(255, 255, 255, 0.8);
+    padding-left: 10px;
+    padding-right: 10px;
+}
+.navbar-expand-lg .navbar-collapse {
+    justify-content: flex-end;
+}
 
 .bottom-card {
     bottom: 0;
@@ -105,7 +116,78 @@ h6 {
     bottom: 0;
 }
 
+.content-box {
+    background-color: white;
+    border-radius: 6px;
+    padding: 15px;
+    margin-left: -15px;
+    margin-right: -15px;
+    box-shadow: var(--hbo-shadow);
+    position: relative;
+    z-index: 1;
+}
+.content-box p,
+.content-sub-box p {
+    line-height: 1.3;
+}
+.action-box {
+    position: absolute;
+    right: 7px;
+    z-index: 2;
+    top: 5px;
+}
+
+.item-list {
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    padding: 6px;
+    margin-bottom: 0.65rem;
+    background-color: white;
+}
+.carousel {
+    position: relative;
+    top: -55px;
+    z-index: -1;
+    margin-bottom: -55px;
+}
+.carousel-inner img {
+    height: 450px;
+    width: 100%;
+}
+.facility-info {
+    position: relative;
+}
+.banner-edit {
+    top: 5px;
+    right: 10px;
+    position: absolute;
+    z-index: 9;
+}
+
 @media (max-width: 640px) {
+    /* Make the image fully responsive */
+    .carousel {
+        position: relative;
+        top: inherit;
+        z-index: -1;
+        margin-bottom: 0;
+    }
+    .carousel-inner img {
+        height: 200px;
+        width: 100%;
+    }
+
+    .carousel-inner {
+        background: gray;
+    }
+
+    .banner-edit {
+        top: -60px;
+        right: 17px;
+        position: absolute;
+        z-index: 2;
+    }
+
     body,
     .body {
         padding: 60px 0 0;
