@@ -21,7 +21,7 @@
             el: "#app",
             data: {
                 User: Lockr.get("User"),
-                Facility: { Name :"" , City : { Name :"" , State : { Name : "" , Country : {"Name":"India"} }}, PinCode: { PinCode: ""} , Inventories: [] },
+                Facility: { Name: "", City: { Name: "", State: { Name: "", Country: { "Name": "India" } } }, PinCode: { PinCode: "" }, Inventories: [] },
                 facilityBannerBeingEdited: false,
                 facilityCropperBeingEdited: false,
                 timer: -1,
@@ -80,19 +80,21 @@
                         });
 
 
-                    }catch (err){
+                    } catch (err) {
                         console.log(err);
                     }
-                   //Vue.set(self, "Facility", response.Facility);
+                    //Vue.set(self, "Facility", response.Facility);
                 },
                 showApp: function () {
                     $("#header").load("/fragments/html/header", {}, function () {
                         fixMenu();
                         $(".navbar").addClass("bg-clear");
                         $("#root").show();
-                        let facilityHeader = $(".facility-header").height() + 10;
-                        $(".body").css("padding-top", facilityHeader);
-                        $("#pageTitle").html("Sales-Facilities");
+                        if (window.innerWidth < 640) {
+                            let facilityHeader = $(".facility-header").height() + 10;
+                            $(".body").css("padding-top", facilityHeader);
+                            $("#pageTitle").html("Sales-Facilities");
+                        }
                     });
                 },
 
@@ -242,7 +244,7 @@
                         }
                         if (!inv.Sku.Attachments) {
                             inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
-                            api().  url("/skus/show/" + inv.Sku.Id).get().then(function (sku_response) {
+                            api().url("/skus/show/" + inv.Sku.Id).get().then(function (sku_response) {
                                 inv.Sku.Attachments = sku_response.Sku.Attachments || [{ Sku: { Id: inv.Sku.Id } }];
                             });
                         }
@@ -269,7 +271,7 @@
                     if (!newRecord) {
                         i.Infinite = "N";
                         showSpinner();
-                        api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Remove Inventory"} }).post().then(function (response) {
+                        api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Remove Inventory" } }).post().then(function (response) {
                             var inv = deepmerge(i, response.AdjustmentRequests[0].Inventory);
                             if (!inv.Sku.Item.AssetCode) {
                                 inv.Sku.Item.AssetCode = { Code: "" };
@@ -319,7 +321,7 @@
                     if (!newRecord) {
                         i.Infinite = "Y";
                         showSpinner();
-                        api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Mark Infinite Inventory"} }).post().then(function (response) {
+                        api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i, AdjustmentQuantity: -1 * i.Quantity, Comment: "Mark Infinite Inventory" } }).post().then(function (response) {
                             var inv = deepmerge(i, response.AdjustmentRequests[0].Inventory);
                             if (!inv.Sku.Item.AssetCode) {
                                 inv.Sku.Item.AssetCode = { Code: "" };
@@ -861,24 +863,6 @@
         });
     });
 </script>
-<style>
-    /* Make the image fully responsive */
-    .carousel-inner img {
-        height: 200px;
-        width: 100%;
-    }
-
-    .carousel-inner {
-        background: gray;
-    }
-
-    .banner-edit {
-        bottom: 38px;
-        right: 23px;
-        position: absolute;
-        z-index: 2;
-    }
-</style>
 <div id="root" style="display:none;" v-if="Facility.Id">
     <div id="header">
     </div>
@@ -928,10 +912,11 @@
                 <a class="carousel-control-next" href="#banner-slider" data-slide="next">
                     <span class="carousel-control-next-icon"></span>
                 </a>
-                <a href="#" class="banner-edit btn btn-camera btn-sm btn-outline-primary border-0"
-                    @click="editBanner($event)" v-if="!facilityBannerBeingEdited"><i class="fas fa-edit"></i> Banner</a>
+
             </div>
             <div class="container facility-info">
+                <a href="#" class="banner-edit btn btn-sm btn-outline-primary border-0"
+                    @click="editBanner($event)" v-if="!facilityBannerBeingEdited"><i class="fas fa-edit"></i> Banner</a>
                 <div class="row">
                     <div class="col-12">
                         <div class="content-box">
@@ -1264,7 +1249,7 @@
                             <select v-bind:key="'ManagedBy' + i" v-bind:id="'ManagedBy' + i"
                                 class="form-control form-control-sm" placeholder="Managed By"
                                 v-model="current.Inventory.ManagedBy" v-on:focus="removeList($event)">
-                                <option value="" >Myself</option>
+                                <option value="">Myself</option>
                                 <option value="wefast">Wefast</option>
                             </select>
                         </div>

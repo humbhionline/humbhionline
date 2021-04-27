@@ -10,8 +10,15 @@
         $(function () {
             let path = window.location.pathname;
             console.log('Path', path);
-            window.innerWidth < 640 &&
-                (path === "/dashboard" ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show())
+            if (window.innerWidth < 640) {
+                (path === "/dashboard" ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show());
+                $("#pageTitleDesk").hide();
+                $("#pageTitle").show();
+            } else {
+                $("#pageTitleDesk").show();
+                $("#pageTitle").hide();
+            }
+
             hboHeaderModel = makeHeaderVue(hide);
             hideSpinner(); //Defensive. remove all spinners after showApp.
         });
@@ -73,14 +80,16 @@
                 <button id="backbutton" class="navbar-toggler btn btn-light btn-back" @click="back()">
                     <i class="fa fa-chevron-left text-white"></i>
                 </button>
-                <img src="/resources/web_manifest/32x32.png" class="d-none d-sm-block" alt="" />
+                <a href="/dashboard">
+                    <img src="/resources/web_manifest/32x32.png" class="d-none d-sm-block" alt="" />
+                </a>
+                <h5 id="pageTitleDesk" class="m-0 title-text">HumBhiOnline</h5>
                 <h5 id="pageTitle" class="m-0 title-text"></h5>
                 <div class="navbar-brand">
                     <!-- <a class="m-logo fa fa-bell" href="/alerts" /> -->
                     <a href="/buy" class="d-flex justify-content-center">
                         <p id="orderCount" class="text-white very-small position-absolute">{{count()}}</p>
                         <img src="/resources/web_manifest/logo-white.svg" class="d-block d-sm-none" alt="" />
-
                     </a>
                 </div>
                 <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
@@ -99,8 +108,7 @@
                                     class="fa fa-user-circle"></i>
                                 Profile</a>
                         </li>
-                        <li class="nav-item dropdown-submenu"
-                            v-if="User.Seller === 'Y' && User.Verified === 'Y'">
+                        <li class="nav-item dropdown-submenu" v-if="User.Seller === 'Y' && User.Verified === 'Y'">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarSellingMenuLink"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fa fa-coins"></i>
