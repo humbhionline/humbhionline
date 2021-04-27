@@ -1,4 +1,4 @@
-package in.succinct.mandi.agents;
+package in.succinct.mandi.agents.beckn;
 
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.math.DoubleUtils;
@@ -8,7 +8,6 @@ import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
-import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.collab.util.BoundingBox;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
 import com.venky.swf.pm.DataSecurityFilter;
@@ -43,7 +42,6 @@ import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.participation.Company;
 import org.apache.lucene.search.Query;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.util.HashMap;
@@ -51,15 +49,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class Search implements Task {
-    Request request ;
+public class Search extends BecknAsyncTask {
     public Search(Request request){
-        this.request = request;
+        super(request);
     }
     static final int MAX_LIST_RECORDS = 10;
 
     @Override
     public void execute() {
+        Request request = getRequest();
         String itemName = null;
         String providerName = null;
         Intent intent = request.getMessage().getIntent();
@@ -81,7 +79,7 @@ public class Search implements Task {
         Price price = item != null ? item.getPrice() : null ;
         Fulfillment fulfillment = intent.getFulfillment();
         FulfillmentStop end = fulfillment == null ? null : fulfillment.getEnd();
-        GeoCoordinate deliveryLocation = end == null ? null : end.getGps();
+        GeoCoordinate deliveryLocation = end == null ? null : end.getLocation().getGps();
         double maxDistance = getMaxDistance(end);
 
 
@@ -163,16 +161,18 @@ public class Search implements Task {
 
     private void push_onsearch(List<Inventory> inventories) {
         Company company = CompanyUtil.getCompany();
-        OnSearch onSearch = new OnSearch(new JSONObject());
-        onSearch.setContext(request.getContext());
-        onSearch.setMessage(new Message(new JSONObject()));
-        Catalog catalog = new Catalog(new JSONObject());
-        onSearch.getMessage().setCatalog(catalog);
+        OnSearch onSearch = new OnSearch();
+        onSearch.setContext(getRequest().getContext());
+        onSearch.setMessage(new Message());
+
+        Catalog catalog = new Catalog();
         catalog.setId(BecknUtil.getBecknId("",null));
-        catalog.setDescriptor(new Descriptor(new JSONObject()));
+        catalog.setDescriptor(new Descriptor());
         catalog.getDescriptor().setName(company.getName());
-        Providers providers = new Providers(new JSONArray());
+
+        Providers providers = new Providers();
         catalog.setProviders(providers);
+        onSearch.getMessage().setCatalog(catalog);
 
 
         inventories.forEach(inv->{
@@ -180,18 +180,18 @@ public class Search implements Task {
             Facility facility = inv.getFacility().getRawRecord().getAsProxy(Facility.class);
             Provider provider = providers.get(providerId);
             if (provider == null){
-                provider = new Provider(new JSONObject());
+                provider = new Provider();
                 provider.setId(providerId);
-                provider.setDescriptor(new Descriptor(new JSONObject()));
+                provider.setDescriptor(new Descriptor());
                 provider.getDescriptor().setName(facility.getName());
-                provider.setLocations(new Locations(new JSONArray()));
-                provider.setItems(new Items(new JSONArray()));
-                provider.setMatched(true);
+                provider.setLocations(new Locations());
+                provider.setItems(new Items());
+                provider.set("matched",true);
                 providers.add(provider);
             }
             String locationId = BecknUtil.getBecknId(String.valueOf(inv.getFacilityId()),Entity.provider_location);
             if (provider.getLocations().get(locationId) == null){
-                Location location = new Location(new JSONObject());
+                Location location = new Location();
                 location.setId(locationId);
                 location.setGps(new GeoCoordinate(inv.getFacility()));
                 provider.getLocations().add(location);
@@ -199,12 +199,12 @@ public class Search implements Task {
             Sku sku = inv.getSku().getRawRecord().getAsProxy(Sku.class);
 
             String itemId  = BecknUtil.getBecknId(String.valueOf(inv.getSkuId()),Entity.item);
-            Item item = new Item(new JSONObject());
+            Item item = new Item();
             provider.getItems().add(item);
 
-            Price price = new Price(new JSONObject());
+            Price price = new Price();
             item.setId(itemId);
-            item.setDescriptor(new Descriptor(new JSONObject()));
+            item.setDescriptor(new Descriptor());
             item.getDescriptor().setName(sku.getName());
             item.setPrice(price);
             item.setLocationId(locationId);
@@ -214,13 +214,13 @@ public class Search implements Task {
             price.setListedValue(inv.getMaxRetailPrice());
             price.setValue(inv.getSellingPrice());
             price.setCurrency("INR");
-            item.setMatched(true);
+            item.set("matched",true);
             item.setRecommended(true);
 
         });
 
-        new Call<JSONObject>().url(request.getContext().getBapUri() + "/on_search").method(HttpMethod.POST).inputFormat(InputFormat.JSON).
-                input((JSONObject) onSearch.getInner()).headers(getHeaders(onSearch)).getResponseAsJson();
+        new Call<JSONObject>().url(getRequest().getContext().getBapUri() + "/on_search").method(HttpMethod.POST).inputFormat(InputFormat.JSON).
+                input(onSearch.getInner()).headers(getHeaders(onSearch)).getResponseAsJson();
     }
 
     private Map<String, String> getHeaders(OnSearch onSearch) {
@@ -231,8 +231,8 @@ public class Search implements Task {
 
     private double getMaxDistance(FulfillmentStop end){
         double radius = 0;
-        if (end != null && end.getGps() != null){
-            Circle circle = end.getCircle();
+        if (end != null && end.getLocation().getGps() != null){
+            Circle circle = end.getLocation().getCircle();
             if (circle != null){
                 radius = circle.getDouble("radius");
             }
@@ -247,8 +247,8 @@ public class Search implements Task {
         if (fulfillment != null){
             FulfillmentStop end = fulfillment.getEnd();
             if (end != null){
-                GeoCoordinate deliveryLocation = end.getGps();
-                Circle circle = end.getCircle();
+                GeoCoordinate deliveryLocation = end.getLocation().getGps();
+                Circle circle = end.getLocation().getCircle();
                 double radius = 0;
                 if (circle != null) {
                     radius = circle.getDouble("radius");

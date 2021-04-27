@@ -24,10 +24,10 @@ public class BecknPublicKeyFinder implements Extension {
         JSONObject object = new JSONObject();
         object.put("subscriber_id",subscriber_id);
         object.put("type","bpp");
-        object.put("domain","localretail");
+        object.put("domain","local-retail");
 
         JSONObject response = new Call<JSONObject>().url("https://registry.beckn.succinct.in/lookup").input(object).inputFormat(InputFormat.JSON).
-                header("Authorization",new Request(object).generateAuthorizationHeader(subscriber_id,uniqueKeyId)).getResponseAsJson();
+                header("Authorization",new Request().generateAuthorizationHeader(subscriber_id,uniqueKeyId)).getResponseAsJson();
 
         if (ObjectUtil.equals(response.get("status"),"SUBSCRIBED")){
             publicKeyHolder.set((String)response.get("signing_public_key"));

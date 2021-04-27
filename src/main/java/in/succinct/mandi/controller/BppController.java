@@ -1,50 +1,36 @@
 package in.succinct.mandi.controller;
 
-import com.venky.core.math.DoubleHolder;
 import com.venky.core.string.StringUtil;
-import com.venky.core.util.ObjectUtil;
-import com.venky.geo.GeoCoordinate;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
-import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
-import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
-import com.venky.swf.plugins.collab.util.BoundingBox;
-import com.venky.swf.plugins.lucene.index.LuceneIndexer;
-import com.venky.swf.pm.DataSecurityFilter;
-import com.venky.swf.sql.Conjunction;
-import com.venky.swf.sql.Expression;
-import com.venky.swf.sql.Operator;
-import com.venky.swf.sql.Select;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
 import in.succinct.beckn.Acknowledgement;
 import in.succinct.beckn.Acknowledgement.Status;
-import in.succinct.beckn.Circle;
 import in.succinct.beckn.Descriptor;
-import in.succinct.beckn.Fulfillment;
-import in.succinct.beckn.FulfillmentStop;
-import in.succinct.beckn.Item;
-import in.succinct.beckn.Price;
-import in.succinct.beckn.Provider;
+import in.succinct.beckn.Option;
+import in.succinct.beckn.Options;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
-import in.succinct.mandi.agents.Search;
-import in.succinct.mandi.db.model.Facility;
-import in.succinct.mandi.db.model.Inventory;
-import in.succinct.mandi.db.model.User;
-import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
-import org.apache.http.HttpRequest;
-import org.apache.lucene.search.Query;
+import in.succinct.mandi.agents.beckn.BecknAsyncTask;
+import in.succinct.mandi.agents.beckn.Cancel;
+import in.succinct.mandi.agents.beckn.Confirm;
+import in.succinct.mandi.agents.beckn.Init;
+import in.succinct.mandi.agents.beckn.Search;
+import in.succinct.mandi.agents.beckn.Select;
+import in.succinct.mandi.agents.beckn.Track;
+import in.succinct.mandi.agents.beckn.Update;
+import in.succinct.mandi.db.model.OrderCancellationReason;
+import in.succinct.mandi.util.beckn.BecknUtil;
+import in.succinct.mandi.util.beckn.BecknUtil.Entity;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
 import java.util.List;
 
 public class BppController extends Controller {
@@ -53,6 +39,9 @@ public class BppController extends Controller {
     }
 
     public View nack(Request request,String realm){
+        Acknowledgement nack = new Acknowledgement(Status.NACK);
+        //nack.setSignature(Request.generateSignature(request.hash(),request.getPrivateKey(request.getContext().getBppId(),request.getContext().getBppId() +".k1")));
+
         return new BytesView(getPath(),
                 new Response(request.getContext(),new Acknowledgement(Status.NACK)).toString().getBytes(StandardCharsets.UTF_8),
                 MimeType.APPLICATION_JSON,"WWW-Authenticate","Signature realm=\""+realm+"\"",
@@ -64,14 +53,17 @@ public class BppController extends Controller {
         };
     }
     public View ack(Request request){
-        return new BytesView(getPath(),new Response(request.getContext(),new Acknowledgement(Status.ACK)).toString().getBytes(StandardCharsets.UTF_8));
+        Acknowledgement ack = new Acknowledgement(Status.ACK);
+        ack.setSignature(Request.generateSignature(request.hash(),request.getPrivateKey(request.getContext().getBppId(),request.getContext().getBppId() +".k1")));
+        return new BytesView(getPath(),new Response(request.getContext(),ack).toString().getBytes(StandardCharsets.UTF_8));
     }
 
-    public View search() {
+
+    private <C extends BecknAsyncTask> View act(Class<C> clazzTask){
         try {
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
             if (request.verifySignature("Authorization",getPath().getHeaders())){
-                TaskManager.instance().executeAsync(new Search(request));
+                TaskManager.instance().executeAsync(clazzTask.getConstructor(Request.class).newInstance(request));
                 return ack(request);
             }else {
                 return nack(request,request.getContext().getBapId());
@@ -81,50 +73,129 @@ public class BppController extends Controller {
         }
     }
 
-
+    public View search() {
+        return act(Search.class);
+    }
     public View select(){
-        return null;
+        return act(Select.class);
     }
-    public View init(){
-        return null;
+    public View cancel(){
+        return act(Cancel.class);
     }
 
+    public View init(){
+        return act(Init.class);
+    }
     public View confirm(){
-        return null;
+        return act(Confirm.class);
     }
 
     public View status(){
-        return null;
+        return act(in.succinct.mandi.agents.beckn.Status.class);
     }
     public View track(){
-        return null;
-    }
-    public View cancel(){
-        return null;
+        return act(Track.class);
     }
     public View update(){
-        return null;
+        return act(Update.class);
     }
 
 
     public View rating(){
-        return null;
+        try {
+            Request request = new Request(StringUtil.read(getPath().getInputStream()));
+            if (request.verifySignature("Authorization",getPath().getHeaders())){
+                return ack(request);
+            }else {
+                return nack(request,request.getContext().getBapId());
+            }
+        }catch (Exception ex){
+            throw new RuntimeException(ex);
+        }
     }
 
     public View support(){
-        return null;
+        try {
+            Request request = new Request(StringUtil.read(getPath().getInputStream()));
+            if (request.verifySignature("Authorization",getPath().getHeaders())){
+                return ack(request);
+            }else {
+                return nack(request,request.getContext().getBapId());
+            }
+        }catch (Exception ex){
+            throw new RuntimeException(ex);
+        }
+
     }
 
     public View get_cancellation_reasons(){
-        return null;
+        try {
+            Request request = new Request(StringUtil.read(getPath().getInputStream()));
+            if (request.verifySignature("Authorization",getPath().getHeaders())){
+                List<OrderCancellationReason> reasons = new com.venky.swf.sql.Select().from(OrderCancellationReason.class).execute();
+                Options options = new Options();
+                reasons.forEach(r->{
+                    if (r.isUsableBeforeDelivery()){
+                        Option option = new Option();
+                        option.setId(BecknUtil.getBecknId(String.valueOf(r.getId()),
+                                Entity.cancellation_reason));
+                        Descriptor descriptor = new Descriptor();
+                        option.setDescriptor(descriptor);
+                        descriptor.setName(r.getReason());
+                        descriptor.setCode(String.valueOf(r.getId()));
+                        options.add(option);
+                    }
+                });
+                return new BytesView(getPath(),options.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+            }else {
+                return nack(request,request.getContext().getBapId());
+            }
+        }catch (Exception ex){
+            throw new RuntimeException(ex);
+        }
+
     }
 
     public View get_return_reasons(){
-        return null;
+        try {
+            Request request = new Request(StringUtil.read(getPath().getInputStream()));
+            if (request.verifySignature("Authorization",getPath().getHeaders())){
+                List<OrderCancellationReason> reasons = new com.venky.swf.sql.Select().from(OrderCancellationReason.class).execute();
+                Options options = new Options();
+                reasons.forEach(r->{
+                    if (r.isUsableAfterDelivery()){
+                        Option option = new Option();
+                        option.setId(BecknUtil.getBecknId(String.valueOf(r.getId()),
+                                Entity.cancellation_reason));
+                        Descriptor descriptor = new Descriptor();
+                        option.setDescriptor(descriptor);
+                        descriptor.setName(r.getReason());
+                        descriptor.setCode(String.valueOf(r.getId()));
+                        options.add(option);
+                    }
+                });
+                return new BytesView(getPath(),options.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+            }else {
+                return nack(request,request.getContext().getBapId());
+            }
+        }catch (Exception ex){
+            throw new RuntimeException(ex);
+        }
+
     }
 
     public View get_rating_categories(){
-        return null;
+        try {
+            Request request = new Request(StringUtil.read(getPath().getInputStream()));
+            if (request.verifySignature("Authorization",getPath().getHeaders())){
+                return new BytesView(getPath(),new JSONArray().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+            }else {
+                return nack(request,request.getContext().getBapId());
+            }
+        }catch (Exception ex){
+            throw new RuntimeException(ex);
+        }
+
     }
 
 

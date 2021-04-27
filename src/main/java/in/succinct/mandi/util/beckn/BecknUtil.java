@@ -26,6 +26,12 @@ public class BecknUtil {
         provider_location,
         item,
         catalog,
+        cancellation_reason,
+        return_reason,
+        order
+    }
+    public static String getBecknId(Long localUniqueId,Entity becknEntity){
+        return getBecknId(String.valueOf(localUniqueId),becknEntity);
     }
     public static String getBecknId(String localUniqueId,Entity becknEntity){
         StringBuilder builder = new StringBuilder();

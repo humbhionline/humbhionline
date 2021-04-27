@@ -22,7 +22,7 @@ public class BecknPrivateKeyFinder implements Extension {
         String uniqueKeyId = (String)context[1];
         ObjectHolder<String> privateKeyHolder = (ObjectHolder<String>) context[2];
         List<CryptoKey> keys = new Select().from(CryptoKey.class).where(
-                new Expression(ModelReflector.instance(CryptoKey.class).getPool(),"beckn_id", Operator.EQ,uniqueKeyId)).execute();
+                new Expression(ModelReflector.instance(CryptoKey.class).getPool(),"ALIAS", Operator.EQ,uniqueKeyId)).execute();
         if (keys.isEmpty()){
             throw new RuntimeException("Key :" + uniqueKeyId + " not generated! ");
         }
