@@ -46,7 +46,7 @@
                     if (event) {
                         event.preventDefault();
                     }
-                    window.location.replace(document.referrer && document.referrer.indexOf("dashboard") > 0 ? document.referrer.replace(/&clone_order_id=[0-9]+/g,"") : "/index");
+                    window.location.replace(document.referrer && document.referrer.indexOf("dashboard") > 0 ? document.referrer.replace(/&clone_order_id=[0-9]+/g, "") : "/index");
                 },
                 showApp: function () {
                     let self = this;
@@ -141,8 +141,8 @@
                     }
                     var Orders = [];
                     let self = this;
-                    if (self.guest){
-                        Lockr.set("signup-triggered",true);
+                    if (self.guest) {
+                        Lockr.set("signup-triggered", true);
                         self.logout();
                         return;
                     }
@@ -315,12 +315,16 @@
                     <div class="form-row mb-2 border-bottom py-2"
                         v-for="(ol,olindex) in facilityOrders[facility.Id].OrderLines">
                         <div class="col-sm-2 col-4">
-                            <img v-bind:src="ol.Inventory.Sku.Attachments[0].AttachmentUrl"
-                                v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
-                                class="w-100" data-toggle="modal"
-                                v-bind:data-target="'#sku-img-'+ol.Inventory.Sku.Id" />
-                            <div v-else class="default-img d-flex bg-light align-items-center justify-content-center border p-1 rounded-sm">
-                                <span class="font-weight-bold text-muted small">{{ol.Inventory.Sku.Item.Name}}</span>
+                            <div class="img-box">
+                                <img v-bind:src="ol.Inventory.Sku.Attachments[0].AttachmentUrl"
+                                    v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
+                                    class="w-100" data-toggle="modal"
+                                    v-bind:data-target="'#sku-img-'+ol.Inventory.Sku.Id" />
+                                <div v-else
+                                    class="default-img d-flex bg-light align-items-center justify-content-center border p-1 rounded-sm">
+                                    <span
+                                        class="font-weight-bold text-muted small">{{ol.Inventory.Sku.Item.Name}}</span>
+                                </div>
                             </div>
                             <!-- Modal View Images-->
                             <div v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
@@ -489,8 +493,7 @@
                             </a>
                         </div>
                         <div class="col-6 text-right">
-                            <button class="btn btn-sm btn-block btn-primary"
-                                v-on:click="bookOrders($event)">
+                            <button class="btn btn-sm btn-block btn-primary" v-on:click="bookOrders($event)">
                                 <small>
                                     Place Orders
                                 </small>

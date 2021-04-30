@@ -915,8 +915,8 @@
 
             </div>
             <div class="container facility-info">
-                <a href="#" class="banner-edit btn btn-sm btn-outline-primary border-0"
-                    @click="editBanner($event)" v-if="!facilityBannerBeingEdited"><i class="fas fa-edit"></i> Banner</a>
+                <a href="#" class="banner-edit btn btn-sm btn-outline-primary border-0" @click="editBanner($event)"
+                    v-if="!facilityBannerBeingEdited"><i class="fas fa-edit"></i> Banner</a>
                 <div class="row">
                     <div class="col-12">
                         <div class="content-box">
@@ -996,24 +996,18 @@
         <div class="container">
             <div id="banners" class="show-update" v-if="facilityBannerBeingEdited">
                 <div class="form-row">
-                    <div class="col">
+                    <div class="col-7">
                         <label id="updated-image" v-bind:hidden="!facilityCropperBeingEdited"
                             class="btn btn-outline-primary btn-sm mb-2 float-right">Change Image</label>
                         <h6>{{facilityCropperBeingEdited ? "Upload banner Image" : "Update/ Add New banner"}}</h6>
                     </div>
-                    <!-- <div class="col-2 text-right">
-                        <a href="#" @click="bannerEditComplete($event)" v-if="facilityBannerBeingEdited"><i
-                                class="fas fa-times"></i></a>
-                    </div> -->
-                </div>
-                <div class="form-row mb-2" v-bind:hidden="facilityCropperBeingEdited">
-                    <div class="col text-right">
+                    <div class="col text-right" v-bind:hidden="facilityCropperBeingEdited">
                         <a href="#." @click="bannerEditComplete($event)" class="btn btn-sm btn-secondery">Close</a><a
                             href="#." class="btn btn-sm btn-primary" @click="addBanner($event)">Add New</a>
                     </div>
                 </div>
                 <div class="form-row" v-bind:hidden="facilityCropperBeingEdited">
-                    <div class="col-4 my-1" v-for="(attachment,i) in Facility.Attachments">
+                    <div class="col-4 col-sm-2 my-1" v-for="(attachment,i) in Facility.Attachments">
                         <span v-if="attachment.AttachmentUrl || attachment.Attachment"
                             @click="chooseBannerFile($event,i)" class="img-holder">
                             <img v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl:attachment.Attachment"
@@ -1048,13 +1042,13 @@
             </div>
             <div class="pop-overlay" v-if="facilityBannerBeingEdited"></div>
 
-            <div v-bind:id="'inventory-' + i " class="mt-1 form-row" v-for="(inv,i) in search.results">
-                <div class="col-12">
-                    <div class="item-list">
+            <div class="mt-1 row mt-sm-3">
+                <div class="col-lg-3 col-sm-4" v-for="(inv,i) in search.results">
+                    <div class="item-list" v-bind:id="'inventory-' + i ">
                         <div class="form-row">
-                            <div class="col-4 img-holder">
+                            <div class="col-4 col-sm-12">
                                 <span v-for="(attachment,ai) in inv.Sku.Attachments">
-                                    <div class="img-box">
+                                    <div class="img-holder border rounded-sm">
                                         <img v-for="(attachment,ai) in "
                                             v-bind:src="!attachment.Dirty ? attachment.AttachmentUrl : attachment.Attachment"
                                             v-if="attachment.Id || attachment.Dirty" class="w-100" data-toggle="modal"
@@ -1150,7 +1144,7 @@
                                     </div>
                                 </span>
                             </div>
-                            <div class="col">
+                            <div class="col pb-4 pb-sm-0">
                                 <div class="form-row mb-0">
                                     <div class="col text-right">
                                         <a href="#/" class="btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
@@ -1184,165 +1178,170 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="show-update" v-if="current.index === i">
-                    <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
-                        <a href="#" v-for="(item,index) in current.Items" v-if="current.Items.length > 0"
-                            v-on:click="onItemSelect($event,item)" v-on:keyup.enter="onItemSelect($event,item)"
-                            v-on:keyup.space="onItemSelect($event,item)"
-                            v-on:keyup.up="navigate($event,index-1,current.Items.length)"
-                            v-on:keyup.down="navigate($event,index+1,current.Items.length)">
-                            <span>{{item.Name}}{{item.AssetCode ? "-" + item.AssetCode.Code:""}}</span>
-                            <span v-bind:alt="item.AssetCode ? item.AssetCode.Description : ''"
-                                class="small d-block text-truncate">{{ item.AssetCode ? item.AssetCode.Description :
-                                ""}}</span>
-                        </a>
-                        <a href="#" v-for="(code,index) in current.AssetCodes" v-if="current.AssetCodes.length > 0"
-                            v-on:click="onAssetCodeSelect($event,code)"
-                            v-on:keyup.space="onAssetCodeSelect($event,code)"
-                            v-on:keyup.enter="onAssetCodeSelect($event,code)"
-                            v-on:keyup.up="navigate($event,index-1,current.AssetCodes.length)"
-                            v-on:keyup.down="navigate($event,index+1,current.AssetCodes.length)">
-                            <span class="d-block">{{code.Code}}</span>
-                            <span class="small d-block text-truncate">{{code.Description}}</span>
-                        </a>
-                        <a href="#" v-for="(code,index) in current.UnitOfMeasures"
-                            v-if="current.UnitOfMeasures.length > 0" v-on:click="onUnitOfMeasuresSelect($event,code)"
-                            v-on:keyup.space="onUnitOfMeasuresSelect($event,code)"
-                            v-on:keyup.enter="onUnitOfMeasuresSelect($event,code)"
-                            v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)"
-                            v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)">{{code.Name}} </a>
+                    <div class="show-update" v-if="current.index === i">
+                        <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
+                            <a href="#" v-for="(item,index) in current.Items" v-if="current.Items.length > 0"
+                                v-on:click="onItemSelect($event,item)" v-on:keyup.enter="onItemSelect($event,item)"
+                                v-on:keyup.space="onItemSelect($event,item)"
+                                v-on:keyup.up="navigate($event,index-1,current.Items.length)"
+                                v-on:keyup.down="navigate($event,index+1,current.Items.length)">
+                                <span>{{item.Name}}{{item.AssetCode ? "-" + item.AssetCode.Code:""}}</span>
+                                <span v-bind:alt="item.AssetCode ? item.AssetCode.Description : ''"
+                                    class="small d-block text-truncate">{{ item.AssetCode ? item.AssetCode.Description :
+                                    ""}}</span>
+                            </a>
+                            <a href="#" v-for="(code,index) in current.AssetCodes" v-if="current.AssetCodes.length > 0"
+                                v-on:click="onAssetCodeSelect($event,code)"
+                                v-on:keyup.space="onAssetCodeSelect($event,code)"
+                                v-on:keyup.enter="onAssetCodeSelect($event,code)"
+                                v-on:keyup.up="navigate($event,index-1,current.AssetCodes.length)"
+                                v-on:keyup.down="navigate($event,index+1,current.AssetCodes.length)">
+                                <span class="d-block">{{code.Code}}</span>
+                                <span class="small d-block text-truncate">{{code.Description}}</span>
+                            </a>
+                            <a href="#" v-for="(code,index) in current.UnitOfMeasures"
+                                v-if="current.UnitOfMeasures.length > 0"
+                                v-on:click="onUnitOfMeasuresSelect($event,code)"
+                                v-on:keyup.space="onUnitOfMeasuresSelect($event,code)"
+                                v-on:keyup.enter="onUnitOfMeasuresSelect($event,code)"
+                                v-on:keyup.up="navigate($event,index-1,current.UnitOfMeasures.length)"
+                                v-on:keyup.down="navigate($event,index+1,current.UnitOfMeasures.length)">{{code.Name}}
+                            </a>
 
-                        <a href="#" v-for="(code,index) in current.Tags" v-if="current.Tags.length > 0"
-                            v-on:click="onTagSelect($event,code)">{{code.Name}} </a>
-                    </div>
-                    <h6 v-if="current.Inventory.Dirty">Modify Stock</h6>
-                    <h6 v-else>Add New Stock</h6>
-                    <div class="form-row mb-2">
-                        <div class="col-7">
-                            <label v-bind:for="'item' + i" class="small mb-0">Product Name</label>
-                            <input v-bind:key="'item' + i" v-bind:id="'item' + i" class="form-control form-control-sm"
-                                placeholder="Product Name" v-model="current.Inventory.Sku.Item.Name"
-                                v-on:input="onItemChange($event)" v-on:focus="removeList($event)"
-                                v-on:keyup.down="navigate($event,0,current.Items.length)" />
+                            <a href="#" v-for="(code,index) in current.Tags" v-if="current.Tags.length > 0"
+                                v-on:click="onTagSelect($event,code)">{{code.Name}} </a>
                         </div>
-                        <div class="col-5">
-                            <label class="small mb-0" v-bind:for="'uom' + i">Package</label>
-                            <input v-bind:key="'uom' + i" v-bind:id="'uom' + i" class="form-control form-control-sm"
-                                placeholder="Package" v-model="current.Inventory.Sku.PackagingUOM.Name"
-                                v-on:input="onUnitOfMeasureChange($event)" v-on:focus="removeList($event)"
-                                v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)" />
-                        </div>
-                    </div>
-                    <div class="form-row mb-2">
-                        <div class="col-12">
-                            <label v-bind:for="'tag' + i" class="small mb-0">Tags</label>
-                            <input v-bind:key="'tag' + i" v-bind:id="'tag' + i" class="form-control form-control-sm"
-                                placeholder="Tags" v-model="current.Inventory.Tags" v-on:input="onTagChange($event)"
-                                v-on:focus="removeList($event)" />
-                        </div>
-                    </div>
-                    <div class="form-row mb-2" v-if="User.Staff === 'Y' && isDeliverySku(current.Inventory.Sku)">
-                        <div class="col">
-                            <label v-bind:for="'ManagedBy' + i" class="small mb-0">{{current.Inventory.Published === "Y"
-                                ? "Primary" : "Outsourced"}} Courier</label>
-                            <select v-bind:key="'ManagedBy' + i" v-bind:id="'ManagedBy' + i"
-                                class="form-control form-control-sm" placeholder="Managed By"
-                                v-model="current.Inventory.ManagedBy" v-on:focus="removeList($event)">
-                                <option value="">Myself</option>
-                                <option value="wefast">Wefast</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row mb-2"
-                        v-if="current.Inventory.ManagedBy &&  current.Inventory.ManagedBy.trim().length > 0">
-                        <div class="col-7">
-                            <label class="small mb-0" v-bind:for="'ApiToken' + i">Api Token</label>
-                            <input v-bind:key="'ApiToken' + i" v-bind:id="'ApiToken' + i"
-                                class="form-control form-control-sm" placeholder="Api Token"
-                                v-model="current.Inventory.ApiToken" />
-                        </div>
-                        <div class="col-5">
-                            <label class="small mb-0" v-bind:for="'CallbackToken' + i">Callback Token</label>
-                            <input v-bind:key="'CallbackToken' + i" v-bind:id="'CallbackToken' + i"
-                                class="form-control form-control-sm" placeholder="Callback Token"
-                                v-model="current.Inventory.CallbackToken" />
-                        </div>
-                    </div>
-
-                    <div class="form-row mb-2"
-                        v-if="!current.Inventory.ManagedBy || current.Inventory.ManagedBy.trim().length === 0">
-                        <div class="col-7">
-                            <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
-                            <input v-bind:key="'price' + i" v-bind:id="'price' + i" class="form-control form-control-sm"
-                                placeholder="&#x20B9;0" v-model="current.Inventory.SellingPrice" />
-                        </div>
-                        <div class="col-5">
-                            <label class="small mb-0" v-bind:for="'mrp' + i">MRP</label>
-                            <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
-                                placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" />
-                        </div>
-                    </div>
-                    <div class="form-row mb-2">
-                        <div class="col-7">
-                            <!-- If item is new only then gst is enterable -->
-                            <label class="small mb-0" v-bind:for="'asset_code' + i">GST/SAC Code</label>
-                            <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
-                                class="form-control form-control-sm" placeholder="GST/SAC Code"
-                                v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                                :disabled="current.Inventory.Sku.Item.Id" v-on:input="onAssetCodeChange($event)"
-                                v-on:focus="removeList($event)"
-                                v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
-                        </div>
-                        <div class="col-5">
-                            <label class="small mb-0">Tax Rate:</label>
-                            <br />
-                            <label>{{current.Inventory.Sku.Item.AssetCode.GstPct}}</label>
-                        </div>
-                    </div>
-
-                    <!--
-                        <div class="row" v-else-if="inv.Sku.Item.AssetCode && inv.Sku.Item.AssetCode.LongDescription">
-                            <div class="col-7" >
-                                <label class="small" >GST/SAC Code</label>
-                                <br/>
-                                <label>{{inv.Sku.Item.AssetCode.Code}}</label>
+                        <h6 v-if="current.Inventory.Dirty">Modify Stock</h6>
+                        <h6 v-else>Add New Stock</h6>
+                        <div class="form-row mb-2">
+                            <div class="col-7">
+                                <label v-bind:for="'item' + i" class="small mb-0">Product Name</label>
+                                <input v-bind:key="'item' + i" v-bind:id="'item' + i"
+                                    class="form-control form-control-sm" placeholder="Product Name"
+                                    v-model="current.Inventory.Sku.Item.Name" v-on:input="onItemChange($event)"
+                                    v-on:focus="removeList($event)"
+                                    v-on:keyup.down="navigate($event,0,current.Items.length)" />
                             </div>
-                            <div class="col-5" >
-                                <label class="small" >Tax Rate:</label>
-                                <br/>
-                                <label>{{inv.Sku.TaxRate}}</label>
+                            <div class="col-5">
+                                <label class="small mb-0" v-bind:for="'uom' + i">Package</label>
+                                <input v-bind:key="'uom' + i" v-bind:id="'uom' + i" class="form-control form-control-sm"
+                                    placeholder="Package" v-model="current.Inventory.Sku.PackagingUOM.Name"
+                                    v-on:input="onUnitOfMeasureChange($event)" v-on:focus="removeList($event)"
+                                    v-on:keyup.down="navigate($event,0,current.UnitOfMeasures.length)" />
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="form-row mb-2">
                             <div class="col-12">
-                                <label class="form-label small"  v-bind:for="'infinite' + i"  >Infinite</label>
-                                <input value="N" type="checkbox" v-bind:key="'infinite' + i"  v-bind:id="'infinite' + i"  class="mt-2 mb-3 form-check custom-control" placeholder="Infinite"
-                                v-model="inv.Infinite"  :disabled="current.index !== i || ( inv.Id && (inv.Quantity * 1.0  > 0))" true-value="Y" false-value="N" />
-                            </div>
-                            Quantity enabling may be complex. Disable for now.
-                            <div class="col-4" v-if=" inv.Infinite === 'N'">
-                                <label class="form-label small"   v-bind:for="'quantity' + i"  >Available</label>
-                                <input v-bind:key="'quantity' + i"  v-bind:id="'quantity' + i"  class="form-control" placeholder="Quantity"
-                                v-model="inv.Quantity"  disabled="disabled"/>
-                            </div>
-                            <div class="col-5" v-if="current.index === i && inv.Infinite === 'N' ">
-                                <label class="form-label small"   v-bind:for="'quantity' + i"  >Adjust +/- </label>
-                                <input v-bind:key="'adjustquantity' + i"  v-bind:id="'adjustquantity' + i"  class="form-control" title="Adjustment Quantity"
-                                v-model="current.AdjustmentQuantity"  />
+                                <label v-bind:for="'tag' + i" class="small mb-0">Tags</label>
+                                <input v-bind:key="'tag' + i" v-bind:id="'tag' + i" class="form-control form-control-sm"
+                                    placeholder="Tags" v-model="current.Inventory.Tags" v-on:input="onTagChange($event)"
+                                    v-on:focus="removeList($event)" />
                             </div>
                         </div>
-                        -->
-                    <div class="text-right">
-                        <a href="#/" class="btn btn-sm btn-light mr-2" role="button" v-on:click="cancel($event)">
-                            Cancel
-                        </a>
-                        <a href="#/" class="btn btn-sm btn-primary" role="button" v-on:click="save($event)">
-                            Save
-                        </a>
+                        <div class="form-row mb-2" v-if="User.Staff === 'Y' && isDeliverySku(current.Inventory.Sku)">
+                            <div class="col">
+                                <label v-bind:for="'ManagedBy' + i" class="small mb-0">{{current.Inventory.Published ===
+                                    "Y"
+                                    ? "Primary" : "Outsourced"}} Courier</label>
+                                <select v-bind:key="'ManagedBy' + i" v-bind:id="'ManagedBy' + i"
+                                    class="form-control form-control-sm" placeholder="Managed By"
+                                    v-model="current.Inventory.ManagedBy" v-on:focus="removeList($event)">
+                                    <option value="">Myself</option>
+                                    <option value="wefast">Wefast</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row mb-2"
+                            v-if="current.Inventory.ManagedBy &&  current.Inventory.ManagedBy.trim().length > 0">
+                            <div class="col-7">
+                                <label class="small mb-0" v-bind:for="'ApiToken' + i">Api Token</label>
+                                <input v-bind:key="'ApiToken' + i" v-bind:id="'ApiToken' + i"
+                                    class="form-control form-control-sm" placeholder="Api Token"
+                                    v-model="current.Inventory.ApiToken" />
+                            </div>
+                            <div class="col-5">
+                                <label class="small mb-0" v-bind:for="'CallbackToken' + i">Callback Token</label>
+                                <input v-bind:key="'CallbackToken' + i" v-bind:id="'CallbackToken' + i"
+                                    class="form-control form-control-sm" placeholder="Callback Token"
+                                    v-model="current.Inventory.CallbackToken" />
+                            </div>
+                        </div>
+
+                        <div class="form-row mb-2"
+                            v-if="!current.Inventory.ManagedBy || current.Inventory.ManagedBy.trim().length === 0">
+                            <div class="col-7">
+                                <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
+                                <input v-bind:key="'price' + i" v-bind:id="'price' + i"
+                                    class="form-control form-control-sm" placeholder="&#x20B9;0"
+                                    v-model="current.Inventory.SellingPrice" />
+                            </div>
+                            <div class="col-5">
+                                <label class="small mb-0" v-bind:for="'mrp' + i">MRP</label>
+                                <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
+                                    placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" />
+                            </div>
+                        </div>
+                        <div class="form-row mb-2">
+                            <div class="col-7">
+                                <!-- If item is new only then gst is enterable -->
+                                <label class="small mb-0" v-bind:for="'asset_code' + i">GST/SAC Code</label>
+                                <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
+                                    class="form-control form-control-sm" placeholder="GST/SAC Code"
+                                    v-model="current.Inventory.Sku.Item.AssetCode.Code"
+                                    :disabled="current.Inventory.Sku.Item.Id" v-on:input="onAssetCodeChange($event)"
+                                    v-on:focus="removeList($event)"
+                                    v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
+                            </div>
+                            <div class="col-5">
+                                <label class="small mb-0">Tax Rate:</label>
+                                <br />
+                                <label>{{current.Inventory.Sku.Item.AssetCode.GstPct}}</label>
+                            </div>
+                        </div>
+
+                        <!--
+                            <div class="row" v-else-if="inv.Sku.Item.AssetCode && inv.Sku.Item.AssetCode.LongDescription">
+                                <div class="col-7" >
+                                    <label class="small" >GST/SAC Code</label>
+                                    <br/>
+                                    <label>{{inv.Sku.Item.AssetCode.Code}}</label>
+                                </div>
+                                <div class="col-5" >
+                                    <label class="small" >Tax Rate:</label>
+                                    <br/>
+                                    <label>{{inv.Sku.TaxRate}}</label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="form-label small"  v-bind:for="'infinite' + i"  >Infinite</label>
+                                    <input value="N" type="checkbox" v-bind:key="'infinite' + i"  v-bind:id="'infinite' + i"  class="mt-2 mb-3 form-check custom-control" placeholder="Infinite"
+                                    v-model="inv.Infinite"  :disabled="current.index !== i || ( inv.Id && (inv.Quantity * 1.0  > 0))" true-value="Y" false-value="N" />
+                                </div>
+                                Quantity enabling may be complex. Disable for now.
+                                <div class="col-4" v-if=" inv.Infinite === 'N'">
+                                    <label class="form-label small"   v-bind:for="'quantity' + i"  >Available</label>
+                                    <input v-bind:key="'quantity' + i"  v-bind:id="'quantity' + i"  class="form-control" placeholder="Quantity"
+                                    v-model="inv.Quantity"  disabled="disabled"/>
+                                </div>
+                                <div class="col-5" v-if="current.index === i && inv.Infinite === 'N' ">
+                                    <label class="form-label small"   v-bind:for="'quantity' + i"  >Adjust +/- </label>
+                                    <input v-bind:key="'adjustquantity' + i"  v-bind:id="'adjustquantity' + i"  class="form-control" title="Adjustment Quantity"
+                                    v-model="current.AdjustmentQuantity"  />
+                                </div>
+                            </div>
+                            -->
+                        <div class="text-right">
+                            <a href="#/" class="btn btn-sm btn-light mr-2" role="button" v-on:click="cancel($event)">
+                                Cancel
+                            </a>
+                            <a href="#/" class="btn btn-sm btn-primary" role="button" v-on:click="save($event)">
+                                Save
+                            </a>
+                        </div>
                     </div>
+                    <div class="pop-overlay" v-if="current.index === i"></div>
                 </div>
-                <div class="pop-overlay" v-if="current.index === i"></div>
             </div>
         </div>
     </div>
