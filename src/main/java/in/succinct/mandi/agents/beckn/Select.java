@@ -15,6 +15,7 @@ import in.succinct.beckn.Message;
 import in.succinct.beckn.OnSelect;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
+import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Quote;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.util.beckn.BecknUtil;
@@ -50,10 +51,11 @@ public class Select extends BecknAsyncTask {
         for (int i = 0 ; i < items.size() ; i ++ ){
             Item item = items.get(i);
             Long skuId = Long.valueOf(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
-            Double quantity = item.getDouble("quantity");
+            Quantity quantity = item.get(Quantity.class,"quantity");
+
             Inventory inventory = Inventory.find(facilityId,skuId);
-            itemPrice.increment(inventory.getSellingPrice() * quantity);
-            listedPrice.increment(inventory.getMaxRetailPrice() * quantity);
+            itemPrice.increment(inventory.getSellingPrice() * quantity.getMeasure());
+            listedPrice.increment(inventory.getMaxRetailPrice() * quantity.getMeasure());
         }
 
         OnSelect onSelect = new OnSelect();

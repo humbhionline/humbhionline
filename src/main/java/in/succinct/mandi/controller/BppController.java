@@ -63,7 +63,9 @@ public class BppController extends Controller {
         try {
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
             if (request.verifySignature("Authorization",getPath().getHeaders())){
-                TaskManager.instance().executeAsync(clazzTask.getConstructor(Request.class).newInstance(request));
+                if (clazzTask != null){
+                    TaskManager.instance().executeAsync(clazzTask.getConstructor(Request.class).newInstance(request));
+                }
                 return ack(request);
             }else {
                 return nack(request,request.getContext().getBapId());
@@ -94,7 +96,7 @@ public class BppController extends Controller {
         return act(in.succinct.mandi.agents.beckn.Status.class);
     }
     public View track(){
-        return act(Track.class);
+        return act(null);
     }
     public View update(){
         return act(Update.class);
@@ -102,30 +104,11 @@ public class BppController extends Controller {
 
 
     public View rating(){
-        try {
-            Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            if (request.verifySignature("Authorization",getPath().getHeaders())){
-                return ack(request);
-            }else {
-                return nack(request,request.getContext().getBapId());
-            }
-        }catch (Exception ex){
-            throw new RuntimeException(ex);
-        }
+        return act(null);
     }
 
     public View support(){
-        try {
-            Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            if (request.verifySignature("Authorization",getPath().getHeaders())){
-                return ack(request);
-            }else {
-                return nack(request,request.getContext().getBapId());
-            }
-        }catch (Exception ex){
-            throw new RuntimeException(ex);
-        }
-
+        return act(null);
     }
 
     public View get_cancellation_reasons(){

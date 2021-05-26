@@ -17,6 +17,7 @@ import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasureConversionTable;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
+import org.graalvm.compiler.core.common.type.ArithmeticOpTable.BinaryOp.Add;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -73,36 +74,46 @@ public class Wefast {
     public JSONObject getPrice(Address from, Address to, Inventory inventory){
         return pricingApiResponse.get(makeJson(from,to,inventory));
     }
-    private JSONObject makeJson(Address from, Address to, Inventory inventory) {
+    public JSONObject getPrice(Address from, Address to, List<Inventory> inventories){
+        return pricingApiResponse.get(makeJson(from,to,inventories));
+    }
+    public JSONObject makeJson(Address from, Address to, Inventory inventory){
+        return makeJson(from,to,Arrays.asList(inventory));
+    }
+    private JSONObject makeJson(Address from, Address to, List<Inventory> inventories) {
         JSONObject obj = new JSONObject();
         Set<String> tags = new HashSet<>();
-        String stags = inventory.getTags();
-        if (!ObjectUtil.isVoid(stags)){
-            StringTokenizer tok = new StringTokenizer(StringUtil.valueOf(stags));
-            while (tok.hasMoreTokens()){
-                tags.add(tok.nextToken());
+        Bucket totalWeight  = new Bucket();
+        for (Inventory inventory : inventories ){
+            String stags = inventory.getTags();
+            if (!ObjectUtil.isVoid(stags)){
+                StringTokenizer tok = new StringTokenizer(StringUtil.valueOf(stags));
+                while (tok.hasMoreTokens()){
+                    tags.add(tok.nextToken());
+                }
+            }else {
+                tags.add(inventory.getSku().getName());
             }
-        }else {
-            tags.add(inventory.getSku().getName());
-        }
-        double weight = 5.0 ;
-        UnitOfMeasure weightUom = null;
-        if (inventory.getSku().getWeight() != null){
-            weight = inventory.getSku().getWeight();
-            weightUom = inventory.getSku().getWeightUOM();
-        }else {
-            UnitOfMeasure uom = inventory.getSku().getPackagingUOM();
-            if (uom.getName().endsWith("Kg")){
-                weight = Double.valueOf(uom.getName().replaceAll("Kg$","").trim());
-            }else if (uom.getName().endsWith("gms")){
-                weight = Double.valueOf(uom.getName().replaceAll("gms$","").trim())/1000.0D;
+            double weight = 5.0 ;
+            UnitOfMeasure weightUom = null;
+            if (inventory.getSku().getWeight() != null){
+                weight = inventory.getSku().getWeight();
+                weightUom = inventory.getSku().getWeightUOM();
+            }else {
+                UnitOfMeasure uom = inventory.getSku().getPackagingUOM();
+                if (uom.getName().endsWith("Kg")){
+                    weight = Double.valueOf(uom.getName().replaceAll("Kg$","").trim());
+                }else if (uom.getName().endsWith("gms")){
+                    weight = Double.valueOf(uom.getName().replaceAll("gms$","").trim())/1000.0D;
+                }
+                weightUom = UnitOfMeasure.getWeightMeasure("Kgs");
             }
-            weightUom = UnitOfMeasure.getWeightMeasure("Kgs");
+            totalWeight.increment(UnitOfMeasureConversionTable.convert(weight, UnitOfMeasure.MEASURES_WEIGHT,weightUom,
+                    UnitOfMeasure.getMeasure(UnitOfMeasure.MEASURES_WEIGHT,"Kgs")));
         }
 
         obj.put("matter",tags.toString());
-        obj.put("total_weight_kg", UnitOfMeasureConversionTable.convert(weight, UnitOfMeasure.MEASURES_WEIGHT,weightUom,
-                UnitOfMeasure.getMeasure(UnitOfMeasure.MEASURES_WEIGHT,"Kgs")));
+        obj.put("total_weight_kg", totalWeight.doubleValue());
         JSONArray points = new JSONArray();
         obj.put("points",points);
         points.addAll(makePoints(from,to));

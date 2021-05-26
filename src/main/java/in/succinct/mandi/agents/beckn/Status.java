@@ -104,6 +104,7 @@ public class Status extends BecknAsyncTask {
 
         fulfillment.setEnd(new FulfillmentStop());
         Location endLocation = new Location();
+        fulfillment.setTracking(false);
 
         fulfillment.getEnd().setLocation(endLocation);
         endLocation.setGps(new GeoCoordinate(shipToAddress));

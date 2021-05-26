@@ -126,7 +126,7 @@ public class FacilityImpl extends ModelImpl<Facility> {
 
     public double getDeliveryCharges(double distance) {
         Facility facility = getProxy();
-        Double charges = null;
+        double charges = 0;
         if (facility.isDeliveryProvided()){
             charges =  facility.getMinDeliveryCharge();
             Inventory deliveryRule = getDeliveryRule(false);
