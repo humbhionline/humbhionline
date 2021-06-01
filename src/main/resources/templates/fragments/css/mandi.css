@@ -7,6 +7,7 @@
 }
 body {
     padding-top: 0;
+    background-color: var(--hbo-bg);
 }
 h6 {
     font-weight: 500;
@@ -73,7 +74,7 @@ h6 {
     display: none;
 }
 .navbar-expand-lg {
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: transparent;
     padding-left: 10px;
     padding-right: 10px;
 }
@@ -180,6 +181,18 @@ h6 {
 .file-upload {
     position: absolute;
     visibility: hidden;
+}
+.navbar-brand {
+    vertical-align: middle;
+    font-weight: 900;
+    color: #080869 !important;
+}
+.navbar-brand img {
+    vertical-align: middle;
+    margin-right: 5px;
+}
+.navbar-brand span {
+    color: #ff0033;
 }
 
 @media (max-width: 640px) {
