@@ -33,7 +33,7 @@
                 api().url("/properties/environment").get().then(function(r){
                     self.environment = r.value;
                     if (self.isAndroidApp || (self.isMobile && self.environment === "development")) {
-                        if ((self.User && self.User.Verified === 'Y') || (self.SignUp && self.SignUp.Verified === 'Y')) {
+                        if ((self.User && self.User.Verified === 'Y') || (self.SignUp && self.SignUp.Validated === 'Y')) {
                             window.location.replace("/login");
                         }
                     }
@@ -117,8 +117,8 @@
                                     href="https://play.google.com/store/apps/details?id=in.humbhionline"><img
                                         src="/dashboard/images/google-play-button.gif" class="play-btn" alt=""></a>
                                 <a href="/login"
-                                    class="btn btn-primary rounded-pill btn-sm mx-lg-2 mx-1 d-inline-block d-sm-none"
-                                    type="submit" v-if="(isMobile && (environment === 'development')) || isAndroidApp" >Get Started</a>
+                                    v-bind:class="'btn btn-primary rounded-pill mx-lg-2 mx-1 d-inline-block' + ( isMobile ? ' btn-sm ' :'' ) "
+                                     >Get Started</a>
                             </div>
                         </div>
                         <div class="col-4 col-lg-3 offset-lg-1 text-center">

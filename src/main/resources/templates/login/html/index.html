@@ -9,10 +9,10 @@
     var login = null;
 
     $(function(){
-        if (!isMobile()){
-            window.location.replace("/dashboard");
-            return;
-        }
+        //if (!isMobile()){
+        //    window.location.replace("/dashboard");
+        //    return;
+        //}
         var searchParams = (new URL(window.location)).searchParams;
         var redirect_to = searchParams.get("_redirect_to");
         var phoneNumber = searchParams.get("phone_number");
@@ -29,16 +29,16 @@
             },
             created : function(){
                 let self  = this;
-                api().url("/properties/environment").get().then(function(r){
-                    if (self.Android || (isMobile() && r.value === "development")) {
+                //api().url("/properties/environment").get().then(function(r){
+                    //if (self.Android || (isMobile() && r.value === "development")) {
                         if (phoneNumber){
                             self.params.User.PhoneNumber = phoneNumber;
                         }
                         self.signIn();
-                    }else {
-                        window.location.replace("/dashboard");
-                    }
-                })
+                    //}else {
+                    //    window.location.replace("/dashboard");
+                    //}
+                //})
             },
             methods : {
                 http: function(withCredentials){
