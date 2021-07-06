@@ -1,6 +1,8 @@
 package in.succinct.mandi.util.beckn;
 
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.db.Database;
+import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.routing.Config;
 
 import java.util.ArrayList;
@@ -41,12 +43,12 @@ public class BecknUtil {
         }
         builder.append(getIdSuffix());
         if (becknEntity != null){
-            builder.append(".").append(becknEntity.toString());
+            builder.append(".").append(becknEntity);
         }
         return builder.toString();
     }
     public static String getLocalUniqueId(String beckId, Entity becknEntity){
-        String  pattern = String.format("^%s/(.*)@%s[.]%s$",getIdPrefix(),getIdSuffix(),becknEntity == null ? "" : "."+becknEntity.toString());
+        String  pattern = String.format("^%s(.*)@%s[.]%s$",getIdPrefix(),getIdSuffix(),becknEntity == null ? "" : becknEntity.toString());
         Matcher matcher = Pattern.compile(pattern).matcher(beckId);
         List<String> ids = new ArrayList<>();
         while(matcher.find()){
@@ -56,5 +58,28 @@ public class BecknUtil {
             return ids.get(0);
         }
         throw new RuntimeException("Id not formated as expected!");
+    }
+
+    public static String getRegistryUrl(){
+        return Config.instance().getProperty("beckn.registry.url");
+
+    }
+    public static CryptoKey getSelfEncryptionKey(){
+        CryptoKey encryptionKey = Database.getTable(CryptoKey.class).newRecord();
+        encryptionKey.setAlias(Config.instance().getHostName() + ".encrypt.k1");
+        encryptionKey = Database.getTable(CryptoKey.class).getRefreshed(encryptionKey);
+        if (encryptionKey.getRawRecord().isNewRecord()){
+            return null;
+        }
+        return encryptionKey;
+    }
+    public static CryptoKey getSelfKey(){
+        CryptoKey key = Database.getTable(CryptoKey.class).newRecord();
+        key.setAlias(Config.instance().getHostName() + ".k1");
+        key = Database.getTable(CryptoKey.class).getRefreshed(key);
+        if (key.getRawRecord().isNewRecord()){
+            return null;
+        }
+        return key;
     }
 }

@@ -4,6 +4,7 @@ import com.venky.core.math.DoubleHolder;
 import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
+import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
@@ -97,9 +98,12 @@ public class Search extends BecknAsyncTask {
             if (qryString.length() > 0){
                 qryString.append(" AND ");
             }
-            qryString.append("ITEM:" ).append(itemName).append("*");
+            qryString.append("SKU:" ).append(itemName).append("*");
         }
         if (facilityIds != null){
+            if (qryString.length() > 0){
+                qryString.append(" AND ");
+            }
             qryString.append("(");
             for (Iterator<Long> i = facilityIds.iterator(); i.hasNext() ;){
                 qryString.append("FACILITY_ID:").append(i.next());
@@ -112,7 +116,7 @@ public class Search extends BecknAsyncTask {
         if (qryString.length() == 0){
             return;
         }
-        Query q = indexer.constructQuery("( PUBLISHED:Y AND "+ qryString.toString() + ")");
+        Query q = indexer.constructQuery(qryString.toString() );
         List<Long> ids = indexer.findIds(q, Select.MAX_RECORDS_ALL_RECORDS);
 
         ModelReflector<Inventory> inventoryModelReflector = ModelReflector.instance(Inventory.class);
@@ -200,7 +204,6 @@ public class Search extends BecknAsyncTask {
 
             String itemId  = BecknUtil.getBecknId(String.valueOf(inv.getSkuId()),Entity.item);
             Item item = new Item();
-            provider.getItems().add(item);
 
             Price price = new Price();
             item.setId(itemId);
@@ -216,6 +219,7 @@ public class Search extends BecknAsyncTask {
             price.setCurrency("INR");
             item.set("matched",true);
             item.setRecommended(true);
+            provider.getItems().add(item);
 
         });
 
@@ -226,6 +230,9 @@ public class Search extends BecknAsyncTask {
     private Map<String, String> getHeaders(OnSearch onSearch) {
         Map<String,String> headers  = new HashMap<>();
         headers.put("Authorization",onSearch.generateAuthorizationHeader(onSearch.getContext().getBppId(),onSearch.getContext().getBppId() + ".k1"));
+        headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
+        headers.put("Accept", MimeType.APPLICATION_JSON.toString());
+
         return headers;
     }
 
@@ -255,6 +262,7 @@ public class Search extends BecknAsyncTask {
                     if (radius == 0) {
                         radius = 5;
                     }
+
                 }
                 BoundingBox bb = new BoundingBox(deliveryLocation,2,radius);
                 ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);

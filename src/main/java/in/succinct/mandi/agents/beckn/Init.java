@@ -6,21 +6,23 @@ import com.venky.core.date.DateUtils;
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
-import com.venky.geo.GeoCoordinate;
 import com.venky.swf.db.Database;
-import com.venky.swf.plugins.collab.db.model.config.City;
-import com.venky.swf.plugins.collab.db.model.config.Country;
-import com.venky.swf.plugins.collab.db.model.config.PinCode;
-import com.venky.swf.plugins.collab.db.model.config.State;
+import com.venky.swf.db.annotations.column.DATA_TYPE;
+import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
+import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.HttpMethod;
+import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
+import com.venky.swf.plugins.collab.db.model.user.Phone;
 import in.succinct.beckn.Billing;
+import in.succinct.beckn.Context;
 import in.succinct.beckn.Fulfillment;
-import in.succinct.beckn.Fulfillment.FulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
-import in.succinct.beckn.Location;
-import in.succinct.beckn.Locations;
+import in.succinct.beckn.Message;
+import in.succinct.beckn.OnConfirm;
+import in.succinct.beckn.OnInit;
 import in.succinct.beckn.Order;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
@@ -32,13 +34,16 @@ import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
+import in.succinct.mandi.util.beckn.OrderUtil;
+import in.succinct.mandi.util.beckn.OrderUtil.OrderFormat;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
+import org.graalvm.compiler.core.common.type.ArithmeticOpTable.BinaryOp.Add;
+import org.json.simple.JSONObject;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 public class Init extends BecknAsyncTask {
@@ -49,24 +54,27 @@ public class Init extends BecknAsyncTask {
     @Override
     public void execute() {
         Request request = getRequest();
+        Context context = request.getContext();
         Order becknOrder = request.getMessage().getOrder();
         Provider provider = becknOrder.getProvider();
 
-        Long providerUserId = Long.valueOf(BecknUtil.getLocalUniqueId(provider.getId(), Entity.provider));
+        long providerUserId = Long.parseLong(BecknUtil.getLocalUniqueId(provider.getId(), Entity.provider));
         User seller = Database.getTable(User.class).get(providerUserId);
-        Facility facility = getOrderFacility(seller,provider.getLocations());
+        Facility facility = OrderUtil.getOrderFacility(seller,provider.getLocations());
 
         in.succinct.mandi.db.model.Order order = Database.getTable(in.succinct.mandi.db.model.Order.class).newRecord();
         order.setFacilityId(facility.getId());
         order.setCompanyId(CompanyUtil.getCompanyId());
-        order.setShippingSellingPrice(getDeliveryCharges(becknOrder,facility));
+        order.setShippingSellingPrice(OrderUtil.getDeliveryCharges(
+        OrderUtil.getAddress(becknOrder.getFulfillment().getEnd().getLocation()),facility));
         long today = DateUtils.getStartOfDay(System.currentTimeMillis());
         if (order.getShipByDate() == null){
-            order.setShipByDate(new Timestamp(DateUtils.addHours(today,1*24)));
+            order.setShipByDate(new Timestamp(DateUtils.addHours(today,24)));
         }
         if (order.getShipAfterDate() == null){
             order.setShipAfterDate(new Timestamp(today));
         }
+        order.setExternalTransactionReference(context.getTransactionId());
         order.save();
         Fulfillment fulfillment = becknOrder.getFulfillment();
         Billing billing = becknOrder.getBilling();
@@ -80,13 +88,13 @@ public class Init extends BecknAsyncTask {
                 return new Bucket();
             }
         };
-        boolean shippingWithinSameState = true;
-        shippingWithinSameState = ObjectUtil.equals(facility.getStateId(),shipTo.getStateId());
+        boolean shippingWithinSameState = ObjectUtil.equals(facility.getStateId(),shipTo.getStateId());
 
         createOrderLines(items,order,shipTo,buckets);
         if (order.getShippingSellingPrice() > 0){
             if (order.getShippingPrice() == 0){
-                order.setShippingPrice(new DoubleHolder(order.getShippingSellingPrice()/(1+ DEFAULT_GST_PCT /100.0) , 2).getHeldDouble().doubleValue());
+                double gstPct = ObjectUtil.isVoid(facility.getGSTIN()) ? 0 :  DEFAULT_GST_PCT;
+                order.setShippingPrice(new DoubleHolder(order.getShippingSellingPrice()/(1+ gstPct /100.0) , 2).getHeldDouble().doubleValue());
             }
             double shippingTax= order.getShippingSellingPrice() - order.getShippingPrice();
 
@@ -108,14 +116,37 @@ public class Init extends BecknAsyncTask {
 
         order.setSellingPrice(order.getProductSellingPrice() + order.getShippingSellingPrice());
         order.setPrice(order.getProductPrice() + order.getShippingPrice());
+        order.setOnHold(true);
+        User user = ensureUser(shipTo);
+        order.setCreatorUserId(user.getId());
         order.save();
+
+        becknOrder = OrderUtil.toBeckn(order, OrderFormat.initialized);
+
+
+        OnInit onInit = new OnInit();
+        onInit.setContext(context);
+        onInit.setMessage(new Message());
+        onInit.getMessage().setInitialized(becknOrder);
+        new Call<JSONObject>().url(getRequest().getContext().getBapUri() + "/on_init").
+                method(HttpMethod.POST).inputFormat(InputFormat.JSON).
+                input(onInit.getInner()).headers(getHeaders(onInit)).getResponseAsJson();
+
+    }
+    private Map<String, String> getHeaders(Request request) {
+        Map<String,String> headers  = new HashMap<>();
+        headers.put("Authorization",request.generateAuthorizationHeader(request.getContext().getBppId(),request.getContext().getBppId() + ".k1"));
+        headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
+        headers.put("Accept", MimeType.APPLICATION_JSON.toString());
+
+        return headers;
     }
 
     private OrderAddress createBillTo(in.succinct.mandi.db.model.Order order, Billing billing) {
-        Address address = getAddress(billing.getLocation());
+        Address address = OrderUtil.getAddress(billing.getAddress());
         OrderAddress orderAddress = Database.getTable(OrderAddress.class).newRecord();
         loadAddress(orderAddress,address);
-        orderAddress.setFirstName(billing.getLocation().getAddress().getName());
+        orderAddress.setFirstName(billing.getAddress().getName());
         orderAddress.setOrderId(order.getId());
         orderAddress.setAddressType(in.succinct.plugins.ecommerce.db.model.order.OrderAddress.ADDRESS_TYPE_BILL_TO);
         orderAddress.save();
@@ -123,29 +154,41 @@ public class Init extends BecknAsyncTask {
     }
 
     private OrderAddress createShipTo(in.succinct.mandi.db.model.Order order, FulfillmentStop end) {
-        Address address = getAddress(end.getLocation());
+        Address address = OrderUtil.getAddress(end.getLocation());
         OrderAddress orderAddress = Database.getTable(OrderAddress.class).newRecord();
         loadAddress(orderAddress,address);
         orderAddress.setFirstName(end.getLocation().getAddress().getName());
         orderAddress.setOrderId(order.getId());
         orderAddress.setAddressType(in.succinct.plugins.ecommerce.db.model.order.OrderAddress.ADDRESS_TYPE_SHIP_TO);
-        orderAddress.setPhoneNumber(end.getContact().getPhone().getValue());
-        orderAddress.setEmail(end.getContact().getEmail().getValue());
+        orderAddress.setPhoneNumber(end.getContact().getPhone());
+        orderAddress.setEmail(end.getContact().getEmail());
+        orderAddress.setLat(address.getLat());
+        orderAddress.setLng(address.getLng());
         orderAddress.save();
         return orderAddress;
     }
 
-    private void loadAddress(OrderAddress orderAddress, Address address) {
-        orderAddress.setAddressLine1(address.getAddressLine1());
-        orderAddress.setAddressLine2(address.getAddressLine2());
-        orderAddress.setAddressLine3(address.getAddressLine3());
-        orderAddress.setAddressLine4(address.getAddressLine4());
-        orderAddress.setCityId(address.getCityId());
-        orderAddress.setStateId(address.getStateId());
-        orderAddress.setPhoneNumber(address.getPhoneNumber());
-        orderAddress.setEmail(address.getEmail());
-        orderAddress.setCountryId(address.getCountryId());
-        orderAddress.setPinCodeId(address.getPinCodeId());
+    private User ensureUser(OrderAddress orderAddress) {
+        User user = Database.getTable(User.class).newRecord();
+        user.setPhoneNumber(Phone.sanitizePhoneNumber(orderAddress.getPhoneNumber()));
+        user = Database.getTable(User.class).getRefreshed(user);
+        Address.copy(orderAddress,user);
+        user.setLongName(orderAddress.getFirstName() + " " + orderAddress.getLastName());
+        user.save();
+        return user;
+    }
+
+    private void loadAddress(Address to, Address from) {
+        to.setAddressLine1(from.getAddressLine1());
+        to.setAddressLine2(from.getAddressLine2());
+        to.setAddressLine3(from.getAddressLine3());
+        to.setAddressLine4(from.getAddressLine4());
+        to.setCityId(from.getCityId());
+        to.setStateId(from.getStateId());
+        to.setPhoneNumber(from.getPhoneNumber());
+        to.setEmail(from.getEmail());
+        to.setCountryId(from.getCountryId());
+        to.setPinCodeId(from.getPinCodeId());
     }
 
     private static final double DEFAULT_GST_PCT = 18.0;
@@ -157,7 +200,7 @@ public class Init extends BecknAsyncTask {
         Facility facility = order.getFacility();
 
         for (Item item : items){
-            Long skuId = Long.valueOf(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
+            long skuId = Long.parseLong(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
             Quantity quantity = item.get(Quantity.class,"quantity");
 
             Inventory inventory = in.succinct.plugins.ecommerce.db.model.inventory.Inventory.find(facility.getId(),skuId).getRawRecord()
@@ -166,9 +209,9 @@ public class Init extends BecknAsyncTask {
             orderLine.setOrderId(order.getId());
             orderLine.setShipFromId(inventory.getFacilityId());
             orderLine.setSkuId(inventory.getSkuId());
-            orderLine.setOrderedQuantity(quantity.getMeasure());
-            orderLine.setSellingPrice(inventory.getSellingPrice() * quantity.getMeasure());
-            orderLine.setMaxRetailPrice(inventory.getMaxRetailPrice() * quantity.getMeasure());
+            orderLine.setOrderedQuantity(quantity.getCount());
+            orderLine.setSellingPrice(inventory.getSellingPrice() * quantity.getCount());
+            orderLine.setMaxRetailPrice(inventory.getMaxRetailPrice() * quantity.getCount());
             if (orderLine.getMaxRetailPrice() == 0){
                 orderLine.setMaxRetailPrice(orderLine.getSellingPrice());
             }
@@ -182,12 +225,12 @@ public class Init extends BecknAsyncTask {
             Sku sku = orderLine.getSku();
             AssetCode assetCode = sku.getItem().getAssetCode();
 
-            Double taxRate = sku.getTaxRate();
+            double taxRate = sku.getTaxRate();
 
-            if (taxRate == null && assetCode != null){
+            if (taxRate <= 0.0 && assetCode != null){
                 taxRate = assetCode.getGstPct();
             }
-            if (taxRate == null){
+            if (taxRate <= 0){
                 taxRate = DEFAULT_GST_PCT;
             }
             if (ObjectUtil.isVoid(facility.getGSTIN())){
@@ -220,214 +263,5 @@ public class Init extends BecknAsyncTask {
 
     }
 
-    public double getDeliveryCharges(Order becknOrder, Facility facility){
-        Fulfillment fulfillment = becknOrder.getFulfillment();
-        Bucket deliveryCharges = new Bucket();
-        if (fulfillment != null){
-            if (fulfillment.getType() == FulfillmentType.home_delivery){
-                FulfillmentStop end = fulfillment.getEnd();
-                facility.setDistance(new GeoCoordinate(facility).distanceTo(end.getLocation().getGps()));
-                if (facility.isDeliveryProvided() && facility.getDistance() <= facility.getDeliveryRadius()){
-                    Inventory deliveryRule
-                            = facility.getDeliveryRule(false);
-                    if (deliveryRule == null || ObjectUtil.isVoid(deliveryRule.getManagedBy())){
-                        deliveryCharges.increment(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
-                    }else {
-                        throw new RuntimeException("Unknown courier:" + deliveryRule.getManagedBy());
-                    }
-                }
-            }
-        }
-        return deliveryCharges.doubleValue();
-    }
 
-    private Facility getOrderFacility(User seller, Locations locations) {
-        Location providerLocation = locations.size() > 0 ? locations.get(0) : null;
-
-        Long facilityId = providerLocation != null ? Long.valueOf(BecknUtil.getLocalUniqueId(providerLocation.getId(), Entity.provider_location)) : null;
-        if (facilityId == null){
-            List<Long> operatingFacilityids =  seller.getOperatingFacilityIds();
-            if (!operatingFacilityids.isEmpty()){
-                facilityId = operatingFacilityids.get(0);
-            }else {
-                throw new RuntimeException("Don't know what facility the order was made into!");
-            }
-        }
-        return Database.getTable(Facility.class).get(facilityId);
-
-    }
-
-    public Address getAddress(final Location location){
-
-        return new Address() {
-            //Location location = stop.getLocation();
-            in.succinct.beckn.Address address = location.getAddress();
-            @Override
-            public String getAddressLine1() {
-                return address.getName() + " " + address.getDoor() + " " + address.getBuilding();
-            }
-
-            @Override
-            public void setAddressLine1(String line1) {
-                return;
-            }
-
-            @Override
-            public String getAddressLine2() {
-                return address.getStreet() +  " " + address.getLocality();
-            }
-
-            @Override
-            public void setAddressLine2(String line2) {
-
-            }
-
-            @Override
-            public String getAddressLine3() {
-                return "" ;
-            }
-
-            @Override
-            public void setAddressLine3(String line3) {
-
-            }
-
-            @Override
-            public String getAddressLine4() {
-                return "";
-            }
-
-            @Override
-            public void setAddressLine4(String line4) {
-
-            }
-
-            @Override
-            public Long getCityId() {
-                return getCity().getId();
-            }
-
-            @Override
-            public void setCityId(Long cityId) {
-
-            }
-
-            City city = null;
-
-            @Override
-            public City getCity() {
-                if (city == null) {
-                    city = City.findByCountryAndStateAndName(address.getCountry(), address.getState(), address.getCity());
-                }
-                return city;
-            }
-
-            State state = null;
-            @Override
-            public Long getStateId() {
-                return state.getId();
-            }
-
-            @Override
-            public void setStateId(Long stateId) {
-
-            }
-
-            @Override
-            public State getState() {
-                if (state == null){
-                    state = State.findByCountryAndName(address.getCountry(),address.getState());
-                }
-                return state;
-            }
-
-            @Override
-            public Long getCountryId() {
-                return null;
-            }
-
-            @Override
-            public void setCountryId(Long countryId) {
-
-            }
-
-            Country country = null;
-            @Override
-            public Country getCountry() {
-                if (country == null){
-                    country = Country.findByISO(address.getCountry());
-                }
-                return country;
-            }
-
-            @Override
-            public Long getPinCodeId() {
-                return getPinCode().getId();
-            }
-
-            @Override
-            public void setPinCodeId(Long pincodeId) {
-
-            }
-
-            PinCode pinCode = null;
-            @Override
-            public PinCode getPinCode() {
-                if (pinCode == null){
-                    pinCode = PinCode.find(address.getPinCode());
-                }
-                return pinCode;
-            }
-
-            @Override
-            public String getEmail() {
-                return "";
-            }
-
-            @Override
-            public void setEmail(String emailId) {
-
-            }
-
-            @Override
-            public String getPhoneNumber() {
-                return "";
-            }
-
-            @Override
-            public void setPhoneNumber(String phoneNumber) {
-
-            }
-
-            @Override
-            public String getAlternatePhoneNumber() {
-                return "";
-            }
-
-            @Override
-            public void setAlternatePhoneNumber(String phoneNumber) {
-
-            }
-
-            @Override
-            public BigDecimal getLat() {
-                return location.getGps().getLat();
-            }
-
-            @Override
-            public void setLat(BigDecimal latitude) {
-
-            }
-
-            @Override
-            public BigDecimal getLng() {
-                return location.getGps().getLng();
-            }
-
-            @Override
-            public void setLng(BigDecimal longitude) {
-
-            }
-        };
-    }
 }

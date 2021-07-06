@@ -3,6 +3,7 @@ package in.succinct.mandi.agents.beckn;
 
 import com.fedex.ship.Measure;
 import com.venky.swf.db.Database;
+import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
@@ -60,7 +61,11 @@ public class Cancel extends BecknAsyncTask {
 
     private Map<String, String> getHeaders(OnCancel onCancel) {
         Map<String,String> headers  = new HashMap<>();
-        headers.put("Authorization",onCancel.generateAuthorizationHeader(onCancel.getContext().getBppId(),onCancel.getContext().getBppId() + ".k1"));
+        headers.put("Authorization",onCancel.
+                generateAuthorizationHeader(onCancel.getContext().getBppId(),onCancel.getContext().getBppId() + ".k1"));
+        headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
+        headers.put("Accept", MimeType.APPLICATION_JSON.toString());
+
         return headers;
     }
 }

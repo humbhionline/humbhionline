@@ -38,6 +38,9 @@ public class RequestAuthenticator extends com.venky.swf.extensions.RequestAuthen
         JSONObject input ;
         try {
             input = (JSONObject)JSONValue.parse(StringUtil.read(path.getInputStream()));
+            if (input == null){
+                return;
+            }
             input = (JSONObject)input.get("User");
         } catch (IOException e) {
             throw new RuntimeException(e);

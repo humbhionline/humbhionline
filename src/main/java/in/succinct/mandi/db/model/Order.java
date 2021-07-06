@@ -5,6 +5,7 @@ import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.COLUMN_SIZE;
 import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
+import com.venky.swf.db.annotations.column.UNIQUE_KEY;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.indexing.Index;
 import com.venky.swf.db.annotations.column.pm.PARTICIPANT;
@@ -175,4 +176,11 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     public void setWeightUomId(Long id);
     public UnitOfMeasure getWeightUom();
 
+    @UNIQUE_KEY(value = "KExternal",allowMultipleRecordsWithNull = true)
+    public String getExternalTransactionReference();
+    public void setExternalTransactionReference(String externalTransactionReference);
+
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isOnHold();
+    public void setOnHold(boolean hold);
 }

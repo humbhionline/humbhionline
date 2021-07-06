@@ -1,12 +1,18 @@
 package in.succinct.mandi.configuration;
 
+import com.venky.core.date.DateUtils;
 import com.venky.core.security.Crypt;
+import com.venky.core.util.ObjectUtil;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
+import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
 import com.venky.swf.db.table.Table;
+import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.HttpMethod;
+import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.routing.Config;
@@ -14,16 +20,23 @@ import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import com.venky.swf.util.SharedKeys;
+import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.EncryptedModel;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.User;
+import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import org.bouncycastle.jcajce.spec.EdDSAParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.json.simple.JSONObject;
 
 import java.security.KeyPair;
 import java.security.Security;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AppInstaller implements Installer {
 
@@ -35,6 +48,36 @@ public class AppInstaller implements Installer {
         encryptAddress(OrderAddress.class,encryptionSupport);
         //installGuestUser();
         generateBecknKeys();
+        registerBecknKeys();
+
+    }
+
+    private void registerBecknKeys() {
+        if (!ObjectUtil.isVoid(BecknUtil.getRegistryUrl())){
+            CryptoKey encryptionKey = BecknUtil.getSelfEncryptionKey();
+            CryptoKey key = BecknUtil.getSelfKey();
+            String subscriberId = Config.instance().getHostName();
+            String uniqueKeyId = key.getAlias();
+            JSONObject object = new JSONObject();
+            object.put("subscriber_id",subscriberId);
+            object.put("country","IN");
+            object.put("city","080");
+            object.put("domain","local-retail");
+            object.put("type","bpp");
+            object.put("signing_public_key",key.getPublicKey());
+            object.put("encr_public_key",encryptionKey.getPublicKey());
+            object.put("valid_from", DateUtils.getFormat(DateUtils.ISO_8601_24H_FULL_FORMAT).format(key.getUpdatedAt()));
+            object.put("valid_until",DateUtils.getFormat(DateUtils.ISO_8601_24H_FULL_FORMAT).format(
+                    new Date(key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L)))) ; //10 years
+            object.put("subscriber_url",Config.instance().getServerBaseUrl() + "/bpp");
+
+            try {
+                JSONObject response = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
+                        header("Content-Type", MimeType.APPLICATION_JSON.toString()).header("Authorization", new Request().generateAuthorizationHeader(subscriberId, uniqueKeyId)).getResponseAsJson();
+            }catch (Exception ex){
+                Config.instance().getLogger(getClass().getName()).log(Level.WARNING,ex.getMessage(),ex);
+            }
+        }
     }
 
     private void generateBecknKeys() {
@@ -72,8 +115,12 @@ public class AppInstaller implements Installer {
         CryptoKey key = Database.getTable(CryptoKey.class).newRecord();
         key.setAlias(Config.instance().getHostName() + ".k1");
         key = Database.getTable(CryptoKey.class).getRefreshed(key);
-        if (key.getRawRecord().isNewRecord()){
-
+        if (key.getRawRecord().isNewRecord()) {
+            key.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+            key.setCreatedAt(key.getUpdatedAt());
+        }
+        boolean keyExpired = key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L) <= System.currentTimeMillis();
+        if ( key.getRawRecord().isNewRecord() || keyExpired){
             KeyPair pair = Crypt.getInstance().generateKeyPair(EdDSAParameterSpec.Ed25519,256);
             key.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
             key.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
@@ -83,7 +130,8 @@ public class AppInstaller implements Installer {
         CryptoKey encryptionKey = Database.getTable(CryptoKey.class).newRecord();
         encryptionKey.setAlias(Config.instance().getHostName() + ".encrypt.k1");
         encryptionKey = Database.getTable(CryptoKey.class).getRefreshed(encryptionKey);
-        if (encryptionKey.getRawRecord().isNewRecord()){
+
+        if (encryptionKey.getRawRecord().isNewRecord() || keyExpired){
             KeyPair pair = Crypt.getInstance().generateKeyPair(Crypt.KEY_ALGO,2048);
             encryptionKey.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
             encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
