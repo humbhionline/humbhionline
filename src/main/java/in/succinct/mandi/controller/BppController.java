@@ -28,6 +28,7 @@ import in.succinct.mandi.agents.beckn.Search;
 import in.succinct.mandi.agents.beckn.Select;
 import in.succinct.mandi.agents.beckn.Update;
 import in.succinct.mandi.db.model.OrderCancellationReason;
+import in.succinct.mandi.extensions.BecknPublicKeyFinder;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import org.json.simple.JSONArray;
@@ -40,6 +41,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
 
 public class BppController extends Controller {
     public BppController(Path path) {
@@ -62,16 +65,34 @@ public class BppController extends Controller {
     }
     public View ack(Request request){
         Acknowledgement ack = new Acknowledgement(Status.ACK);
-        ack.setSignature(Request.generateSignature(request.hash(),request.getPrivateKey(request.getContext().getBppId(),request.getContext().getBppId() +".k1")));
-        return new BytesView(getPath(),new Response(request.getContext(),ack).getInner().toString().getBytes(StandardCharsets.UTF_8));
+        return new BytesView(getPath(),new Response(request.getContext(),ack).getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+    }
+    public String getGatewayUrl(Map<String,String> authParams){
+        String url = null;
+        if (!authParams.isEmpty()){
+            String keyId = authParams.get("keyId");
+            StringTokenizer keyTokenizer = new StringTokenizer(keyId,"|");
+            String subscriberId = keyTokenizer.nextToken();
+            JSONArray subscriber = BecknPublicKeyFinder.lookup(subscriberId);
+            if (!subscriber.isEmpty()){
+                url = (String) ((JSONObject)subscriber.get(0)).get("subscriber_url");
+            }
+        }
+        return url;
     }
 
 
     private <C extends BecknAsyncTask> View act(Class<C> clazzTask){
         try {
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            if (request.verifySignature("Authorization",getPath().getHeaders())){
+            request.getContext().setBppId(BecknUtil.getSubscriberId());
+            request.getContext().setBppUri(Config.instance().getServerBaseUrl() + "/bpp");
+
+            if (!Config.instance().getBooleanProperty("beckn.auth.enabled", false) ||
+                    (request.verifySignature("Proxy-Authorization",getPath().getHeaders()) &&
+                            request.verifySignature("Authorization",getPath().getHeaders()))){
                 if (clazzTask != null){
+                    request.setCallBackUri(getGatewayUrl(request.extractAuthorizationParams("Proxy-Authorization",getPath().getHeaders())));
                     TaskManager.instance().executeAsync(clazzTask.getConstructor(Request.class).newInstance(request),false);
                 }
                 return ack(request);

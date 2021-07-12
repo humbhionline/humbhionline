@@ -12,6 +12,7 @@ import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.util.BoundingBox;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
 import com.venky.swf.pm.DataSecurityFilter;
+import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
@@ -22,6 +23,8 @@ import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.Fulfillment.FulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
+import in.succinct.beckn.Image;
+import in.succinct.beckn.Images;
 import in.succinct.beckn.Intent;
 import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
@@ -45,6 +48,7 @@ import in.succinct.plugins.ecommerce.db.model.participation.Company;
 import org.apache.lucene.search.Query;
 import org.json.simple.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -57,7 +61,7 @@ public class Search extends BecknAsyncTask {
     static final int MAX_LIST_RECORDS = 10;
 
     @Override
-    public void execute() {
+    public void executeInternal() {
         Request request = getRequest();
         String itemName = null;
         String providerName = null;
@@ -71,10 +75,17 @@ public class Search extends BecknAsyncTask {
             }
         }
         Provider provider = intent.getProvider();
+        Long providerId = null;
         if (provider != null){
             Descriptor descriptor =provider.getDescriptor();
             if (descriptor != null){
                 providerName = descriptor.getName();
+            }
+            if (provider.getId() != null){
+                String id = BecknUtil.getLocalUniqueId(provider.getId(),Entity.provider);
+                if (!ObjectUtil.isVoid(id)){
+                    providerId = Long.valueOf(id);
+                }
             }
         }
         Price price = item != null ? item.getPrice() : null ;
@@ -84,8 +95,10 @@ public class Search extends BecknAsyncTask {
         double maxDistance = getMaxDistance(end);
 
 
-        List<Long> facilityIds = getCloseByFacilities(fulfillment,providerName);
+        List<Long> facilityIds = getCloseByFacilities(fulfillment,providerName,providerId);
         if (facilityIds != null && facilityIds.isEmpty()){
+            List<Inventory> inventories = new ArrayList<>();
+            push_onsearch(inventories);
             return;
         }
 
@@ -114,6 +127,7 @@ public class Search extends BecknAsyncTask {
             qryString.append(")");
         }
         if (qryString.length() == 0){
+            push_onsearch(new ArrayList<>());
             return;
         }
         Query q = indexer.constructQuery(qryString.toString() );
@@ -168,6 +182,7 @@ public class Search extends BecknAsyncTask {
         OnSearch onSearch = new OnSearch();
         onSearch.setContext(getRequest().getContext());
         onSearch.setMessage(new Message());
+        onSearch.getContext().setAction("on_search");
 
         Catalog catalog = new Catalog();
         catalog.setId(BecknUtil.getBecknId("",null));
@@ -190,7 +205,9 @@ public class Search extends BecknAsyncTask {
                 provider.getDescriptor().setName(facility.getName());
                 provider.setLocations(new Locations());
                 provider.setItems(new Items());
-                provider.set("matched",true);
+                if ( getRequest().getMessage().getIntent().getProvider() != null) {
+                    provider.set("matched",true);
+                }
                 providers.add(provider);
             }
             String locationId = BecknUtil.getBecknId(String.valueOf(inv.getFacilityId()),Entity.provider_location);
@@ -217,24 +234,25 @@ public class Search extends BecknAsyncTask {
             price.setListedValue(inv.getMaxRetailPrice());
             price.setValue(inv.getSellingPrice());
             price.setCurrency("INR");
-            item.set("matched",true);
+            if ( getRequest().getMessage().getIntent().getItem() != null) {
+                item.set("matched",true);
+            }
             item.setRecommended(true);
+            if (!sku.getAttachments().isEmpty()){
+                Images images = new Images();
+                images.add(Config.instance().getServerBaseUrl() + sku.getAttachments().get(0).getAttachmentUrl());
+                item.getDescriptor().setImages(images);
+            }
+
             provider.getItems().add(item);
+
+
 
         });
 
-        new Call<JSONObject>().url(getRequest().getContext().getBapUri() + "/on_search").method(HttpMethod.POST).inputFormat(InputFormat.JSON).
-                input(onSearch.getInner()).headers(getHeaders(onSearch)).getResponseAsJson();
+        send(onSearch);
     }
 
-    private Map<String, String> getHeaders(OnSearch onSearch) {
-        Map<String,String> headers  = new HashMap<>();
-        headers.put("Authorization",onSearch.generateAuthorizationHeader(onSearch.getContext().getBppId(),onSearch.getContext().getBppId() + ".k1"));
-        headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
-        headers.put("Accept", MimeType.APPLICATION_JSON.toString());
-
-        return headers;
-    }
 
     private double getMaxDistance(FulfillmentStop end){
         double radius = 0;
@@ -244,13 +262,14 @@ public class Search extends BecknAsyncTask {
                 radius = circle.getDouble("radius");
             }
             if (radius == 0){
-                radius = 5.0;
+                radius = 50.0;
             }
         }
         return radius;
     }
 
-    private List<Long> getCloseByFacilities(Fulfillment fulfillment, String name) {
+    private List<Long> getCloseByFacilities(Fulfillment fulfillment, String name, Long providerId) {
+        ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);
         if (fulfillment != null){
             FulfillmentStop end = fulfillment.getEnd();
             if (end != null){
@@ -265,15 +284,28 @@ public class Search extends BecknAsyncTask {
 
                 }
                 BoundingBox bb = new BoundingBox(deliveryLocation,2,radius);
-                ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);
                 Expression where = new Expression(ref.getPool(), Conjunction.AND);
                 where.add(new Expression(ref.getPool(),"PUBLISHED", Operator.EQ, true));
                 if (!ObjectUtil.isVoid(name)){
                     where.add(new Expression(ref.getPool(), "NAME",Operator.EQ, name));
                 }
+                if (!ref.isVoid(providerId)){
+                    where.add(new Expression(ref.getPool(), "CREATOR_ID",Operator.EQ, providerId));
+                }
                 List<Facility> facilities = bb.find(Facility.class,0,where);
                 return DataSecurityFilter.getIds(facilities);
             }
+        }else if (!ObjectUtil.isVoid(name) || providerId != null ){
+            Expression where = new Expression(ref.getPool(), Conjunction.AND);
+            where.add(new Expression(ref.getPool(),"PUBLISHED", Operator.EQ, true));
+            if (!ObjectUtil.isVoid(name)){
+                where.add(new Expression(ref.getPool(), "NAME",Operator.EQ, name));
+            }
+            if (!ref.isVoid(providerId)){
+                where.add(new Expression(ref.getPool(), "CREATOR_ID",Operator.EQ, providerId));
+            }
+            List<Facility> facilities = new Select().from(Facility.class).where(where).execute();
+            return DataSecurityFilter.getIds(facilities);
         }
         return null;
     }

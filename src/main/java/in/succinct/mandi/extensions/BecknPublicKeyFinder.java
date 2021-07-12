@@ -14,6 +14,7 @@ import in.succinct.mandi.util.beckn.BecknUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import java.util.Iterator;
 import java.util.Optional;
 
 public class BecknPublicKeyFinder implements Extension {
@@ -32,17 +33,35 @@ public class BecknPublicKeyFinder implements Extension {
         //object.put("type","bpp");
         //object.put("domain","local-retail");
 
-        JSONArray responses = new Call<JSONObject>().method(HttpMethod.POST).url(BecknUtil.getRegistryUrl() +"/lookup").input(object).inputFormat(InputFormat.JSON).
-                header("Authorization",new Request().generateAuthorizationHeader(BecknUtil.getDomainId(),BecknUtil.getDomainId() +".k1"))
-                .header("content-type", MimeType.APPLICATION_JSON.toString()).getResponseAsJson();
+        JSONArray responses = lookup(subscriber_id);
 
         if (responses != null && !responses.isEmpty()){
-            Optional response = responses.stream().filter(o-> ObjectUtil.equals(((JSONObject)o).get("status"),"SUBSCRIBED"))
-                    .findFirst();
-            if (response.isPresent()){
-                publicKeyHolder.set((String)((JSONObject)response.get()).get("signing_public_key"));
-            }
-
+            JSONObject response = (JSONObject) responses.get(0);
+            publicKeyHolder.set((String)(response.get("signing_public_key")));
         }
+    }
+
+    public static JSONArray lookup(String subscriber_id){
+        JSONObject object = new JSONObject();
+        object.put("subscriber_id",subscriber_id);
+        //object.put("type","bpp");
+        //object.put("domain","local-retail");
+
+        JSONArray responses = new Call<JSONObject>().method(HttpMethod.POST).url(BecknUtil.getRegistryUrl() +"/lookup").input(object).inputFormat(InputFormat.JSON).
+                header("Authorization",new Request().generateAuthorizationHeader(BecknUtil.getSubscriberId(),BecknUtil.getSubscriberId() +".k1"))
+                .header("content-type", MimeType.APPLICATION_JSON.toString()).getResponseAsJson();
+
+        if (responses == null ) {
+            responses = new JSONArray();
+        }
+        for (Iterator<?> i = responses.iterator(); i.hasNext(); ) {
+            JSONObject object1 = (JSONObject) i.next();
+            if (!ObjectUtil.equals(object1.get("status"),"SUBSCRIBED")){
+                i.remove();
+            }
+        }
+
+        return responses;
+
     }
 }

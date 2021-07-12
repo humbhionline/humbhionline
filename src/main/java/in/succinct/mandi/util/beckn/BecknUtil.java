@@ -11,14 +11,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class BecknUtil {
-    public static String getDomainId(){
+    public static String getSubscriberId(){
         return Config.instance().getHostName();
     }
     public static String getIdPrefix(){
         return "./retail.kirana/ind.blr/";
     }
     public static String getIdSuffix(){
-        return getDomainId();
+        return getSubscriberId();
     }
     public enum Entity {
         fulfillment,

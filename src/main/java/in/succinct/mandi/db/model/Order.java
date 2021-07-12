@@ -14,6 +14,9 @@ import com.venky.swf.db.annotations.column.validations.Enumeration;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
+import com.venky.swf.sql.Expression;
+import com.venky.swf.sql.Operator;
+import com.venky.swf.sql.Select;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
@@ -177,10 +180,20 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     public UnitOfMeasure getWeightUom();
 
     @UNIQUE_KEY(value = "KExternal",allowMultipleRecordsWithNull = true)
+    @IS_NULLABLE
     public String getExternalTransactionReference();
     public void setExternalTransactionReference(String externalTransactionReference);
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     public boolean isOnHold();
     public void setOnHold(boolean hold);
+
+
+    public static Order find (String beckTransactionId){
+        List<Order> orders = new Select().from(Order.class).where(new Expression(ModelReflector.instance(Order.class).getPool(), "EXTERNAL_TRANSACTION_REFERENCE", Operator.EQ,beckTransactionId)).execute();
+        if (orders.size() != 1){
+            return null;
+        }
+        return orders.get(0);
+    }
 }

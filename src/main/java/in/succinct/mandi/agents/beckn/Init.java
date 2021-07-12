@@ -7,11 +7,6 @@ import com.venky.core.math.DoubleHolder;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
-import com.venky.swf.db.annotations.column.DATA_TYPE;
-import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
-import com.venky.swf.integration.api.Call;
-import com.venky.swf.integration.api.HttpMethod;
-import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import in.succinct.beckn.Billing;
@@ -21,7 +16,6 @@ import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
 import in.succinct.beckn.Message;
-import in.succinct.beckn.OnConfirm;
 import in.succinct.beckn.OnInit;
 import in.succinct.beckn.Order;
 import in.succinct.beckn.Provider;
@@ -39,11 +33,8 @@ import in.succinct.mandi.util.beckn.OrderUtil.OrderFormat;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
-import org.graalvm.compiler.core.common.type.ArithmeticOpTable.BinaryOp.Add;
-import org.json.simple.JSONObject;
 
 import java.sql.Timestamp;
-import java.util.HashMap;
 import java.util.Map;
 
 public class Init extends BecknAsyncTask {
@@ -52,17 +43,30 @@ public class Init extends BecknAsyncTask {
         super(request);
     }
     @Override
-    public void execute() {
+    public void executeInternal() {
         Request request = getRequest();
         Context context = request.getContext();
         Order becknOrder = request.getMessage().getOrder();
         Provider provider = becknOrder.getProvider();
 
+        in.succinct.mandi.db.model.Order order = in.succinct.mandi.db.model.Order.find(context.getTransactionId());
+        if (order != null){
+            if (order.isOnHold() && ObjectUtil.equals(order.getFulfillmentStatus(), in.succinct.mandi.db.model.Order.FULFILLMENT_STATUS_DOWNLOADED)){
+                order.setOnHold(false);
+                order.setExternalTransactionReference(null);
+                order.save();
+                order.cancel("Cart Re Initialized");
+                order = null;
+            }else {
+                throw new RuntimeException("Order already confirmed!");
+            }
+        }
+
         long providerUserId = Long.parseLong(BecknUtil.getLocalUniqueId(provider.getId(), Entity.provider));
         User seller = Database.getTable(User.class).get(providerUserId);
         Facility facility = OrderUtil.getOrderFacility(seller,provider.getLocations());
 
-        in.succinct.mandi.db.model.Order order = Database.getTable(in.succinct.mandi.db.model.Order.class).newRecord();
+        order = Database.getTable(in.succinct.mandi.db.model.Order.class).newRecord();
         order.setFacilityId(facility.getId());
         order.setCompanyId(CompanyUtil.getCompanyId());
         order.setShippingSellingPrice(OrderUtil.getDeliveryCharges(
@@ -78,7 +82,7 @@ public class Init extends BecknAsyncTask {
         order.save();
         Fulfillment fulfillment = becknOrder.getFulfillment();
         Billing billing = becknOrder.getBilling();
-        OrderAddress shipTo = createShipTo(order,fulfillment.getEnd());
+        OrderAddress shipTo = createShipTo(order,fulfillment);
         OrderAddress billTo = createBillTo(order,billing);
 
         Items items = becknOrder.getItems();
@@ -126,38 +130,39 @@ public class Init extends BecknAsyncTask {
 
         OnInit onInit = new OnInit();
         onInit.setContext(context);
+        onInit.getContext().setAction("on_init");
         onInit.setMessage(new Message());
         onInit.getMessage().setInitialized(becknOrder);
-        new Call<JSONObject>().url(getRequest().getContext().getBapUri() + "/on_init").
-                method(HttpMethod.POST).inputFormat(InputFormat.JSON).
-                input(onInit.getInner()).headers(getHeaders(onInit)).getResponseAsJson();
+        send(onInit);
 
-    }
-    private Map<String, String> getHeaders(Request request) {
-        Map<String,String> headers  = new HashMap<>();
-        headers.put("Authorization",request.generateAuthorizationHeader(request.getContext().getBppId(),request.getContext().getBppId() + ".k1"));
-        headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
-        headers.put("Accept", MimeType.APPLICATION_JSON.toString());
-
-        return headers;
     }
 
     private OrderAddress createBillTo(in.succinct.mandi.db.model.Order order, Billing billing) {
         Address address = OrderUtil.getAddress(billing.getAddress());
         OrderAddress orderAddress = Database.getTable(OrderAddress.class).newRecord();
         loadAddress(orderAddress,address);
-        orderAddress.setFirstName(billing.getAddress().getName());
+        if (billing.getName() != null) {
+            orderAddress.setFirstName(billing.getName());
+        }
+        if (billing.getEmail() != null) {
+            orderAddress.setEmail(billing.getEmail());
+        }
+        if (billing.getPhone() != null) {
+            orderAddress.setPhoneNumber(billing.getPhone());
+        }
         orderAddress.setOrderId(order.getId());
         orderAddress.setAddressType(in.succinct.plugins.ecommerce.db.model.order.OrderAddress.ADDRESS_TYPE_BILL_TO);
         orderAddress.save();
         return orderAddress;
     }
 
-    private OrderAddress createShipTo(in.succinct.mandi.db.model.Order order, FulfillmentStop end) {
+    private OrderAddress createShipTo(in.succinct.mandi.db.model.Order order, Fulfillment fulfillment) {
+        FulfillmentStop end = fulfillment.getEnd();
         Address address = OrderUtil.getAddress(end.getLocation());
         OrderAddress orderAddress = Database.getTable(OrderAddress.class).newRecord();
         loadAddress(orderAddress,address);
-        orderAddress.setFirstName(end.getLocation().getAddress().getName());
+        orderAddress.setFirstName(fulfillment.getCustomer().getPerson().getName());
+        orderAddress.setLastName("");
         orderAddress.setOrderId(order.getId());
         orderAddress.setAddressType(in.succinct.plugins.ecommerce.db.model.order.OrderAddress.ADDRESS_TYPE_SHIP_TO);
         orderAddress.setPhoneNumber(end.getContact().getPhone());

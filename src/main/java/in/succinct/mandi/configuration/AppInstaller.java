@@ -60,9 +60,9 @@ public class AppInstaller implements Installer {
             String uniqueKeyId = key.getAlias();
             JSONObject object = new JSONObject();
             object.put("subscriber_id",subscriberId);
-            object.put("country","IN");
-            object.put("city","080");
-            object.put("domain","local-retail");
+            object.put("country","IND");
+            object.put("city","std:080");
+            object.put("domain","nic2004:52110");
             object.put("type","bpp");
             object.put("signing_public_key",key.getPublicKey());
             object.put("encr_public_key",encryptionKey.getPublicKey());

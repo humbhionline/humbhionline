@@ -7,6 +7,7 @@ import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.routing.Config;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnCancel;
 import in.succinct.beckn.OnSelect;
@@ -27,7 +28,7 @@ public class Cancel extends BecknAsyncTask {
         super(request);
     }
     @Override
-    public void execute() {
+    public void executeInternal() {
         Request request = getRequest();
         String order_id = request.getMessage().get("order_id");
         String cancel_reason_id = request.getMessage().get("cancellation_reason_id");
@@ -51,21 +52,9 @@ public class Cancel extends BecknAsyncTask {
         onCancel.setContext(request.getContext());
         onCancel.setMessage(new Message());
         onCancel.getMessage().setOrder(becknOrder);
+        onCancel.getContext().setAction("on_cancel");
 
-
-        new Call<JSONObject>().url(onCancel.getContext().getBapUri() + "/on_cancel").
-                method(HttpMethod.POST).inputFormat(InputFormat.JSON).
-                input(onCancel.getInner()).headers(getHeaders(onCancel)).getResponseAsJson();
-
+        send(onCancel);
     }
 
-    private Map<String, String> getHeaders(OnCancel onCancel) {
-        Map<String,String> headers  = new HashMap<>();
-        headers.put("Authorization",onCancel.
-                generateAuthorizationHeader(onCancel.getContext().getBppId(),onCancel.getContext().getBppId() + ".k1"));
-        headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
-        headers.put("Accept", MimeType.APPLICATION_JSON.toString());
-
-        return headers;
-    }
 }

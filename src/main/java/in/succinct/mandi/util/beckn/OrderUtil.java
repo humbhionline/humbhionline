@@ -2,6 +2,7 @@ package in.succinct.mandi.util.beckn;
 
 import com.venky.cache.Cache;
 import com.venky.core.math.DoubleUtils;
+import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoder;
@@ -17,9 +18,11 @@ import in.succinct.beckn.Address;
 import in.succinct.beckn.Billing;
 import in.succinct.beckn.BreakUp;
 import in.succinct.beckn.BreakUp.BreakUpElement;
+import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.Fulfillment.FulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
+import in.succinct.beckn.Images;
 import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
 import in.succinct.beckn.Location;
@@ -28,6 +31,7 @@ import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
+import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Quote;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
@@ -76,7 +80,26 @@ public class OrderUtil {
         order.getOrderLines().forEach(ol->{
             Item item = new Item();
             item.setId(BecknUtil.getBecknId(String.valueOf(ol.getSkuId()),Entity.item));
-            item.set("quantity",ol.getRemainingCancellableQuantity());
+
+            Quantity quantity = new Quantity();
+            quantity.set("count",(int)ol.getRemainingCancellableQuantity());
+            item.set("quantity",quantity);
+
+            item.setDescriptor(new Descriptor());
+            item.getDescriptor().setName(ol.getSku().getName());
+            Price price = new Price();
+            item.setPrice(price);
+            price.setValue(ol.getSellingPrice());
+            price.setOfferedValue(ol.getSellingPrice());
+            price.setListedValue(ol.getMaxRetailPrice());
+            price.setCurrency("INR");
+            if (!ol.getSku().getAttachments().isEmpty()){
+                Images images = new Images();
+                images.add(Config.instance().getServerBaseUrl() + ol.getSku().getAttachments().get(0).getAttachmentUrl());
+                item.getDescriptor().setImages(images);
+            }
+
+            items.add(item);
             buckets.get("MRP").increment(ol.getMaxRetailPrice());
             buckets.get("PRODUCT_SELLING_PRICE").increment(ol.getProductSellingPrice());
             buckets.get("PRODUCT_PRICE").increment(ol.getProductPrice());
@@ -93,7 +116,10 @@ public class OrderUtil {
         OrderAddress billToAddress = order.getAddresses().stream().filter(a-> ObjectUtil.equals(a.getAddressType(), OrderAddress.ADDRESS_TYPE_BILL_TO)).findFirst().get().getRawRecord().getAsProxy(OrderAddress.class);
         OrderAddress shipToAddress = order.getAddresses().stream().filter(a-> ObjectUtil.equals(a.getAddressType(), OrderAddress.ADDRESS_TYPE_SHIP_TO)).findFirst().get().getRawRecord().getAsProxy(OrderAddress.class);
 
-        address.setName(billToAddress.getFirstName() + " " + billToAddress.getLastName());
+        billing.setName(billToAddress.getFirstName() + " " + StringUtil.valueOf(billToAddress.getLastName()));
+        billing.setEmail(billToAddress.getEmail());
+        billing.setPhone(billToAddress.getPhoneNumber());
+
         address.setPinCode(billToAddress.getPinCode().getPinCode());
         address.setDoor(billToAddress.getAddressLine1());
         address.setBuilding(billToAddress.getAddressLine2());
