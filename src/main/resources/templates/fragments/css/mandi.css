@@ -194,8 +194,19 @@ h6 {
 .navbar-brand span {
     color: #ff0033;
 }
+#banner-slider {
+    height: 450px;
+    background: rgba(0, 0, 0, 0.2);
+}
+#orderCount{
+    display: none;
+}
 
 @media (max-width: 640px) {
+    #orderCount{
+        display: block;
+        right: 20px;
+    }
     /* Make the image fully responsive */
     .carousel {
         position: relative;
