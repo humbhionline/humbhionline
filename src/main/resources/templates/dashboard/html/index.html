@@ -634,74 +634,8 @@
                     </div>
                 </div>
             </div>
-            <!-- <div class="col pb-4">
-                <h6 class="m-0 text-truncate">{{result.Sku.Name}}
-                </h6>
-                <p class="mb-0 small">{{result.Tags}}</p>
-                <p class="mb-1 small text-muted">
-                    By: <a v-bind:href="'/dashboard?facility_id=' +result.Facility.Id">{{result.Facility.Name}}</a>
-                </p>
-                <small class="m-0"><a
-                        v-bind:href="'https://google.com/maps/place/'+result.Facility.Lat +',' + result.Facility.Lng">
-                        <i class="fa fa-map-pin mr-1 text-muted"></i>
-                        {{result.Facility.Distance}} Km
-                    </a>
-                </small>
-                <p class="price-box">
-                    <strike v-if="result.MaxRetailPrice * 1.0 > result.SellingPrice">
-                        &#x20B9; {{result.MaxRetailPrice}}
-                    </strike>
-                    &#x20B9; {{result.SellingPrice}}
-                </p>
-            </div> -->
         </div>
-        <!-- <hr class="my-2" />
-        <div class="form-row">
-            <div class="col-4">
-                <div class="btn-group" role="group" aria-label="Basic example" v-if="!isDeliverySku(result.Sku)">
-                    <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
-                        v-on:click="reduce($event,index)">
-                        <i class="fa fa-minus"></i>
-                    </button>
-                    <input v-bind:key="'quantity' + index" v-bind:id="'quantity' + index"
-                        class="btn btn-sm btn-outline-primary w-100 border-left-0 border-right-0 m-0"
-                        placeholder="Quantity" v-model="result.OrderedQuantity" @change="onQtyChange($event,index)" />
-                    <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
-                        v-on:click="increase($event,index)">
-                        <i class="fa fa-plus"></i>
-                    </button>
-                </div>
-                <div class="btn-group" role="group" aria-label="Basic example" v-else>
-                    <a href="#" class="btn btn-sm btn-outline-primary" v-if="(result.OrderedQuantity * 1.0 > 0)"
-                        v-on:click="reduce($event,index)">
-                        <i class="fas fa-toggle-on"></i>
-                    </a>
-                    <a href="#" class="btn btn-sm btn-outline-primary" v-if="(result.OrderedQuantity * 1.0 <= 0)"
-                        v-on:click="increase($event,index)">
-                        <i class="fas fa-toggle-off"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="col text-right d-flex align-items-center justify-content-end">
-                <small>
-                    <del v-if="result.Facility.CodEnabled !== 'Y'">COD</del>
-                    <del v-if="result.DeliveryProvided !== 'Y'">Delivery</del>
-                    <span
-                        v-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) && (!result.DeliveryCharges || result.DeliveryCharges * 1.0 === 0)">
-                        Delivery - Free
-                    </span>
-                    <span
-                        v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0"
-                        class="text-muted">
-                        {{ (isDeliverySku(result.Sku) ? "Fixed Charges" : "Delivery") }} - &#x20B9; {{
-                        result.DeliveryCharges }}
-                    </span>
-                </small>
-            </div>
-        </div> -->
-        <div style="height: 70px;">
-
-        </div>
+        <div style="height: 65px;" v-if="OrderLineCount > 0"></div>
         <div class="bottom-card" v-if="OrderLineCount > 0">
             <div class="form-row">
                 <div class="col-8">
