@@ -14,11 +14,7 @@
         //    return;
         //}
         var searchParams = (new URL(window.location)).searchParams;
-        var redirect_to = searchParams.get("_redirect_to");
         var phoneNumber = searchParams.get("phone_number");
-        if (!redirect_to) {
-            redirect_to = "/index"
-        }
 
         login = new Vue({
             el : "#app",
@@ -61,8 +57,7 @@
                                 Lockr.set("SignUp",response.data.User.SignUps[0]);
                                 Lockr.set("User",response.data.User);
                                 loadLocation(true).then(function(){
-                                    let home = redirect_to;
-                                    window.location.replace(home);
+                                    window.location.replace("/index");
                                 });
                             } else {
                                 showErrorMessage("Password doesnot match.") ;
@@ -123,11 +118,10 @@
                         event.preventDefault();
                     }
                     let self = this;
-                    var url = "/login/index_otp?";
-                    url += "_redirect_to=" + redirect_to;
+                    var url = "/login/index_otp";
 
                     if (self.phoneNumberEntered && !blank(self.params.User.PhoneNumber)) {
-                        url += "&phone_number="+self.params.User.PhoneNumber;
+                        url += "?phone_number="+self.params.User.PhoneNumber;
                     }
 
                     setTimeout(function(){
