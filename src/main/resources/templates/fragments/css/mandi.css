@@ -169,7 +169,7 @@ h6 {
     top: 5px;
     right: 10px;
     position: absolute;
-    z-index: 9;
+    z-index: 2;
 }
 .btn-camera {
     position: absolute;
@@ -198,15 +198,50 @@ h6 {
     height: 450px;
     background: rgba(0, 0, 0, 0.2);
 }
-#orderCount{
+#orderCount {
     display: none;
 }
 .search-container {
     height: calc(100vh - 60px);
 }
 
+.lookups-list {
+    position: absolute;
+    display: block;
+    z-index: 1;
+    background-color: white;
+    margin-top: -1px;
+    width: calc(100% - 10px);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    max-height: 150px;
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+.lookups-list.offsetTop {
+    top: -130px;
+    margin-top: 0;
+}
+
+.lookups-list a {
+    display: block;
+    padding: 7px 10px;
+    border-bottom: 1px solid #ccc;
+    text-decoration: none;
+}
+
+.lookups-list a:hover {
+    background-color: #ff0033;
+    color: white;
+    text-decoration: none;
+}
+
+.lookups-list a:last-child {
+    border-bottom: 0;
+}
+
 @media (max-width: 640px) {
-    #orderCount{
+    #orderCount {
         display: block;
         right: 20px;
     }
