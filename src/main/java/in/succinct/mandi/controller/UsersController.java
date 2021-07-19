@@ -109,7 +109,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
                 }
                 if (!ObjectUtil.isVoid(user.getPhoneNumber())) {
                     data.validatePhone(user.getPhoneNumber());
-                    user.   setVerified(true);
+                    user.setVerified(true);
                     user.setTxnProperty("verifiedViaKyc",true);
                 }
                 user.setLongName(data.get(AadharEKyc.AadharData.NAME));

@@ -1,8 +1,13 @@
 import com.venky.core.math.DoubleHolder;
 import org.junit.Assert;
 import org.junit.Test;
+import org.owasp.encoder.Encode;
+import org.owasp.encoder.Encoder;
 
+import java.net.URI;
+import java.net.URL;
 import java.net.URLDecoder;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class Main {
@@ -46,12 +51,20 @@ public class Main {
         Assert.assertTrue(OTP_PAGE_PATTERN.matcher(Constant.BASE_URL + "/login/index_otp?phone_number=9845114551").matches());
         Assert.assertTrue(OTP_PAGE_PATTERN.matcher(Constant.BASE_URL + "/login/index_otp").matches());
 
+        Assert.assertTrue(BASE_PATTERN.matcher(Constant.BASE_URL+"/x/y/19?x=a#1234").matches());
+        Assert.assertNotEquals(Constant.BASE_URL,sanitize(Constant.BASE_URL+"/x/y/19?x=a#1234"));
+        Assert.assertNotEquals(Constant.BASE_URL,sanitize(Constant.BASE_URL+"/x/y/19?x=a#12%2034"));
+        Assert.assertNotEquals(Constant.BASE_URL,sanitize(Constant.BASE_URL+"/x/y/19?x=a#12%2034"));
+        Assert.assertEquals(Constant.BASE_URL,sanitize(Constant.BASE_URL+"/x/y/19?x=a#12%5C%5C%4034"));
+        Assert.assertEquals(Constant.BASE_URL,sanitize(Constant.BASE_URL+"/x/y/19?x=a#12\\@google.com"));
+
+
 
 
     }
+    private static final Pattern BASE_PATTERN = Pattern.compile("^"+Constant.BASE_URL+"([A-z|0-9/?=# ]*)");
     private static Pattern DASHBOARD_PAGE_PATTERN = Pattern.compile("^" + Constant.BASE_URL+"/dashboard(/index)?$") ;
     private static Pattern OTP_PAGE_PATTERN = Pattern.compile("^" + Constant.BASE_URL+"/login/index_otp(\\?phone_number=[+]?[0-9]*)?$") ;
-
 
     private static final Pattern[] ourSitePatternsTriggeredExternally = new Pattern[] {
             Pattern.compile("^" + Constant.BASE_URL+"/orders\\?type=(sales|purchases)(#Order-[0-9]*)?(&history=Y)?$") ,
@@ -62,6 +75,7 @@ public class Main {
     } ;
 
     static class Constant {
+        static String HOST= "humbhionline.in";
         static String BASE_URL= "https://humbhionline.in";
     }
     public static boolean isUrlFromOurSite(String urlEncoded) throws Exception{
@@ -76,6 +90,23 @@ public class Main {
             }
         }
         return false;
+    }
+
+    public String sanitize(String url){
+        String ret = Constant.BASE_URL;
+        try {
+
+            if (BASE_PATTERN.matcher(URLDecoder.decode(url,"UTF-8")).matches()){
+                URI uri = new URL(url).toURI();
+                if (Objects.equals("https",uri.getScheme()) && Objects.equals(Constant.HOST,uri.getHost()) &&
+                    Objects.equals(Constant.HOST,uri.getAuthority())){
+                    ret = url;
+                }
+            }
+        }catch (Exception ex){
+            //
+        }
+        return ret;
     }
 
 }

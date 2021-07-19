@@ -111,7 +111,7 @@ public class Search extends BecknAsyncTask {
             if (qryString.length() > 0){
                 qryString.append(" AND ");
             }
-            qryString.append("SKU:" ).append(itemName).append("*");
+            qryString.append("( SKU:" ).append(itemName).append("* OR TAGS:").append(itemName).append("* )");
         }
         if (facilityIds != null){
             if (qryString.length() > 0){
@@ -272,18 +272,9 @@ public class Search extends BecknAsyncTask {
         ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);
         if (fulfillment != null){
             FulfillmentStop end = fulfillment.getEnd();
-            if (end != null){
-                GeoCoordinate deliveryLocation = end.getLocation().getGps();
-                Circle circle = end.getLocation().getCircle();
-                double radius = 0;
-                if (circle != null) {
-                    radius = circle.getDouble("radius");
-                    if (radius == 0) {
-                        radius = 5;
-                    }
-
-                }
-                BoundingBox bb = new BoundingBox(deliveryLocation,2,radius);
+            double radius = getMaxDistance(end);
+            if (radius > 0){
+                BoundingBox bb = new BoundingBox(end.getLocation().getGps(),2,radius);
                 Expression where = new Expression(ref.getPool(), Conjunction.AND);
                 where.add(new Expression(ref.getPool(),"PUBLISHED", Operator.EQ, true));
                 if (!ObjectUtil.isVoid(name)){
