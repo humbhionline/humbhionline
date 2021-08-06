@@ -16,6 +16,7 @@ import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
@@ -49,6 +50,29 @@ public class AppInstaller implements Installer {
         //installGuestUser();
         generateBecknKeys();
         registerBecknKeys();
+        updateFacilityMinMaxLatLng();
+
+    }
+
+    private void updateFacilityMinMaxLatLng() {
+
+        Select select = new Select().from(Facility.class);
+        Expression where = new Expression(select.getPool(), Conjunction.AND);
+        where.add(new Expression(select.getPool(),"DELIVERY_RADIUS" , Operator.GT , 0));
+        where.add(new Expression(select.getPool(),"LAT" , Operator.NE ));
+        where.add(new Expression(select.getPool(),"LNG" , Operator.NE ));
+        Expression minMax = new Expression(select.getPool(),Conjunction.OR);
+        where.add(minMax);
+        minMax.add(new Expression(select.getPool(),"MIN_LAT" , Operator.EQ ));
+        minMax.add(new Expression(select.getPool(),"MIN_LNG" , Operator.EQ ));
+        minMax.add(new Expression(select.getPool(),"MAX_LAT" , Operator.EQ ));
+        minMax.add(new Expression(select.getPool(),"MAX_LNG" , Operator.EQ ));
+
+        List<Facility> facilities = select.where(where).execute();
+        for (Facility f :facilities){
+            f.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+            f.save(); //Let before save do the trick.
+        }
 
     }
 

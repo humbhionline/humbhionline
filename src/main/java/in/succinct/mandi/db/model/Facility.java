@@ -4,6 +4,7 @@ import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.COLUMN_NAME;
 import com.venky.swf.db.annotations.column.ENCRYPTED;
 import com.venky.swf.db.annotations.column.HOUSEKEEPING;
+import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.indexing.Index;
@@ -12,6 +13,7 @@ import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import com.venky.swf.db.annotations.column.ui.PROTECTION;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 
@@ -113,4 +115,22 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
 
     @IS_VIRTUAL
     List<User> getOperatingUsers();
+
+    @IS_NULLABLE
+    public BigDecimal getMinLat();
+    public void setMinLat(BigDecimal lat);
+
+    @IS_NULLABLE
+    public BigDecimal getMinLng();
+    public void setMinLng(BigDecimal lat);
+
+    @IS_NULLABLE
+    public BigDecimal getMaxLat();
+    public void setMaxLat(BigDecimal lat);
+
+    @IS_NULLABLE
+    public BigDecimal getMaxLng();
+    public void setMaxLng(BigDecimal lng);
+
+
 }

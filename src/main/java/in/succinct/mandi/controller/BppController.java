@@ -154,7 +154,8 @@ public class BppController extends Controller {
     public View get_cancellation_reasons(){
         try {
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            if (request.verifySignature("Authorization",getPath().getHeaders())){
+            if (!Config.instance().getBooleanProperty("beckn.auth.enabled", false) ||
+                request.verifySignature("Authorization",getPath().getHeaders())){
                 List<OrderCancellationReason> reasons = new com.venky.swf.sql.Select().from(OrderCancellationReason.class).execute();
                 Options options = new Options();
                 reasons.forEach(r->{
@@ -183,7 +184,8 @@ public class BppController extends Controller {
     public View get_return_reasons(){
         try {
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            if (request.verifySignature("Authorization",getPath().getHeaders())){
+            if (!Config.instance().getBooleanProperty("beckn.auth.enabled", false) ||
+                    request.verifySignature("Authorization",getPath().getHeaders())){
                 List<OrderCancellationReason> reasons = new com.venky.swf.sql.Select().from(OrderCancellationReason.class).execute();
                 Options options = new Options();
                 reasons.forEach(r->{

@@ -15,6 +15,7 @@ public class BecknUtil {
         return Config.instance().getHostName();
     }
     public static String getIdPrefix(){
+        //return "./nic2004:52110/IND.std:080/";
         return "./retail.kirana/ind.blr/";
     }
     public static String getIdSuffix(){

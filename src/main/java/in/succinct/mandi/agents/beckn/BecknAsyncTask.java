@@ -9,10 +9,11 @@ import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.Error;
 import in.succinct.beckn.Error.Type;
-import in.succinct.beckn.OnSearch;
 import in.succinct.beckn.Request;
 import org.json.simple.JSONObject;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -40,7 +41,12 @@ public abstract class BecknAsyncTask implements Task {
     public abstract void executeInternal();
     public final void sendError(Throwable th) {
         Error error = new Error();
-        error.setMessage(th.getMessage());
+
+        StringWriter message = new StringWriter();
+        th.printStackTrace(new PrintWriter(message));
+        error.setMessage(message.toString());
+
+        error.setCode("CALL-FAILED");
         error.setType(Type.DOMAIN_ERROR);
 
         Request callBackRequest = new Request();

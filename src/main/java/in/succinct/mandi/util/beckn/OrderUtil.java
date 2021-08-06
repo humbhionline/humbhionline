@@ -341,7 +341,13 @@ public class OrderUtil {
             @Override
             public City getCity() {
                 if (city == null) {
-                    city = City.findByStateAndCode(getStateId(), address.getCity());
+                    city = City.findByCode(address.getCity());
+                    if (city == null){
+                        city = Database.getTable(City.class).newRecord();
+                        city.setCode(address.getCity());
+                        city.setStateId(getStateId());
+                        city.save();
+                    }
                 }
                 return city;
             }
@@ -358,16 +364,16 @@ public class OrderUtil {
             }
 
             @Override
+            public Long getCountryId() {
+                return getCountry().getId();
+            }
+
+            @Override
             public State getState() {
                 if (state == null){
                     state = State.findByCountryAndCode(getCountryId(),address.getState());
                 }
                 return state;
-            }
-
-            @Override
-            public Long getCountryId() {
-                return getCountry().getId();
             }
 
             @Override

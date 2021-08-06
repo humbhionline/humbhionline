@@ -3,6 +3,9 @@ package in.succinct.mandi.extensions;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.extensions.AfterModelCreateExtension;
 import com.venky.swf.db.extensions.AfterModelSaveExtension;
+import com.venky.swf.plugins.background.core.TaskManager;
+import in.succinct.mandi.agents.beckn.RegisterProviderLocationAgent;
+import in.succinct.mandi.agents.beckn.RegisterProviderLocationAgent.RegisterProviderLocationTask;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Item;
@@ -54,6 +57,9 @@ public class AfterSaveFacility extends AfterModelSaveExtension<Facility> {
             inventory.setSellingPrice(model.getChargesPerKm()*cf);
             inventory.save();
 
+        }
+        if (model.getLat() != null  && model.getLng() != null){
+            TaskManager.instance().executeAsync(new RegisterProviderLocationTask(model),false);
         }
     }
 }
