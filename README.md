@@ -24,6 +24,10 @@ If however, you would like to self host your own personal marketplace with your 
 ## Thank You! (Lokah Samastah Sukhino Bhavanthu)
 I hope we can together make a difference in enabling local sellers to go online and open more avenues to improve their livelyhood. 
 
+## News 
+* We are currently implementing [beckn](https://beckn.org) api specifications so that sellers on this platform can get orders from other beckn enabled user facing applications.  
+* As part of Beckn Hackathon 2021, Humbhionline bagged some cool awards. https://beckn.org/hacking-a-world-of-new-possibilities
+
 
 
 
