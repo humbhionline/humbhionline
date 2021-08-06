@@ -19,7 +19,7 @@ public class ServerController extends Controller {
     @RequireLogin(false)
     public View restart(){
         String token = getPath().getHeader("Gitlab-Token");
-        String expectedToken = Base64.getEncoder().encodeToString(Config.instance().getProperty("gtok","").getBytes(StandardCharsets.UTF_8));
+        String expectedToken = Base64.getEncoder().encodeToString(Config.instance().getProperty("gtok").getBytes(StandardCharsets.UTF_8));
         if (ObjectUtil.equals(token,expectedToken)){
             Router.instance().shutDown();
             Runtime.getRuntime().exit(-1); //Will Force A Restart.
