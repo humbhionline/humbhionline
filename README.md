@@ -1,4 +1,4 @@
-#HumBhiOnline Community Edition
+# HumBhiOnline Community Edition
 ## An open source market place software.
 
 [HumBhiOnline](https://humbhionline.in) is an open source marketplace platform tailor made for small sellers and home enterprenurs in India. It is built on top of the [Succinct Web Framework](https://github.com/venkatramanm/swf-all).
@@ -15,7 +15,7 @@ If however, you would like to self host your own personal marketplace with your 
 [admin@humbhionline.in](mailto:admin@humbhionline.in)
 
 
-* Evangelizing the movement in your own way you can. 
+* Evangelizing the movement:
     * You can help a small seller in your community who may not be tech savvy with his onboarding efforts
     * You can buy from your local sellers thus supporting your local community.
     * Tell others about how this movement is in the direction of Athmanirbhar Bharat, 
