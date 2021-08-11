@@ -17,7 +17,7 @@ import com.venky.swf.plugins.collab.db.model.config.PinCode;
 import com.venky.swf.plugins.collab.db.model.config.State;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import com.venky.swf.plugins.mobilesignup.db.model.SignUp;
-import com.venky.swf.plugins.templates.controller.TemplateLoader;
+import com.venky.swf.controller.TemplateLoader;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.HtmlView;

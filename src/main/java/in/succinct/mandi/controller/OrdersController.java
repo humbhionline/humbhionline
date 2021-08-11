@@ -17,7 +17,7 @@ import com.venky.swf.plugins.background.core.CompositeTask;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.user.UserFacility;
-import com.venky.swf.plugins.templates.controller.TemplateLoader;
+import com.venky.swf.controller.TemplateLoader;
 import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;

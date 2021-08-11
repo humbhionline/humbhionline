@@ -3,11 +3,11 @@ package in.succinct.mandi.controller;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.path.Path;
-import com.venky.swf.plugins.templates.controller.TemplatedController;
+import com.venky.swf.controller.Controller;
 import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
 
-public class LoginController extends TemplatedController {
+public class LoginController extends Controller {
     public LoginController(Path path) {
         super(path);
     }

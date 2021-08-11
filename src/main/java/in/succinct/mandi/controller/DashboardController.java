@@ -5,7 +5,7 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.path.Path;
-import com.venky.swf.plugins.templates.controller.TemplatedController;
+import com.venky.swf.controller.Controller;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
 
-public class DashboardController extends TemplatedController {
+public class DashboardController extends Controller {
     public DashboardController(Path path) {
         super(path);
     }

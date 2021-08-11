@@ -3,7 +3,7 @@ package in.succinct.mandi.controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
-import com.venky.swf.plugins.templates.controller.TemplatedController;
+import com.venky.swf.controller.Controller;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
@@ -15,7 +15,7 @@ import in.succinct.mandi.util.CompanyUtil;
 
 import java.util.List;
 
-public class CatalogController extends TemplatedController {
+public class CatalogController extends Controller {
     public CatalogController(Path path) {
         super(path);
     }
