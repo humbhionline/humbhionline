@@ -21,8 +21,11 @@
                 Slides: [],
             },
             created: function () {
+                var params = (new URL(window.location)).searchParams;
+                var presentation = params.get("presentation");
                 let qry = {};
-                qry.q = "PRESENTATION:Usage"
+                qry.q = "PRESENTATION:" + ( presentation ? presentation : "Usage" );
+
                 qry.maxRecords = 100;
                 let self = this;
                 api().url("/slides/search/").get(qry).then(function (response) {

@@ -154,7 +154,7 @@ public class FacilityImpl extends ModelImpl<Facility> {
         if (counts.isEmpty()){
             return 0;
         }
-        return counts.get(0).getCount();
+        return (int)(counts.get(0).getCount());
     }
 
     public void notifyEvent(String event, Order order) {

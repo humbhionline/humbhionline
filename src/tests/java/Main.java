@@ -23,7 +23,22 @@ public class Main {
 
 
     }
+    @Test
+    public void bitTest(){
+        long x = 0x7ffffL;
+        long y = 0xfffffffffffL;
+        long MASK = x << 44;
 
+        long nodeId = 1;
+        long id = 15;
+
+        long fullId = nodeId << 44|id ;
+
+
+        System.out.println(Long.toHexString((1L << 44)|id));
+        System.out.println(Long.toHexString(nodeId << 44|id));
+        System.out.println(Long.toHexString(fullId >> 44));
+    }
     @Test
     public void test() throws Exception{
         Assert.assertTrue(isUrlFromOurSite("https://humbhionline.in"));
