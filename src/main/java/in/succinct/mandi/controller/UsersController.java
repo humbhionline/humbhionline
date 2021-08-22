@@ -2,14 +2,18 @@ package in.succinct.mandi.controller;
 
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.controller.TemplateLoader;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
+import com.venky.swf.db.JdbcTypeHelper.TypeConverter;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
+import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
+import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
@@ -17,20 +21,26 @@ import com.venky.swf.plugins.collab.db.model.config.PinCode;
 import com.venky.swf.plugins.collab.db.model.config.State;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import com.venky.swf.plugins.mobilesignup.db.model.SignUp;
-import com.venky.swf.controller.TemplateLoader;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
+import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Select;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.HtmlView;
+import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
+import in.succinct.mandi.db.model.MobileMeta;
+import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.AadharEKyc;
-import javax.servlet.http.HttpServletRequest;
+import org.apache.xpath.operations.Bool;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.util.Base64;
@@ -221,16 +231,41 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
     public View hasPassword() throws IOException {
         ensureIntegrationMethod(HttpMethod.POST);
         JSONObject object = (JSONObject)JSONValue.parse(StringUtil.read(getPath().getInputStream()));
+        object.put("BaseUrl",Config.instance().getServerBaseUrl());
         String phoneNumber = null;
         if (object != null){
             phoneNumber = Phone.sanitizePhoneNumber((String)object.get("PhoneNumber"));
         }
-        com.venky.swf.db.model.User user = getPath().getUser("PHONE_NUMBER",phoneNumber);
+        com.venky.swf.db.model.User user = ObjectUtil.isVoid(phoneNumber) ? null : getPath().getUser("PHONE_NUMBER",phoneNumber);
+
         boolean hasPassword = false;
+        TypeConverter<Boolean> converter = getReflector().getJdbcTypeHelper().getTypeRef(boolean.class).getTypeConverter();
+
         if (user != null){
             hasPassword = user.getRawRecord().getAsProxy(User.class).isPasswordSet();
+        }else {
+            MobileMeta meta = MobileMeta.find(phoneNumber);
+            if (meta != null){
+                ServerNode node = meta.getServerNode();
+                if (node != null){
+                    if (!ObjectUtil.equals(Config.instance().getServerBaseUrl(),node.getBaseUrl())){
+                        Call<JSONObject> call = new Call<>();
+                        JSONObject realObject = call.url(node.getBaseUrl()+"/users/hasPassword").method(HttpMethod.POST).
+                                headers(getPath().getHeaders()).inputFormat(InputFormat.JSON).input(object).getResponseAsJson();
+                        if (realObject == null ){
+                            if (call.hasErrors()) {
+                                JSONObject error = (JSONObject) JSONValue.parse(new InputStreamReader(call.getErrorStream()));
+                                throw new RuntimeException("Remote Call to " + node.getBaseUrl() + " failed with : " + error.get("Message"));
+                            }
+                        }else {
+                            object.put("BaseUrl",node.getBaseUrl());
+                            hasPassword = converter.valueOf(realObject.get("PasswordSet"));
+                        }
+                    }
+                }
+            }
         }
-        object.put("PasswordSet",getReflector().getJdbcTypeHelper().getTypeRef(boolean.class).getTypeConverter().toString(hasPassword));
+        object.put("PasswordSet",converter.toString(hasPassword));
         return new BytesView(getPath(),object.toJSONString().getBytes(StandardCharsets.UTF_8));
     }
 }

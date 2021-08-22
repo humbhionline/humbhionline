@@ -113,12 +113,12 @@
                     setConfirmUnload(false);
                     self.signIn();
                 },
-                login_via_otp: function(event){
+                login_via_otp: function(event,baseUrl){
                     if (event){
                         event.preventDefault();
                     }
                     let self = this;
-                    var url = "/login/index_otp";
+                    var url = baseUrl +"/login/index_otp";
 
                     if (self.phoneNumberEntered && !blank(self.params.User.PhoneNumber)) {
                         url += "?phone_number="+self.params.User.PhoneNumber;
@@ -136,7 +136,7 @@
                         api().url("/users/hasPassword").parameters(self.params.User).post().then(function(response){
                             self.phoneNumberEntered = true;
                             if (!response.PasswordSet || response.PasswordSet !== "Y" ){
-                                self.login_via_otp();
+                                self.login_via_otp(null,response.BaseUrl);
                             }else {
                                 self.showApp();
                             }
