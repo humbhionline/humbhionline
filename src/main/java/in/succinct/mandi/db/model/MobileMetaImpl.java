@@ -10,7 +10,11 @@ public class MobileMetaImpl extends ModelImpl<MobileMeta> {
         super();
     }
     public Long getServerNodeId() {
-        return getProxy().getTelecomCircle().getServerNodeId();
+        TelecomCircle circle = getProxy().getTelecomCircle();
+        if (circle != null){
+            return circle.getServerNodeId();
+        }
+        return null;
     }
 
     public void setServerNodeId(Long id){

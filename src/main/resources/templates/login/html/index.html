@@ -15,6 +15,8 @@
         //}
         var searchParams = (new URL(window.location)).searchParams;
         var phoneNumber = searchParams.get("phone_number");
+        var currentBaseUrl = window.location.origin;
+
 
         login = new Vue({
             el : "#app",
@@ -137,6 +139,9 @@
                             self.phoneNumberEntered = true;
                             if (!response.PasswordSet || response.PasswordSet !== "Y" ){
                                 self.login_via_otp(null,response.BaseUrl);
+                            }else if (response.BaseUrl !== currentBaseUrl){
+                                Lockr.rm("User"); //Not on this cluster.!!
+                                window.location.replace(response.BaseUrl + "/login?phone_number="+self.params.User.PhoneNumber);
                             }else {
                                 self.showApp();
                             }

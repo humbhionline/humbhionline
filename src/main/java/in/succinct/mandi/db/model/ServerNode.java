@@ -7,6 +7,7 @@ import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.UNIQUE_KEY;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.model.DBPOOL;
+import com.venky.swf.db.annotations.model.HAS_DESCRIPTION_FIELD;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.sql.Expression;
@@ -16,12 +17,14 @@ import com.venky.swf.sql.Select;
 import java.util.List;
 
 @DBPOOL("telecom")
+@HAS_DESCRIPTION_FIELD("BASE_URL")
 public interface ServerNode extends Model, GeoLocation {
     @UNIQUE_KEY
     @COLUMN_DEF(StandardDefault.ONE)
     public Integer getNodeId();
     public void setNodeId(Integer nodeId);
 
+    @UNIQUE_KEY("K2")
     public String getBaseUrl();
     public void setBaseUrl(String baseUrl);
 
@@ -45,5 +48,6 @@ public interface ServerNode extends Model, GeoLocation {
     }
 
 
+    @IS_VIRTUAL
     boolean isSelf();
 }

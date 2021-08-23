@@ -41,7 +41,7 @@ public interface MobileMeta extends Model {
             return null;
         }
         String sanitized = Phone.sanitizePhoneNumber(phoneNumber);
-        String prefix = sanitized.substring(3,4);
+        String prefix = sanitized.substring(3,3+4);
         MobileMeta meta = Database.getTable(MobileMeta.class).newRecord();
         meta.setPrefix(prefix);
         meta = Database.getTable(MobileMeta.class).getRefreshed(meta);
