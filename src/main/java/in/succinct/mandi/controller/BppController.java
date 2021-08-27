@@ -28,6 +28,7 @@ import in.succinct.beckn.Options;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.mandi.agents.beckn.BecknAsyncTask;
+import in.succinct.mandi.agents.beckn.BecknExtnAttributes;
 import in.succinct.mandi.agents.beckn.Cancel;
 import in.succinct.mandi.agents.beckn.Confirm;
 import in.succinct.mandi.agents.beckn.Init;
@@ -98,14 +99,19 @@ public class BppController extends Controller {
 
         Application application = getPath().getApplication();
         if (application == null){
-            request.setCallBackUri(getGatewayUrl(request.extractAuthorizationParams("Proxy-Authorization",headers)));
+            String callbackUrl = getGatewayUrl(request.extractAuthorizationParams("Proxy-Authorization",headers));
+            if (callbackUrl == null) {
+                callbackUrl = request.getContext().getBapUri();
+            }
+            request.getExtendedAttributes().set(BecknExtnAttributes.CALLBACK_URL,callbackUrl);
+
             return request.verifySignature("Proxy-Authorization",headers , false) &&
                     request.verifySignature("Authorization",headers , Config.instance().getBooleanProperty("beckn.auth.enabled", false));
         }else {
             ServerNode node = ServerNode.findNode(application.getAppId());
             if (node != null){
-                request.setCallBackUri(node.getBaseUrl() +"/" + "beckn_messages");
-                request.setInternal(true);
+                request.getExtendedAttributes().set(BecknExtnAttributes.CALLBACK_URL,node.getBaseUrl() +"/" + "beckn_messages");
+                request.getExtendedAttributes().set(BecknExtnAttributes.INTERNAL,true);
                 return true;
             }
         }
@@ -120,7 +126,7 @@ public class BppController extends Controller {
 
             if (isRequestAuthenticated(request)){
                 if (clazzTask != null){
-                    if (!request.isInternal()){
+                    if (!request.getExtendedAttributes().getBoolean(BecknExtnAttributes.INTERNAL)){
                         List<ServerNode> shards = new com.venky.swf.sql.Select().from(ServerNode.class).execute();
                         if (shards.isEmpty()){
                             TaskManager.instance().executeAsync(clazzTask.getConstructor(Request.class).newInstance(request), false);
@@ -148,14 +154,16 @@ public class BppController extends Controller {
         message = Database.getTable(BecknMessage.class).getRefreshed(message);
         message.setExpirationTime(System.currentTimeMillis() + request.getContext().getTtl() * 1000L);
         message.setNumPendingResponses(new Bucket(nodes.size()));
-        message.setCallBackUri(request.getCallBackUri());
+        message.setCallBackUri(request.getExtendedAttributes().get(BecknExtnAttributes.CALLBACK_URL));
         message.setRequestPayload(request.toString());
         message.save();
 
         List<Task> tasks = new ArrayList<>();
+        ServerNode self = ServerNode.selfNode();
+        String token = Base64.getEncoder().encodeToString(String.format("%s:%s", self.getClientId(), self.getClientSecret()).getBytes(StandardCharsets.UTF_8));
+        headers.put("Authorization", String.format("Basic %s", token));
+
         for (ServerNode node : nodes) {
-            String token = Base64.getEncoder().encodeToString(String.format("%s:%s", node.getClientId(), node.getClientSecret()).getBytes(StandardCharsets.UTF_8));
-            headers.put("Authorization", String.format("Basic %s", token));
             ServerResponse response = Database.getTable(ServerResponse.class).newRecord();
             response.setBecknMessageId(message.getId());
             response.setServerNodeId(node.getId());

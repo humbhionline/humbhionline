@@ -74,6 +74,11 @@ public abstract class BecknAsyncTask implements Task {
         if (Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
             headers.put("Authorization", request.generateAuthorizationHeader(request.getContext().getBppId(),
                     request.getContext().getBppId() + ".k1"));
+        }else if (getRequest().getExtendedAttributes().getBoolean(BecknExtnAttributes.INTERNAL)){
+            ServerNode self = ServerNode.selfNode();
+            String token = String.format("%s:%s",self.getClientId(),self.getClientSecret());
+            token = String.format("Basic %s", Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8)));
+            headers.put("Authorization", token);
         }
         headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
         headers.put("Accept", MimeType.APPLICATION_JSON.toString());
@@ -88,7 +93,7 @@ public abstract class BecknAsyncTask implements Task {
         if (ObjectUtil.isVoid(request.getContext().getAction())){
             request.getContext().setAction("on_"+getRequest().getContext().getAction());
         }
-        new Call<JSONObject>().url(getRequest().getCallBackUri() + "/"+request.getContext().getAction()).
+        new Call<JSONObject>().url(getRequest().getExtendedAttributes().get(BecknExtnAttributes.CALLBACK_URL) + "/"+request.getContext().getAction()).
                 method(HttpMethod.POST).inputFormat(InputFormat.JSON).
                 input(request.getInner()).headers(getHeaders(request)).getResponseAsJson();
     }

@@ -29,9 +29,11 @@ public interface ServerNode extends Model, GeoLocation {
     public String getBaseUrl();
     public void setBaseUrl(String baseUrl);
 
+    @UNIQUE_KEY("K3")
     public String getClientId();
     public void setClientId(String clientId);
 
+    @ENCRYPTED
     public String getClientSecret();
     public void setClientSecret(String clientSecret);
 
@@ -48,6 +50,19 @@ public interface ServerNode extends Model, GeoLocation {
         }
         return nodes.get(0);
     }
+    public static ServerNode findNodeByBaseUrl(String baseUrl){
+        List<ServerNode> nodes = new Select().from(ServerNode.class).
+                where(new Expression(ModelReflector.instance(ServerNode.class).getPool(),
+                        "BASE_URL", Operator.EQ, baseUrl)).execute(1);
+        if (nodes.isEmpty()){
+            return null;
+        }
+        return nodes.get(0);
+    }
+    public static ServerNode selfNode(){
+        return findNodeByBaseUrl(Config.instance().getServerBaseUrl());
+    }
+
     public static ServerNode findNodeByNodeId(long nodeId){
         List<ServerNode> nodes = new Select().from(ServerNode.class).
                 where(new Expression(ModelReflector.instance(ServerNode.class).getPool(),

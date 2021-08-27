@@ -26,6 +26,7 @@ import in.succinct.beckn.Providers;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.mandi.agents.beckn.BecknAsyncTask;
+import in.succinct.mandi.agents.beckn.BecknExtnAttributes;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.beckn.BecknMessage;
 import in.succinct.mandi.db.model.beckn.ServerResponse;
@@ -81,7 +82,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
             response.setResponse(new InputStreamReader(getPath().getInputStream()));
             response.save();
             if (responseConsolidator != null && message.getNumPendingResponses().intValue() == 0) {
-                TaskManager.instance().executeAsync(responseConsolidator.getConstructor(String.class).newInstance(message.getMessageId()));
+                TaskManager.instance().executeAsync(responseConsolidator.getConstructor(String.class).newInstance(message.getMessageId()),false);
             }
 
             return ack(request);
@@ -99,36 +100,47 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
         return update_response(SearchConsolidator.class);
     }
 
+    @RequireLogin(false)
     public View on_select(){
         return update_response(SelectConsolidator.class);
     }
+
+    @RequireLogin(false)
     public View on_init(){
         return update_response(InitConsolidator.class);
     }
 
+    @RequireLogin(false)
     public View on_confirm(){
         return update_response(ConfirmConsolidator.class);
     }
 
+    @RequireLogin(false)
     public View on_status(){
         return update_response(StatusConsolidator.class);
     }
 
+    @RequireLogin(false)
     public View on_cancel(){
         return update_response(CancelConsolidator.class);
     }
+
+    @RequireLogin(false)
     public View on_update(){
         return update_response(null);
     }
 
+    @RequireLogin(false)
     public View on_track(){
         return update_response(null);
     }
 
+    @RequireLogin(false)
     public View on_rating(){
         return update_response(null);
     }
 
+    @RequireLogin(false)
     public View on_support(){
         return update_response(null);
     }
@@ -154,7 +166,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
         public static Request getRequest(BecknMessage message){
             Request request =  message == null ? new Request() : new Request(message.getRequestPayload());
             if (message != null){
-                request.setCallBackUri(message.getCallBackUri());
+                request.getExtendedAttributes().set(BecknExtnAttributes.CALLBACK_URL,message.getCallBackUri());
             }
             return request;
         }
