@@ -6,6 +6,7 @@ import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.path.Path;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnStatus;
@@ -22,11 +23,12 @@ import java.util.Map;
 
 public class Status extends BecknAsyncTask {
 
+
     public Status(Request request){
         super(request);
     }
     @Override
-    public void executeInternal() {
+    public Request executeInternal() {
         Request request = getRequest();
         String orderId = request.getMessage().get("order_id");
         Long lOrderId = Long.valueOf(BecknUtil.getLocalUniqueId(orderId, Entity.order));
@@ -40,7 +42,7 @@ public class Status extends BecknAsyncTask {
         onStatus.getMessage().setOrder(becknOrder);
         onStatus.getContext().setAction("on_status");
 
-        send(onStatus);
+        return(onStatus);
     }
 
 }

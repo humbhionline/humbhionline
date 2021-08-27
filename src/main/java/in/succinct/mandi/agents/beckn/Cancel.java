@@ -7,6 +7,7 @@ import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.path.Path;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnCancel;
@@ -27,8 +28,9 @@ public class Cancel extends BecknAsyncTask {
     public Cancel(Request request){
         super(request);
     }
+
     @Override
-    public void executeInternal() {
+    public Request executeInternal() {
         Request request = getRequest();
         String order_id = request.getMessage().get("order_id");
         String cancel_reason_id = request.getMessage().get("cancellation_reason_id");
@@ -54,7 +56,7 @@ public class Cancel extends BecknAsyncTask {
         onCancel.getMessage().setOrder(becknOrder);
         onCancel.getContext().setAction("on_cancel");
 
-        send(onCancel);
+        return (onCancel);
     }
 
 }

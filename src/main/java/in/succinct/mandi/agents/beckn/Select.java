@@ -8,6 +8,7 @@ import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.path.Path;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.BreakUp;
 import in.succinct.beckn.BreakUp.BreakUpElement;
@@ -32,11 +33,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Select extends BecknAsyncTask {
+
     public Select(Request request){
         super(request);
     }
     @Override
-    public void executeInternal() {
+    public Request executeInternal() {
         Request request = getRequest();
         OnSelect onSelect = new OnSelect();
         onSelect.setContext(request.getContext());
@@ -127,7 +129,7 @@ public class Select extends BecknAsyncTask {
         breakUp.add(element);
         quote.setBreakUp(breakUp);
 
-        send(onSelect);
+        return(onSelect);
 
     }
 

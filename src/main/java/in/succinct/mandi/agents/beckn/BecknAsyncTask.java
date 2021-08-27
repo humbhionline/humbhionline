@@ -5,16 +5,26 @@ import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.Task;
+import com.venky.swf.plugins.background.project.Project;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Select;
 import in.succinct.beckn.Error;
 import in.succinct.beckn.Error.Type;
 import in.succinct.beckn.Request;
+import in.succinct.beckn.Response;
+import in.succinct.mandi.db.model.ServerNode;
+import org.bouncycastle.cert.ocsp.Req;
 import org.json.simple.JSONObject;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -24,21 +34,21 @@ public abstract class BecknAsyncTask implements Task {
     }
 
     private Request request;
+    public BecknAsyncTask(){
+    }
     public BecknAsyncTask(Request request){
         this.request = request;
     }
-    public BecknAsyncTask(){
 
-    }
-
-    public void execute(){
+    public final void execute(){
         try {
-            executeInternal();
+            Request out = executeInternal();
+            send(out);
         }catch (Exception ex){
             sendError(ex);
         }
     }
-    public abstract void executeInternal();
+    public abstract Request executeInternal();
     public final void sendError(Throwable th) {
         Error error = new Error();
 
@@ -71,7 +81,10 @@ public abstract class BecknAsyncTask implements Task {
         return headers;
     }
 
-    protected final void send(Request request){
+    private void send(Request request){
+        if (request == null){
+            return;
+        }
         if (ObjectUtil.isVoid(request.getContext().getAction())){
             request.getContext().setAction("on_"+getRequest().getContext().getAction());
         }

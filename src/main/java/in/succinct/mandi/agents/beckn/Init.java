@@ -7,6 +7,7 @@ import com.venky.core.math.DoubleHolder;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
+import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import in.succinct.beckn.Billing;
@@ -43,7 +44,7 @@ public class Init extends BecknAsyncTask {
         super(request);
     }
     @Override
-    public void executeInternal() {
+    public Request executeInternal() {
         Request request = getRequest();
         Context context = request.getContext();
         Order becknOrder = request.getMessage().getOrder();
@@ -133,7 +134,7 @@ public class Init extends BecknAsyncTask {
         onInit.getContext().setAction("on_init");
         onInit.setMessage(new Message());
         onInit.getMessage().setInitialized(becknOrder);
-        send(onInit);
+        return(onInit);
 
     }
 
