@@ -30,17 +30,23 @@ public class Status extends BecknAsyncTask {
     @Override
     public Request executeInternal() {
         Request request = getRequest();
-        String orderId = request.getMessage().get("order_id");
-        Long lOrderId = Long.valueOf(BecknUtil.getLocalUniqueId(orderId, Entity.order));
-        Order order = Database.getTable(Order.class).get(lOrderId);
-
-        in.succinct.beckn.Order becknOrder = new OrderUtil().toBeckn(order, OrderFormat.order);
-
         OnStatus onStatus = new OnStatus();
         onStatus.setContext(request.getContext());
         onStatus.setMessage(new Message());
-        onStatus.getMessage().setOrder(becknOrder);
         onStatus.getContext().setAction("on_status");
+
+        String orderId = request.getMessage().get("order_id");
+        Long lOrderId = Long.valueOf(BecknUtil.getLocalUniqueId(orderId, Entity.order));
+
+        Order order = Database.getTable(Order.class).get(lOrderId);
+        if (order == null){
+            return onStatus;
+        }
+
+
+        in.succinct.beckn.Order becknOrder = new OrderUtil().toBeckn(order, OrderFormat.order);
+
+        onStatus.getMessage().setOrder(becknOrder);
 
         return(onStatus);
     }

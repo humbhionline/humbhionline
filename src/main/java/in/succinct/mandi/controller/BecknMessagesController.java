@@ -1,6 +1,8 @@
 package in.succinct.mandi.controller;
 
+import com.venky.cache.Cache;
 import com.venky.core.string.StringUtil;
+import com.venky.core.util.Bucket;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
@@ -20,9 +22,20 @@ import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
 import in.succinct.beckn.Acknowledgement;
 import in.succinct.beckn.Acknowledgement.Status;
+import in.succinct.beckn.BreakUp;
+import in.succinct.beckn.BreakUp.BreakUpElement;
+import in.succinct.beckn.Item;
+import in.succinct.beckn.Items;
+import in.succinct.beckn.OnCancel;
+import in.succinct.beckn.OnConfirm;
+import in.succinct.beckn.OnInit;
 import in.succinct.beckn.OnSearch;
+import in.succinct.beckn.OnSelect;
+import in.succinct.beckn.OnStatus;
+import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
+import in.succinct.beckn.Quote;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.mandi.agents.beckn.BecknAsyncTask;
@@ -181,9 +194,12 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
                     consolidate(consolidated, current);
                 }
             }
+            validateResponse(consolidated);
             return new Request(consolidated);
         }
+        public void validateResponse(JSONObject consolidatedResponse) throws RuntimeException {
 
+        }
 
         public abstract void consolidate(JSONObject consolidatedResponse, JSONObject aResponse);
 
@@ -204,6 +220,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
                 providers.add(p);
             }
         }
+
     }
     public static class SelectConsolidator extends ResponseConsolidator {
 
@@ -213,8 +230,19 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
 
         @Override
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
-
+            OnSelect consolidated = new OnSelect(consolidatedResponse);
+            OnSelect shardResponse = new OnSelect(aResponse);
+            if (shardResponse.getMessage().getOrder() != null){
+                consolidated.setInner(shardResponse.getInner());
+            }
         }
+        public void validateResponse(JSONObject consolidatedResponse) throws RuntimeException {
+            OnSelect consolidated = new OnSelect(consolidatedResponse);
+            if (consolidated.getMessage().getOrder() == null){
+                throw new RuntimeException("Cannot identify item(s) passed!");
+            }
+        }
+
     }
     public static class InitConsolidator extends ResponseConsolidator {
 
@@ -224,7 +252,18 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
 
         @Override
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
+            OnInit consolidated = new OnInit(consolidatedResponse);
+            OnInit shardResponse = new OnInit(aResponse);
+            if (shardResponse.getMessage().getOrder() != null){
+                consolidated.setInner(shardResponse.getInner());
+            }
+        }
 
+        public void validateResponse(JSONObject consolidatedResponse) throws RuntimeException {
+            OnInit consolidated = new OnInit(consolidatedResponse);
+            if (consolidated.getMessage().getOrder() == null){
+                throw new RuntimeException("Cannot identify item(s) passed!");
+            }
         }
     }
     public static class ConfirmConsolidator extends ResponseConsolidator {
@@ -235,7 +274,17 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
 
         @Override
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
-
+            OnConfirm consolidated = new OnConfirm(consolidatedResponse);
+            OnConfirm shardResponse = new OnConfirm(aResponse);
+            if (shardResponse.getMessage().getOrder() != null){
+                consolidated.setInner(shardResponse.getInner());
+            }
+        }
+        public void validateResponse(JSONObject consolidatedResponse) throws RuntimeException {
+            OnConfirm consolidated = new OnConfirm(consolidatedResponse);
+            if (consolidated.getMessage().getOrder() == null){
+                throw new RuntimeException("Cannot identify transaction Id!");
+            }
         }
     }
     public static class CancelConsolidator extends ResponseConsolidator {
@@ -246,7 +295,17 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
 
         @Override
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
-
+            OnCancel consolidated = new OnCancel(consolidatedResponse);
+            OnCancel shardResponse = new OnCancel(aResponse);
+            if (shardResponse.getMessage().getOrder() != null){
+                consolidated.setInner(shardResponse.getInner());
+            }
+        }
+        public void validateResponse(JSONObject consolidatedResponse) throws RuntimeException {
+            OnCancel consolidated = new OnCancel(consolidatedResponse);
+            if (consolidated.getMessage().getOrder() == null){
+                throw new RuntimeException("Cannot identify transaction Id!");
+            }
         }
     }
     public static class StatusConsolidator extends ResponseConsolidator {
@@ -257,7 +316,17 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
 
         @Override
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
-
+            OnStatus consolidated = new OnStatus(consolidatedResponse);
+            OnStatus shardResponse = new OnStatus(aResponse);
+            if (shardResponse.getMessage().getOrder() != null){
+                consolidated.setInner(shardResponse.getInner());
+            }
+        }
+        public void validateResponse(JSONObject consolidatedResponse) throws RuntimeException {
+            OnStatus consolidated = new OnStatus(consolidatedResponse);
+            if (consolidated.getMessage().getOrder() == null){
+                throw new RuntimeException("Cannot identify transaction Id!");
+            }
         }
     }
 }

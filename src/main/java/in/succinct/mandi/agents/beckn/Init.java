@@ -48,7 +48,7 @@ public class Init extends BecknAsyncTask {
         Request request = getRequest();
         Context context = request.getContext();
         Order becknOrder = request.getMessage().getOrder();
-        Provider provider = becknOrder.getProvider();
+        //Provider provider = becknOrder.getProvider();
 
         in.succinct.mandi.db.model.Order order = in.succinct.mandi.db.model.Order.find(context.getTransactionId());
         if (order != null){
@@ -62,10 +62,24 @@ public class Init extends BecknAsyncTask {
                 throw new RuntimeException("Order already confirmed!");
             }
         }
-
+        /* /select change!! jul 7
         long providerUserId = Long.parseLong(BecknUtil.getLocalUniqueId(provider.getId(), Entity.provider));
         User seller = Database.getTable(User.class).get(providerUserId);
         Facility facility = OrderUtil.getOrderFacility(seller,provider.getLocations());
+        */
+        Facility facility = null;
+        {
+            long invId = Long.valueOf(BecknUtil.getLocalUniqueId(becknOrder.getItems().get(0).getId(), Entity.item));
+            Inventory inventory = Database.getTable(Inventory.class).get(invId);
+            if (inventory != null){
+                OnInit onInit = new OnInit();
+                onInit.setContext(context);
+                onInit.getContext().setAction("on_init");
+                onInit.setMessage( new Message()); //Empty
+                return onInit;
+            }
+            facility = inventory.getFacility().getRawRecord().getAsProxy(Facility.class);
+        }
 
         order = Database.getTable(in.succinct.mandi.db.model.Order.class).newRecord();
         order.setFacilityId(facility.getId());
@@ -206,11 +220,10 @@ public class Init extends BecknAsyncTask {
         Facility facility = order.getFacility();
 
         for (Item item : items){
-            long skuId = Long.parseLong(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
+            long invId = Long.parseLong(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
             Quantity quantity = item.get(Quantity.class,"quantity");
 
-            Inventory inventory = in.succinct.plugins.ecommerce.db.model.inventory.Inventory.find(facility.getId(),skuId).getRawRecord()
-                    .getAsProxy(Inventory.class);
+            Inventory inventory = Database.getTable(Inventory.class).get(invId);
             OrderLine orderLine = Database.getTable(OrderLine.class).newRecord();
             orderLine.setOrderId(order.getId());
             orderLine.setShipFromId(inventory.getFacilityId());

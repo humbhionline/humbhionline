@@ -219,7 +219,7 @@ public class Search extends BecknAsyncTask {
             }
             Sku sku = inv.getSku().getRawRecord().getAsProxy(Sku.class);
 
-            String itemId  = BecknUtil.getBecknId(String.valueOf(inv.getSkuId()),Entity.item);
+            String itemId  = BecknUtil.getBecknId(String.valueOf(inv.getId()),Entity.item);
             Item item = new Item();
 
             Price price = new Price();
