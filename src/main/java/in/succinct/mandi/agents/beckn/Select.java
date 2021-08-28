@@ -47,7 +47,10 @@ public class Select extends BecknAsyncTask {
             return false;
         }
         Long invId = Long.valueOf(BecknUtil.getLocalUniqueId(items.get(0).getId(), Entity.item));
-        return Database.getTable(Inventory.class).get(invId) != null;
+        if (invId > 0){
+            return Database.getTable(Inventory.class).get(invId) != null;
+        }
+        return false;
     }
     @Override
     public Request executeInternal() {

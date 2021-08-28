@@ -15,6 +15,7 @@ import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
@@ -43,6 +44,7 @@ import in.succinct.mandi.agents.beckn.BecknExtnAttributes;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.beckn.BecknMessage;
 import in.succinct.mandi.db.model.beckn.ServerResponse;
+import in.succinct.mandi.util.beckn.BecknUtil;
 import org.bouncycastle.cert.ocsp.Req;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -195,7 +197,10 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
                 }
             }
             validateResponse(consolidated);
-            return new Request(consolidated);
+            Request request = new Request(consolidated);
+            request.getContext().setBppId(BecknUtil.getSubscriberId());
+            request.getContext().setBppUri(Config.instance().getServerBaseUrl() + "/bpp");
+            return request;
         }
         public void validateResponse(JSONObject consolidatedResponse) throws RuntimeException {
 
@@ -232,7 +237,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
             OnSelect consolidated = new OnSelect(consolidatedResponse);
             OnSelect shardResponse = new OnSelect(aResponse);
-            if (shardResponse.getMessage().getOrder() != null){
+            if (shardResponse.getMessage() != null && shardResponse.getMessage().getOrder() != null){
                 consolidated.setInner(shardResponse.getInner());
             }
         }
@@ -254,7 +259,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
             OnInit consolidated = new OnInit(consolidatedResponse);
             OnInit shardResponse = new OnInit(aResponse);
-            if (shardResponse.getMessage().getOrder() != null){
+            if (shardResponse.getMessage() != null && shardResponse.getMessage().getOrder() != null){
                 consolidated.setInner(shardResponse.getInner());
             }
         }
@@ -276,7 +281,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
             OnConfirm consolidated = new OnConfirm(consolidatedResponse);
             OnConfirm shardResponse = new OnConfirm(aResponse);
-            if (shardResponse.getMessage().getOrder() != null){
+            if (shardResponse.getMessage() != null && shardResponse.getMessage().getOrder() != null){
                 consolidated.setInner(shardResponse.getInner());
             }
         }
@@ -297,7 +302,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
             OnCancel consolidated = new OnCancel(consolidatedResponse);
             OnCancel shardResponse = new OnCancel(aResponse);
-            if (shardResponse.getMessage().getOrder() != null){
+            if (shardResponse.getMessage() != null && shardResponse.getMessage().getOrder() != null){
                 consolidated.setInner(shardResponse.getInner());
             }
         }
@@ -318,7 +323,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
         public void consolidate(JSONObject consolidatedResponse, JSONObject aResponse) {
             OnStatus consolidated = new OnStatus(consolidatedResponse);
             OnStatus shardResponse = new OnStatus(aResponse);
-            if (shardResponse.getMessage().getOrder() != null){
+            if (shardResponse.getMessage() != null && shardResponse.getMessage().getOrder() != null){
                 consolidated.setInner(shardResponse.getInner());
             }
         }

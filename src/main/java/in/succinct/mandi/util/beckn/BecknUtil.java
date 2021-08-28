@@ -58,7 +58,7 @@ public class BecknUtil {
         if (ids.size() == 1){
             return ids.get(0);
         }
-        throw new RuntimeException("Id not formated as expected!");
+        return "-1" ;//throw new RuntimeException("Id not formated as expected!");
     }
 
     public static String getRegistryUrl(){
