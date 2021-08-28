@@ -33,7 +33,6 @@ public interface ServerNode extends Model, GeoLocation {
     public String getClientId();
     public void setClientId(String clientId);
 
-    @ENCRYPTED
     public String getClientSecret();
     public void setClientSecret(String clientSecret);
 
