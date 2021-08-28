@@ -241,7 +241,7 @@ public class OrderUtil {
                 BreakUpElement element = breakUp.createElement("item","Total Product", productPrice);
                 breakUp.add(element);
                 BreakUpElement fulfillmentElement = breakUp.createElement("fulfillment", "Delivery Charges", fulfillmentPrice);
-
+                breakUp.add(fulfillmentElement);
                 quote.setBreakUp(breakUp);
 
             }

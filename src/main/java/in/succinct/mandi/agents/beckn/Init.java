@@ -228,6 +228,7 @@ public class Init extends BecknAsyncTask {
             orderLine.setOrderId(order.getId());
             orderLine.setShipFromId(inventory.getFacilityId());
             orderLine.setSkuId(inventory.getSkuId());
+            orderLine.setInventoryId(invId);
             orderLine.setOrderedQuantity(quantity.getCount());
             orderLine.setSellingPrice(inventory.getSellingPrice() * quantity.getCount());
             orderLine.setMaxRetailPrice(inventory.getMaxRetailPrice() * quantity.getCount());
