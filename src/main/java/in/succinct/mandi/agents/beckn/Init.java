@@ -70,8 +70,8 @@ public class Init extends BecknAsyncTask {
         Facility facility = null;
         {
             long invId = Long.valueOf(BecknUtil.getLocalUniqueId(becknOrder.getItems().get(0).getId(), Entity.item));
-            Inventory inventory = Database.getTable(Inventory.class).get(invId);
-            if (inventory != null){
+            Inventory inventory = invId > 0 ? Database.getTable(Inventory.class).get(invId) : null ;
+            if (inventory == null){
                 OnInit onInit = new OnInit();
                 onInit.setContext(context);
                 onInit.getContext().setAction("on_init");
