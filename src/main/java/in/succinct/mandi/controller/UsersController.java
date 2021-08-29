@@ -236,36 +236,37 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         if (object != null){
             phoneNumber = Phone.sanitizePhoneNumber((String)object.get("PhoneNumber"));
         }
-        com.venky.swf.db.model.User user = ObjectUtil.isVoid(phoneNumber) ? null : getPath().getUser("PHONE_NUMBER",phoneNumber);
 
-        boolean hasPassword = false;
-        TypeConverter<Boolean> converter = getReflector().getJdbcTypeHelper().getTypeRef(boolean.class).getTypeConverter();
-
-        if (user != null){
-            hasPassword = user.getRawRecord().getAsProxy(User.class).isPasswordSet();
-        }else {
-            MobileMeta meta = MobileMeta.find(phoneNumber);
-            if (meta != null){
-                ServerNode node = meta.getServerNode();
-                if (node != null){
-                    if (!ObjectUtil.equals(Config.instance().getServerBaseUrl(),node.getBaseUrl())){
-                        Call<JSONObject> call = new Call<>();
-                        JSONObject realObject = call.url(node.getBaseUrl()+"/users/hasPassword").method(HttpMethod.POST).
-                                headers(getPath().getHeaders()).inputFormat(InputFormat.JSON).input(object).getResponseAsJson();
-                        if (realObject == null ){
-                            if (call.hasErrors()) {
-                                JSONObject error = (JSONObject) JSONValue.parse(new InputStreamReader(call.getErrorStream()));
-                                throw new RuntimeException("Remote Call to " + node.getBaseUrl() + " failed with : " + error.get("Message"));
-                            }
-                        }else {
-                            object.put("BaseUrl",node.getBaseUrl());
-                            hasPassword = converter.valueOf(realObject.get("PasswordSet"));
+        MobileMeta meta = MobileMeta.find(phoneNumber);
+        if (meta != null){
+            ServerNode node = meta.getServerNode();
+            if (node != null){
+                if (!ObjectUtil.equals(Config.instance().getServerBaseUrl(),node.getBaseUrl())){
+                    Call<JSONObject> call = new Call<>();
+                    JSONObject realObject = call.url(node.getBaseUrl()+"/users/hasPassword").method(HttpMethod.POST).
+                            headers(getPath().getHeaders()).inputFormat(InputFormat.JSON).input(object).getResponseAsJson();
+                    if (realObject == null ){
+                        if (call.hasErrors()) {
+                            JSONObject error = (JSONObject) JSONValue.parse(new InputStreamReader(call.getErrorStream()));
+                            throw new RuntimeException("Remote Call to " + node.getBaseUrl() + " failed with : " + error.get("Message"));
                         }
+                    }else {
+                        return new BytesView(getPath(),realObject.toJSONString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
                     }
                 }
             }
         }
+
+
+
+        boolean hasPassword = false;
+        TypeConverter<Boolean> converter = getReflector().getJdbcTypeHelper().getTypeRef(boolean.class).getTypeConverter();
+
+        com.venky.swf.db.model.User user = ObjectUtil.isVoid(phoneNumber) ? null : getPath().getUser("PHONE_NUMBER",phoneNumber);
+        if (user != null){
+            hasPassword = user.getRawRecord().getAsProxy(User.class).isPasswordSet();
+        }
         object.put("PasswordSet",converter.toString(hasPassword));
-        return new BytesView(getPath(),object.toJSONString().getBytes(StandardCharsets.UTF_8));
+        return new BytesView(getPath(),object.toJSONString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 }
