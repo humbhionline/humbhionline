@@ -23,6 +23,7 @@ import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Order;
+import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.db.model.UserLocation;
