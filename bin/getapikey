@@ -7,8 +7,11 @@ cd $projpath
 
 if [ $# -eq 0 ] 
 then 
-    user=root
-    password=root
+    if [ "${user}" = ""  -a "${phone_number}" = "" ] 
+    then 
+        user=root
+        password=root
+    fi
 else
     user=$1
     password=$2
@@ -18,7 +21,13 @@ then
     baseurl="http://localhost:${wport}"
 fi
 
+if [ "${phone_number}" = "" ] 
+then 
 curl -s -H "content-type: application/json" "${baseurl}/login" -d '{ "User" : { "Name":"'$user'" , "Password":"'$password'"} } ' |grep 'ApiKey' |cut -f2 -d ':' |sed -e 's/ //g' -e 's/"//g'
+else 
+curl -s -H "content-type: application/json" "${baseurl}/login" -d '{ "User" : { "PhoneNumber":"'$phone_number'" , "Password":"'$password'"} } ' |grep 'ApiKey' |cut -f2 -d ':' |sed -e 's/ //g' -e 's/"//g'
+
+fi
 
 
 

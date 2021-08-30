@@ -15,6 +15,8 @@ import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
+import com.venky.swf.plugins.collab.db.model.participants.admin.Company;
+import com.venky.swf.plugins.security.db.model.Role;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
@@ -47,11 +49,26 @@ public class AppInstaller implements Installer {
         encryptAddress(Facility.class,encryptionSupport);
         encryptAddress(User.class,encryptionSupport);
         encryptAddress(OrderAddress.class,encryptionSupport);
+        insertCompany();
+        insertRole();
+
         //installGuestUser();
         generateBecknKeys();
         registerBecknKeys();
         updateFacilityMinMaxLatLng();
 
+    }
+    private void insertCompany(){
+        Company company = Database.getTable(Company.class).newRecord();
+        company.setName("MANDI");
+        company = Database.getTable(Company.class).getRefreshed(company);
+        company.save();
+    }
+    private void insertRole(){
+        Role role = Database.getTable(Role.class).newRecord();
+        role.setName("USER");
+        role = Database.getTable(Role.class).getRefreshed(role);
+        role.save();
     }
 
     private void updateFacilityMinMaxLatLng() {

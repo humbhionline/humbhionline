@@ -16,7 +16,7 @@ then
     content_type="application/xml" 
 fi
 
-apiKey=`bin/getapikey $user $password`
+apiKey=`phone_number=$user password=$password bin/getapikey`
 echo "user=$user"
 echo "api=$api"
 echo "data=$data"

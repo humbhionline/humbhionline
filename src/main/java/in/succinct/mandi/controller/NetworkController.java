@@ -42,13 +42,22 @@ public class NetworkController extends Controller {
         }catch (IOException ex){
             throw new RuntimeException(ex);
         }
+        ServerNode self = ServerNode.selfNode();
+        String token = String.format("%s:%s",self.getClientId(),self.getClientSecret());
+        String auth = String.format("Basic %s", Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8)));
         for (ServerNode node :nodes ){
-            String token = String.format("%s:%s",node.getClientId(),node.getClientSecret());
-            String auth = String.format("Basic %s", Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8)));
-
-            JSONObject output = new Call<JSONObject>().url(node.getBaseUrl() +"/" + api).inputFormat(InputFormat.JSON)
-                    .input(input).headers(getPath().getHeaders()).header("content-type", MimeType.APPLICATION_JSON.toString()).header("Authorization",auth)
-                            method(HttpMethod.POST).getResponseAsJson();
+            JSONObject output ;
+            if (input == null){
+                output = new Call<JSONObject>().url(node.getBaseUrl() + "/" + api).headers(getPath().getHeaders()).
+                                header("content-type", MimeType.APPLICATION_JSON.toString()).
+                                header("Authorization", auth).
+                                method(HttpMethod.GET).getResponseAsJson();
+            }else {
+                output = new Call<JSONObject>().url(node.getBaseUrl() + "/" + api).inputFormat(InputFormat.JSON)
+                        .input(input).headers(getPath().getHeaders()).header("content-type", MimeType.APPLICATION_JSON.toString()).
+                        header("Authorization", auth).
+                        method(HttpMethod.POST).getResponseAsJson();
+            }
             if (output != null){
                 if (consolidated == null){
                     consolidated = output;
