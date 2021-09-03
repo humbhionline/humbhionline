@@ -65,7 +65,7 @@ public class FacilityImpl extends ModelImpl<Facility> {
             distance = 0.0;
         }else {
             com.venky.swf.db.model.User u = Database.getInstance().getCurrentUser();
-            User currentUser = u == null ? null : u.getRawRecord().getAsProxy(User.class);
+            User currentUser = u == null ? null : u instanceof User ? (User)u : u.getRawRecord().getAsProxy(User.class);
             if (currentUser != null && currentUser.getCurrentLat() != null) {
                 distance = new GeoCoordinate(facility).distanceTo(new GeoCoordinate(new GeoLocation() {
                     @Override

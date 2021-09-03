@@ -81,7 +81,7 @@
                         self.showApp();
                     } else {
                         showSpinner();
-                        api().url("/orders/search").get({ q: query }).then(function (response) {
+                        api().url("/network/call/orders/search").get({ q: query }).then(function (response) {
                             response.Orders.forEach((o, i) => {
                                 if (o.Facility.DeliveryRadius * 1 < o.Facility.Distance * 1) {
                                     o.Facility.DeliveryProvided = 'N';
@@ -152,7 +152,7 @@
                     });
 
                     showSpinner();
-                    api().url("/orders/processUpi").parameters(upiresponsejsonString).headers({ "X-Signature": signature }).post().then(function (response) {
+                    api().url("/network/call/orders/processUpi").parameters(upiresponsejsonString).headers({ "X-Signature": signature }).post().then(function (response) {
                         if (index >= 0) {
                             self.Orders.splice(index, 1, response.Order);
                         }
@@ -192,7 +192,7 @@
                         } else if (os.FulfillmentStatus === "DELIVERED") {
                             o.DELIVERED = true;
                         } else if (os.FulfillmentStatus === "SHIPPED") {
-                            o.SHIPPED = true;
+                            o.SHIPPED = true/network/call;
                         } else if (os.FulfillmentStatus === "PACKED") {
                             o.PACKED = true;
                         } else if (os.FulfillmentStatus !== 'DOWNLOADED') {
@@ -227,7 +227,7 @@
                                     action: function () {
                                         var weight = this.$content.find('.weight').val();
                                         if (weight && weight * 1 > 0) {
-                                            api().url("/orders/save").parameters({ Order: { Id: o.Id, Weight: weight, WeightUom: { Name: "Kgs", Measures: "Weight" } } }).post().then(function (response) {
+                                            api().url("/network/call/orders/save/"+o.Id).parameters({ Order: { Id: o.Id, Weight: weight, WeightUom: { Name: "Kgs", Measures: "Weight" } } }).post().then(function (response) {
                                                 resolve(response.Orders[0]);
                                             });
                                         }
@@ -264,7 +264,7 @@
                     }
                     showSpinner();
                     self.enterWeight(order).then(function (o) {
-                        api().url("/orders/pack/" + o.Id).get().then(function (response) {
+                        api().url("/network/call/orders/pack/" + o.Id).get().then(function (response) {
                             self.Orders.splice(index, 1, response.Order);
                             self.update_status_array(response.Order);
                         })
@@ -288,7 +288,7 @@
                         return;
                     }
                     showSpinner();
-                    api().url("/orders/ship/" + order.Id).get().then(function (response) {
+                    api().url("/network/call/orders/ship/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
                     }).catch(function (err) {
@@ -310,7 +310,7 @@
                     }
                     showSpinner();
                     loadLocation(true).then(function () {
-                        api().url("/orders/deliver/" + order.Id).get().then(function (response) {
+                        api().url("/network/call/orders/deliver/" + order.Id).get().then(function (response) {
                             self.Orders.splice(index, 1, response.Order);
                             self.update_status_array(response.Order);
                         }).catch(function (err) {
@@ -338,7 +338,7 @@
                         buttons: {
                             yes: function () {
                                 showSpinner();
-                                api().url("/orders/cancel/" + order.Id).get().then(function (response) {
+                                api().url("/network/call/orders/cancel/" + order.Id).get().then(function (response) {
                                     if (index >= 0) {
                                         self.Orders.splice(index, 1, response.Order);
                                     }
@@ -376,7 +376,7 @@
                             confirm: function () {
                                 showSpinner();
                                 api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
-                                    api().url("/orders/show/" + order.Id).get().then(function (response) {
+                                    api().url("/network/call/orders/show/" + order.Id).get().then(function (response) {
                                         //Refresh the order Status.
                                         self.loadOrder(response.Order);
                                     });
@@ -403,7 +403,7 @@
                         return;
                     }
                     showSpinner();
-                    api().url("/orders/initialize_payment/" + order.Id).get().then(function (response) {
+                    api().url("/network/call/orders/initialize_payment/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Payment Initialized");
                         response.Order._phref = "#";
@@ -441,7 +441,7 @@
                     delete order._phref;
                     delete order._rhref;
                     showSpinner();
-                    api().url("/orders/reset_payment/" + order.Id).get().then(function (response) {
+                    api().url("/network/call/orders/reset_payment/" + order.Id).get().then(function (response) {
                         if (index >= 0) {
                             self.Orders.splice(index, 1, response.Order);
                         }
@@ -466,7 +466,7 @@
                     delete order._phref;
                     delete order._rhref;
                     showSpinner();
-                    api().url("/orders/complete_payment/" + order.Id).get().then(function (response) {
+                    api().url("/network/call/orders/complete_payment/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
@@ -486,7 +486,7 @@
                     delete order._phref;
                     delete order._rhref;
                     showSpinner();
-                    api().url("/orders/initialize_refund/" + order.Id).get().then(function (response) {
+                    api().url("/network/call/orders/initialize_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Refund Initialized");
                         response.Order._rhref = "#";
@@ -518,7 +518,7 @@
                     delete order._phref;
                     delete order._rhref;
                     showSpinner();
-                    api().url("/orders/reset_refund/" + order.Id).get().then(function (response) {
+                    api().url("/network/call/orders/reset_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Payment Reset");
                     }).catch(function (err) {
@@ -541,7 +541,7 @@
                     delete order._phref;
                     delete order._rhref;
                     showSpinner();
-                    api().url("/orders/complete_refund/" + order.Id).get().then(function (response) {
+                    api().url("/network/call/orders/complete_refund/" + order.Id).get().then(function (response) {
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
@@ -556,7 +556,7 @@
                         event.preventDefault();
                     }
                     showSpinner();
-                    api().url("/orders/print/" + o.Id).get().then(function (response) {
+                    api().url("/network/call/orders/print/" + o.Id).get().then(function (response) {
                         if (response.OrderPrints.length === 0) {
                             showErrorMessage("Invoice being generated. Check back in a while.")
                         } else {
@@ -591,8 +591,8 @@
                                 action: function () {
                                     var weight = this.$content.find('.weight').val();
                                     if (weight && weight * 1 > 0) {
-                                        api().url("/orders/save").parameters({ Order: { Id: o.Id, Weight: weight, WeightUom: { Name: "Kgs", Measures: "Weight" } } }).post().then(function (response) {
-                                            window.location.href = ("/orders/delivery_plan/" + o.Id);
+                                        api().url("/network/call/orders/save"+o.Id ).parameters({ Order: { Id: o.Id, Weight: weight, WeightUom: { Name: "Kgs", Measures: "Weight" } } }).post().then(function (response) {
+                                            window.location.href = ("/network/call/orders/delivery_plan/" + o.Id);
                                         });
                                     }
                                 }

@@ -72,13 +72,6 @@
                         hideSpinner();
                     });
                 },
-                resetPhoneNumber: function () {
-                    var self = this;
-                    self.params.User.PhoneNumber = "";
-                    Lockr.rm("User");
-                    Lockr.rm("SignUp");
-                    window.location.reload();
-                },
                 showApp : function(){
                     $("#root").show();
                 },
@@ -120,7 +113,7 @@
                         event.preventDefault();
                     }
                     let self = this;
-                    var url = baseUrl +"/login/index_otp";
+                    var url = (baseUrl ? baseUrl : "" ) +"/login/index_otp";
 
                     if (self.phoneNumberEntered && !blank(self.params.User.PhoneNumber)) {
                         url += "?phone_number="+self.params.User.PhoneNumber;
@@ -137,10 +130,14 @@
                         showSpinner();
                         api().url("/users/hasPassword").parameters(self.params.User).post().then(function(response){
                             self.phoneNumberEntered = true;
+                            var launchLocally = true; 
+                            if (response.BaseUrl !== currentBaseUrl){
+                                launchLocally = false;
+                                Lockr.rm("User"); //Not on this cluster.!!
+                            }
                             if (!response.PasswordSet || response.PasswordSet !== "Y" ){
                                 self.login_via_otp(null,response.BaseUrl);
-                            }else if (response.BaseUrl !== currentBaseUrl){
-                                Lockr.rm("User"); //Not on this cluster.!!
+                            }else if (!launchLocally){
                                 window.location.replace(response.BaseUrl + "/login?phone_number="+self.params.User.PhoneNumber);
                             }else {
                                 self.showApp();
@@ -167,12 +164,6 @@
 
                     Lockr.rm("SignUp");
                     Lockr.rm("User");
-                    /*
-                    let user = Lockr.get("User");
-                    if (user){
-                        user.PhoneNumber = "" ;
-                        Lockr.set("User",user);
-                    }*/
                     window.location.href = window.location.protocol +"//"+location.host + location.pathname;
                 },
 

@@ -17,15 +17,15 @@ then
 fi
 
 apiKey=`phone_number=$user password=$password bin/getapikey`
-echo "user=$user"
-echo "api=$api"
-echo "data=$data"
-echo "apiKey=$apiKey"
 if [ "${baseurl}" = "" ] 
 then 
     baseurl="http://localhost:${wport}"
 fi
 
 
-echo curl  -L -v -H "ApiKey: $apiKey" -H "Content-Type: ${content_type}"  ${baseurl}/$api $@
+#echo "user=$user"
+#echo "api=$api"
+#echo "data=$data"
+#echo "apiKey=$apiKey"
+#echo curl  -L -v -H "ApiKey: $apiKey" -H "Content-Type: ${content_type}"  ${baseurl}/$api $@
 curl  -L -s -H "ApiKey: $apiKey" -H "Content-Type: ${content_type}"  -H "ApiProtocol: ${ApiProtocol}"  ${baseurl}/$api "$@"

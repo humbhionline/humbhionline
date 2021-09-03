@@ -24,6 +24,18 @@ public class Main {
 
     }
     @Test
+    public void testFunc(){
+        Object o1 = Long.valueOf(1L);
+        Object o2 = Long.valueOf(2L);
+        Assert.assertEquals("Long Version Called!",func(o1,o2));
+    }
+    public String func(Object o1, Object o2){
+        return ("Object Version Called!");
+    }
+    public String func(Long o1, Long o2){
+        return ("Long Version Called!");
+    }
+    @Test
     public void bitTest(){
         long x = 0x7ffffL;
         long y = 0xfffffffffffL;

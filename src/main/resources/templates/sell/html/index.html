@@ -487,12 +487,12 @@
                         <div class="col">
                             <input v-bind:key="'city' + i" v-bind:id="'city' + i" class="form-control form-control-sm"
                                 placeholder="City Name" v-model="current.Facility.City.Name"
-                                v-on:input="onCityChange($event)" v-on:blur="removeList($event)"
+                                v-on:input="onCityChange($event)" v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City" />
                         </div>
                         <div class="col">
                             <input v-bind:key="'pincode' + i" v-bind:id="'pincode' + i"
-                                class="form-control form-control-sm" placeholder="Pin Code" v-on:blur="removeList($event)"
+                                class="form-control form-control-sm" placeholder="Pin Code" v-on:focus="removeList($event)"
                                 v-model="current.Facility.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
                                 v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="f.PinCode" />
                         </div>

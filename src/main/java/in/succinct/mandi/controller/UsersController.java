@@ -8,7 +8,9 @@ import com.venky.swf.db.Database;
 import com.venky.swf.db.JdbcTypeHelper.TypeConverter;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
+import com.venky.swf.db.model.application.Application;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.exceptions.AccessDeniedException;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.integration.api.Call;
@@ -18,21 +20,22 @@ import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.config.City;
 import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.config.PinCode;
+import com.venky.swf.plugins.collab.db.model.config.Role;
 import com.venky.swf.plugins.collab.db.model.config.State;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import com.venky.swf.plugins.mobilesignup.db.model.SignUp;
+import com.venky.swf.plugins.security.db.model.UserRole;
+import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Select;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.HtmlView;
-import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.MobileMeta;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.AadharEKyc;
-import org.apache.xpath.operations.Bool;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -40,13 +43,16 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class UsersController extends com.venky.swf.plugins.collab.controller.UsersController implements TemplateLoader {
     public UsersController(Path path) {
@@ -156,10 +162,11 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>,List<String>> map = super.getIncludedModelFields();
         map.put(SignUp.class, ModelReflector.instance(SignUp.class).getVisibleFields());
+        map.put(UserRole.class, Arrays.asList("ID","USER_ID","ROLE_ID"));
+        map.put(Role.class,Arrays.asList("ID","NAME"));
+        map.put(Device.class,ModelReflector.instance(Device.class).getVisibleFields());
         return map;
     }
-
-
 
     @Override
     public String getTemplateDirectory() {
@@ -226,47 +233,110 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
             return back();
         }
     }
+    @RequireLogin(false)
+    public View hasPassword() throws Exception {
+        ensureIntegrationMethod(HttpMethod.POST);
+        JSONObject input = (JSONObject)JSONValue.parse(StringUtil.read(getPath().getInputStream()));
+        JSONObject local = _hasPassword(input);
+
+        List<ServerNode> nodes = new Select().from(ServerNode.class).execute();
+        Application application = getPath().getApplication();
+        if (nodes.isEmpty() || (nodes.size() == 1 && nodes.get(0).isSelf()) || ObjectUtil.equals(local.get("PasswordSet"),"Y")){
+            return new BytesView(getPath(),local.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        }
+        ServerNode caller = null ;
+        ServerNode self = null;
+        for (ServerNode node: nodes){
+            if (node.isSelf()){
+                self = node;
+            }
+            if (application != null && ObjectUtil.equals(application.getAppId(),node.getClientId())){
+                caller = node;
+            }
+        }
+        if (self == null){
+            throw new AccessDeniedException("Cannot call api on this node");
+        }
+        if (caller != null && caller.isSelf()) {
+            return new BytesView(getPath(),local.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        }
+
+        Map<String,String> headers = new HashMap<>();
+        if (self != null){
+            String token = String.format("%s:%s",self.getClientId(),self.getClientSecret());
+            token = String.format("Basic %s",Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8)));
+            headers.put("Authorization",token);
+            headers.put("Content-Type",MimeType.APPLICATION_JSON.toString());
+        }
+        final TypeConverter<Boolean> booleanConverter = Database.getJdbcTypeHelper("").getTypeRef(Boolean.class).getTypeConverter();
+
+        Comparator<JSONObject> comparator = (Comparator<JSONObject>) (r1, r2) -> {
+            boolean registered1 = booleanConverter.valueOf(r1.get("Registered"));
+            boolean registered2 = booleanConverter.valueOf(r2.get("Registered"));
+
+            boolean passwordSet1 = booleanConverter.valueOf(r1.get("PasswordSet"));
+            boolean passwordSet2 = booleanConverter.valueOf(r2.get("PasswordSet"));
+            if (registered1 == registered2) {
+                if (passwordSet1 == passwordSet2) {
+                    return 0;
+                }else if (passwordSet1){
+                    return 1;
+                }else {
+                    return -1;
+                }
+            }else if (registered1) {
+                return 1;
+            }else {
+                return -1;
+            }
+        };
+
+        JSONObject best = local;
+        for (ServerNode node: nodes){
+            if (node.isSelf()){
+                continue;
+            }
+            JSONObject aResponse = new Call<JSONObject>().url(node.getBaseUrl()+"/users/hasPassword").input(local).inputFormat(InputFormat.JSON).headers(headers)
+                    .method(HttpMethod.POST).getResponseAsJson();
+            if (comparator.compare(aResponse,best) > 0){
+                best = aResponse;
+            }
+            if (ObjectUtil.equals(best.get("PasswordSet"),"Y")){
+                break;
+            }
+        }
+        if (ObjectUtil.equals(best.get("Registered"),"N")){
+            MobileMeta meta = MobileMeta.find((String)best.get("PhoneNumber"));
+            if (meta != null){
+                ServerNode node = meta.getServerNode();
+                if (node != null){
+                    best.put("BaseUrl",node.getBaseUrl());
+                }
+            }
+        }
+        return new BytesView(getPath(),best.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+    }
 
     @RequireLogin(false)
-    public View hasPassword() throws IOException {
-        ensureIntegrationMethod(HttpMethod.POST);
-        JSONObject object = (JSONObject)JSONValue.parse(StringUtil.read(getPath().getInputStream()));
+    public JSONObject _hasPassword(JSONObject object) throws IOException {
         object.put("BaseUrl",Config.instance().getServerBaseUrl());
         String phoneNumber = null;
         if (object != null){
             phoneNumber = Phone.sanitizePhoneNumber((String)object.get("PhoneNumber"));
         }
 
-        MobileMeta meta = MobileMeta.find(phoneNumber);
-        if (meta != null){
-            ServerNode node = meta.getServerNode();
-            if (node != null){
-                if (!ObjectUtil.equals(Config.instance().getServerBaseUrl(),node.getBaseUrl())){
-                    Call<JSONObject> call = new Call<>();
-                    JSONObject realObject = call.url(node.getBaseUrl()+"/users/hasPassword").method(HttpMethod.POST).
-                            headers(getPath().getHeaders()).inputFormat(InputFormat.JSON).input(object).getResponseAsJson();
-                    if (realObject == null ){
-                        if (call.hasErrors()) {
-                            JSONObject error = (JSONObject) JSONValue.parse(new InputStreamReader(call.getErrorStream()));
-                            throw new RuntimeException("Remote Call to " + node.getBaseUrl() + " failed with : " + error.get("Message"));
-                        }
-                    }else {
-                        return new BytesView(getPath(),realObject.toJSONString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
-                    }
-                }
-            }
-        }
-
-
-
         boolean hasPassword = false;
         TypeConverter<Boolean> converter = getReflector().getJdbcTypeHelper().getTypeRef(boolean.class).getTypeConverter();
 
         com.venky.swf.db.model.User user = ObjectUtil.isVoid(phoneNumber) ? null : getPath().getUser("PHONE_NUMBER",phoneNumber);
         if (user != null){
+            object.put("Registered","Y");
             hasPassword = user.getRawRecord().getAsProxy(User.class).isPasswordSet();
+        }else {
+            object.put("Registered","N");
         }
+
         object.put("PasswordSet",converter.toString(hasPassword));
-        return new BytesView(getPath(),object.toJSONString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        return object;
     }
 }

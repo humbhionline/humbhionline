@@ -715,12 +715,12 @@
                         </div>
                         <div class="col-6 mb-2">
                             <input id="city" class="form-control form-control-sm" placeholder="City Name"
-                                v-model="User.City.Name" v-on:input="onCityChange($event)" v-on:blur="removeList($event)"
+                                v-model="User.City.Name" v-on:input="onCityChange($event)" v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City" />
                         </div>
                         <div class="col-6 mb-2">
                             <input id="pincode" class="form-control form-control-sm" placeholder="Pin Code"
-                                v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)" v-on:blur="removeList($event)"
+                                v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)" v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="User.PinCode" />
                         </div>
                         <div class="col-12 text-right">

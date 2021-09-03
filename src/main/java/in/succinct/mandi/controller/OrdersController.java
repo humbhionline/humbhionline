@@ -8,6 +8,7 @@ import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
+import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.integration.FormatHelper;
@@ -17,10 +18,10 @@ import com.venky.swf.plugins.background.core.CompositeTask;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.user.UserFacility;
-import com.venky.swf.controller.TemplateLoader;
 import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;
+import com.venky.swf.views.BytesView;
 import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
@@ -35,11 +36,13 @@ import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,33 +52,67 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class OrdersController extends in.succinct.plugins.ecommerce.controller.OrdersController implements TemplateLoader {
+public class OrdersController extends in.succinct.plugins.ecommerce.controller.OrdersController {
     public OrdersController(Path path) {
         super(path);
     }
 
+    public View save(long id) {
+        Order order = Database.getTable(Order.class).get(id);
+        if (order == null){
+            return blankJsons();
+        }else {
+            return super.save();
+        }
+    }
+
+    public View blankJsons(){
+        JSONObject orders = new JSONObject();
+        orders.put("Orders",new JSONArray());
+        return new BytesView(getPath(),orders.toString().getBytes(StandardCharsets.UTF_8), MimeType.APPLICATION_JSON);
+    }
+    public View blankJson(){
+        JSONObject order = new JSONObject();
+        order.put("Order",new JSONObject());
+        return new BytesView(getPath(),order.toString().getBytes(StandardCharsets.UTF_8), MimeType.APPLICATION_JSON);
+    }
     public View initialize_payment(long id){
         Order order = Database.getTable(Order.class).get(id);
+        if (order == null) {
+            return blankJson();
+        }
         order.initializePayment();
         return show(id);
     }
     public View initialize_refund(long id){
         Order order = Database.getTable(Order.class).get(id);
+        if (order == null) {
+            return blankJson();
+        }
         order.initializeRefund();
         return show(id);
     }
     public View reset_payment(long id){
         Order order = Database.getTable(Order.class).get(id);
+        if (order == null) {
+            return blankJson();
+        }
         order.resetPayment(true);
         return show(id);
     }
     public View reset_refund(long id){
         Order order = Database.getTable(Order.class).get(id);
+        if (order == null) {
+            return blankJson();
+        }
         order.resetRefund(true);
         return show(id);
     }
     public View complete_payment(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
+        if (order == null) {
+            return blankJson();
+        }
         order.completePayment(true);
 
         TaskManager.instance().execute(new CompositeTask(getTasksToPrint(orderId).toArray(new Task[]{})));
@@ -83,11 +120,12 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     }
     public View complete_refund(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
+        if (order == null) {
+            return blankJson();
+        }
         order.completeRefund(true);
         return show(orderId);
     }
-
-
     public <T> View book() throws Exception {
         HttpServletRequest request = getPath().getRequest();
         if (!request.getMethod().equalsIgnoreCase("POST")) {
@@ -102,10 +140,17 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         List<Order> orders = new ArrayList<>();
         for (T orderElement : ordersElement) {
             FormatHelper<T> helper = FormatHelper.instance(orderElement);
-            orders.add(bookOrder(helper));
+            if (isFacilityInCurrentShard(helper)){
+                orders.add(bookOrder(helper));
+            }
         }
         Map<Class<? extends Model>,List<String>> map =  getIncludedModelFields();
         return IntegrationAdaptor.instance(Order.class,getIntegrationAdaptor().getFormatClass()).createResponse(getPath(),orders,map.get(Order.class),new HashSet<>(),map);
+    }
+    public <T> boolean isFacilityInCurrentShard(FormatHelper<T> helper){
+        T facilityElement = helper.getElementAttribute("Facility");
+        Facility facility = ModelIOFactory.getReader(Facility.class,helper.getFormatClass()).read(facilityElement);
+        return facility != null && !facility.getRawRecord().isNewRecord();
     }
     public <T> Order bookOrder(FormatHelper<T> helper){
 
@@ -360,18 +405,12 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         map.remove(OrderAddress.class);
         return map;
     }
-
-    public View processUpi() throws IOException {
-        String signature = getPath().getRequest().getHeader("X-Signature");
-        String payload = StringUtil.read(getPath().getInputStream());
-        User user = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
-
+    public boolean verifySignature(String payload, String signature){
+        User user = Database.getInstance().getCurrentUser().getRawRecord().getAsProxy(User.class);
         if (user.getDevices().isEmpty()){
             throw new RuntimeException("Invalid api call");
         }
-        if (ObjectUtil.isVoid(signature)){
-            throw new RuntimeException("Signature verification failed");
-        }
+
         boolean verified = false;
         for (Device device : user.getDevices()){
             JSONObject keyJson = device.getSubscriptionJson();
@@ -384,17 +423,17 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             StringBuilder signedToVerify = new StringBuilder();
             signedToVerify.append("JSESSIONID:"+getPath().getSession().getId()).append(",").append("fms.Token:" +fmsToken).append(",");
             signedToVerify.append("/orders/processUpi").append("|").append(payload);
-            Config.instance().getLogger(getClass().getName()).info("Payload to verify:\n" + signedToVerify.toString());
+            Config.instance().getLogger(getClass().getName()).info("Payload to verify:\n" + signedToVerify);
             verified = Crypt.getInstance().verifySignature(signedToVerify.toString(),Crypt.SIGNATURE_ALGO,signature,
                     Crypt.getInstance().getPublicKey(Crypt.KEY_ALGO,publicKey));
             if (verified){
                 break;
             }
         }
-        if (!verified){
-            throw new RuntimeException("Signature verification failed.");
-        }
-
+        return verified;
+    }
+    public View processUpi() throws IOException {
+        String payload = StringUtil.read(getPath().getInputStream());
 
         JSONObject upiResponse = (JSONObject)JSONValue.parse(payload);
         String txnRef = (String)upiResponse.get("txnRef");
@@ -405,6 +444,14 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             throw new RuntimeException("Cannot Find order " + orderId);
         }
         Order order = Database.getTable(Order.class).lock(orderId);
+        if (order == null) {
+            return blankJson();
+        }
+
+        String signature = getPath().getRequest().getHeader("X-Signature");
+        if (ObjectUtil.isVoid(signature) || !verifySignature(payload,signature)){
+            throw new RuntimeException("Signature verification failed");
+        }
 
         boolean success = ObjectUtil.equals(upiResponse.get("Status"),"SUCCESS");
         if (success){

@@ -107,7 +107,7 @@
                                         });
                                         query += "0))";
                                         let q = { "q": query };
-                                        return api().url("/inventories/search").get(q).then(function (response) {
+                                        return api().url("/network/call/inventories/search").get(q).then(function (response) {
                                             response.Inventories.forEach((inventory, inventoryIndex) => {
                                                 var result = {};
                                                 result = inventory;
@@ -279,7 +279,7 @@
                         params.OrderId = self.search.Order.Id;
                     }
                     showSpinner();
-                    api().url("/inventories/search/" + term).get(params).then(function (response) {
+                    api().url("/network/call/inventories/search/" + term).get(params).then(function (response) {
                         if (self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim() != search_term) {
                             return;
                         }
@@ -436,7 +436,7 @@
                 <div class="carousel-inner">
                     <div v-bind:class="'justify-content-center carousel-item ' + (index == 0 ? 'active' : '') "
                         v-for="(attachment,index) in search.Facility.Attachments">
-                        <img v-bind:src="attachment.AttachmentUrl"></img>
+                        <img v-bind:src="'/network/call'+attachment.AttachmentUrl"></img>
                     </div>
                 </div>
 
@@ -511,7 +511,7 @@
                             <div class="col-4 col-sm-12">
                                 <div class="img-holder border rounded-sm">
                                     <img class="img-fluid w-100 h-100"
-                                        v-bind:src="result.Sku.Attachments[0].AttachmentUrl"
+                                        v-bind:src="'/network/call'+result.Sku.Attachments[0].AttachmentUrl"
                                         v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
                                         data-toggle="modal" v-bind:data-target="'#sku-img-'+result.Sku.Id" />
                                     <div v-else
@@ -537,7 +537,7 @@
                                                 <div class="modal-body">
                                                     <img class="img-fluid w-100 h-100"
                                                         v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
-                                                        v-bind:src="result.Sku.Attachments[0].AttachmentUrl" />
+                                                        v-bind:src="'/network/call' + result.Sku.Attachments[0].AttachmentUrl" />
                                                 </div>
                                             </div>
                                         </div>
