@@ -3,6 +3,8 @@ package in.succinct.mandi.db.model;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
+import com.venky.swf.db.model.Model;
+import com.venky.swf.db.model.User;
 import com.venky.swf.db.table.ModelImpl;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;

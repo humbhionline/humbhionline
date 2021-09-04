@@ -29,6 +29,7 @@ import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Select;
+import com.venky.swf.sql.Select.ResultFilter;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
@@ -36,6 +37,7 @@ import in.succinct.mandi.db.model.MobileMeta;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.AadharEKyc;
+import in.succinct.mandi.util.InternalNetwork;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -52,7 +54,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class UsersController extends com.venky.swf.plugins.collab.controller.UsersController implements TemplateLoader {
     public UsersController(Path path) {
@@ -65,6 +66,25 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
             return blank();
         }else {
             return show(getSessionUser());
+        }
+    }
+
+    @RequireLogin(false)
+    public View internal_search(){
+        ServerNode callingNode = InternalNetwork.getRemoteServer(getPath());
+        if (callingNode == null){
+            throw new RuntimeException("Unauthorized application");
+        }
+        return super.search();
+    }
+
+    @Override
+    protected ResultFilter<com.venky.swf.db.model.User> getFilter() {
+        ServerNode remote = InternalNetwork.getRemoteServer(getPath());
+        if (remote != null) {
+            return record -> true;
+        }else {
+            return super.getFilter();
         }
     }
 
@@ -257,7 +277,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         if (self == null){
             throw new AccessDeniedException("Cannot call api on this node");
         }
-        if (caller != null && caller.isSelf()) {
+        if (caller != null) {
             return new BytesView(getPath(),local.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
         }
 
@@ -296,7 +316,8 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
             if (node.isSelf()){
                 continue;
             }
-            JSONObject aResponse = new Call<JSONObject>().url(node.getBaseUrl()+"/users/hasPassword").input(local).inputFormat(InputFormat.JSON).headers(headers)
+            JSONObject aResponse = new Call<JSONObject>().url(node.getBaseUrl()+"/users/hasPassword").input(local).inputFormat(InputFormat.JSON).
+                    headers(headers)
                     .method(HttpMethod.POST).getResponseAsJson();
             if (comparator.compare(aResponse,best) > 0){
                 best = aResponse;

@@ -1,41 +1,59 @@
 package in.succinct.mandi.controller;
 
 import com.venky.cache.Cache;
+import com.venky.core.collections.IgnoreCaseMap;
+import com.venky.core.collections.SequenceSet;
 import com.venky.core.date.DateUtils;
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
+import com.venky.digest.Encryptor;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.io.ModelIOFactory;
+import com.venky.swf.db.model.io.ModelReader;
+import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.db.table.Record;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
+import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.HttpMethod;
+import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.CompositeTask;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.user.UserFacility;
 import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Expression;
+import com.venky.swf.sql.Operator;
+import com.venky.swf.sql.Select;
+import com.venky.swf.util.SharedKeys;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
+import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
+import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.integrations.courier.Wefast;
 import in.succinct.mandi.util.CompanyUtil;
+import in.succinct.mandi.util.InternalNetwork;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
+import org.apache.xmlbeans.impl.common.SAXHelper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -46,11 +64,13 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class OrdersController extends in.succinct.plugins.ecommerce.controller.OrdersController {
     public OrdersController(Path path) {
@@ -82,7 +102,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             return blankJson();
         }
         order.initializePayment();
-        return show(id);
+        return show(order);
     }
     public View initialize_refund(long id){
         Order order = Database.getTable(Order.class).get(id);
@@ -90,7 +110,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             return blankJson();
         }
         order.initializeRefund();
-        return show(id);
+        return show(order);
     }
     public View reset_payment(long id){
         Order order = Database.getTable(Order.class).get(id);
@@ -98,7 +118,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             return blankJson();
         }
         order.resetPayment(true);
-        return show(id);
+        return show(order);
     }
     public View reset_refund(long id){
         Order order = Database.getTable(Order.class).get(id);
@@ -106,7 +126,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             return blankJson();
         }
         order.resetRefund(true);
-        return show(id);
+        return show(order);
     }
     public View complete_payment(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
@@ -116,7 +136,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         order.completePayment(true);
 
         TaskManager.instance().execute(new CompositeTask(getTasksToPrint(orderId).toArray(new Task[]{})));
-        return show(orderId);
+        return show(order);
     }
     public View complete_refund(long orderId){
         Order order = Database.getTable(Order.class).get(orderId);
@@ -124,7 +144,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             return blankJson();
         }
         order.completeRefund(true);
-        return show(orderId);
+        return show(order);
     }
     public <T> View book() throws Exception {
         HttpServletRequest request = getPath().getRequest();
@@ -477,4 +497,66 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         return new RedirectorView(getPath(),"/dashboard","?search=Delivery&order_id="+id);
     }
 
+    @Override
+    protected View show(in.succinct.plugins.ecommerce.db.model.order.Order record) {
+        loadCreatorUser(record);
+        return super.show(record);
+    }
+
+    @Override
+    protected <T> View list(List<in.succinct.plugins.ecommerce.db.model.order.Order> records, boolean isCompleteList, IntegrationAdaptor<in.succinct.plugins.ecommerce.db.model.order.Order, T> overrideIntegrationAdaptor) {
+        loadCreatorUsers(records);
+        return super.list(records, isCompleteList, overrideIntegrationAdaptor);
+    }
+
+    public void loadCreatorUser(in.succinct.plugins.ecommerce.db.model.order.Order order){
+        loadCreatorUsers(Arrays.asList(order));
+    }
+    public void loadCreatorUsers(List<in.succinct.plugins.ecommerce.db.model.order.Order> orders){
+        Set<Long> creatorUserIds = new HashSet<>();
+        orders.forEach(o->{
+            creatorUserIds.add(o.getCreatorUserId());
+        });
+
+        {
+            List<User> users = new Select().from(User.class).where(new Expression(ModelReflector.instance(User.class).getPool(), "ID", Operator.IN, creatorUserIds.toArray())).execute();
+            users.forEach(u -> creatorUserIds.remove(u.getId()));
+        }
+
+        if (creatorUserIds.isEmpty()){
+            return;
+        }
+
+        List<ServerNode> nodes = new Select().from(ServerNode.class).execute();
+        Map<String,String> headers = InternalNetwork.extractHeaders(getPath());
+        headers.remove("Cookie");// Do this search with out login! Only using app authenticat
+
+        StringBuilder q = new StringBuilder();
+        creatorUserIds.forEach(id->{
+            if (q.length() > 0){
+                q.append( " OR ");
+            }
+            q.append("_ID:").append(id);
+        });
+
+        for (ServerNode node : nodes){
+            if (node.isSelf()){
+                continue;
+            }
+
+            JSONObject input = new JSONObject();
+            input.put("q",q.toString());
+            JSONObject aResponse = (JSONObject) new Call<JSONObject>().url(node.getBaseUrl()+"/users/internal_search").input(input).
+                    inputFormat(InputFormat.FORM_FIELDS).headers(headers)
+                    .method(HttpMethod.GET).getResponseAsJson();
+            if (aResponse != null){
+                JSONArray users = (JSONArray) aResponse.get("Users");
+                for (Object jsonUser: users){
+                    InternalNetwork.loadUserToCache((JSONObject) jsonUser);
+                }
+            }
+        }
+
+
+    }
 }

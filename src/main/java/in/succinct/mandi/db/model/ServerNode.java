@@ -6,6 +6,7 @@ import com.venky.swf.db.annotations.column.ENCRYPTED;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.UNIQUE_KEY;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
+import com.venky.swf.db.annotations.column.ui.HIDDEN;
 import com.venky.swf.db.annotations.model.DBPOOL;
 import com.venky.swf.db.annotations.model.HAS_DESCRIPTION_FIELD;
 import com.venky.swf.db.model.Model;
@@ -17,7 +18,7 @@ import com.venky.swf.sql.Select;
 
 import java.util.List;
 
-@DBPOOL("telecom")
+@DBPOOL("registry")
 @HAS_DESCRIPTION_FIELD("BASE_URL")
 public interface ServerNode extends Model, GeoLocation {
     @UNIQUE_KEY
@@ -33,8 +34,16 @@ public interface ServerNode extends Model, GeoLocation {
     public String getClientId();
     public void setClientId(String clientId);
 
+    @ENCRYPTED
     public String getClientSecret();
     public void setClientSecret(String clientSecret);
+
+    public String getPublicKey();
+    public void setPublicKey(String  publicKey);
+
+    public String getEncryptionPublicKey();
+    public void setEncryptionPublicKey(String encryptionPublicKey);
+
 
     @IS_VIRTUAL
     public Long getPrimaryKeyOffset();

@@ -2,14 +2,19 @@ package in.succinct.mandi.configuration;
 
 import com.venky.core.date.DateUtils;
 import com.venky.core.security.Crypt;
+import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
+import com.venky.digest.Encryptor;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
+import com.venky.swf.db.model.io.ModelIOFactory;
+import com.venky.swf.db.model.io.ModelWriter;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
 import com.venky.swf.db.table.Table;
+import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
@@ -26,6 +31,7 @@ import com.venky.swf.util.SharedKeys;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.EncryptedModel;
 import in.succinct.mandi.db.model.Facility;
+import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
@@ -33,13 +39,14 @@ import org.bouncycastle.jcajce.spec.EdDSAParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
 
+import java.io.InputStream;
 import java.security.KeyPair;
 import java.security.Security;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class AppInstaller implements Installer {
 
@@ -119,39 +126,44 @@ public class AppInstaller implements Installer {
                 Config.instance().getLogger(getClass().getName()).log(Level.WARNING,ex.getMessage(),ex);
             }
         }
+        registerWithHumBhiOnlineRegistry();
+    }
+
+    private void registerWithHumBhiOnlineRegistry() {
+        String hboRegistry = Config.instance().getProperty("hbo.registry.url");
+        if (ObjectUtil.isVoid(hboRegistry)){
+            throw new RuntimeException("hbo.registry.url not set");
+        }
+
+        ServerNode node = Database.getTable(ServerNode.class).newRecord();
+        node.setBaseUrl(Config.instance().getServerBaseUrl());
+        node.setClientId(BecknUtil.getSubscriberId());
+        node = Database.getTable(ServerNode.class).getRefreshed(node);
+
+        if (node.getRawRecord().isNewRecord()){
+            InputStream in = new Call<InputStream>().url(hboRegistry + "/next_node_id").getResponseStream();
+            String next_node_id = StringUtil.read(in);
+            node.setNodeId(Long.valueOf(next_node_id));
+
+            StringBuilder secret = new StringBuilder();
+            secret.append(node.getClientId()).append("-").append(System.currentTimeMillis());
+            node.setClientSecret(Encryptor.encrypt(secret.toString()));
+            node.setPublicKey(BecknUtil.getSelfKey().getPublicKey());
+            node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey().getPublicKey());
+            node.save();
+        }
+
+        JSONObject obj= new JSONObject();
+        ModelWriter<ServerNode,JSONObject> writer = ModelIOFactory.getWriter(ServerNode.class, FormatHelper.getFormatClass(MimeType.APPLICATION_JSON));
+        writer.write(node,obj,node.getReflector().getVisibleFields(new ArrayList<>()));
+
+        new Call<JSONObject>().url(hboRegistry +"/register").input(obj).inputFormat(InputFormat.JSON).header("content-type",MimeType.APPLICATION_JSON.toString());
     }
 
     private void generateBecknKeys() {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
-
-        /*
-        Key key = Database.getTable(Key.class).newRecord();
-        key.setAlias(BecknUtil.getDomainId() + ".k1");
-        key = Database.getTable(Key.class).getRefreshed(key);
-        if (key.getRawRecord().isNewRecord()){
-            Ed25519KeyPairGenerator gen = new Ed25519KeyPairGenerator();
-            gen.init(new Ed25519KeyGenerationParameters(new SecureRandom()));
-            AsymmetricCipherKeyPair pair = gen.generateKeyPair();
-            key.setPrivateKey(Base64.getEncoder().encodeToString(
-                    ((Ed25519PrivateKeyParameters)pair.getPrivate()).getEncoded()));
-
-            key.setPublicKey(Base64.getEncoder().encodeToString(
-                    ((Ed25519PublicKeyParameters)pair.getPublic()).getEncoded()));
-            key.save();
-        }
-
-        Key encryptionKey = Database.getTable(Key.class).newRecord();
-        encryptionKey.setAlias(Config.instance().getHostName() + ".encrypt.k1");
-        encryptionKey = Database.getTable(Key.class).getRefreshed(encryptionKey);
-        if (encryptionKey.getRawRecord().isNewRecord()){
-            KeyPair pair = Crypt.getInstance().generateKeyPair(Crypt.KEY_ALGO);
-            encryptionKey.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
-            encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
-            encryptionKey.save();
-        }
-        */
 
         CryptoKey key = Database.getTable(CryptoKey.class).newRecord();
         key.setAlias(Config.instance().getHostName() + ".k1");

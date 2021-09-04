@@ -3,6 +3,7 @@ package in.succinct.mandi.controller;
 import com.venky.core.collections.IgnoreCaseMap;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
+import com.venky.network.Network;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
@@ -14,6 +15,7 @@ import com.venky.swf.views.BytesView;
 import com.venky.swf.views.ForwardedView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.ServerNode;
+import in.succinct.mandi.util.InternalNetwork;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
@@ -43,7 +45,6 @@ public class NetworkController extends Controller {
             return new ForwardedView(getPath(), "", api);
         }
 
-
         JSONObject input = null ;
         try {
             input = (JSONObject) JSONValue.parse(new InputStreamReader(getPath().getInputStream()));
@@ -64,21 +65,9 @@ public class NetworkController extends Controller {
             //
         }
 
-        ServerNode self = ServerNode.selfNode();
-        String token = String.format("%s:%s",self.getClientId(),self.getClientSecret());
-        String auth = String.format("Basic %s", Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8)));
         Map<String,List<String>> responseHeaders = new IgnoreCaseMap<>();
-        Cookie[] cookies = getPath().getRequest().getCookies();
-        Map<String,String> headers = new IgnoreCaseMap<>();
-        headers.putAll(getPath().getHeaders());
-        if (cookies != null && cookies.length > 0){
-            for (int i = 0 ; i <cookies.length ; i  ++ ){
-                if (ObjectUtil.equals(cookies[i].getName(),"JSESSIONID")){
-                    headers.put("Cookie", String.format("JSESSIONID=%s",cookies[i].getValue()));
-                    break;
-                }
-            }
-        }
+
+        Map<String,String> headers = InternalNetwork.extractHeaders(getPath());
 
 
         for (ServerNode node :nodes ){
@@ -102,14 +91,12 @@ public class NetworkController extends Controller {
                 output = call.url(url).headers(headers).
                                 header("Content-Type", MimeType.APPLICATION_JSON.toString()).
                                 header("KeepAlive","Y").
-                                header("Authorization", auth).
                                 method(HttpMethod.GET).getResponseStream();
             }else {
                 output = call.url(node.getBaseUrl() + "/" + Encode.forUriComponent(api)).inputFormat(InputFormat.JSON)
                         .input(input).headers(headers).
                                 header("Content-Type", MimeType.APPLICATION_JSON.toString()).
                                 header("KeepAlive","Y").
-                                header("Authorization", auth).
                         method(HttpMethod.POST).getResponseStream();
             }
             boolean isJsonApi = false;
