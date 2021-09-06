@@ -259,7 +259,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         JSONObject input = (JSONObject)JSONValue.parse(StringUtil.read(getPath().getInputStream()));
         JSONObject local = _hasPassword(input);
 
-        List<ServerNode> nodes = new Select().from(ServerNode.class).execute();
+        List<ServerNode> nodes = InternalNetwork.getNodes();
         Application application = getPath().getApplication();
         if (nodes.isEmpty() || (nodes.size() == 1 && nodes.get(0).isSelf()) || ObjectUtil.equals(local.get("PasswordSet"),"Y")){
             return new BytesView(getPath(),local.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);

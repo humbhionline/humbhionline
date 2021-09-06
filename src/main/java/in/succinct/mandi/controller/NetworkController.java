@@ -40,7 +40,7 @@ public class NetworkController extends Controller {
 
     private View collectResponses(String api){
         Object consolidated = null;
-        List<ServerNode> nodes  = new Select().from(ServerNode.class).execute();
+        List<ServerNode> nodes  = InternalNetwork.getNodes();
         if (nodes.size() < 2){
             return new ForwardedView(getPath(), "", api);
         }

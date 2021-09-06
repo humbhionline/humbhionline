@@ -193,6 +193,8 @@ public class Search extends BecknAsyncTask {
         catalog.setProviders(providers);
         onSearch.getMessage().setCatalog(catalog);
 
+        /* TODO:VENKY Provider Fulfillments can be filled. */
+
 
         inventories.forEach(inv->{
             String providerId = BecknUtil.getBecknId(String.valueOf(inv.getFacility().getCreatorUserId()),Entity.provider);

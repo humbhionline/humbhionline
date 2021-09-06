@@ -20,8 +20,10 @@ import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.user.UserPhone;
 import com.venky.swf.plugins.security.db.model.UserRole;
 import com.venky.swf.plugins.templates.db.model.alerts.Device;
+import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
+import com.venky.swf.sql.Select;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import org.json.simple.JSONArray;
@@ -30,7 +32,9 @@ import org.json.simple.JSONObject;
 import javax.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 public class InternalNetwork {
     public static Map<String,String> extractHeaders(Path path){
@@ -52,7 +56,7 @@ public class InternalNetwork {
         }
         ServerNode node = ServerNode.selfNode();
         if (node != null){
-            headers.put("Authorization",String.format("Basic %s", Base64.getEncoder().encodeToString(String.format("%s:%s",node.getClientId(),node.getClientSecret()).getBytes(StandardCharsets.UTF_8))));
+            headers.put("Authorization",node.getAuthorizationHeader());
         }
 
         return headers;
@@ -67,8 +71,12 @@ public class InternalNetwork {
         Application app = path.getApplication();
         if (app != null){
             ServerNode node = ServerNode.findNode(app.getAppId());
-            if (node != null && !node.isSelf()){
-                return node;
+            if (node != null && !node.isSelf() ){
+                if (node.isApproved()) {
+                    return node;
+                }else {
+                    throw new RuntimeException("Node " + node.getClientId() + " is not yet approved to make calls on the network. ");
+                }
             }
         }
         return null;
@@ -134,6 +142,26 @@ public class InternalNetwork {
             Expression where = new Expression(ref.getPool(), "USER_ID", Operator.EQ,user.getId());
             Database.getInstance().getCache(ref).setCachedResult(where,rawRecords);
         }
+    }
+    public static <T  extends ServerNode> List<ServerNode> getNodes(){
+        return getNodes(serverNode -> true);
+    }
+    public static  List<ServerNode> getNodes(Predicate<ServerNode> predicate){
+        List<ServerNode> nodes = new Select().from(ServerNode.class).execute(ServerNode.class, Select.MAX_RECORDS_ALL_RECORDS,
+                record -> record.isApproved() && predicate.test(record));
+        return nodes;
+    }
+
+    public static boolean isCurrentServerRegistry(){
+        return ObjectUtil.equals(Config.instance().getServerBaseUrl(),getRegistryUrl());
+    }
+
+    public static String getRegistryUrl(){
+        String hboRegistryUrl = Config.instance().getProperty("hbo.registry.url");
+        if (ObjectUtil.isVoid(hboRegistryUrl)){
+            throw new RuntimeException("Registry url not defined");
+        }
+        return hboRegistryUrl;
     }
 
 }

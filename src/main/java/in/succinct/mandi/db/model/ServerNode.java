@@ -1,7 +1,9 @@
 package in.succinct.mandi.db.model;
 
+import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoLocation;
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
+import com.venky.swf.db.annotations.column.COLUMN_SIZE;
 import com.venky.swf.db.annotations.column.ENCRYPTED;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.UNIQUE_KEY;
@@ -20,30 +22,35 @@ import java.util.List;
 
 @DBPOOL("registry")
 @HAS_DESCRIPTION_FIELD("BASE_URL")
-public interface ServerNode extends Model, GeoLocation {
+public interface ServerNode extends Model {
     @UNIQUE_KEY
     @COLUMN_DEF(StandardDefault.ONE)
     public long getNodeId();
     public void setNodeId(long nodeId);
 
-    @UNIQUE_KEY("K2")
-    public String getBaseUrl();
-    public void setBaseUrl(String baseUrl);
-
     @UNIQUE_KEY("K3")
     public String getClientId();
     public void setClientId(String clientId);
+
+    @UNIQUE_KEY("K2")
+    public String getBaseUrl();
+    public void setBaseUrl(String baseUrl);
 
     @ENCRYPTED
     public String getClientSecret();
     public void setClientSecret(String clientSecret);
 
-    public String getPublicKey();
-    public void setPublicKey(String  publicKey);
+    @COLUMN_SIZE(4096)
+    public String getSigningPublicKey();
+    public void setSigningPublicKey(String  publicKey);
 
+    @COLUMN_SIZE(4096)
     public String getEncryptionPublicKey();
     public void setEncryptionPublicKey(String encryptionPublicKey);
 
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isApproved();
+    public void setApproved(boolean approved);
 
     @IS_VIRTUAL
     public Long getPrimaryKeyOffset();
@@ -56,7 +63,8 @@ public interface ServerNode extends Model, GeoLocation {
         if (nodes.isEmpty()){
             return null;
         }
-        return nodes.get(0);
+        ServerNode node = nodes.get(0);
+        return node.isApproved()? node : null;
     }
     public static ServerNode findNodeByBaseUrl(String baseUrl){
         List<ServerNode> nodes = new Select().from(ServerNode.class).
@@ -65,7 +73,8 @@ public interface ServerNode extends Model, GeoLocation {
         if (nodes.isEmpty()){
             return null;
         }
-        return nodes.get(0);
+        ServerNode node = nodes.get(0);
+        return node.isApproved()? node : null;
     }
     public static ServerNode selfNode(){
         return findNodeByBaseUrl(Config.instance().getServerBaseUrl());
@@ -78,7 +87,8 @@ public interface ServerNode extends Model, GeoLocation {
         if (nodes.isEmpty()){
             return null;
         }
-        return nodes.get(0);
+        ServerNode node = nodes.get(0);
+        return node.isApproved()? node : null;
 
     }
     public static ServerNode findNode(long pkOfSomeTable){
@@ -89,6 +99,13 @@ public interface ServerNode extends Model, GeoLocation {
         return findNodeByNodeId(nodeId);
     }
 
+
+    @IS_VIRTUAL
+    public boolean isRegistry();
+
     @IS_VIRTUAL
     boolean isSelf();
+
+    @IS_VIRTUAL
+    public String getAuthorizationHeader();
 }

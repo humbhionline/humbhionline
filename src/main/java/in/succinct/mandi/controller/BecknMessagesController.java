@@ -44,6 +44,7 @@ import in.succinct.mandi.agents.beckn.BecknExtnAttributes;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.beckn.BecknMessage;
 import in.succinct.mandi.db.model.beckn.ServerResponse;
+import in.succinct.mandi.util.InternalNetwork;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import org.bouncycastle.cert.ocsp.Req;
 import org.json.simple.JSONObject;
@@ -62,14 +63,10 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
     }
 
     private ServerNode getNode(){
-        Application application = getPath().getApplication();
-        if (application == null){
-            throw new AccessDeniedException("Unauthorized Request");
-        }
-        ServerNode fromNode = ServerNode.findNode(application.getAppId());
+        ServerNode fromNode = InternalNetwork.getRemoteServer(getPath());
 
         if (fromNode == null){
-            throw new AccessDeniedException("AppId doesnot belong to a valid ServerNode");
+            throw new AccessDeniedException("AppId does not belong to a approved ServerNode");
         }
         return fromNode;
     }

@@ -9,12 +9,9 @@ import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
-import com.venky.swf.db.model.io.ModelIOFactory;
-import com.venky.swf.db.model.io.ModelWriter;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
 import com.venky.swf.db.table.Table;
-import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
@@ -36,6 +33,7 @@ import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import org.bouncycastle.jcajce.spec.EdDSAParameterSpec;
+import org.bouncycastle.jcajce.spec.XDHParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
 
@@ -43,7 +41,6 @@ import java.io.InputStream;
 import java.security.KeyPair;
 import java.security.Security;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
@@ -51,7 +48,6 @@ import java.util.logging.Level;
 public class AppInstaller implements Installer {
 
     public void install() {
-        Database.getInstance().resetIdGeneration();
         boolean encryptionSupport = (Config.instance().getBooleanProperty("swf.encryption.support",true));
         encryptAddress(Facility.class,encryptionSupport);
         encryptAddress(User.class,encryptionSupport);
@@ -141,23 +137,22 @@ public class AppInstaller implements Installer {
         node = Database.getTable(ServerNode.class).getRefreshed(node);
 
         if (node.getRawRecord().isNewRecord()){
-            InputStream in = new Call<InputStream>().url(hboRegistry + "/next_node_id").getResponseStream();
-            String next_node_id = StringUtil.read(in);
-            node.setNodeId(Long.valueOf(next_node_id));
+            if (!node.isRegistry()) {
+                InputStream in = new Call<InputStream>().url(hboRegistry + "/server_nodes/next_node_id").getResponseStream();
+                String next_node_id = StringUtil.read(in);
+                node.setNodeId(Long.parseLong(next_node_id));
+            }else  {
+                node.setNodeId(1L);
+            }
 
-            StringBuilder secret = new StringBuilder();
-            secret.append(node.getClientId()).append("-").append(System.currentTimeMillis());
-            node.setClientSecret(Encryptor.encrypt(secret.toString()));
-            node.setPublicKey(BecknUtil.getSelfKey().getPublicKey());
+            node.setClientSecret(Encryptor.encrypt(node.getClientId() + "-" + System.currentTimeMillis()));
+            node.setSigningPublicKey(BecknUtil.getSelfKey().getPublicKey());
             node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey().getPublicKey());
             node.save();
+            Config.instance().setProperty("swf.node.id",String.valueOf(node.getNodeId()));
+            Database.getInstance().resetIdGeneration();
         }
 
-        JSONObject obj= new JSONObject();
-        ModelWriter<ServerNode,JSONObject> writer = ModelIOFactory.getWriter(ServerNode.class, FormatHelper.getFormatClass(MimeType.APPLICATION_JSON));
-        writer.write(node,obj,node.getReflector().getVisibleFields(new ArrayList<>()));
-
-        new Call<JSONObject>().url(hboRegistry +"/register").input(obj).inputFormat(InputFormat.JSON).header("content-type",MimeType.APPLICATION_JSON.toString());
     }
 
     private void generateBecknKeys() {
@@ -174,7 +169,7 @@ public class AppInstaller implements Installer {
         }
         boolean keyExpired = key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L) <= System.currentTimeMillis();
         if ( key.getRawRecord().isNewRecord() || keyExpired){
-            KeyPair pair = Crypt.getInstance().generateKeyPair(EdDSAParameterSpec.Ed25519,256);
+            KeyPair pair = Crypt.getInstance().generateKeyPair(Request.SIGNATURE_ALGO,Request.SIGNATURE_ALGO_KEY_LENGTH);
             key.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
             key.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
             key.save();
@@ -185,7 +180,7 @@ public class AppInstaller implements Installer {
         encryptionKey = Database.getTable(CryptoKey.class).getRefreshed(encryptionKey);
 
         if (encryptionKey.getRawRecord().isNewRecord() || keyExpired){
-            KeyPair pair = Crypt.getInstance().generateKeyPair(Crypt.KEY_ALGO,2048);
+            KeyPair pair = Crypt.getInstance().generateKeyPair(Request.ENCRYPTION_ALGO,Request.ENCRYPTION_ALGO_KEY_LENGTH);
             encryptionKey.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
             encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
             encryptionKey.save();

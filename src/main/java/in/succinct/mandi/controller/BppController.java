@@ -9,7 +9,6 @@ import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.SWFHttpResponse;
-import com.venky.swf.db.model.application.Application;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
@@ -40,6 +39,7 @@ import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.beckn.BecknMessage;
 import in.succinct.mandi.db.model.beckn.ServerResponse;
 import in.succinct.mandi.extensions.BecknPublicKeyFinder;
+import in.succinct.mandi.util.InternalNetwork;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import org.json.simple.JSONArray;
@@ -97,8 +97,8 @@ public class BppController extends Controller {
     protected boolean isRequestAuthenticated(Request request){
         Map<String,String> headers = getPath().getHeaders();
 
-        Application application = getPath().getApplication();
-        if (application == null){
+        ServerNode node = InternalNetwork.getRemoteServer(getPath());
+        if (node == null){
             String callbackUrl = getGatewayUrl(request.extractAuthorizationParams("Proxy-Authorization",headers));
             if (callbackUrl == null) {
                 callbackUrl = request.getContext().getBapUri();
@@ -108,14 +108,10 @@ public class BppController extends Controller {
             return request.verifySignature("Proxy-Authorization",headers , false) &&
                     request.verifySignature("Authorization",headers , Config.instance().getBooleanProperty("beckn.auth.enabled", false));
         }else {
-            ServerNode node = ServerNode.findNode(application.getAppId());
-            if (node != null){
-                request.getExtendedAttributes().set(BecknExtnAttributes.CALLBACK_URL,node.getBaseUrl() +"/" + "beckn_messages");
-                request.getExtendedAttributes().set(BecknExtnAttributes.INTERNAL,true);
-                return true;
-            }
+            request.getExtendedAttributes().set(BecknExtnAttributes.CALLBACK_URL,node.getBaseUrl() +"/" + "beckn_messages");
+            request.getExtendedAttributes().set(BecknExtnAttributes.INTERNAL,true);
+            return true;
         }
-        return false;
     }
 
     private <C extends BecknAsyncTask> View act(Class<C> clazzTask){
@@ -127,8 +123,8 @@ public class BppController extends Controller {
             if (isRequestAuthenticated(request)){
                 if (clazzTask != null){
                     if (!request.getExtendedAttributes().getBoolean(BecknExtnAttributes.INTERNAL)){
-                        List<ServerNode> shards = new com.venky.swf.sql.Select().from(ServerNode.class).execute();
-                        if (shards.isEmpty()){
+                        List<ServerNode> shards = InternalNetwork.getNodes();
+                        if (shards.size() <= 1 ){
                             TaskManager.instance().executeAsync(clazzTask.getConstructor(Request.class).newInstance(request), false);
                         }else {
                             submitInternalRequestToShards(shards,request);

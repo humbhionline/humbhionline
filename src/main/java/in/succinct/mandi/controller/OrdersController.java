@@ -527,7 +527,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             return;
         }
 
-        List<ServerNode> nodes = new Select().from(ServerNode.class).execute();
+        List<ServerNode> nodes = InternalNetwork.getNodes();
         Map<String,String> headers = InternalNetwork.extractHeaders(getPath());
         headers.remove("Cookie");// Do this search with out login! Only using app authenticat
 
