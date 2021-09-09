@@ -33,7 +33,7 @@ public class BeforeValidateServerNode extends BeforeModelValidateExtension<Serve
             Crypt.getInstance().getPublicKey(Request.SIGNATURE_ALGO,model.getSigningPublicKey());
         }
 
-        if (model.getRawRecord().isFieldDirty("CLIENT_ID") && ObjectUtil.isVoid(model.getClientId())){
+        if (model.getRawRecord().isFieldDirty("CLIENT_ID") && !ObjectUtil.isVoid(model.getClientId())){
             Application application = Database.getTable(Application.class).newRecord();
             application.setAppId(model.getClientId());
             application = Database.getTable(Application.class).getRefreshed(application);

@@ -47,10 +47,14 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyAgreement;
+import javax.crypto.SecretKey;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -97,7 +101,7 @@ public class BppController extends Controller {
     protected boolean isRequestAuthenticated(Request request){
         Map<String,String> headers = getPath().getHeaders();
 
-        ServerNode node = InternalNetwork.getRemoteServer(getPath());
+        ServerNode node = InternalNetwork.getRemoteServer(getPath(),false);
         if (node == null){
             String callbackUrl = getGatewayUrl(request.extractAuthorizationParams("Proxy-Authorization",headers));
             if (callbackUrl == null) {
@@ -105,8 +109,13 @@ public class BppController extends Controller {
             }
             request.getExtendedAttributes().set(BecknExtnAttributes.CALLBACK_URL,callbackUrl);
 
-            return request.verifySignature("Proxy-Authorization",headers , false) &&
-                    request.verifySignature("Authorization",headers , Config.instance().getBooleanProperty("beckn.auth.enabled", false));
+            if ( Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
+                return request.verifySignature("Proxy-Authorization",headers , false) &&
+                        request.verifySignature("Authorization",headers , Config.instance().getBooleanProperty("beckn.auth.enabled", false));
+
+            }else {
+                return true;
+            }
         }else {
             request.getExtendedAttributes().set(BecknExtnAttributes.CALLBACK_URL,node.getBaseUrl() +"/" + "beckn_messages");
             request.getExtendedAttributes().set(BecknExtnAttributes.INTERNAL,true);
@@ -305,25 +314,27 @@ public class BppController extends Controller {
     public View on_subscribe() throws Exception{
         String payload = StringUtil.read(getPath().getInputStream());
         JSONObject object = (JSONObject) JSONValue.parse(payload);
-        byte[] encrypted = Base64.getDecoder().decode((String)object.get("challenge"));
-        if (!ObjectUtil.equals(object.get("subscriber_id"), Config.instance().getHostName())){
-            return IntegrationAdaptor.instance(SWFHttpResponse.class,JSONObject.class).createStatusResponse(getPath(),new RuntimeException("Subscriber id mismatch"),"Subscriber Mismatch");
-        }
 
         if (!Request.verifySignature(getPath().getHeader("Signature"), payload,
                 new Request().getPublicKey(Config.instance().getProperty("beckn.registry.id"),Config.instance().getProperty("beckn.registry.id")+".k1"))){
             throw new RuntimeException("Cannot verify Signature");
         }
 
-        String privateKey = BecknUtil.getSelfEncryptionKey().getPrivateKey();
+        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,BecknUtil.getSelfEncryptionKey().getPrivateKey());
+        PublicKey registryPublicKey = null;
+        JSONArray array = BecknPublicKeyFinder.lookup(Config.instance().getProperty("beckn.registry.id"));
+        if (array.size() > 0){
+            JSONObject subscriber = (JSONObject) array.get(0);
+            registryPublicKey = Crypt.getInstance().getPublicKey(Request.ENCRYPTION_ALGO,(String)subscriber.get("encr_public_key"));
+        }
+        KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);
+        agreement.init(privateKey);
+        agreement.doPhase(registryPublicKey,true);
 
-        Cipher cipher = Cipher.getInstance("RSA");
-        cipher.init(Cipher.DECRYPT_MODE, Crypt.getInstance().getPrivateKey(Crypt.KEY_ALGO,privateKey));
-
-        byte[] decrypted = cipher.doFinal(encrypted);
+        SecretKey key = agreement.generateSecret("TlsPremasterSecret");
 
         JSONObject output = new JSONObject();
-        output.put("answer", new String(decrypted));
+        output.put("answer", Crypt.getInstance().decrypt((String)object.get("challenge"),"AES",key));
 
         return new BytesView(getPath(),output.toString().getBytes());
     }

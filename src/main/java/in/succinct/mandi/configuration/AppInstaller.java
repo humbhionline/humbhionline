@@ -32,9 +32,6 @@ import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
-import org.bouncycastle.jcajce.spec.EdDSAParameterSpec;
-import org.bouncycastle.jcajce.spec.XDHParameterSpec;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
 
 import java.io.InputStream;
@@ -143,23 +140,24 @@ public class AppInstaller implements Installer {
                 node.setNodeId(Long.parseLong(next_node_id));
             }else  {
                 node.setNodeId(1L);
+                node.setApproved(true);
             }
 
             node.setClientSecret(Encryptor.encrypt(node.getClientId() + "-" + System.currentTimeMillis()));
             node.setSigningPublicKey(BecknUtil.getSelfKey().getPublicKey());
             node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey().getPublicKey());
             node.save();
-            Config.instance().setProperty("swf.node.id",String.valueOf(node.getNodeId()));
-            Database.getInstance().resetIdGeneration();
+        }else if (!node.isApproved()){
+            node.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+            node.save();
+            //Force a register api.
         }
+        Config.instance().setProperty("swf.node.id",String.valueOf(node.getNodeId()));
+        Database.getInstance().resetIdGeneration();
 
     }
 
     private void generateBecknKeys() {
-        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-            Security.addProvider(new BouncyCastleProvider());
-        }
-
         CryptoKey key = Database.getTable(CryptoKey.class).newRecord();
         key.setAlias(Config.instance().getHostName() + ".k1");
         key = Database.getTable(CryptoKey.class).getRefreshed(key);

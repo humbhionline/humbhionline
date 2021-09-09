@@ -6,7 +6,9 @@ import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.db.model.io.ModelWriter;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.plugins.background.core.TaskManager;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.util.InternalNetwork;
 import org.json.simple.JSONObject;
@@ -23,12 +25,14 @@ public class AfterSaveServerNode extends AfterModelSaveExtension<ServerNode> {
         JSONObject obj= new JSONObject();
         obj.put("ServerNode",new JSONObject());
 
-        if (!InternalNetwork.isCurrentServerRegistry() && node.isSelf()){
+        if (!InternalNetwork.isCurrentServerRegistry() && node.isSelf() && !node.isApproved()){
             ModelWriter<ServerNode,JSONObject> writer = ModelIOFactory.getWriter(ServerNode.class,
                     FormatHelper.getFormatClass(MimeType.APPLICATION_JSON));
             writer.write(node,(JSONObject) obj.get("ServerNode"),node.getReflector().getVisibleFields(new ArrayList<>()));
-            InputStream in = new Call<JSONObject>().url(InternalNetwork.getRegistryUrl() +"/register").input(obj).
-                    inputFormat(InputFormat.JSON).header("content-type",MimeType.APPLICATION_JSON.toString()).getResponseStream();
+            TaskManager.instance().executeAsync(()-> {
+                InputStream in = new Call<JSONObject>().url(InternalNetwork.getRegistryUrl() + "/server_nodes/register").input(obj).method(HttpMethod.POST).
+                        inputFormat(InputFormat.JSON).header("content-type", MimeType.APPLICATION_JSON.toString()).getResponseStream();
+            },false);
         }
 
     }

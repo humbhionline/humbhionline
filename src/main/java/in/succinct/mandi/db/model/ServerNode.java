@@ -67,6 +67,9 @@ public interface ServerNode extends Model {
         return node.isApproved()? node : null;
     }
     public static ServerNode findNodeByBaseUrl(String baseUrl){
+        return findNodeByBaseUrl(baseUrl,true);
+    }
+    public static ServerNode findNodeByBaseUrl(String baseUrl, boolean ensureApproved){
         List<ServerNode> nodes = new Select().from(ServerNode.class).
                 where(new Expression(ModelReflector.instance(ServerNode.class).getPool(),
                         "BASE_URL", Operator.EQ, baseUrl)).execute(1);
@@ -74,10 +77,10 @@ public interface ServerNode extends Model {
             return null;
         }
         ServerNode node = nodes.get(0);
-        return node.isApproved()? node : null;
+        return (!ensureApproved || node.isApproved()) ? node : null;
     }
     public static ServerNode selfNode(){
-        return findNodeByBaseUrl(Config.instance().getServerBaseUrl());
+        return findNodeByBaseUrl(Config.instance().getServerBaseUrl(),false);
     }
 
     public static ServerNode findNodeByNodeId(long nodeId){

@@ -9,29 +9,31 @@ import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Count;
-import com.venky.swf.db.model.io.ModelIO;
 import com.venky.swf.db.model.io.ModelIOFactory;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.HttpMethod;
+import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
-import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.sql.Select;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
-import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.util.InternalNetwork;
 import in.succinct.mandi.util.beckn.BecknUtil;
-import org.bouncycastle.jcajce.spec.XDHParameterSpec;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+import javax.crypto.KeyAgreement;
+import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,7 +71,7 @@ public class ServerNodesController extends ModelController<ServerNode> {
 
     @RequireLogin(false)
     public View sync() throws Exception{
-        if (!MimeType.APPLICATION_JSON.equals(getPath().getReturnProtocol())){
+        if (getReturnIntegrationAdaptor() == null || !MimeType.APPLICATION_JSON.equals(getReturnIntegrationAdaptor().getMimeType())){
             throw new RuntimeException("Only json format supported");
         }
 
@@ -105,7 +107,7 @@ public class ServerNodesController extends ModelController<ServerNode> {
                 cache.put(node.getClientId(),node);
             }
 
-            Call<JSONObject> call = new Call<JSONObject>().url(InternalNetwork.getRegistryUrl() + "/sync")
+            Call<JSONObject> call = new Call<JSONObject>().url(InternalNetwork.getRegistryUrl() + "/server_nodes/sync")
                     .header("Authorization",ServerNode.selfNode().getAuthorizationHeader())
                     .header("Content-Type",MimeType.APPLICATION_JSON.toString());
             List<ServerNode> nodes = null;
@@ -137,7 +139,7 @@ public class ServerNodesController extends ModelController<ServerNode> {
 
     private View challenge(ServerNode node) {
         TaskManager.instance().executeAsync(new OnRegister(node),false);
-        return getReturnIntegrationAdaptor().createStatusResponse(getPath(),null, node.getClientId() + " is Being Approved.");
+        return IntegrationAdaptor.instance(getModelClass(),FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).createStatusResponse(getPath(),null, node.getClientId() + " is Being Approved.");
     }
 
     @RequireLogin(false)
@@ -145,20 +147,43 @@ public class ServerNodesController extends ModelController<ServerNode> {
 
         JSONObject object = (JSONObject) JSONValue.parse(new InputStreamReader(getPath().getInputStream()));
         String challenge = (String)object.get("challenge");
-        ServerNode self = ServerNode.selfNode();
-        String privateKey = BecknUtil.getSelfEncryptionKey().getPrivateKey();
-        String decryptedChallenge = Crypt.getInstance().decrypt(challenge, Request.ENCRYPTION_ALGO,privateKey);
 
+        String otherPublicKey = (String)object.get("pub_key");
+        SecretKey key = getSecretKey(otherPublicKey);
+
+        String decryptedChallenge = Crypt.getInstance().decrypt(challenge,"AES",key);
         object.put("challenge",decryptedChallenge);
         return new BytesView(getPath(),object.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON.toString());
     }
 
+    public static SecretKey getSecretKey(ServerNode otherNode){
+        try {
+            return getSecretKey(otherNode.getEncryptionPublicKey());
+        }catch (Exception ex){
+            throw new RuntimeException(ex);
+        }
+    }
+    public static SecretKey getSecretKey(String b64StringX25519OtherPubKey){
+        try {
+            PublicKey otherKey = Crypt.getInstance().getPublicKey("X25519", b64StringX25519OtherPubKey);
+            PrivateKey key = Crypt.getInstance().getPrivateKey("X25519", BecknUtil.getSelfEncryptionKey().getPrivateKey());
+            KeyAgreement agreement = KeyAgreement.getInstance("X25519");
+            agreement.init(key);
+            agreement.doPhase(otherKey, true);
+            SecretKey aesKey = agreement.generateSecret("TlsPremasterSecret");
+            return aesKey;
+        }catch (Exception ex){
+            throw new RuntimeException(ex);
+        }
+
+    }
 
     public static class OnRegister implements Task {
         ServerNode node;
         public OnRegister(ServerNode node){
             this.node = node;
         }
+
 
         @Override
         public void execute() {
@@ -167,9 +192,15 @@ public class ServerNodesController extends ModelController<ServerNode> {
             for (int i = 0 ; i< 6 ; i ++){
                 otp.append(Randomizer.getRandomNumber(0,9));
             }
-            on_register.put("challenge", Crypt.getInstance().encrypt(otp.toString(), XDHParameterSpec.X25519 , node.getSigningPublicKey()));
+            SecretKey secretKey = getSecretKey(node);
+
+            on_register.put("pub_key", BecknUtil.getSelfEncryptionKey().getPublicKey());
+            on_register.put("challenge", Crypt.getInstance().encrypt(otp.toString(),"AES",getSecretKey(node)));
+
+
             Call<JSONObject> onRegisterCall = new Call<JSONObject>().url(node.getBaseUrl() + "/server_nodes/on_register")
                     .header("content-type", MimeType.APPLICATION_JSON.toString())
+                    .inputFormat(InputFormat.JSON).method(HttpMethod.POST)
                     .input(on_register);
 
             JSONObject response = onRegisterCall.getResponseAsJson();
