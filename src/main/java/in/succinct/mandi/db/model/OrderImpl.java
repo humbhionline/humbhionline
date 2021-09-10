@@ -30,7 +30,7 @@ public class OrderImpl extends ModelImpl<Order> {
 
     public void completePayment(boolean save) {
         Order order = getProxy();
-        order.setAmountPaid(order.getAmountPendingPayment());
+        order.setAmountPaid(order.getAmountPaid() + order.getAmountPendingPayment());
         for (OrderLine line : order.getOrderLines()) {
             Item item = line.getSku().getItem().getRawRecord().getAsProxy(Item.class);
             AssetCode assetCode = item.getAssetCodeId() == null ? null : item.getAssetCode();
@@ -45,7 +45,7 @@ public class OrderImpl extends ModelImpl<Order> {
     public void completeRefund(boolean save) {
         Order order = getProxy();
         if (order.getAmountPaid() > 0) {
-            order.setAmountRefunded(order.getAmountToRefund());
+            order.setAmountRefunded(order.getAmountRefunded() + order.getAmountToRefund());
             order.resetRefund(save);
         }
     }

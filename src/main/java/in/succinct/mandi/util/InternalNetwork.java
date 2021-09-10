@@ -98,6 +98,10 @@ public class InternalNetwork {
                 if (jsonObject != null) {
                     JSONObject jsonUser = (JSONObject) jsonObject.get("User");
                     user = loadUserToCache(jsonUser);
+                    loadModelObjectsToCache(jsonUser,user, UserRole.class);
+                    loadModelObjectsToCache(jsonUser,user, UserPhone.class);
+                    loadModelObjectsToCache(jsonUser,user, UserEmail.class);
+                    loadModelObjectsToCache(jsonUser,user, Device.class);
                 }
             }
         }
@@ -118,10 +122,6 @@ public class InternalNetwork {
             Database.getInstance().getCache(user.getReflector()).setCachedResult(e,records);
         }
 
-        loadModelObjectsToCache(jsonUser,user, UserRole.class);
-        loadModelObjectsToCache(jsonUser,user, UserPhone.class);
-        loadModelObjectsToCache(jsonUser,user, UserEmail.class);
-        loadModelObjectsToCache(jsonUser,user, Device.class);
 
         return user;
     }
