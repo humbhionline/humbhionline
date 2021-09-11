@@ -68,13 +68,13 @@ public class InternalNetwork {
         return hasSessionId || !ObjectUtil.isVoid(path.getHeader("ApiKey"));
     }
     public static ServerNode getRemoteServer(Path path){
-        return getRemoteServer(path,true);
+        return getRemoteServer(path,false);
     }
-    public static ServerNode getRemoteServer(Path path, boolean ensureNotSelf){
+    public static ServerNode getRemoteServer(Path path, boolean okToReturnSelf){
         Application app = path.getApplication();
         if (app != null){
             ServerNode node = ServerNode.findNode(app.getAppId());
-            if (node != null && (!ensureNotSelf || !node.isSelf()) ){
+            if (node != null && (okToReturnSelf || !node.isSelf()) ){
                 if (node.isApproved()) {
                     return node;
                 }else {
@@ -87,7 +87,7 @@ public class InternalNetwork {
     public static User getRemoteNetworkUser(Path path){
         Application application = path.getApplication();
         User user = null;
-        ServerNode node = getRemoteServer(path,true);
+        ServerNode node = getRemoteServer(path);
         if (node != null){
             if (isRemoteUserSession(path)) {
                 JSONObject jsonObject = new Call<JSONObject>().url(node.getBaseUrl() + "/users/current").
@@ -98,7 +98,6 @@ public class InternalNetwork {
                 if (jsonObject != null) {
                     JSONObject jsonUser = (JSONObject) jsonObject.get("User");
                     user = loadUserToCache(jsonUser);
-                    loadModelObjectsToCache(jsonUser,user, UserRole.class);
                     loadModelObjectsToCache(jsonUser,user, UserPhone.class);
                     loadModelObjectsToCache(jsonUser,user, UserEmail.class);
                     loadModelObjectsToCache(jsonUser,user, Device.class);
@@ -121,8 +120,7 @@ public class InternalNetwork {
             records.add(user.getRawRecord());
             Database.getInstance().getCache(user.getReflector()).setCachedResult(e,records);
         }
-
-
+        loadModelObjectsToCache(jsonUser,user, UserRole.class);
         return user;
     }
 

@@ -154,6 +154,7 @@
                     showSpinner();
                     api().url("/network/call/orders/processUpi").parameters(upiresponsejsonString).headers({ "X-Signature": signature }).post().then(function (response) {
                         if (index >= 0) {
+                            self.update_status_array(response.Order);
                             self.Orders.splice(index, 1, response.Order);
                         }
                         showErrorMessage("Payment Status : " + r.Status);
@@ -192,7 +193,7 @@
                         } else if (os.FulfillmentStatus === "DELIVERED") {
                             o.DELIVERED = true;
                         } else if (os.FulfillmentStatus === "SHIPPED") {
-                            o.SHIPPED = true/network/call;
+                            o.SHIPPED = true;
                         } else if (os.FulfillmentStatus === "PACKED") {
                             o.PACKED = true;
                         } else if (os.FulfillmentStatus !== 'DOWNLOADED') {
@@ -265,8 +266,8 @@
                     showSpinner();
                     self.enterWeight(order).then(function (o) {
                         api().url("/network/call/orders/pack/" + o.Id).get().then(function (response) {
-                            self.Orders.splice(index, 1, response.Order);
                             self.update_status_array(response.Order);
+                            self.Orders.splice(index, 1, response.Order);
                         })
                     }).catch(function (err) {
                         showError(err);
@@ -289,8 +290,8 @@
                     }
                     showSpinner();
                     api().url("/network/call/orders/ship/" + order.Id).get().then(function (response) {
-                        self.Orders.splice(index, 1, response.Order);
                         self.update_status_array(response.Order);
+                        self.Orders.splice(index, 1, response.Order);
                     }).catch(function (err) {
                         showError(err);
                     }).finally(function () {
@@ -311,8 +312,8 @@
                     showSpinner();
                     loadLocation(true).then(function () {
                         api().url("/network/call/orders/deliver/" + order.Id).get().then(function (response) {
-                            self.Orders.splice(index, 1, response.Order);
                             self.update_status_array(response.Order);
+                            self.Orders.splice(index, 1, response.Order);
                         }).catch(function (err) {
                             showError(err);
                         }).finally(function () {
@@ -340,9 +341,9 @@
                                 showSpinner();
                                 api().url("/network/call/orders/cancel/" + order.Id).get().then(function (response) {
                                     if (index >= 0) {
+                                        self.update_status_array(response.Order);
                                         self.Orders.splice(index, 1, response.Order);
                                     }
-                                    self.update_status_array(response.Order);
                                 }).catch(function (err) {
                                     showError(err);
                                 }).finally(function () {
@@ -404,6 +405,7 @@
                     }
                     showSpinner();
                     api().url("/network/call/orders/initialize_payment/" + order.Id).get().then(function (response) {
+                        self.update_status_array(response.Order);
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Payment Initialized");
                         response.Order._phref = "#";
@@ -443,6 +445,7 @@
                     showSpinner();
                     api().url("/network/call/orders/reset_payment/" + order.Id).get().then(function (response) {
                         if (index >= 0) {
+                            self.update_status_array(response.Order);
                             self.Orders.splice(index, 1, response.Order);
                         }
                         showErrorMessage("Payment Reset");
@@ -467,6 +470,7 @@
                     delete order._rhref;
                     showSpinner();
                     api().url("/network/call/orders/complete_payment/" + order.Id).get().then(function (response) {
+                        self.update_status_array(response.Order);
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
@@ -487,6 +491,7 @@
                     delete order._rhref;
                     showSpinner();
                     api().url("/network/call/orders/initialize_refund/" + order.Id).get().then(function (response) {
+                        self.update_status_array(response.Order);
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Refund Initialized");
                         response.Order._rhref = "#";
@@ -519,6 +524,7 @@
                     delete order._rhref;
                     showSpinner();
                     api().url("/network/call/orders/reset_refund/" + order.Id).get().then(function (response) {
+                        self.update_status_array(response.Order);
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Payment Reset");
                     }).catch(function (err) {
@@ -542,6 +548,7 @@
                     delete order._rhref;
                     showSpinner();
                     api().url("/network/call/orders/complete_refund/" + order.Id).get().then(function (response) {
+                        self.update_status_array(response.Order);
                         self.Orders.splice(index, 1, response.Order);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
@@ -667,7 +674,7 @@
     </div>
     <div id="app" class="app-body">
         <h6 v-if="Orders.length === 0" class="text-center">No Orders</h6>
-        <div v-bind:id="'Order-' + o.Id" class="my-4 container position-relative" v-for="(o,i) in Orders">
+        <div v-bind:key="'Order-' + o.Id" v-bind:id="'Order-' + o.Id" class="my-4 container position-relative" v-for="(o,i) in Orders">
             <button class="btn-order-cancel d-flex  align-content-center justify-content-center d-sm-none"
                 v-on:click="cancel($event,o)" v-if="!o.CANCELLED">
                 <i class="mt-1 fas fa-times"></i>

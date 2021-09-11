@@ -1,5 +1,6 @@
 package in.succinct.mandi.controller;
 
+import com.venky.core.io.StringReader;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
@@ -50,8 +51,10 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -154,9 +157,9 @@ public class BppController extends Controller {
     private void submitInternalRequestToShards(List<ServerNode> nodes, Request request) {
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
-        BecknMessage message = Database.getTable(BecknMessage.class).newRecord();
-        message.setMessageId(request.getContext().getMessageId());
-        message = Database.getTable(BecknMessage.class).getRefreshed(message);
+        BecknMessage q = Database.getTable(BecknMessage.class).newRecord();
+        q.setMessageId(request.getContext().getMessageId());
+        BecknMessage message = Database.getTable(BecknMessage.class).getRefreshed(q);
         message.setExpirationTime(System.currentTimeMillis() + request.getContext().getTtl() * 1000L);
         message.setNumPendingResponses(new Bucket(nodes.size()));
         message.setCallBackUri(request.getExtendedAttributes().get(BecknExtnAttributes.CALLBACK_URL));
@@ -176,10 +179,12 @@ public class BppController extends Controller {
             response.save();
             tasks.add((Task) () -> {
                 try {
-                    new Call<InputStream>().url(node.getBaseUrl() + "/bpp/" + request.getContext().getAction()).headers(headers).
+                    new Call<InputStream>().timeOut((int)(request.getContext().getTtl() * 1000L)).url(node.getBaseUrl() + "/bpp/" + request.getContext().getAction()).headers(headers).
                             inputFormat(InputFormat.INPUT_STREAM).
                             input(getPath().getInputStream()).method(HttpMethod.POST).getResponseAsJson();
                 } catch (IOException e) {
+                    message.getNumPendingResponses().decrement();
+                    message.save();
                     throw new RuntimeException(e);
                 }
             });
