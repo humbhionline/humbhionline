@@ -8,6 +8,7 @@ import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
+import com.venky.swf.db.Transaction;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.SWFHttpResponse;
 import com.venky.swf.integration.IntegrationAdaptor;
@@ -183,9 +184,9 @@ public class BppController extends Controller {
                             inputFormat(InputFormat.INPUT_STREAM).
                             input(getPath().getInputStream()).method(HttpMethod.POST).getResponseAsJson();
                 } catch (IOException e) {
-                    message.getNumPendingResponses().decrement();
-                    message.save();
-                    throw new RuntimeException(e);
+                    BecknMessage m = Database.getTable(BecknMessage.class).lock(message.getId());
+                    m.getNumPendingResponses().decrement();
+                    m.save();
                 }
             });
         }
