@@ -74,30 +74,36 @@ public class NetworkController extends Controller {
             if (nodeId != null && node.getNodeId() != nodeId){
                 continue;
             }
-            Object output ;
+            Object output = null;
             Call<JSONObject> call = new Call<>();
 
-            if (input == null){
-                if (!HttpMethod.GET.toString().equalsIgnoreCase(getPath().getRequest().getMethod())){
-                    throw new RuntimeException("Don't know how to call api");
-                }
-                String q = StringUtil.valueOf(getPath().getRequest().getQueryString());
-                if (!ObjectUtil.isVoid(q)){
-                    q = String.format("?%s",q);
-                }
+            try {
+                if (input == null) {
+                    if (!HttpMethod.GET.toString().equalsIgnoreCase(getPath().getRequest().getMethod())) {
+                        throw new RuntimeException("Don't know how to call api");
+                    }
+                    String q = StringUtil.valueOf(getPath().getRequest().getQueryString());
+                    if (!ObjectUtil.isVoid(q)) {
+                        q = String.format("?%s", q);
+                    }
 
 
-                String url = String.format("%s/%s%s",node.getBaseUrl(),Encode.forUriComponent(api), q);
-                output = call.url(url).headers(headers).
-                                header("Content-Type", MimeType.APPLICATION_JSON.toString()).
-                                header("KeepAlive","Y").
-                                method(HttpMethod.GET).getResponseStream();
-            }else {
-                output = call.url(node.getBaseUrl() + "/" + Encode.forUriComponent(api)).inputFormat(InputFormat.JSON)
-                        .input(input).headers(headers).
-                                header("Content-Type", MimeType.APPLICATION_JSON.toString()).
-                                header("KeepAlive","Y").
-                        method(HttpMethod.POST).getResponseStream();
+                    String url = String.format("%s/%s%s", node.getBaseUrl(), Encode.forUriComponent(api), q);
+                    output = call.url(url).headers(headers).
+                            header("Content-Type", MimeType.APPLICATION_JSON.toString()).
+                            header("KeepAlive", "Y").
+                            method(HttpMethod.GET).getResponseStream();
+                } else {
+                    output = call.url(node.getBaseUrl() + "/" + Encode.forUriComponent(api)).inputFormat(InputFormat.JSON)
+                            .input(input).headers(headers).
+                                    header("Content-Type", MimeType.APPLICATION_JSON.toString()).
+                                    header("KeepAlive", "Y").
+                                    method(HttpMethod.POST).getResponseStream();
+                }
+            }catch (Exception ex){
+                node.setApproved(false);
+                node.save();
+                continue;
             }
             boolean isJsonApi = false;
 

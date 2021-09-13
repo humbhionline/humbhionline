@@ -34,6 +34,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,7 +81,7 @@ public class ServerNodesController extends ModelController<ServerNode> {
             if (remote != null) {
                 return getReturnIntegrationAdaptor().createResponse(getPath(),InternalNetwork.getNodes(),getReflector().getVisibleFields(new ArrayList<>()));
             }else {
-                throw new RuntimeException("Must be called from peer node in humbhionline network");
+                return getReturnIntegrationAdaptor().createResponse(getPath(),new ArrayList<>());
             }
         }else {
             TaskManager.instance().executeAsync(new Sync(),false);
@@ -116,6 +117,9 @@ public class ServerNodesController extends ModelController<ServerNode> {
                         FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).read(call.getResponseStream());
 
                 for (ServerNode node: nodes){
+                    if (node.isSelf() && !node.isApproved() && !node.isDirty()){
+                        node.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+                    }
                     node.save();
                     cache.remove(node.getClientId());
                 }
@@ -123,6 +127,9 @@ public class ServerNodesController extends ModelController<ServerNode> {
                 for (String key : cache.keySet()){
                     ServerNode node = cache.get(key);
                     node.setApproved(false);
+                    if (node.isSelf() && !node.isDirty()){
+                        node.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+                    }
                     node.save();
                 }
 

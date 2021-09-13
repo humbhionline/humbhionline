@@ -105,7 +105,7 @@ public class BppController extends Controller {
     protected boolean isRequestAuthenticated(Request request){
         Map<String,String> headers = getPath().getHeaders();
 
-        ServerNode node = InternalNetwork.getRemoteServer(getPath(),false);
+        ServerNode node = InternalNetwork.getRemoteServer(getPath(),true);
         if (node == null){
             String callbackUrl = getGatewayUrl(request.extractAuthorizationParams("Proxy-Authorization",headers));
             if (callbackUrl == null) {
@@ -183,10 +183,13 @@ public class BppController extends Controller {
                     new Call<InputStream>().timeOut((int)(request.getContext().getTtl() * 1000L)).url(node.getBaseUrl() + "/bpp/" + request.getContext().getAction()).headers(headers).
                             inputFormat(InputFormat.INPUT_STREAM).
                             input(getPath().getInputStream()).method(HttpMethod.POST).getResponseAsJson();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     BecknMessage m = Database.getTable(BecknMessage.class).lock(message.getId());
                     m.getNumPendingResponses().decrement();
                     m.save();
+                    ServerNode n = Database.getTable(ServerNode.class).get(node.getId());
+                    n.setApproved(false);
+                    n.save();
                 }
             });
         }

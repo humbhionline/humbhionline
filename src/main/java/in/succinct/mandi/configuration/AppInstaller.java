@@ -15,6 +15,7 @@ import com.venky.swf.db.table.Table;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Company;
@@ -26,6 +27,7 @@ import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import com.venky.swf.util.SharedKeys;
 import in.succinct.beckn.Request;
+import in.succinct.mandi.controller.ServerNodesController.Sync;
 import in.succinct.mandi.db.model.EncryptedModel;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.ServerNode;
@@ -147,10 +149,13 @@ public class AppInstaller implements Installer {
             node.setSigningPublicKey(BecknUtil.getSelfKey().getPublicKey());
             node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey().getPublicKey());
             node.save();
-        }else if (!node.isApproved()){
-            node.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-            node.save();
-            //Force a register api.
+        }else {
+            if (node.isRegistry()){
+                node.setApproved(true);
+                node.save();
+            }else {
+                TaskManager.instance().executeAsync(new Sync(), false);
+            }
         }
         Config.instance().setProperty("swf.node.id",String.valueOf(node.getNodeId()));
         Database.getInstance().resetIdGeneration();

@@ -151,9 +151,16 @@
                     });
                     showSpinner();
                     self.book(Orders).then(function (response) {
-                        self.facilities = [];
-                        self.facilityOrders = {};
-                        Lockr.rm("facilityOrders");
+                        response.Orders.forEach((o,i) =>{
+                            let index = self.facilities.findIndex(function(f){
+                                return f.Id == o.Facility.Id;
+                            });
+                            self.facilities.splice(index,1);
+                            delete self.facilityOrders[o.Facility.Id];
+                        });
+                        Lockr.set("facilityOrders", self.facilityOrders);
+
+
                         showErrorMessage("Order " + response.Orders.map(o => o.Id) + " Booked Successfully!").then(function () {
                             window.location.replace("/orders?type=purchases");
                         });
