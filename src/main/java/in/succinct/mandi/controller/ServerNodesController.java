@@ -10,6 +10,7 @@ import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Count;
 import com.venky.swf.db.model.io.ModelIOFactory;
+import com.venky.swf.db.model.io.ModelReader;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.integration.api.Call;
@@ -146,7 +147,8 @@ public class ServerNodesController extends ModelController<ServerNode> {
 
     private View challenge(ServerNode node) {
         TaskManager.instance().executeAsync(new OnRegister(node),false);
-        return IntegrationAdaptor.instance(getModelClass(),FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).createStatusResponse(getPath(),null, node.getClientId() + " is Being Approved.");
+        return IntegrationAdaptor.instance(getModelClass(),FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).
+                createResponse(getPath(),ServerNode.selfNode(),getReflector().getVisibleFields(new ArrayList<>()));
     }
 
     @RequireLogin(false)
@@ -160,6 +162,7 @@ public class ServerNodesController extends ModelController<ServerNode> {
 
         String decryptedChallenge = Crypt.getInstance().decrypt(challenge,"AES",key);
         object.put("challenge",decryptedChallenge);
+
         return new BytesView(getPath(),object.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON.toString());
     }
 
