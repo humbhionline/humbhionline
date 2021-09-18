@@ -334,7 +334,7 @@ public class BppController extends Controller {
         JSONArray array = BecknPublicKeyFinder.lookup(Config.instance().getProperty("beckn.registry.id"));
         if (array.size() > 0){
             JSONObject subscriber = (JSONObject) array.get(0);
-            registryPublicKey = Crypt.getInstance().getPublicKey(Request.ENCRYPTION_ALGO,(String)subscriber.get("encr_public_key"));
+            registryPublicKey = Request.getEncryptionPublicKey((String)subscriber.get("encr_public_key"));
         }
         KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);
         agreement.init(privateKey);
