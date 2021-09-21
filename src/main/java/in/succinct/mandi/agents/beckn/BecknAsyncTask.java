@@ -64,14 +64,15 @@ public abstract class BecknAsyncTask implements Task {
 
     protected final Map<String, String> getHeaders(Request request) {
         Map<String,String> headers  = new HashMap<>();
-        if (Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
-            headers.put("Authorization", request.generateAuthorizationHeader(request.getContext().getBppId(),
-                    request.getContext().getBppId() + ".k1"));
-        }else if (getRequest().getExtendedAttributes().getBoolean(BecknExtnAttributes.INTERNAL)){
+        if (getRequest().getExtendedAttributes().getBoolean(BecknExtnAttributes.INTERNAL)){
             ServerNode self = ServerNode.selfNode();
             String token = String.format("%s:%s",self.getClientId(),self.getClientSecret());
             token = String.format("Basic %s", Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8)));
             headers.put("Authorization", token);
+        }else if (Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
+
+            headers.put("Authorization", request.generateAuthorizationHeader(request.getContext().getBppId(),
+                    request.getContext().getBppId() + ".k1"));
         }
         headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
         headers.put("Accept", MimeType.APPLICATION_JSON.toString());
