@@ -1,16 +1,17 @@
-<script type="text/javascript" src="/resources/scripts/node_modules/jquery/dist/jquery.min.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/jquery/dist/jquery.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/slick-carousel/slick/slick.min.js" defer></script>
+<script type="text/javascript" src="/fragments/js/util.js" defer></script>
 
-<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
 
-<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
-
-<link rel="stylesheet" type="text/css" href="/resources/scripts/node_modules/slick-carousel/slick/slick.css" />
-<link rel="stylesheet" type="text/css" href="/resources/scripts/node_modules/slick-carousel/slick/slick-theme.css" />
-<link rel="stylesheet" href="/dashboard/css/style.css">
-<script type="text/javascript" src="/resources/scripts/node_modules/slick-carousel/slick/slick.min.js"></script>
-
-<script type="text/javascript" src="/fragments/js/util.js"></script>
+<link rel="preload" as="style" href="/resources/scripts/node_modules/slick-carousel/slick/slick.css" 
+    onload="this.onload=null;this.rel='stylesheet'" >
+<link rel="preload" as="style" href="/resources/scripts/node_modules/slick-carousel/slick/slick-theme.css" 
+    onload="this.onload=null;this.rel='stylesheet'" >
+<link rel="preload" as="style" href="/dashboard/css/style.css" 
+    onload="this.onload=null;this.rel='stylesheet'" >
 <script type="text/javascript">
     $(function () {
         //registerServiceWorker();
