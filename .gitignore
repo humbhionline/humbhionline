@@ -3,7 +3,8 @@
 .commit
 .idea/
 *.iml
-tmp/
+tmp/*log*
+tmp/pid
 overrideProperties/
 nohup.out
 database/
