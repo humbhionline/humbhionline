@@ -127,7 +127,7 @@ public class AppInstaller implements Installer {
     private void registerWithHumBhiOnlineRegistry() {
         String hboRegistry = Config.instance().getProperty("hbo.registry.url");
         if (ObjectUtil.isVoid(hboRegistry)){
-            throw new RuntimeException("hbo.registry.url not set");
+            return;
         }
 
         ServerNode node = Database.getTable(ServerNode.class).newRecord();

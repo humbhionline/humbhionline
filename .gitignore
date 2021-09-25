@@ -4,10 +4,11 @@
 .idea/
 *.iml
 tmp/*log*
+tmp/*docker*
 tmp/pid
 overrideProperties/
 nohup.out
-database/
+database/*.db
 /.gradle/
 .keystore
 doc/
