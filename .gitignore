@@ -9,6 +9,7 @@ tmp/pid
 overrideProperties/
 nohup.out
 database/*.db
+database/indexes/**/*.done
 /.gradle/
 .keystore
 doc/

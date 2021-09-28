@@ -8,6 +8,7 @@ import com.venky.digest.Encryptor;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
+import com.venky.swf.db.jdbc.ConnectionManager;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
@@ -22,9 +23,11 @@ import com.venky.swf.plugins.collab.db.model.participants.admin.Company;
 import com.venky.swf.plugins.security.db.model.Role;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Conjunction;
+import com.venky.swf.sql.DataManupulationStatement;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import com.venky.swf.sql.SqlStatement;
 import com.venky.swf.util.SharedKeys;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.controller.ServerNodesController.Sync;
@@ -34,19 +37,31 @@ import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
+import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.security.KeyPair;
 import java.security.Security;
+import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 
 public class AppInstaller implements Installer {
 
     public void install() {
+        installIndexes();
         boolean encryptionSupport = (Config.instance().getBooleanProperty("swf.encryption.support",true));
         encryptAddress(Facility.class,encryptionSupport);
         encryptAddress(User.class,encryptionSupport);
@@ -59,6 +74,51 @@ public class AppInstaller implements Installer {
         registerBecknKeys();
         updateFacilityMinMaxLatLng();
 
+    }
+    private void installIndexes()  {
+        for (String pool : ConnectionManager.instance().getPools()){
+            StringBuilder path = new StringBuilder();
+            path.append("database/indexes");
+            if (!ObjectUtil.isVoid(pool)){
+                path.append("/").append(pool);
+            }
+            File dir = new File(path.toString());
+            if (!dir.exists()){
+                continue;
+            }
+            for (File file : Objects.requireNonNull(dir.listFiles((dir1, name) -> name.endsWith(".sql")))) {
+                File doneFile = new File(file.getPath() +".done");
+                if (doneFile.exists()) {
+                    continue;
+                }
+                if (!file.exists()){
+                    continue;
+                }
+
+                try{
+                    InputStream inputStream = new FileInputStream(file);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                    reader.lines().forEach(sql->{
+                        try {
+                            Config.instance().getLogger(getClass().getName()).log(Level.INFO,sql);
+                            PreparedStatement statement = Database.getInstance().createStatement(pool, sql);
+                            statement.execute();
+
+                        }catch (Exception ex){
+                            Config.instance().getLogger(getClass().getName()).log(Level.WARNING,sql ,ex);
+                        }finally {
+                            try {
+                                FileUtils.touch(doneFile);
+                            }catch (Exception ex){
+                                Config.instance().getLogger(getClass().getName()).log(Level.WARNING,sql ,ex);
+                            }
+                        }
+                    });
+                }catch (Exception ex){
+                    Config.instance().getLogger(getClass().getName()).log(Level.WARNING,ex.getMessage() ,ex);
+                }
+            }
+        }
     }
     private void insertCompany(){
         Company company = Database.getTable(Company.class).newRecord();
