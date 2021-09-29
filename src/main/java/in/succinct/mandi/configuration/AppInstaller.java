@@ -16,6 +16,7 @@ import com.venky.swf.db.table.Table;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
@@ -174,12 +175,11 @@ public class AppInstaller implements Installer {
                     new Date(key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L)))) ; //10 years
             object.put("subscriber_url",Config.instance().getServerBaseUrl() + "/bpp");
 
-            try {
+            TaskManager.instance().executeAsync((Task) () -> {
                 JSONObject response = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
                         header("Content-Type", MimeType.APPLICATION_JSON.toString()).header("Authorization", new Request().generateAuthorizationHeader(subscriberId, uniqueKeyId)).getResponseAsJson();
-            }catch (Exception ex){
-                Config.instance().getLogger(getClass().getName()).log(Level.WARNING,ex.getMessage(),ex);
-            }
+            },false);
+
         }
         registerWithHumBhiOnlineRegistry();
     }
