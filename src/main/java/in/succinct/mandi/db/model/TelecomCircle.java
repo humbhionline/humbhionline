@@ -1,5 +1,6 @@
 package in.succinct.mandi.db.model;
 
+import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.UNIQUE_KEY;
 import com.venky.swf.db.annotations.column.indexing.Index;
 import com.venky.swf.db.annotations.model.DBPOOL;
@@ -16,6 +17,7 @@ public interface TelecomCircle extends Model {
     public String getCode();
     public void setCode(String code);
 
+    @IS_NULLABLE
     public Long getServerNodeId();
     public void setServerNodeId(Long id);
     public ServerNode getServerNode();
