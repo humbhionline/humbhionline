@@ -1,5 +1,6 @@
 package in.succinct.mandi.controller;
 
+import com.venky.core.io.StringReader;
 import com.venky.core.string.StringUtil;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
@@ -64,7 +65,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
             if (response.getRawRecord().isNewRecord()) {
                 throw new RuntimeException("Unknown ServerNodeId");
             }
-            response.setResponse(new InputStreamReader(getPath().getInputStream()));
+            response.setResponse(new StringReader(request.toString()));
             response.save();
 
             message.getNumPendingResponses().decrement();
