@@ -173,9 +173,31 @@
                             <a class=" nav-link" href="/users/search" onclick="hideMenu()">
                                 <i class="fa fa-user"></i>Search Users</a>
                         </li>
+                        <!--
                         <li class="nav-item" v-if="!guest">
                             <a class=" nav-link" href="/dashboard/html/terms" onclick="hideMenu()">
                                 <i class="fa fa-user"></i> Policies</a>
+                        </li>
+                        -->
+                        <li class="nav-item dropdown-submenu" v-if="!guest">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarPoliciesMenuLink"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fa fa-user"></i>
+                                Policies</a>
+                            <ul class="dropdown-menu ml-auto mr-auto">
+                                <li class="dropdown-item">
+                                    <a class="nav-link" href="/dashboard/html/terms" onclick="hideMenu()">
+                                        <i class="fa fa-user"></i>
+                                        Terms
+                                    </a>
+                                </li>
+                                <li class="dropdown-item">
+                                    <a class="nav-link" href="/privacy" onclick="hideMenu()">
+                                        <i class="fa fa-user"></i>
+                                        Privacy
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class=" nav-link" onclick="logout(event)" href="#" onclick="hideMenu()" v-if="!guest">
