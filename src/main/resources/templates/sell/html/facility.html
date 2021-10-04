@@ -109,7 +109,7 @@
                         Sku: {
                             Item: {
                                 Name: "",
-                                Company: { Name: "MANDI" },
+                                Company: self.User.Company,
                                 AssetCode: { "Code": "" },
                             },
                             Name: "",
@@ -351,7 +351,7 @@
                         self.current.Inventory.Sku = {
                             Item: {
                                 Name: e.target.value,
-                                Company: { Name: "MANDI" },
+                                Company: self.User.Company,
                                 AssetCode: { "Code": "" },
                             },
                             Name: "",
