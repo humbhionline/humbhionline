@@ -30,8 +30,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import javax.servlet.http.Cookie;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -39,14 +37,9 @@ import java.util.function.Predicate;
 public class InternalNetwork {
     public static Map<String,String> extractHeaders(Path path){
         Map<String,String> headers = new IgnoreCaseMap<>();
-        Cookie[] cookies = path.getRequest().getCookies();
-        if (cookies != null && cookies.length > 0){
-            for (int i = 0 ; i <cookies.length ; i  ++ ){
-                if (ObjectUtil.equals(cookies[i].getName(),"JSESSIONID")){
-                    headers.put("Cookie", String.format("JSESSIONID=%s",cookies[i].getValue()));
-                    break;
-                }
-            }
+        Cookie cookie = path.getCookie("JSESSIONID");
+        if (cookie != null){
+            headers.put("Cookie", String.format("JSESSIONID=%s",cookie.getValue()));
         }
         for (String header : new String[] {"Authorization","Content-Type","ApiKey","Lat","Lng","User-Agent","Accept-Encoding","Referer","KeepAlive"}) {
             String v = path.getHeader(header);
