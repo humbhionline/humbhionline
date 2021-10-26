@@ -30,6 +30,7 @@ import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import com.venky.swf.sql.SqlStatement;
 import com.venky.swf.util.SharedKeys;
+import in.succinct.beckn.BecknObject;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.controller.ServerNodesController.Sync;
 import in.succinct.mandi.db.model.EncryptedModel;
@@ -170,8 +171,8 @@ public class AppInstaller implements Installer {
             object.put("type","bpp");
             object.put("signing_public_key",key.getPublicKey());
             object.put("encr_public_key",encryptionKey.getPublicKey());
-            object.put("valid_from", DateUtils.getFormat(DateUtils.ISO_8601_24H_FULL_FORMAT).format(key.getUpdatedAt()));
-            object.put("valid_until",DateUtils.getFormat(DateUtils.ISO_8601_24H_FULL_FORMAT).format(
+            object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(key.getUpdatedAt()));
+            object.put("valid_until",BecknObject.TIMESTAMP_FORMAT.format(
                     new Date(key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L)))) ; //10 years
             object.put("subscriber_url",Config.instance().getServerBaseUrl() + "/bpp");
 
