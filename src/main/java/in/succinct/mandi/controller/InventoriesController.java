@@ -7,7 +7,6 @@ import com.venky.geo.GeoLocation;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
-import com.venky.swf.db.PostgresqlHelper;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
@@ -23,11 +22,11 @@ import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Order;
-import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.db.model.UserLocation;
 import in.succinct.mandi.integrations.courier.Wefast;
+import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
@@ -81,6 +80,7 @@ public class InventoriesController extends ModelController<Inventory> {
     }
 
     List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
+    boolean HBO_SUBSCRIPTION_ITEM_PRESENT = CompanyUtil.isHumBhiOnlineSubscriptionItemPresent();
     @Override
     protected ResultFilter<Inventory> getFilter() {
         final ResultFilter<Inventory> superFilter = super.getFilter();
@@ -88,6 +88,7 @@ public class InventoriesController extends ModelController<Inventory> {
         return record -> {
             Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
             Order order = getOrder();
+
 
             boolean pass = facility.isPublished();
             pass = pass && record.isPublished();

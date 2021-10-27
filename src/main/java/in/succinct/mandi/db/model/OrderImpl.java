@@ -34,7 +34,7 @@ public class OrderImpl extends ModelImpl<Order> {
         for (OrderLine line : order.getOrderLines()) {
             Item item = line.getSku().getItem().getRawRecord().getAsProxy(Item.class);
             AssetCode assetCode = item.getAssetCodeId() == null ? null : item.getAssetCode();
-            if (assetCode != null && assetCode.isSac() && item.isHumBhiOnlineSubscriptionItem()) {
+            if (assetCode != null && assetCode.isSac() && (item.isHumBhiOnlineSubscriptionItem()  || assetCode.isDeliveredElectronically())) {
                 line.deliver();
             }
         }

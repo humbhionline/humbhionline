@@ -6,6 +6,7 @@ import com.venky.swf.db.model.Model;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.User;
+import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasureConversionTable;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
@@ -22,17 +23,21 @@ public class OnOrderLineDelivery implements Extension {
         double qtyDeliveredNow = orderLine.getReflector().getJdbcTypeHelper().getTypeRef(Double.class).getTypeConverter().valueOf(context[1]);
         Sku sku = orderLine.getSku();
         Item item = sku.getItem().getRawRecord().getAsProxy(Item.class);
-        if (qtyDeliveredNow > 0 && item.getAssetCodeId() != null && item.getAssetCode().isSac() && item.isItemRestrictedToSingleSeller() && item.isHumBhiOnlineSubscriptionItem()){
+        AssetCode assetCode = item.getAssetCode();
+        if (qtyDeliveredNow > 0 && assetCode != null && assetCode.isSac()  &&
+                (item.isHumBhiOnlineSubscriptionItem() || assetCode.isDeliveredElectronically())){
             Order order = orderLine.getOrder().getRawRecord().getAsProxy(Order.class);
             if (order.getAmountPendingPayment() > 0){
                 throw new RuntimeException("Once payment is done by customer, delivery happens automatically");
             }
-            User creator = orderLine.getCreatorUser().getRawRecord().getAsProxy(User.class);
-            UnitOfMeasure pack = sku.getPackagingUOM();
-            double numberOfLines = UnitOfMeasureConversionTable.convert(qtyDeliveredNow, pack.getMeasures(), pack.getName() ,"Single");
-            creator.setBalanceOrderLineCount(creator.getBalanceOrderLineCount() + numberOfLines);
-            creator.setBalanceBelowThresholdAlertSent(false);
-            creator.save();
+            if (item.isHumBhiOnlineSubscriptionItem()) {
+                User creator = orderLine.getCreatorUser().getRawRecord().getAsProxy(User.class);
+                UnitOfMeasure pack = sku.getPackagingUOM();
+                double numberOfLines = UnitOfMeasureConversionTable.convert(qtyDeliveredNow, pack.getMeasures(), pack.getName() ,"Single");
+                creator.setBalanceOrderLineCount(creator.getBalanceOrderLineCount() + numberOfLines);
+                creator.setBalanceBelowThresholdAlertSent(false);
+                creator.save();
+            }
         }
 
     }

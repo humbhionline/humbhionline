@@ -334,6 +334,9 @@
                     return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
                 },
                 increase: function (event, index) {
+                    if (event) {
+                        event.preventDefault();
+                    }
                     let self = this;
                     let result = self.search.results[index];
 

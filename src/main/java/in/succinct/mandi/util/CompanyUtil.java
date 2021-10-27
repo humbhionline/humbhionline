@@ -12,6 +12,7 @@ import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.User;
 import in.succinct.plugins.ecommerce.db.model.participation.Company;
 
@@ -113,4 +114,12 @@ public class CompanyUtil {
         }
         return new ArrayList<>();
     }
+
+    public static boolean isHumBhiOnlineSubscriptionItemPresent() {
+        Select select = new Select().from(Item.class);
+        List<Item> items = select.where(new Expression(select.getPool(),"HUM_BHI_ONLINE_SUBSCRIPTION_ITEM", Operator.EQ,true)).execute(1);
+        return !items.isEmpty();
+    }
+
+
 }

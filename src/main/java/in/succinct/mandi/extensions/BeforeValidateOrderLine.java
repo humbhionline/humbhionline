@@ -5,6 +5,7 @@ import com.venky.swf.db.JdbcTypeHelper.TypeConverter;
 import com.venky.swf.db.extensions.BeforeModelValidateExtension;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.User;
+import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasureConversionTable;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
@@ -29,20 +30,22 @@ public class BeforeValidateOrderLine  extends BeforeModelValidateExtension<Order
         if (qtyCancelledNow + qtyReturnedNow <= 0){
             return;
         }
-
         Sku sku = orderLine.getSku();
         Item item = sku.getItem().getRawRecord().getAsProxy(Item.class);
         User vendor = null;
+        boolean isHumBhiOnlineSubscriptionItemPresent = CompanyUtil.isHumBhiOnlineSubscriptionItemPresent() ;
         boolean isItemHumBhiOnlineSubscription = item.isHumBhiOnlineSubscriptionItem() && item.isItemRestrictedToSingleSeller() && item.getAssetCodeId() != null && item.getAssetCode().isSac();
 
         if (!isItemHumBhiOnlineSubscription) {
-            vendor = orderLine.getShipFrom().getCreatorUser().getRawRecord().getAsProxy(User.class);
-            boolean fullyCancelled = true;
-            if (DoubleUtils.compareTo(orderLine.getRemainingCancellableQuantity(),0) > 0) {
-                fullyCancelled = false;
-            }
-            if (fullyCancelled){
-                vendor.setBalanceOrderLineCount(vendor.getBalanceOrderLineCount() + 1);
+            if (isHumBhiOnlineSubscriptionItemPresent){
+                vendor = orderLine.getShipFrom().getCreatorUser().getRawRecord().getAsProxy(User.class);
+                boolean fullyCancelled = true;
+                if (DoubleUtils.compareTo(orderLine.getRemainingCancellableQuantity(),0) > 0) {
+                    fullyCancelled = false;
+                }
+                if (fullyCancelled){
+                    vendor.setBalanceOrderLineCount(vendor.getBalanceOrderLineCount() + 1);
+                }
             }
         }else if (orderLine.getDeliveredQuantity() > 0){
             vendor = orderLine.getCreatorUser().getRawRecord().getAsProxy(User.class);
