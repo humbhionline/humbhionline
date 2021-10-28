@@ -42,6 +42,10 @@ public class DashboardController extends Controller {
         }
     }
 
+    @RequireLogin(false)
+    public View terms_and_conditions(){
+        return html("actual_terms");
+    }
 
     @Override
     public HtmlView html(String path) {

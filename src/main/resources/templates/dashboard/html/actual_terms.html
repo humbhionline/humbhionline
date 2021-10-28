@@ -1,0 +1,24 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" ></script>
+<link rel="stylesheet" href="/fragments/css/mandi.css" >
+
+<script type="text/javascript">
+    $(function () {
+        $("#terms").load("/dashboard/actual_terms",function(){
+            $("#root").show();
+        });
+    });
+</script>
+<style>
+    body,
+    .body {
+        padding: 0px;
+    }
+</style>
+<div id="root" style="display:none">
+    <div id="header"> </div>
+    <div id="app" class="app-body terms-block">
+        <div class="container">
+            <div id="terms"> </div>
+        </div>
+    </div>
+</div>
