@@ -1,5 +1,7 @@
 # Alpine Linux with OpenJDK JRE
-FROM openjdk-tz-india:latest
+#FROM openjdk-tz-india:latest
+FROM openjdk-11-headless-tz-india:latest
+
 EXPOSE 6000 
 # Debug port
 EXPOSE 6030
