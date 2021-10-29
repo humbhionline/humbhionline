@@ -2,10 +2,13 @@ package in.succinct.mandi.configuration;
 
 import com.venky.core.date.DateUtils;
 import com.venky.core.security.Crypt;
+import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
+import com.venky.digest.Encryptor;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
+import com.venky.swf.db.jdbc.ConnectionManager;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
@@ -13,45 +16,123 @@ import com.venky.swf.db.table.Table;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.plugins.background.core.Task;
+import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
+import com.venky.swf.plugins.collab.db.model.participants.admin.Company;
+import com.venky.swf.plugins.security.db.model.Role;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Conjunction;
+import com.venky.swf.sql.DataManupulationStatement;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import com.venky.swf.sql.SqlStatement;
 import com.venky.swf.util.SharedKeys;
+import in.succinct.beckn.BecknObject;
 import in.succinct.beckn.Request;
+import in.succinct.mandi.controller.ServerNodesController.Sync;
 import in.succinct.mandi.db.model.EncryptedModel;
 import in.succinct.mandi.db.model.Facility;
+import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
-import org.bouncycastle.jcajce.spec.EdDSAParameterSpec;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.apache.commons.io.FileUtils;
 import org.json.simple.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.security.KeyPair;
 import java.security.Security;
+import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class AppInstaller implements Installer {
 
     public void install() {
-        Database.getInstance().resetIdGeneration();
+        installIndexes();
         boolean encryptionSupport = (Config.instance().getBooleanProperty("swf.encryption.support",true));
         encryptAddress(Facility.class,encryptionSupport);
         encryptAddress(User.class,encryptionSupport);
         encryptAddress(OrderAddress.class,encryptionSupport);
+        insertCompany();
+        insertRole();
+
         //installGuestUser();
         generateBecknKeys();
         registerBecknKeys();
         updateFacilityMinMaxLatLng();
 
+    }
+    private void installIndexes()  {
+        for (String pool : ConnectionManager.instance().getPools()){
+            StringBuilder path = new StringBuilder();
+            path.append("database/indexes");
+            if (!ObjectUtil.isVoid(pool)){
+                path.append("/").append(pool);
+            }
+            File dir = new File(path.toString());
+            if (!dir.exists()){
+                continue;
+            }
+            for (File file : Objects.requireNonNull(dir.listFiles((dir1, name) -> name.endsWith(".sql")))) {
+                File doneFile = new File(file.getPath() +".done");
+                if (doneFile.exists()) {
+                    continue;
+                }
+                if (!file.exists()){
+                    continue;
+                }
+
+                try{
+                    InputStream inputStream = new FileInputStream(file);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                    reader.lines().forEach(sql->{
+                        try {
+                            Config.instance().getLogger(getClass().getName()).log(Level.INFO,sql);
+                            PreparedStatement statement = Database.getInstance().createStatement(pool, sql);
+                            statement.execute();
+
+                        }catch (Exception ex){
+                            Config.instance().getLogger(getClass().getName()).log(Level.WARNING,sql ,ex);
+                        }finally {
+                            try {
+                                FileUtils.touch(doneFile);
+                            }catch (Exception ex){
+                                Config.instance().getLogger(getClass().getName()).log(Level.WARNING,sql ,ex);
+                            }
+                        }
+                    });
+                }catch (Exception ex){
+                    Config.instance().getLogger(getClass().getName()).log(Level.WARNING,ex.getMessage() ,ex);
+                }
+            }
+        }
+    }
+    private void insertCompany(){
+        Company company = Database.getTable(Company.class).newRecord();
+        company.setName("MANDI");
+        company = Database.getTable(Company.class).getRefreshed(company);
+        company.save();
+    }
+    private void insertRole(){
+        Role role = Database.getTable(Role.class).newRecord();
+        role.setName("USER");
+        role = Database.getTable(Role.class).getRefreshed(role);
+        role.save();
     }
 
     private void updateFacilityMinMaxLatLng() {
@@ -90,52 +171,59 @@ public class AppInstaller implements Installer {
             object.put("type","bpp");
             object.put("signing_public_key",key.getPublicKey());
             object.put("encr_public_key",encryptionKey.getPublicKey());
-            object.put("valid_from", DateUtils.getFormat(DateUtils.ISO_8601_24H_FULL_FORMAT).format(key.getUpdatedAt()));
-            object.put("valid_until",DateUtils.getFormat(DateUtils.ISO_8601_24H_FULL_FORMAT).format(
+            object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(key.getUpdatedAt()));
+            object.put("valid_until",BecknObject.TIMESTAMP_FORMAT.format(
                     new Date(key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L)))) ; //10 years
             object.put("subscriber_url",Config.instance().getServerBaseUrl() + "/bpp");
 
-            try {
+            TaskManager.instance().executeAsync((Task) () -> {
                 JSONObject response = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
                         header("Content-Type", MimeType.APPLICATION_JSON.toString()).header("Authorization", new Request().generateAuthorizationHeader(subscriberId, uniqueKeyId)).getResponseAsJson();
-            }catch (Exception ex){
-                Config.instance().getLogger(getClass().getName()).log(Level.WARNING,ex.getMessage(),ex);
+            },false);
+
+        }
+        registerWithHumBhiOnlineRegistry();
+    }
+
+    private void registerWithHumBhiOnlineRegistry() {
+        String hboRegistry = Config.instance().getProperty("hbo.registry.url");
+        if (ObjectUtil.isVoid(hboRegistry)){
+            return;
+        }
+
+        ServerNode node = Database.getTable(ServerNode.class).newRecord();
+        node.setBaseUrl(Config.instance().getServerBaseUrl());
+        node.setClientId(BecknUtil.getSubscriberId());
+        node = Database.getTable(ServerNode.class).getRefreshed(node);
+
+        if (node.getRawRecord().isNewRecord()){
+            if (!node.isRegistry()) {
+                InputStream in = new Call<InputStream>().url(hboRegistry + "/server_nodes/next_node_id").getResponseStream();
+                String next_node_id = StringUtil.read(in);
+                node.setNodeId(Long.parseLong(next_node_id));
+            }else  {
+                node.setNodeId(1L);
+                node.setApproved(true);
+            }
+
+            node.setClientSecret(Encryptor.encrypt(node.getClientId() + "-" + System.currentTimeMillis()));
+            node.setSigningPublicKey(BecknUtil.getSelfKey().getPublicKey());
+            node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey().getPublicKey());
+            node.save();
+        }else {
+            if (node.isRegistry()){
+                node.setApproved(true);
+                node.save();
+            }else {
+                TaskManager.instance().executeAsync(new Sync(), false);
             }
         }
+        Config.instance().setProperty("swf.node.id",String.valueOf(node.getNodeId()));
+        Database.getInstance().resetIdGeneration();
+
     }
 
     private void generateBecknKeys() {
-        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-            Security.addProvider(new BouncyCastleProvider());
-        }
-
-        /*
-        Key key = Database.getTable(Key.class).newRecord();
-        key.setAlias(BecknUtil.getDomainId() + ".k1");
-        key = Database.getTable(Key.class).getRefreshed(key);
-        if (key.getRawRecord().isNewRecord()){
-            Ed25519KeyPairGenerator gen = new Ed25519KeyPairGenerator();
-            gen.init(new Ed25519KeyGenerationParameters(new SecureRandom()));
-            AsymmetricCipherKeyPair pair = gen.generateKeyPair();
-            key.setPrivateKey(Base64.getEncoder().encodeToString(
-                    ((Ed25519PrivateKeyParameters)pair.getPrivate()).getEncoded()));
-
-            key.setPublicKey(Base64.getEncoder().encodeToString(
-                    ((Ed25519PublicKeyParameters)pair.getPublic()).getEncoded()));
-            key.save();
-        }
-
-        Key encryptionKey = Database.getTable(Key.class).newRecord();
-        encryptionKey.setAlias(Config.instance().getHostName() + ".encrypt.k1");
-        encryptionKey = Database.getTable(Key.class).getRefreshed(encryptionKey);
-        if (encryptionKey.getRawRecord().isNewRecord()){
-            KeyPair pair = Crypt.getInstance().generateKeyPair(Crypt.KEY_ALGO);
-            encryptionKey.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
-            encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
-            encryptionKey.save();
-        }
-        */
-
         CryptoKey key = Database.getTable(CryptoKey.class).newRecord();
         key.setAlias(Config.instance().getHostName() + ".k1");
         key = Database.getTable(CryptoKey.class).getRefreshed(key);
@@ -145,7 +233,7 @@ public class AppInstaller implements Installer {
         }
         boolean keyExpired = key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L) <= System.currentTimeMillis();
         if ( key.getRawRecord().isNewRecord() || keyExpired){
-            KeyPair pair = Crypt.getInstance().generateKeyPair(EdDSAParameterSpec.Ed25519,256);
+            KeyPair pair = Crypt.getInstance().generateKeyPair(Request.SIGNATURE_ALGO,Request.SIGNATURE_ALGO_KEY_LENGTH);
             key.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
             key.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
             key.save();
@@ -156,7 +244,7 @@ public class AppInstaller implements Installer {
         encryptionKey = Database.getTable(CryptoKey.class).getRefreshed(encryptionKey);
 
         if (encryptionKey.getRawRecord().isNewRecord() || keyExpired){
-            KeyPair pair = Crypt.getInstance().generateKeyPair(Crypt.KEY_ALGO,2048);
+            KeyPair pair = Crypt.getInstance().generateKeyPair(Request.ENCRYPTION_ALGO,Request.ENCRYPTION_ALGO_KEY_LENGTH);
             encryptionKey.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
             encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
             encryptionKey.save();

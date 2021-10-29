@@ -1,13 +1,12 @@
-<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/deepmerge/dist/umd.js"></script>
-<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
-<script src="/fragments/js/cropper.js"></script>
-<link href="/fragments/css/cropper.css" rel="stylesheet">
-<link href="/fragments/css/mandi.css" rel="stylesheet">
-</link>
-<script type="text/javascript" src="/fragments/js/util.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/deepmerge/dist/umd.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
+<script src="/fragments/js/cropper.js" defer></script>
+<script type="text/javascript" src="/fragments/js/util.js" defer></script>
+<link rel="preload" as="style" href="/fragments/css/cropper.css" onload="this.onload=null;this.rel='stylesheet'" >
+<link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'" >
 
 
 <script type="text/javascript">
@@ -110,7 +109,7 @@
                         Sku: {
                             Item: {
                                 Name: "",
-                                Company: { Name: "MANDI" },
+                                Company: self.User.Company,
                                 AssetCode: { "Code": "" },
                             },
                             Name: "",
@@ -352,7 +351,7 @@
                         self.current.Inventory.Sku = {
                             Item: {
                                 Name: e.target.value,
-                                Company: { Name: "MANDI" },
+                                Company: self.User.Company,
                                 AssetCode: { "Code": "" },
                             },
                             Name: "",

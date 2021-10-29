@@ -9,7 +9,8 @@ public class Update extends BecknAsyncTask {
         super(request);
     }
     @Override
-    public void executeInternal() {
-
+    public Request executeInternal() {
+        //TODO allow cancellations but not modification of Product.
+        return null;
     }
 }

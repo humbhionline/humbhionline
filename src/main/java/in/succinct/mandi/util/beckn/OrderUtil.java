@@ -79,7 +79,7 @@ public class OrderUtil {
         };
         order.getOrderLines().forEach(ol->{
             Item item = new Item();
-            item.setId(BecknUtil.getBecknId(String.valueOf(ol.getSkuId()),Entity.item));
+            item.setId(BecknUtil.getBecknId(String.valueOf(ol.getInventoryId()),Entity.item)); //Change skuId to inventoryId /select jul 7 change
 
             Quantity quantity = new Quantity();
             quantity.set("count",(int)ol.getRemainingCancellableQuantity());
@@ -241,7 +241,7 @@ public class OrderUtil {
                 BreakUpElement element = breakUp.createElement("item","Total Product", productPrice);
                 breakUp.add(element);
                 BreakUpElement fulfillmentElement = breakUp.createElement("fulfillment", "Delivery Charges", fulfillmentPrice);
-
+                breakUp.add(fulfillmentElement);
                 quote.setBreakUp(breakUp);
 
             }

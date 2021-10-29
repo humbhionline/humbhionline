@@ -6,6 +6,7 @@ import com.venky.swf.db.extensions.BeforeModelValidateExtension;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import com.venky.swf.plugins.collab.db.model.user.UserPhone;
+import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.CompanyUtil;
 
@@ -42,8 +43,8 @@ public class BeforeValidateUser extends BeforeModelValidateExtension<User> {
             }
         }
         validateAddress(model);
-        if (model.getRawRecord().isNewRecord()){
-            model.setBalanceOrderLineCount(20);//Signup bonus.!
+        if (model.getRawRecord().isNewRecord() && CompanyUtil.isHumBhiOnlineSubscriptionItemPresent()){
+            model.setBalanceOrderLineCount(50);//Signup bonus.!
         }
     }
 

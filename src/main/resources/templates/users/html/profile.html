@@ -1,10 +1,11 @@
-<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
-<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
 
-<link href="/fragments/css/mandi.css" rel="stylesheet">
-<script type="text/javascript" src="/fragments/js/util.js"></script>
+<link rel="preload" as="style" href="/fragments/css/mandi.css" 
+    onload="this.onload=null;this.rel='stylesheet'" />
+<script type="text/javascript" src="/fragments/js/util.js" defer></script>
 <script type="text/javascript">
 
     $(function () {
@@ -715,12 +716,12 @@
                         </div>
                         <div class="col-6 mb-2">
                             <input id="city" class="form-control form-control-sm" placeholder="City Name"
-                                v-model="User.City.Name" v-on:input="onCityChange($event)" v-on:blur="removeList($event)"
+                                v-model="User.City.Name" v-on:input="onCityChange($event)" v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.Cities.length)" v-if="User.City" />
                         </div>
                         <div class="col-6 mb-2">
                             <input id="pincode" class="form-control form-control-sm" placeholder="Pin Code"
-                                v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)" v-on:blur="removeList($event)"
+                                v-model="User.PinCode.PinCode" v-on:input="onPinCodeChange($event)" v-on:focus="removeList($event)"
                                 v-on:keyup.down="navigate($event,0,current.PinCodes.length)" v-if="User.PinCode" />
                         </div>
                         <div class="col-12 text-right">

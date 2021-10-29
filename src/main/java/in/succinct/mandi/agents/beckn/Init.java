@@ -7,6 +7,7 @@ import com.venky.core.math.DoubleHolder;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
+import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import in.succinct.beckn.Billing;
@@ -43,11 +44,11 @@ public class Init extends BecknAsyncTask {
         super(request);
     }
     @Override
-    public void executeInternal() {
+    public Request executeInternal() {
         Request request = getRequest();
         Context context = request.getContext();
         Order becknOrder = request.getMessage().getOrder();
-        Provider provider = becknOrder.getProvider();
+        //Provider provider = becknOrder.getProvider();
 
         in.succinct.mandi.db.model.Order order = in.succinct.mandi.db.model.Order.find(context.getTransactionId());
         if (order != null){
@@ -61,10 +62,24 @@ public class Init extends BecknAsyncTask {
                 throw new RuntimeException("Order already confirmed!");
             }
         }
-
+        /* /select change!! jul 7
         long providerUserId = Long.parseLong(BecknUtil.getLocalUniqueId(provider.getId(), Entity.provider));
         User seller = Database.getTable(User.class).get(providerUserId);
         Facility facility = OrderUtil.getOrderFacility(seller,provider.getLocations());
+        */
+        Facility facility = null;
+        {
+            long invId = Long.valueOf(BecknUtil.getLocalUniqueId(becknOrder.getItems().get(0).getId(), Entity.item));
+            Inventory inventory = invId > 0 ? Database.getTable(Inventory.class).get(invId) : null ;
+            if (inventory == null){
+                OnInit onInit = new OnInit();
+                onInit.setContext(context);
+                onInit.getContext().setAction("on_init");
+                onInit.setMessage( new Message()); //Empty
+                return onInit;
+            }
+            facility = inventory.getFacility().getRawRecord().getAsProxy(Facility.class);
+        }
 
         order = Database.getTable(in.succinct.mandi.db.model.Order.class).newRecord();
         order.setFacilityId(facility.getId());
@@ -133,7 +148,7 @@ public class Init extends BecknAsyncTask {
         onInit.getContext().setAction("on_init");
         onInit.setMessage(new Message());
         onInit.getMessage().setInitialized(becknOrder);
-        send(onInit);
+        return(onInit);
 
     }
 
@@ -205,15 +220,15 @@ public class Init extends BecknAsyncTask {
         Facility facility = order.getFacility();
 
         for (Item item : items){
-            long skuId = Long.parseLong(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
+            long invId = Long.parseLong(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
             Quantity quantity = item.get(Quantity.class,"quantity");
 
-            Inventory inventory = in.succinct.plugins.ecommerce.db.model.inventory.Inventory.find(facility.getId(),skuId).getRawRecord()
-                    .getAsProxy(Inventory.class);
+            Inventory inventory = Database.getTable(Inventory.class).get(invId);
             OrderLine orderLine = Database.getTable(OrderLine.class).newRecord();
             orderLine.setOrderId(order.getId());
             orderLine.setShipFromId(inventory.getFacilityId());
             orderLine.setSkuId(inventory.getSkuId());
+            orderLine.setInventoryId(invId);
             orderLine.setOrderedQuantity(quantity.getCount());
             orderLine.setSellingPrice(inventory.getSellingPrice() * quantity.getCount());
             orderLine.setMaxRetailPrice(inventory.getMaxRetailPrice() * quantity.getCount());

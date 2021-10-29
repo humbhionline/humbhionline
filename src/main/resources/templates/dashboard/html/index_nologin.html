@@ -1,9 +1,9 @@
-<link rel="stylesheet" href="/dashboard/css/style.css">
-<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
-<script type="text/javascript" src="/fragments/js/util.js"></script>
-<script type="text/javascript">
+<link rel="preload" as="style" href="/dashboard/css/style.css" onload="this.onload=null;this.rel='stylesheet'" >
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer ></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/fragments/js/util.js" defer></script>
+<script type="text/javascript" >
     $(function () {
         new Vue({
             el: "#root",
@@ -684,6 +684,6 @@
             </li>
 
         </ul>
-        <p class="mb-0">&copy; HumBhiOnline 2020</p>
+        <p class="mb-0">&nbsp;<a href="/dashboard/terms_and_conditions">Conditions of Use</a> <a href="privacy">Privacy</a> &copy; HumBhiOnline 2020</p>
     </footer>
 </div>

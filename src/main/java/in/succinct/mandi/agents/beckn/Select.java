@@ -4,10 +4,12 @@ package in.succinct.mandi.agents.beckn;
 import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.path.Path;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.BreakUp;
 import in.succinct.beckn.BreakUp.BreakUpElement;
@@ -32,11 +34,26 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Select extends BecknAsyncTask {
+
     public Select(Request request){
         super(request);
     }
+    boolean forMyShard(Order selected){
+        if (selected == null){
+            return false;
+        }
+        Items items = selected.getItems();
+        if (items == null || items.size() == 0){
+            return false;
+        }
+        Long invId = Long.valueOf(BecknUtil.getLocalUniqueId(items.get(0).getId(), Entity.item));
+        if (invId > 0){
+            return Database.getTable(Inventory.class).get(invId) != null;
+        }
+        return false;
+    }
     @Override
-    public void executeInternal() {
+    public Request executeInternal() {
         Request request = getRequest();
         OnSelect onSelect = new OnSelect();
         onSelect.setContext(request.getContext());
@@ -46,6 +63,10 @@ public class Select extends BecknAsyncTask {
         onSelect.setMessage(outMessage);
 
         Order selected = request.getMessage().getSelected();
+        if (!forMyShard(selected)){
+            return onSelect;
+        }
+
         Order outSelected = new Order();
         outMessage.setSelected(outSelected);
 
@@ -61,17 +82,20 @@ public class Select extends BecknAsyncTask {
             }
         }
 
-
+        /*
+        /select changes jul 7
         Provider provider = selected.getProvider();
         outSelected.setProvider(provider);
 
         Location location = provider.getLocations().get(0);
         outSelected.setProviderLocation(location);
 
+         */
+
         Items outItems = new Items();
         outSelected.setItems(outItems);
 
-        Long facilityId = Long.valueOf(BecknUtil.getLocalUniqueId(String.valueOf(location.getId()),Entity.provider_location));
+        //select changes jul 7 Long facilityId = Long.valueOf(BecknUtil.getLocalUniqueId(String.valueOf(location.getId()),Entity.provider_location));
 
         Items items = selected.getItems();
 
@@ -83,7 +107,7 @@ public class Select extends BecknAsyncTask {
             Item outItem = new Item();
             outItem.setId(item.getId());
 
-            Long skuId = Long.valueOf(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
+            Long invId = Long.valueOf(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
             Quantity quantity = item.get(Quantity.class,"quantity");
 
 
@@ -92,7 +116,7 @@ public class Select extends BecknAsyncTask {
 
             outQuantity.setSelected(quantity);
 
-            Inventory inventory = Inventory.find(facilityId,skuId);
+            Inventory inventory = Database.getTable(Inventory.class).get(invId);
             if (inventory == null || inventory.getRawRecord().isNewRecord()){
                 throw new RuntimeException("No inventory with provider.");
             }
@@ -117,9 +141,12 @@ public class Select extends BecknAsyncTask {
         price.setListedValue(listedPrice.value());
         price.setValue(listedPrice.value());
         price.setCurrency("INR");
+        /* /select  jul7
         if (DoubleUtils.compareTo(listedPrice.value(), itemPrice.value() ,2)>0){
             price.setOfferedValue(itemPrice.value());
-        }
+        }*/
+
+        price.setOfferedValue(itemPrice.value());
         quote.setTtl(15L*60L); //15 minutes.
 
         BreakUp breakUp = new BreakUp();
@@ -127,7 +154,7 @@ public class Select extends BecknAsyncTask {
         breakUp.add(element);
         quote.setBreakUp(breakUp);
 
-        send(onSelect);
+        return(onSelect);
 
     }
 

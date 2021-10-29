@@ -1,8 +1,8 @@
-<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
-<script type="text/javascript" src="/fragments/js/util.js" ></script>
-<link href="/fragments/css/mandi.css" rel="stylesheet"></link>
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/fragments/js/util.js" defer></script>
+<link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'" >
 
 
 <script type="text/javascript">
@@ -15,6 +15,8 @@
         //}
         var searchParams = (new URL(window.location)).searchParams;
         var phoneNumber = searchParams.get("phone_number");
+        var currentBaseUrl = window.location.origin;
+
 
         login = new Vue({
             el : "#app",
@@ -70,13 +72,6 @@
                         hideSpinner();
                     });
                 },
-                resetPhoneNumber: function () {
-                    var self = this;
-                    self.params.User.PhoneNumber = "";
-                    Lockr.rm("User");
-                    Lockr.rm("SignUp");
-                    window.location.reload();
-                },
                 showApp : function(){
                     $("#root").show();
                 },
@@ -113,12 +108,12 @@
                     setConfirmUnload(false);
                     self.signIn();
                 },
-                login_via_otp: function(event){
+                login_via_otp: function(event,baseUrl){
                     if (event){
                         event.preventDefault();
                     }
                     let self = this;
-                    var url = "/login/index_otp";
+                    var url = (baseUrl ? baseUrl : "" ) +"/login/index_otp";
 
                     if (self.phoneNumberEntered && !blank(self.params.User.PhoneNumber)) {
                         url += "?phone_number="+self.params.User.PhoneNumber;
@@ -135,8 +130,15 @@
                         showSpinner();
                         api().url("/users/hasPassword").parameters(self.params.User).post().then(function(response){
                             self.phoneNumberEntered = true;
+                            var launchLocally = true; 
+                            if (response.BaseUrl !== currentBaseUrl){
+                                launchLocally = false;
+                                Lockr.rm("User"); //Not on this cluster.!!
+                            }
                             if (!response.PasswordSet || response.PasswordSet !== "Y" ){
-                                self.login_via_otp();
+                                self.login_via_otp(null,response.BaseUrl);
+                            }else if (!launchLocally){
+                                window.location.replace(response.BaseUrl + "/login?phone_number="+self.params.User.PhoneNumber);
                             }else {
                                 self.showApp();
                             }
@@ -162,12 +164,6 @@
 
                     Lockr.rm("SignUp");
                     Lockr.rm("User");
-                    /*
-                    let user = Lockr.get("User");
-                    if (user){
-                        user.PhoneNumber = "" ;
-                        Lockr.set("User",user);
-                    }*/
                     window.location.href = window.location.protocol +"//"+location.host + location.pathname;
                 },
 

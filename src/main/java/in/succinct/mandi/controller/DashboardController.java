@@ -29,6 +29,7 @@ public class DashboardController extends Controller {
         }
     }
 
+    @RequireLogin(false)
     public View actual_terms(){
         String dir = getTemplateDirectory();
         File file = new File(dir,"html/actual_terms.md");
@@ -41,13 +42,17 @@ public class DashboardController extends Controller {
         }
     }
 
+    @RequireLogin(false)
+    public View terms_and_conditions(){
+        return html("actual_terms");
+    }
 
     @Override
     public HtmlView html(String path) {
         return html(path,false);
     }
 
-    
+
     @Override
     public String getTemplateDirectory() {
         StringBuilder dir = new StringBuilder();

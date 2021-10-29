@@ -29,7 +29,8 @@ I hope we can together make a difference in enabling local sellers to go online 
 * As part of Beckn Hackathon 2021, Humbhionline bagged some cool awards. https://beckn.org/hacking-a-world-of-new-possibilities
 
 
-
+## Related Repositories
+You may want to see the installer [repo](https://github.com/venkatramanm/humbhionline-installer)  which provides an easy install of  the humbhionline platform
 
 
 

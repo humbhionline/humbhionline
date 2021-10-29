@@ -10,10 +10,13 @@ import com.venky.swf.routing.Config;
 import in.succinct.beckn.Error;
 import in.succinct.beckn.Error.Type;
 import in.succinct.beckn.Request;
+import in.succinct.mandi.db.model.ServerNode;
 import org.json.simple.JSONObject;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -24,21 +27,21 @@ public abstract class BecknAsyncTask implements Task {
     }
 
     private Request request;
+    public BecknAsyncTask(){
+    }
     public BecknAsyncTask(Request request){
         this.request = request;
     }
-    public BecknAsyncTask(){
 
-    }
-
-    public void execute(){
+    public final void execute(){
         try {
-            executeInternal();
+            Request out = executeInternal();
+            send(out);
         }catch (Exception ex){
             sendError(ex);
         }
     }
-    public abstract void executeInternal();
+    public abstract Request executeInternal();
     public final void sendError(Throwable th) {
         Error error = new Error();
 
@@ -61,7 +64,13 @@ public abstract class BecknAsyncTask implements Task {
 
     protected final Map<String, String> getHeaders(Request request) {
         Map<String,String> headers  = new HashMap<>();
-        if (Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
+        if (getRequest().getExtendedAttributes().getBoolean(BecknExtnAttributes.INTERNAL)){
+            ServerNode self = ServerNode.selfNode();
+            String token = String.format("%s:%s",self.getClientId(),self.getClientSecret());
+            token = String.format("Basic %s", Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8)));
+            headers.put("Authorization", token);
+        }else if (Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
+
             headers.put("Authorization", request.generateAuthorizationHeader(request.getContext().getBppId(),
                     request.getContext().getBppId() + ".k1"));
         }
@@ -71,11 +80,14 @@ public abstract class BecknAsyncTask implements Task {
         return headers;
     }
 
-    protected final void send(Request request){
+    private void send(Request request){
+        if (request == null){
+            return;
+        }
         if (ObjectUtil.isVoid(request.getContext().getAction())){
             request.getContext().setAction("on_"+getRequest().getContext().getAction());
         }
-        new Call<JSONObject>().url(getRequest().getCallBackUri() + "/"+request.getContext().getAction()).
+        new Call<JSONObject>().url(getRequest().getExtendedAttributes().get(BecknExtnAttributes.CALLBACK_URL) + "/"+request.getContext().getAction()).
                 method(HttpMethod.POST).inputFormat(InputFormat.JSON).
                 input(request.getInner()).headers(getHeaders(request)).getResponseAsJson();
     }

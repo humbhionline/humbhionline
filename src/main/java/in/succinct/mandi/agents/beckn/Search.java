@@ -9,6 +9,7 @@ import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
+import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.util.BoundingBox;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
 import com.venky.swf.pm.DataSecurityFilter;
@@ -55,13 +56,14 @@ import java.util.List;
 import java.util.Map;
 
 public class Search extends BecknAsyncTask {
+
     public Search(Request request){
         super(request);
     }
     static final int MAX_LIST_RECORDS = 10;
 
     @Override
-    public void executeInternal() {
+    public Request executeInternal() {
         Request request = getRequest();
         String itemName = null;
         String providerName = null;
@@ -98,8 +100,7 @@ public class Search extends BecknAsyncTask {
         List<Long> facilityIds = getCloseByFacilities(fulfillment,providerName,providerId);
         if (facilityIds != null && facilityIds.isEmpty()){
             List<Inventory> inventories = new ArrayList<>();
-            push_onsearch(inventories);
-            return;
+            return push_onsearch(inventories);
         }
 
         LuceneIndexer indexer = LuceneIndexer.instance(Inventory.class);
@@ -127,8 +128,7 @@ public class Search extends BecknAsyncTask {
             qryString.append(")");
         }
         if (qryString.length() == 0){
-            push_onsearch(new ArrayList<>());
-            return;
+            return push_onsearch(new ArrayList<>());
         }
         Query q = indexer.constructQuery(qryString.toString() );
         List<Long> ids = indexer.findIds(q, Select.MAX_RECORDS_ALL_RECORDS);
@@ -174,10 +174,10 @@ public class Search extends BecknAsyncTask {
                     }
                     return pass;
                 });
-        push_onsearch(inventories);
+        return push_onsearch(inventories);
     }
 
-    private void push_onsearch(List<Inventory> inventories) {
+    private Request push_onsearch(List<Inventory> inventories) {
         Company company = CompanyUtil.getCompany();
         OnSearch onSearch = new OnSearch();
         onSearch.setContext(getRequest().getContext());
@@ -192,6 +192,8 @@ public class Search extends BecknAsyncTask {
         Providers providers = new Providers();
         catalog.setProviders(providers);
         onSearch.getMessage().setCatalog(catalog);
+
+        /* TODO:VENKY Provider Fulfillments can be filled. */
 
 
         inventories.forEach(inv->{
@@ -219,7 +221,7 @@ public class Search extends BecknAsyncTask {
             }
             Sku sku = inv.getSku().getRawRecord().getAsProxy(Sku.class);
 
-            String itemId  = BecknUtil.getBecknId(String.valueOf(inv.getSkuId()),Entity.item);
+            String itemId  = BecknUtil.getBecknId(String.valueOf(inv.getId()),Entity.item);
             Item item = new Item();
 
             Price price = new Price();
@@ -250,7 +252,7 @@ public class Search extends BecknAsyncTask {
 
         });
 
-        send(onSearch);
+        return(onSearch);
     }
 
 
@@ -283,7 +285,25 @@ public class Search extends BecknAsyncTask {
                 if (!ref.isVoid(providerId)){
                     where.add(new Expression(ref.getPool(), "CREATOR_ID",Operator.EQ, providerId));
                 }
-                List<Facility> facilities = bb.find(Facility.class,0,where);
+
+                Expression or = new Expression(ref.getPool(), Conjunction.OR);
+                where.add(or);
+                Location location = end == null ? null : end.getLocation();
+                GeoCoordinate gps = location == null ? null : location.getGps();
+                if (gps != null) {
+                    Expression deliveryProvidedWhere = new Expression(ref.getPool(),Conjunction.AND);
+                    deliveryProvidedWhere.add(new Expression(ref.getPool(),"DELIVERY_RADIUS",Operator.GT, 0));
+                    deliveryProvidedWhere.add(new Expression(ref.getPool(),"MIN_LAT",Operator.LE,gps.getLat()));
+                    deliveryProvidedWhere.add(new Expression(ref.getPool(),"MAX_LAT",Operator.GE,gps.getLat()));
+                    deliveryProvidedWhere.add(new Expression(ref.getPool(),"MIN_LNG",Operator.LE,gps.getLng()));
+                    deliveryProvidedWhere.add(new Expression(ref.getPool(),"MAX_LNG",Operator.GE,gps.getLng()));
+                    or.add(deliveryProvidedWhere);
+                }
+
+                Expression deliveryNotProvidedWhere = bb.getWhereClause(Facility.class);
+                or.add(deliveryNotProvidedWhere);
+
+                List<Facility> facilities = new Select().from(Facility.class).where(where).execute();//bb.find(Facility.class,0,where);
                 return DataSecurityFilter.getIds(facilities);
             }
         }else if (!ObjectUtil.isVoid(name) || providerId != null ){

@@ -9,13 +9,11 @@ import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import in.succinct.beckn.Request;
-
 import in.succinct.mandi.util.beckn.BecknUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.util.Iterator;
-import java.util.Optional;
 
 public class BecknPublicKeyFinder implements Extension {
     static {

@@ -3,10 +3,13 @@
 .commit
 .idea/
 *.iml
-tmp/
+tmp/*log*
+tmp/*docker*
+tmp/pid
 overrideProperties/
 nohup.out
-database/
+database/*.db
+database/indexes/**/*.done
 /.gradle/
 .keystore
 doc/

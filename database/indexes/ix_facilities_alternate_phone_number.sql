@@ -1,0 +1,1 @@
+CREATE INDEX ix_facilities_alternate_phone_number ON facilities(alternate_phone_number);

@@ -1,12 +1,13 @@
-<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js"></script>
-<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js"></script>
-<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js"></script>
-<link rel="stylesheet" href="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.css"></link>
-<script type="text/javascript" src="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.js" ></script>
-
-<link href="/fragments/css/mandi.css" rel="stylesheet">
-<script type="text/javascript" src="/fragments/js/util.js"></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.js" defer></script>
+<link rel="preload" as="style" href="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.css"
+    onload="this.onload=null;this.rel='stylesheet'" />
+<link rel="preload" as="style" href="/fragments/css/mandi.css" 
+    onload="this.onload=null;this.rel='stylesheet'" />
+<script type="text/javascript" src="/fragments/js/util.js" defer></script>
 <script type="text/javascript">
     $(function(){
         new Vue({

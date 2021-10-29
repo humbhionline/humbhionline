@@ -9,7 +9,7 @@ public class Track extends BecknAsyncTask {
         super(request);
     }
     @Override
-    public void executeInternal() {
-
+    public Request executeInternal() {
+        return null;
     }
 }

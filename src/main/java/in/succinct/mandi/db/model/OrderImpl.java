@@ -3,6 +3,8 @@ package in.succinct.mandi.db.model;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
+import com.venky.swf.db.model.Model;
+import com.venky.swf.db.model.User;
 import com.venky.swf.db.table.ModelImpl;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
@@ -28,11 +30,11 @@ public class OrderImpl extends ModelImpl<Order> {
 
     public void completePayment(boolean save) {
         Order order = getProxy();
-        order.setAmountPaid(order.getAmountPendingPayment());
+        order.setAmountPaid(order.getAmountPaid() + order.getAmountPendingPayment());
         for (OrderLine line : order.getOrderLines()) {
             Item item = line.getSku().getItem().getRawRecord().getAsProxy(Item.class);
             AssetCode assetCode = item.getAssetCodeId() == null ? null : item.getAssetCode();
-            if (assetCode != null && assetCode.isSac() && item.isHumBhiOnlineSubscriptionItem()) {
+            if (assetCode != null && assetCode.isSac() && (item.isHumBhiOnlineSubscriptionItem()  || assetCode.isDeliveredElectronically())) {
                 line.deliver();
             }
         }
@@ -43,7 +45,7 @@ public class OrderImpl extends ModelImpl<Order> {
     public void completeRefund(boolean save) {
         Order order = getProxy();
         if (order.getAmountPaid() > 0) {
-            order.setAmountRefunded(order.getAmountToRefund());
+            order.setAmountRefunded(order.getAmountRefunded() + order.getAmountToRefund());
             order.resetRefund(save);
         }
     }
