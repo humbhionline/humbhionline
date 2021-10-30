@@ -51,10 +51,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.Security;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -168,17 +170,26 @@ public class AppInstaller implements Installer {
             object.put("country","IND");
             object.put("city","std:080");
             object.put("domain","nic2004:52110");
-            object.put("type","bpp");
+            object.put("nonce", Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
             object.put("signing_public_key",key.getPublicKey());
             object.put("encr_public_key",encryptionKey.getPublicKey());
             object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(key.getUpdatedAt()));
             object.put("valid_until",BecknObject.TIMESTAMP_FORMAT.format(
                     new Date(key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L)))) ; //10 years
-            object.put("subscriber_url",Config.instance().getServerBaseUrl() + "/bpp");
+            /*
+            if (ObjectUtil.isVoid(Request.getPublicKey(subscriberId,String.format("%s.k1",subscriberId)))){
+                object.put("type","bpp");
+                object.put("subscriber_url",Config.instance().getServerBaseUrl() + "/bpp");
+            }
+            not part of spec. First onboarding happens on registry and then one can call subscribe api.
+             */
 
             TaskManager.instance().executeAsync((Task) () -> {
                 JSONObject response = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
-                        header("Content-Type", MimeType.APPLICATION_JSON.toString()).header("Authorization", new Request().generateAuthorizationHeader(subscriberId, uniqueKeyId)).getResponseAsJson();
+                        header("Content-Type", MimeType.APPLICATION_JSON.toString()).
+                        header("Accept",MimeType.APPLICATION_JSON.toString()).
+                        //header("Authorization", new Request().generateAuthorizationHeader(subscriberId, uniqueKeyId)).
+                        getResponseAsJson();
             },false);
 
         }

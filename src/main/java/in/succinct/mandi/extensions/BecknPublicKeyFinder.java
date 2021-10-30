@@ -45,9 +45,10 @@ public class BecknPublicKeyFinder implements Extension {
         //object.put("type","bpp");
         //object.put("domain","local-retail");
 
-        JSONArray responses = new Call<JSONObject>().method(HttpMethod.POST).url(BecknUtil.getRegistryUrl() +"/lookup").input(object).inputFormat(InputFormat.JSON).
-                header("Authorization",new Request().generateAuthorizationHeader(BecknUtil.getSubscriberId(),BecknUtil.getSubscriberId() +".k1"))
-                .header("content-type", MimeType.APPLICATION_JSON.toString()).getResponseAsJson();
+        JSONArray responses = new Call<JSONObject>().method(HttpMethod.POST).url(BecknUtil.getRegistryUrl() +"/lookup").input(object).inputFormat(InputFormat.JSON)
+                //.header("Authorization",new Request().generateAuthorizationHeader(BecknUtil.getSubscriberId(),BecknUtil.getSubscriberId() +".k1"))
+                .header("content-type", MimeType.APPLICATION_JSON.toString())
+                .header("accept",MimeType.APPLICATION_JSON.toString()).getResponseAsJson();
 
         if (responses == null ) {
             responses = new JSONArray();
