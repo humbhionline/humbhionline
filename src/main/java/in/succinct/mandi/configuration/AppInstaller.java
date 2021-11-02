@@ -171,8 +171,8 @@ public class AppInstaller implements Installer {
             object.put("city","std:080");
             object.put("domain","nic2004:52110");
             object.put("nonce", Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
-            object.put("signing_public_key",key.getPublicKey());
-            object.put("encr_public_key",encryptionKey.getPublicKey());
+            object.put("signing_public_key",Request.getRawSigningKey(key.getPublicKey()));
+            object.put("encr_public_key",Request.getRawEncryptionKey(encryptionKey.getPublicKey()));
             object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(key.getUpdatedAt()));
             object.put("valid_until",BecknObject.TIMESTAMP_FORMAT.format(
                     new Date(key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L)))) ; //10 years
