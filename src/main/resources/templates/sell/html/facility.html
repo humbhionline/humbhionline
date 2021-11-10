@@ -207,6 +207,7 @@
                             showError(err);
                         }).finally(function () {
                             self.selectedDataFileName = ""
+                            $("#datafile")[0].value = null; 
                             hideSpinner();
                         });
                     });
