@@ -682,7 +682,7 @@
                     var snap = $("#show-updated-img").cropper("getCroppedCanvas", { width: 360, height: 165 });
                     var img = snap.toDataURL();
                     // // Convert Base64 image to binary
-                    var croppedfile = self.dataURItoBlob(img);
+                    var croppedfile = self.dataURItoBlob(img,$('#attachment-'+index)[0].files[0].name);
 
                     var file = croppedfile;
                     let formData = new FormData();
@@ -768,7 +768,7 @@
 
                     reader.readAsDataURL(file);
                 },
-                dataURItoBlob: function (dataURI) {
+                dataURItoBlob: function (dataURI,name) {
                     // convert base64/URLEncoded data component to raw binary data held in a string
                     var byteString;
                     if (dataURI.split(',')[0].indexOf('base64') >= 0)
@@ -782,7 +782,7 @@
                     for (var i = 0; i < byteString.length; i++) {
                         ia[i] = byteString.charCodeAt(i);
                     }
-                    return new Blob([ia], { type: mimeString });
+                    return new File([ia],  name , { type: mimeString });
                 },
                 uploadSkuBannerFile: function (e, inventoryIndex, attachmentIndex) {
                     let self = this;
@@ -796,7 +796,7 @@
                     var snap = $("#PrivewImage" + inventoryIndex).cropper("getCroppedCanvas", { width: 500, height: 500 });
                     var img = snap.toDataURL();
                     // // Convert Base64 image to binary
-                    var croppedfile = self.dataURItoBlob(img);
+                    var croppedfile = self.dataURItoBlob(img,$('#sku-attachment-'+inventoryIndex)[0].files[0].name);
 
                     // if (!files.length) {
                     //     return;

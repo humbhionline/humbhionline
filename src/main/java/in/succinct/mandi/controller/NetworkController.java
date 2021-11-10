@@ -5,6 +5,7 @@ import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
 import com.venky.network.Network;
 import com.venky.swf.controller.Controller;
+import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
@@ -173,6 +174,7 @@ public class NetworkController extends Controller {
         }
     }
 
+    @RequireLogin(false)
     public View call(String api){
         return collectResponses(api);
     }
