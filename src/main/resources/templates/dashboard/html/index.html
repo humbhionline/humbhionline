@@ -1,6 +1,7 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
 <script type="text/javascript" src="/fragments/js/util.js" defer></script>
 <link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'" >
 
@@ -42,6 +43,16 @@
                     termLengthTrigger: 1,
                     timer: undefined,
                 },
+                delivery: {
+                    Address: {},
+                    beingEdited: false,
+                    DraftAddress : {},
+                },
+                lookup: {
+                    Cities: [],
+                    PinCodes: [],
+                    lookupselectionIndex: -1,
+                },
                 facilityOrders: Lockr.get("facilityOrders") || {},
             },
             created: function () {
@@ -50,6 +61,7 @@
 
                 api().url("/users/current").get().then(function (response) {
                     self.User = response.User;
+                    self.delivery.Address = JSON.parse(JSON.stringify(self.User)); 
                     if (!self.User.UserPhones) {
                         self.User.UserPhones = [];
                     }
@@ -417,7 +429,135 @@
                     }
                     url += '?phone=' + f.PhoneNumber;
                     return url;
-                }
+                },
+                /* Delivery Address Setting code */
+                editDeliveryAddress: function(ev){
+                    ev && ev.preventDefault();
+                    let self = this;
+                    //Show address popup for data entry
+                    //Show saved addresses for selection.
+                    self.delivery.beingEdited = true; 
+                    self.delivery.DraftAddress = JSON.parse(JSON.stringify(self.delivery.Address)); 
+                },
+                cancelEditDeliveryAddress: function(ev){
+                    ev && ev.preventDefault();
+                    let self = this;
+                    self.delivery.beingEdited = false;
+                    self.delivery.DraftAddress = {} ;
+                },
+                saveDeliveryAddress: function(ev){
+                    ev && ev.preventDefault();
+                    let self = this;
+                    self.delivery.beingEdited = false;
+                    self.delivery.Address = self.delivery.DraftAddress; 
+
+                    showSpinner();
+                    api().url("/addresses/locate").parameters({"Address" : self.delivery.Address}).post().then(function(response){
+                       self.delivery.Address = response.Addresses[0] 
+                    }).catch(function(err){
+
+                    }).finally(function(){
+                        self.delivery.DraftAddress = {};
+                        hideSpinner();
+                    })
+
+                },
+                isKeyTriggerable: function (e) {
+                    return (e && e.target.value.length > 1);
+                },
+                onCityChange: function (e) {
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+                    let self = this;
+                    new Autocomplete("cities", e.target).search().then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.lookup.Cities = response.Cities;
+                        self.loadLookupEntries(e.target);
+                        Vue.set(self.lookup, "Cities", self.lookup.Cities);
+                    });
+                },
+                onCitySelect: function (e, item) {
+                    e && e.preventDefault();
+                    let self = this;
+                    self.hideKeyboard().then(function(){
+                        self.delivery.DraftAddress.City = item;
+                        self.delivery.DraftAddress.State = item.State;
+                        self.delivery.DraftAddress.Country = item.State.Country;
+                        self.lookup.Cities = [];
+                    });
+                },
+                onPinCodeChange: function (e) {
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+
+                    let self = this;
+                    new Autocomplete("pin_codes", e.target).search("PIN_CODE").then(function (response) {
+                        if (!response) {
+                            return
+                        }
+                        self.lookup.PinCodes = response.PinCodes;
+                        self.loadLookupEntries(e.target);
+                    });
+                },
+                onPinCodeSelect: function (e, item) {
+                    e && e.preventDefault();
+                    let self = this;
+                    self.hideKeyboard().then(function(){
+                        self.delivery.DraftAddress.PinCode = item;
+                        if (self.delivery.DraftAddress.PinCode.City && self.delivery.DraftAddress.PinCode.City.Id){
+                            self.delivery.DraftAddress.City = self.delivery.DraftAddress.PinCode.City;
+                        }
+                        self.lookup.PinCodes = [];
+                    });
+                },
+                getParentDiv: function (element) {
+                    var div = element;
+                    while (div && div.tagName !== 'DIV') {
+                        div = div.parentElement;
+                    }
+                    return div;
+                },
+                loadLookupEntries: function (element) {
+                    var div = this.getParentDiv(element);
+                    if (div) {
+                        div.appendChild(this.$refs['lookupEntries']);
+                    }
+                },
+
+                navigate: function (e, index, length) {
+                    e && e.preventDefault();
+                    let self = this;
+                    this.lookup.lookupselectionIndex = (index % length);
+                    let anchors = this.$refs['lookupEntries'].getElementsByTagName("a");
+                    anchors[this.lookup.lookupselectionIndex].focus();
+                },
+                removeList: function (e) {
+                    let elem = e.target;
+                    let self = this;
+                    self.hideKeyboard().then(function(){
+                        self.lookup.Cities = [];
+                        self.lookup.PinCodes = [];
+                        $(".lookups-list").removeClass("offsetTop");
+                    });
+                },
+                hideKeyboard: function(){
+                    return new Promise(function(resolve,reject){
+                        //let dummy = $("#dummy");
+                        let dummy = $(document.documentElement);
+                        setTimeout(function(){
+                            dummy.focus();
+                            setTimeout(function(){
+                                resolve();
+                            },50);
+                        },50);
+                    });
+                },
             }
         });
     });
@@ -481,6 +621,9 @@
         </div>
         <div class="container">
             <div id="search-holder" class="form-row search-holder mb-sm-6">
+                <div class="col-12 d-flex flex-row align-items-center mt-3">
+                    <a class="h6 fa fa-map-marker-alt" @click="editDeliveryAddress($event)" > {{ delivery.Address.LongName ? "Deliver to " + delivery.Address.LongName +"-" + delivery.Address.PinCode.PinCode  : "Where are you?" }}</a>
+                </div>
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
                         <input key="search" id="search" class="search-control" placeholder="Search for Items or Store"
@@ -503,7 +646,6 @@
                             @change="setPreferredDistance(10000)">
                         <label class="form-check-label small" for="distance_filter_10000">>10</label>
                     </div>
-
                 </div>
             </div>
             <div class="row mt-sm-3">
@@ -663,5 +805,62 @@
                 </div>
             </div>
         </div>
+        <!-- Address choosing --> 
+        <div class="show-update" v-if="delivery.beingEdited">
+            <div class="form-row">
+                <div class="col-12">
+                    <h6>Deliver To</h6>
+                </div>
+                <div class="col-12 mb-2">
+                    <input class="form-control form-control-sm" id="name" v-model="delivery.DraftAddress.LongName"
+                        placeholder="Full Name" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input class="form-control form-control-sm" id="a1" v-model="delivery.DraftAddress.AddressLine1"
+                        placeholder="House Number" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input class="form-control form-control-sm" id="a2" v-model="delivery.DraftAddress.AddressLine2"
+                        placeholder="Building Name" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input class="form-control form-control-sm" id="a3" v-model="delivery.DraftAddress.AddressLine3"
+                        placeholder="Locality" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input class="form-control form-control-sm" id="a4" v-model="delivery.DraftAddress.AddressLine4"
+                        placeholder="Locality" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input id="city" class="form-control form-control-sm" placeholder="City Name"
+                        v-model="delivery.DraftAddress.City.Name" v-on:input="onCityChange($event)" v-on:focus="removeList($event)"
+                        v-on:keyup.down="navigate($event,0,lookup.Cities.length)" v-if="delivery.DraftAddress.City" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input id="pincode" class="form-control form-control-sm" placeholder="Pin Code"
+                        v-model="delivery.DraftAddress.PinCode.PinCode" v-on:input="onPinCodeChange($event)" v-on:focus="removeList($event)"
+                        v-on:keyup.down="navigate($event,0,lookup.PinCodes.length)" v-if="delivery.DraftAddress.PinCode" />
+                </div>
+                <div class="col-12 text-right">
+                    <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditDeliveryAddress($event)">Cancel</a>
+                    <a href="#/" class="btn btn-sm btn-primary" @click="saveDeliveryAddress($event)">Submit</a>
+                </div>
+            </div>
+            <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
+                <a href="#" class="text-truncate" v-for="(city,index) in lookup.Cities"
+                    v-if="lookup.Cities.length > 0" v-on:click="onCitySelect($event,city)"
+                    v-on:keyup.enter="onCitySelect($event,city)" v-on:keyup.space="onCitySelect($event,city)"
+                    v-on:keyup.up="navigate($event,index-1,lookup.Cities.length)"
+                    v-on:keyup.down="navigate($event,index+1,lookup.Cities.length)">{{city.Name}} -
+                    {{city.State.Name}}</a>
+                <a href="#" class="text-truncate" v-for="(pincode,index) in lookup.PinCodes"
+                    v-if="lookup.PinCodes.length > 0" v-on:click="onPinCodeSelect($event,pincode)"
+                    v-on:keyup.space="onPinCodeSelect($event,pincode)"
+                    v-on:keyup.enter="onPinCodeSelect($event,pincode)"
+                    v-on:keyup.up="navigate($event,index-1,lookup.PinCodes.length)"
+                    v-on:keyup.down="navigate($event,index+1,lookup.PinCodes.length)">{{pincode.PinCode}} </a>
+            </div>
+        </div>
+        <div class="pop-overlay" v-if="delivery.beingEdited" > </div>
     </div>
 </div>
