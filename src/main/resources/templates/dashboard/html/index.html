@@ -43,11 +43,7 @@
                     termLengthTrigger: 1,
                     timer: undefined,
                 },
-                delivery: {
-                    Address: {},
-                    beingEdited: false,
-                    DraftAddress : {},
-                },
+                delivery: null,
                 lookup: {
                     Cities: [],
                     PinCodes: [],
@@ -61,7 +57,7 @@
 
                 api().url("/users/current").get().then(function (response) {
                     self.User = response.User;
-                    self.delivery.Address = JSON.parse(JSON.stringify(self.User)); 
+                    self.initDeliveryAddress();
                     if (!self.User.UserPhones) {
                         self.User.UserPhones = [];
                     }
@@ -144,6 +140,43 @@
                 hideSpinner();
             },
             methods: {
+                initDeliveryAddress: function(){
+                    let self = this;
+                    self.delivery = Lockr.get("delivery"); 
+                    if (!self.delivery){
+                        self.delivery = { 
+                            Address: {},
+                            beingEdited: false,
+                            DraftAddress: {},
+                        }; 
+                        self.copyAddress(self.User, self.delivery.Address);
+                    }
+                },
+                isAddressChanged : function( from, to ) { 
+                    return !( to.AddressLine1 == from.AddressLine1 && 
+                    to.AddressLine2 == from.AddressLine2 &&  
+                    to.AddressLine3 == from.AddressLine3 &&  
+                    to.AddressLine4 == from.AddressLine4 &&  
+                    to.City.Name == from.City.Name && 
+                    to.City.State.Name == from.City.State.Name && 
+                    to.City.State.Country.Name == from.City.State.Country.Name && 
+                    to.PinCode.PinCode == from.PinCode.PinCode && 
+                    to.PhoneNumber == from.PhoneNumber && 
+                    to.Email == from.Email )
+                },
+                copyAddress: function (from , to){
+                    to.LongName = from.LongName; 
+                    to.AddressLine1 = from.AddressLine1; 
+                    to.AddressLine2 = from.AddressLine2; 
+                    to.AddressLine3 = from.AddressLine3; 
+                    to.AddressLine4 = from.AddressLine4; 
+                    to.City = from.City; 
+                    to.PinCode = from.PinCode; 
+                    to.PhoneNumber = from.PhoneNumber; 
+                    to.Email = from.Email; 
+                    to.Lat = from.Lat; 
+                    to.Lng = from.Lng; 
+                },
                 reloadCounts: function () {
                     let self = this;
 
@@ -254,7 +287,7 @@
                         return {};
                     }
                 },
-                isKeyTriggerable: function (length = this.search.termLengthTrigger) {
+                isSearchTriggerable: function (length = this.search.termLengthTrigger) {
                     let self = this;
                     return self.search.term.length >= length;
                 },
@@ -269,7 +302,7 @@
                         clearTimeout(self.search.timer);
                         self.search.timer = undefined;
                     }
-                    if (!self.isKeyTriggerable()) {
+                    if (!self.isSearchTriggerable()) {
                         return;
                     }
                     self.search.timer = setTimeout(function () {
@@ -449,18 +482,24 @@
                     ev && ev.preventDefault();
                     let self = this;
                     self.delivery.beingEdited = false;
-                    self.delivery.Address = self.delivery.DraftAddress; 
+                    
+                    if ( self.isAddressChanged(self.delivery.Address, self.delivery.DraftAddress)) {
+                        showSpinner();
+                        api().url("/addresses/locate").parameters({"Address" : self.delivery.DraftAddress}).post().then(function(response){
+                           Vue.set(self.delivery, "Address", response.Addresses[0]);
+                           Lockr.set("delivery", self.delivery ); 
 
-                    showSpinner();
-                    api().url("/addresses/locate").parameters({"Address" : self.delivery.Address}).post().then(function(response){
-                       self.delivery.Address = response.Addresses[0] 
-                    }).catch(function(err){
+                        }).catch(function(err){
 
-                    }).finally(function(){
+                        }).finally(function(){
+                            self.delivery.DraftAddress = {};
+                            hideSpinner();
+                        })
+                    }else { 
+                        self.delivery.Address = self.delivery.DraftAddress; 
                         self.delivery.DraftAddress = {};
-                        hideSpinner();
-                    })
-
+                        Lockr.set("delivery", self.delivery ); 
+                    }
                 },
                 isKeyTriggerable: function (e) {
                     return (e && e.target.value.length > 1);
@@ -840,6 +879,14 @@
                     <input id="pincode" class="form-control form-control-sm" placeholder="Pin Code"
                         v-model="delivery.DraftAddress.PinCode.PinCode" v-on:input="onPinCodeChange($event)" v-on:focus="removeList($event)"
                         v-on:keyup.down="navigate($event,0,lookup.PinCodes.length)" v-if="delivery.DraftAddress.PinCode" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input id="phone" class="form-control form-control-sm" placeholder="PhoneNumber"
+                        v-model="delivery.DraftAddress.PhoneNumber" />
+                </div>
+                <div class="col-6 mb-2">
+                    <input id="email" class="form-control form-control-sm" placeholder="Email"
+                        v-model="delivery.DraftAddress.Email" />
                 </div>
                 <div class="col-12 text-right">
                     <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditDeliveryAddress($event)">Cancel</a>

@@ -740,7 +740,7 @@
                     <div class="content-sub-box">
                         <div class="form-row" v-if="!o.RefOrder">
                             <div class="col">
-                                <p class="mb-0 font-weight-bold">{{o.CreatorUser.LongName}}
+                                <p class="mb-0 font-weight-bold">Ordered By : {{o.CreatorUser.LongName}}
                                     <a class="btn btn-sm btn-outline-less-primary"
                                         v-bind:href="'tel:'+ o.CreatorUser.PhoneNumber"
                                         v-if="Mobile && o.CreatorUser.PhoneNumber && sales">
@@ -753,21 +753,21 @@
                                     </a>
                                 </p>
                                 <p class="m-0">
-                                    <small class="text-muted">{{o.CreatorUser.AddressLine1}}
-                                        {{(blank(o.CreatorUser.AddressLine2)? "" : "," )}}
-                                        {{o.CreatorUser.AddressLine2}}
-                                        {{(blank(o.CreatorUser.AddressLine3)? "" : "," )}}
-                                        {{o.CreatorUser.AddressLine3}}
-                                        {{(blank(o.CreatorUser.AddressLine4)? "" : "," )}}
-                                        {{o.CreatorUser.AddressLine4}}
-                                        , {{o.CreatorUser.City.Name}}-{{o.CreatorUser.State.Name}},
-                                        {{o.CreatorUser.PinCode.PinCode}}</small>
+                                    <small class="text-muted">For: {{o.ShipToAddress.LongName + "," + o.ShipToAddress.AddressLine1}}
+                                        {{(blank(o.ShipToAddress.AddressLine2)? "" : "," )}}
+                                        {{o.ShipToAddress.AddressLine2}}
+                                        {{(blank(o.ShipToAddress.AddressLine3)? "" : "," )}}
+                                        {{o.ShipToAddress.AddressLine3}}
+                                        {{(blank(o.ShipToAddress.AddressLine4)? "" : "," )}}
+                                        {{o.ShipToAddress.AddressLine4}}
+                                        , {{o.ShipToAddress.City.Name}}-{{o.ShipToAddress.State.Name}},
+                                        {{o.ShipToAddress.PinCode.PinCode}}</small>
                                 </p>
                             </div>
                         </div>
                         <div class="form-row" v-if="o.RefOrder">
                             <div class="col">
-                                <p class="mb-0 font-weight-bold">Pick From</p>
+                                <p class="mb-0 font-weight-bold">From</p>
                                 <p class="mb-0">
                                     <small class="text-muted">{{o.RefOrder.Facility.Name}},
                                         {{o.RefOrder.Facility.AddressLine1}}
@@ -786,18 +786,18 @@
 
                         <div class="form-row" v-if="o.RefOrder">
                             <div class="col">
-                                <p class="mb-0 font-weight-bold">Deliver To</p>
+                                <p class="mb-0 font-weight-bold">To</p>
                                 <p class="m-0">
-                                    <small class="text-muted">{{o.RefOrder.CreatorUser.LongName}},
-                                        {{o.RefOrder.CreatorUser.AddressLine1}}
-                                        {{(blank(o.RefOrder.CreatorUser.AddressLine2)? "" : "," )}}
-                                        {{o.RefOrder.CreatorUser.AddressLine2}}
-                                        {{(blank(o.RefOrder.CreatorUser.AddressLine3)? "" : "," )}}
-                                        {{o.RefOrder.CreatorUser.AddressLine3}}
-                                        {{(blank(o.RefOrder.CreatorUser.AddressLine4)? "" : "," )}}
-                                        {{o.RefOrder.CreatorUser.AddressLine4}}
-                                        , {{o.RefOrder.CreatorUser.City.Name}}-{{o.RefOrder.CreatorUser.State.Name}},
-                                        {{o.RefOrder.CreatorUser.PinCode.PinCode}}</small>
+                                    <small class="text-muted">{{o.RefOrder.ShipToAddress.LongName}},
+                                        {{o.RefOrder.ShipToAddress.AddressLine1}}
+                                        {{(blank(o.RefOrder.ShipToAddress.AddressLine2)? "" : "," )}}
+                                        {{o.RefOrder.ShipToAddress.AddressLine2}}
+                                        {{(blank(o.RefOrder.ShipToAddress.AddressLine3)? "" : "," )}}
+                                        {{o.RefOrder.ShipToAddress.AddressLine3}}
+                                        {{(blank(o.RefOrder.ShipToAddress.AddressLine4)? "" : "," )}}
+                                        {{o.RefOrder.ShipToAddress.AddressLine4}}
+                                        , {{o.RefOrder.ShipToAddress.City.Name}}-{{o.RefOrder.ShipToAddress.State.Name}},
+                                        {{o.RefOrder.ShipToAddress.PinCode.PinCode}}</small>
                                 </p>
                             </div>
                         </div>

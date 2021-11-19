@@ -40,6 +40,8 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
         refOrderFields.removeAll(Arrays.asList("MANIFEST_ID"));
 
         map.put(RefOrder.class,refOrderFields);
+        map.put(ShipToAddress.class,ModelReflector.instance(ShipToAddress.class).getVisibleFields());
+
 
         ModelReflector<OrderLine> orderLineModelReflector = ModelReflector.instance(OrderLine.class);
         map.put(OrderLine.class,orderLineModelReflector.getVisibleFields(Arrays.asList("ID","LOCK_ID")));
@@ -149,6 +151,13 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     public void setRefOrderId(Long id);
     @IS_VIRTUAL
     public RefOrder getRefOrder();
+
+    @IS_VIRTUAL
+    public Long getShipToAddressId();
+    public void setShipToAddressId(Long id);
+    @IS_VIRTUAL
+    public ShipToAddress getShipToAddress();
+
 
     @IS_VIRTUAL
     @Index

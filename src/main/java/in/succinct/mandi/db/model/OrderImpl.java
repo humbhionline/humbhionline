@@ -138,4 +138,44 @@ public class OrderImpl extends ModelImpl<Order> {
         }
     }
 
+    public Long getShipToAddressId(){
+        loadAddress();
+        return shipToAddress.getId();
+    }
+    public void setShipToAddressId(Long id){
+
+    }
+    public ShipToAddress getShipToAddress(){
+        loadAddress();
+        return shipToAddress.getRawRecord().getAsProxy(ShipToAddress.class);
+    }
+
+    public Long getBillToAddressId(){
+        loadAddress();
+        return billToAddress.getId();
+    }
+    public void setBillToAddressId(Long id){
+
+    }
+    public BillToAddress getBillToAddress(){
+        loadAddress();
+        return billToAddress.getRawRecord().getAsProxy(BillToAddress.class);
+    }
+
+
+
+    private in.succinct.plugins.ecommerce.db.model.order.OrderAddress shipToAddress = null;
+    private in.succinct.plugins.ecommerce.db.model.order.OrderAddress billToAddress = null;
+    public void loadAddress(){
+        if ( shipToAddress == null || billToAddress == null){
+            getProxy().getAddresses().forEach(a->{
+                if (ObjectUtil.equals(a.getAddressType(), OrderAddress.ADDRESS_TYPE_SHIP_TO)){
+                    shipToAddress = a;
+                }else if (ObjectUtil.equals(a.getAddressType() ,OrderAddress.ADDRESS_TYPE_BILL_TO)) {
+                    billToAddress = a;
+                }
+            });
+        }
+    }
+
 }

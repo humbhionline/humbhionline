@@ -17,9 +17,27 @@
                 facilityOrders: Lockr.get("facilityOrders") || {},
                 facilities: [],
                 logout: logout,
+                delivery : {}
             },
             created: function () {
                 let self = this;
+                self.delivery = Lockr.get("delivery") ; 
+                if (!self.delivery ){
+                    self.delivery = {}; 
+                }
+                if (!self.delivery.Address){ 
+                    self.delivery.Address = self.User; 
+                }
+                let address = self.delivery.Address; 
+                if (!address.FirstName) {
+                    let names = address.LongName.split("[ ]*");
+                    if (names.length >= 1){
+                      address.FirstName = names[0]; 
+                      if (names.length > 1) {
+                        address.LastName = names[names.length - 1]; 
+                      } 
+                    }
+                }
                 Lockr.rm("signup-triggered");
                 self.loadFacilities();
                 if (self.facilities.length > 0) {
@@ -58,6 +76,7 @@
                 },
                 addOrderToBook: function (f, orders) {
                     let self = this;
+                    let address = self.delivery.Address;
                     let user = self.User;
                     var order = self.facilityOrders[f.Id];
                     order.Facility = { Id: f.Id };
@@ -68,17 +87,17 @@
                     order.OrderAddresses = [
                         {
                             AddressType: "ST",
-                            FirstName: user.FirstName,
-                            LastName: user.LastName,
-                            AddressLine1: user.AddressLine1,
-                            AddressLine2: user.AddressLine2,
-                            AddressLine3: user.AddressLine3,
-                            AddressLine4: user.AddressLine4,
-                            City: user.City,
-                            PinCode: user.PinCode,
-                            PhoneNumber: user.PhoneNumber,
-                            Lat: user.Lat,
-                            Lng: user.Lng
+                            FirstName: address.FirstName,
+                            LastName: address.LastName,
+                            AddressLine1: address.AddressLine1,
+                            AddressLine2: address.AddressLine2,
+                            AddressLine3: address.AddressLine3,
+                            AddressLine4: address.AddressLine4,
+                            City: address.City,
+                            PinCode: address.PinCode,
+                            PhoneNumber: address.PhoneNumber,
+                            Lat: address.Lat,
+                            Lng: address.Lng
                         },
                         {
                             AddressType: "BT",
