@@ -26,17 +26,8 @@
                     self.delivery = {}; 
                 }
                 if (!self.delivery.Address){ 
-                    self.delivery.Address = self.User; 
-                }
-                let address = self.delivery.Address; 
-                if (!address.FirstName) {
-                    let names = address.LongName.split("[ ]*");
-                    if (names.length >= 1){
-                      address.FirstName = names[0]; 
-                      if (names.length > 1) {
-                        address.LastName = names[names.length - 1]; 
-                      } 
-                    }
+                    self.delivery.Address = {} ;
+                    copyAddress(self.User, self.delivery.Address); //in util.js
                 }
                 Lockr.rm("signup-triggered");
                 self.loadFacilities();
@@ -87,8 +78,7 @@
                     order.OrderAddresses = [
                         {
                             AddressType: "ST",
-                            FirstName: address.FirstName,
-                            LastName: address.LastName,
+                            LongName: address.LongName,
                             AddressLine1: address.AddressLine1,
                             AddressLine2: address.AddressLine2,
                             AddressLine3: address.AddressLine3,
@@ -101,8 +91,7 @@
                         },
                         {
                             AddressType: "BT",
-                            FirstName: user.FirstName,
-                            LastName: user.LastName,
+                            LongName: user.LongName,
                             AddressLine1: user.AddressLine1,
                             AddressLine2: user.AddressLine2,
                             AddressLine3: user.AddressLine3,

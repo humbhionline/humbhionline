@@ -410,7 +410,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         if (ObjectUtil.isVoid(shipTo.getPhoneNumber())){
             throw new RuntimeException("ShipTo phone number not specified");
         }
-        if (ObjectUtil.isVoid(shipTo.getFirstName()) && ObjectUtil.isVoid(shipTo.getLastName())){
+        if (ObjectUtil.isVoid(shipTo.getFirstName()) && ObjectUtil.isVoid(shipTo.getLastName()) && ObjectUtil.isVoid(shipTo.getLongName())){
             throw new RuntimeException("ShipTo FirstName  and LastName not specified");
         }
     }

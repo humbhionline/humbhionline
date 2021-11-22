@@ -60,4 +60,7 @@ public interface User extends EncryptedAddress, com.venky.swf.plugins.mobilesign
 
     @CONNECTED_VIA("USER_ID")
     public List<UserLocation> getUserLocations();
+
+    @CONNECTED_VIA("USER_ID")
+    public List<SavedAddress> getSavedAddresses();
 }

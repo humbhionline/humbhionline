@@ -2,7 +2,7 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
-<script type="text/javascript" src="/fragments/js/util.js" defer></script>
+<script type="text/javascript" src="/fragments/js/util.js" ></script>
 <link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'" >
 
 
@@ -31,6 +31,7 @@
                 OrderAmount: 0,
                 DeliveryAmount: 0,
                 itemWidth: 0,
+                blank: blank,
                 search: {
                     MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
                     facility_id: facility_id,
@@ -149,7 +150,7 @@
                             beingEdited: false,
                             DraftAddress: {},
                         }; 
-                        self.copyAddress(self.User, self.delivery.Address);
+                        copyAddress(self.User, self.delivery.Address); //There in util.js
                     }
                 },
                 isAddressChanged : function( from, to ) { 
@@ -163,19 +164,6 @@
                     to.PinCode.PinCode == from.PinCode.PinCode && 
                     to.PhoneNumber == from.PhoneNumber && 
                     to.Email == from.Email )
-                },
-                copyAddress: function (from , to){
-                    to.LongName = from.LongName; 
-                    to.AddressLine1 = from.AddressLine1; 
-                    to.AddressLine2 = from.AddressLine2; 
-                    to.AddressLine3 = from.AddressLine3; 
-                    to.AddressLine4 = from.AddressLine4; 
-                    to.City = from.City; 
-                    to.PinCode = from.PinCode; 
-                    to.PhoneNumber = from.PhoneNumber; 
-                    to.Email = from.Email; 
-                    to.Lat = from.Lat; 
-                    to.Lng = from.Lng; 
                 },
                 reloadCounts: function () {
                     let self = this;
@@ -464,7 +452,13 @@
                     return url;
                 },
                 /* Delivery Address Setting code */
-                editDeliveryAddress: function(ev){
+                selectDeliveryAddress(ev,address,index){
+                    ev && ev.preventDefault();
+                    let self= this;
+                    self.delivery.Address = JSON.parse(JSON.stringify(address)); 
+                    self.editDeliveryAddress(ev);
+                }
+                ,editDeliveryAddress: function(ev){
                     ev && ev.preventDefault();
                     let self = this;
                     //Show address popup for data entry
@@ -478,6 +472,16 @@
                     self.delivery.beingEdited = false;
                     self.delivery.DraftAddress = {} ;
                 },
+                updateDeliveryLocation: function(address){
+                   let location = Lockr.get("Location");
+                   if (!location){
+                       location = { latitude : address.Lat , longitude : address.Lng };
+                   }else {
+                        location.latitude = address.Lat; 
+                        location.longitude = address.Lng;
+                   }
+                   Lockr.set("Location",location);
+                },
                 saveDeliveryAddress: function(ev){
                     ev && ev.preventDefault();
                     let self = this;
@@ -485,11 +489,12 @@
                     
                     if ( self.isAddressChanged(self.delivery.Address, self.delivery.DraftAddress)) {
                         showSpinner();
-                        api().url("/addresses/locate").parameters({"Address" : self.delivery.DraftAddress}).post().then(function(response){
-                           Vue.set(self.delivery, "Address", response.Addresses[0]);
+                        api().url("/delivery_addresses/locate").parameters({"DeliveryAddress" : self.delivery.DraftAddress}).post().then(function(response){
+                           Vue.set(self.delivery, "Address", response.DeliveryAddresses[0]);
                            Lockr.set("delivery", self.delivery ); 
-
+                           self.updateDeliveryLocation(self.delivery.Address);
                         }).catch(function(err){
+                           showError(err); 
 
                         }).finally(function(){
                             self.delivery.DraftAddress = {};
@@ -498,7 +503,7 @@
                     }else { 
                         self.delivery.Address = self.delivery.DraftAddress; 
                         self.delivery.DraftAddress = {};
-                        Lockr.set("delivery", self.delivery ); 
+                        self.updateDeliveryLocation(self.delivery.Address);
                     }
                 },
                 isKeyTriggerable: function (e) {
@@ -660,7 +665,7 @@
         </div>
         <div class="container">
             <div id="search-holder" class="form-row search-holder mb-sm-6">
-                <div class="col-12 d-flex flex-row align-items-center mt-3">
+                <div class="col-12 d-flex flex-row align-items-center mt-3" v-if="delivery && delivery.Address" >
                     <a class="h6 fa fa-map-marker-alt" @click="editDeliveryAddress($event)" > {{ delivery.Address.LongName ? "Deliver to " + delivery.Address.LongName +"-" + delivery.Address.PinCode.PinCode  : "Where are you?" }}</a>
                 </div>
                 <div class="col-12">
@@ -845,11 +850,25 @@
             </div>
         </div>
         <!-- Address choosing --> 
-        <div class="show-update" v-if="delivery.beingEdited">
+        <div class="show-update" v-if="delivery && delivery.beingEdited">
             <div class="form-row">
                 <div class="col-12">
                     <h6>Deliver To</h6>
                 </div>
+                <div class="col-12" v-for="(address,index) in User.SavedAddresses">
+                    <a href="#" @click="selectDeliveryAddress($event, address,index)" class="small text-muted">
+                        {{address.LongName + "," + address.AddressLine1}}
+                        {{(blank(address.AddressLine2)? "" : "," )}}
+                        {{address.AddressLine2}}
+                        {{(blank(address.AddressLine3)? "" : "," )}}
+                        {{address.AddressLine3}}
+                        {{(blank(address.AddressLine4)? "" : "," )}}
+                        {{address.AddressLine4}}
+                        , {{address.City.Name}}-{{address.State.Name}},
+                        {{address.PinCode.PinCode}}
+                    </a>
+                </div>
+                
                 <div class="col-12 mb-2">
                     <input class="form-control form-control-sm" id="name" v-model="delivery.DraftAddress.LongName"
                         placeholder="Full Name" />
@@ -908,6 +927,6 @@
                     v-on:keyup.down="navigate($event,index+1,lookup.PinCodes.length)">{{pincode.PinCode}} </a>
             </div>
         </div>
-        <div class="pop-overlay" v-if="delivery.beingEdited" > </div>
+        <div class="pop-overlay" v-if="delivery && delivery.beingEdited" > </div>
     </div>
 </div>

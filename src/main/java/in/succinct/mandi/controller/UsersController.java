@@ -34,6 +34,7 @@ import com.venky.swf.views.BytesView;
 import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.MobileMeta;
+import in.succinct.mandi.db.model.SavedAddress;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.AadharEKyc;
@@ -185,6 +186,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         map.put(UserRole.class, Arrays.asList("ID","USER_ID","ROLE_ID"));
         map.put(Role.class,Arrays.asList("ID","NAME"));
         map.put(Device.class,ModelReflector.instance(Device.class).getVisibleFields());
+        map.put(SavedAddress.class,ModelReflector.instance(SavedAddress.class).getVisibleFields());
         return map;
     }
 
