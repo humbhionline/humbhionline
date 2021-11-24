@@ -171,6 +171,7 @@ public class AadharEKyc {
         XMLSignatureFactory fac = XMLSignatureFactory.getInstance("DOM");
 
         DOMValidateContext valContext = new DOMValidateContext(key, nl.item(0));
+        valContext.setProperty("org.jcp.xml.dsig.secureValidation",Boolean.FALSE);
         XMLSignature signature = fac.unmarshalXMLSignature(valContext);
 
         return signature.validate(valContext);
