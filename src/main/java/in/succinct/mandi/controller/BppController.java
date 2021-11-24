@@ -324,18 +324,29 @@ public class BppController extends Controller {
         String payload = StringUtil.read(getPath().getInputStream());
         JSONObject object = (JSONObject) JSONValue.parse(payload);
 
-        if (!Request.verifySignature(getPath().getHeader("Signature"), payload,
-                new Request().getPublicKey(Config.instance().getProperty("beckn.registry.id"),Config.instance().getProperty("beckn.registry.id")+".k1"))){
+        JSONObject lookupJSON = new JSONObject();
+        lookupJSON.put("subscriber_id",Config.instance().getProperty("beckn.registry.id"));
+        lookupJSON.put("domain","nic2004:52110");
+        JSONArray array = BecknPublicKeyFinder.lookup(lookupJSON);
+        String signingPublicKey = null;
+        String encrPublicKey = null;
+        if (array.size() == 1){
+            JSONObject registrySubscription = ((JSONObject)array.get(0));
+            signingPublicKey = (String)registrySubscription.get("signing_public_key");
+            encrPublicKey = (String)registrySubscription.get("encr_public_key");
+        }
+        if (signingPublicKey == null || encrPublicKey == null){
+            throw new RuntimeException("Cannot verify Signature, Could not find registry keys for " + lookupJSON);
+        }
+
+
+        if (!Request.verifySignature(getPath().getHeader("Signature"), payload, signingPublicKey)){
             throw new RuntimeException("Cannot verify Signature");
         }
 
         PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,BecknUtil.getSelfEncryptionKey().getPrivateKey());
-        PublicKey registryPublicKey = null;
-        JSONArray array = BecknPublicKeyFinder.lookup(Config.instance().getProperty("beckn.registry.id"));
-        if (array.size() > 0){
-            JSONObject subscriber = (JSONObject) array.get(0);
-            registryPublicKey = Request.getEncryptionPublicKey((String)subscriber.get("encr_public_key"));
-        }
+        PublicKey registryPublicKey = Request.getEncryptionPublicKey(encrPublicKey);
+
         KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);
         agreement.init(privateKey);
         agreement.doPhase(registryPublicKey,true);

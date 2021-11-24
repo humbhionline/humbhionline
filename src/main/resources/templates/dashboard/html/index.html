@@ -455,7 +455,7 @@
                 selectDeliveryAddress(ev,address,index){
                     ev && ev.preventDefault();
                     let self= this;
-                    self.delivery.Address = JSON.parse(JSON.stringify(address)); 
+                    copyAddress(address,self.delivery.Address); 
                     self.editDeliveryAddress(ev);
                 }
                 ,editDeliveryAddress: function(ev){
