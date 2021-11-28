@@ -2,8 +2,8 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
-<script type="text/javascript" src="/fragments/js/util.js" ></script>
-<link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'" >
+<script type="text/javascript" src="/fragments/js/util.js"></script>
+<link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'">
 
 
 
@@ -44,6 +44,7 @@
                     termLengthTrigger: 1,
                     timer: undefined,
                 },
+                hideNewDelivery: true,
                 delivery: null,
                 lookup: {
                     Cities: [],
@@ -141,29 +142,29 @@
                 hideSpinner();
             },
             methods: {
-                initDeliveryAddress: function(){
+                initDeliveryAddress: function () {
                     let self = this;
-                    self.delivery = Lockr.get("delivery"); 
-                    if (!self.delivery){
-                        self.delivery = { 
+                    self.delivery = Lockr.get("delivery");
+                    if (!self.delivery) {
+                        self.delivery = {
                             Address: {},
                             beingEdited: false,
                             DraftAddress: {},
-                        }; 
+                        };
                         copyAddress(self.User, self.delivery.Address); //There in util.js
                     }
                 },
-                isAddressChanged : function( from, to ) { 
-                    return !( to.AddressLine1 == from.AddressLine1 && 
-                    to.AddressLine2 == from.AddressLine2 &&  
-                    to.AddressLine3 == from.AddressLine3 &&  
-                    to.AddressLine4 == from.AddressLine4 &&  
-                    to.City.Name == from.City.Name && 
-                    to.City.State.Name == from.City.State.Name && 
-                    to.City.State.Country.Name == from.City.State.Country.Name && 
-                    to.PinCode.PinCode == from.PinCode.PinCode && 
-                    to.PhoneNumber == from.PhoneNumber && 
-                    to.Email == from.Email )
+                isAddressChanged: function (from, to) {
+                    return !(to.AddressLine1 == from.AddressLine1 &&
+                        to.AddressLine2 == from.AddressLine2 &&
+                        to.AddressLine3 == from.AddressLine3 &&
+                        to.AddressLine4 == from.AddressLine4 &&
+                        to.City.Name == from.City.Name &&
+                        to.City.State.Name == from.City.State.Name &&
+                        to.City.State.Country.Name == from.City.State.Country.Name &&
+                        to.PinCode.PinCode == from.PinCode.PinCode &&
+                        to.PhoneNumber == from.PhoneNumber &&
+                        to.Email == from.Email)
                 },
                 reloadCounts: function () {
                     let self = this;
@@ -452,56 +453,84 @@
                     return url;
                 },
                 /* Delivery Address Setting code */
-                selectDeliveryAddress(ev,address,index){
+                selectDeliveryAddress(ev, address, index) {
                     ev && ev.preventDefault();
-                    let self= this;
-                    copyAddress(address,self.delivery.Address); 
+                    let self = this;
+                    copyAddress(address, self.delivery.Address);
                     self.editDeliveryAddress(ev);
                 }
-                ,editDeliveryAddress: function(ev){
+                /* Delivery Address Setting code */
+                , setNewDeliveryAddress(ev, status) {
+                    ev && ev.preventDefault();
+                    let self = this;
+                    let address = {
+                        "AddressLine1": null,
+                        "AddressLine2": null,
+                        "City": {
+                            "Name": null,
+                            "State": {
+                                "Country": {
+                                    "Id": "1",
+                                    "IsoCode": "IND",
+                                    "Name": "India"
+                                },
+                                "Name": null
+                            }
+                        },
+                        "LongName": null,
+                        "PinCode": {
+                            "PinCode": null
+                        },
+                        "Email": null
+                    }
+                    copyAddress(address, self.delivery.Address);
+                    self.hideNewDelivery = status
+                    self.editDeliveryAddress(ev);
+                }
+                , editDeliveryAddress: function (ev) {
                     ev && ev.preventDefault();
                     let self = this;
                     //Show address popup for data entry
                     //Show saved addresses for selection.
-                    self.delivery.beingEdited = true; 
-                    self.delivery.DraftAddress = JSON.parse(JSON.stringify(self.delivery.Address)); 
+                    self.delivery.beingEdited = true;
+                    self.delivery.DraftAddress = JSON.parse(JSON.stringify(self.delivery.Address));
                 },
-                cancelEditDeliveryAddress: function(ev){
+                cancelEditDeliveryAddress: function (ev) {
                     ev && ev.preventDefault();
                     let self = this;
                     self.delivery.beingEdited = false;
-                    self.delivery.DraftAddress = {} ;
+                    self.delivery.DraftAddress = {};
                 },
-                updateDeliveryLocation: function(address){
-                   let location = Lockr.get("Location");
-                   if (!location){
-                       location = { latitude : address.Lat , longitude : address.Lng };
-                   }else {
-                        location.latitude = address.Lat; 
+                updateDeliveryLocation: function (address) {
+                    let location = Lockr.get("Location");
+                    if (!location) {
+                        location = { latitude: address.Lat, longitude: address.Lng };
+                    } else {
+                        location.latitude = address.Lat;
                         location.longitude = address.Lng;
-                   }
-                   Lockr.set("Location",location);
+                    }
+                    Lockr.set("Location", location);
                 },
-                saveDeliveryAddress: function(ev){
+                saveDeliveryAddress: function (ev) {
                     ev && ev.preventDefault();
                     let self = this;
                     self.delivery.beingEdited = false;
-                    
-                    if ( self.isAddressChanged(self.delivery.Address, self.delivery.DraftAddress)) {
-                        showSpinner();
-                        api().url("/delivery_addresses/locate").parameters({"DeliveryAddress" : self.delivery.DraftAddress}).post().then(function(response){
-                           Vue.set(self.delivery, "Address", response.DeliveryAddresses[0]);
-                           Lockr.set("delivery", self.delivery ); 
-                           self.updateDeliveryLocation(self.delivery.Address);
-                        }).catch(function(err){
-                           showError(err); 
 
-                        }).finally(function(){
+                    if (self.isAddressChanged(self.delivery.Address, self.delivery.DraftAddress)) {
+                        showSpinner();
+                        api().url("/delivery_addresses/locate").parameters({ "DeliveryAddress": self.delivery.DraftAddress }).post().then(function (response) {
+                            Vue.set(self.delivery, "Address", response.DeliveryAddresses[0]);
+                            Lockr.set("delivery", self.delivery);
+                            self.updateDeliveryLocation(self.delivery.Address);
+                        }).catch(function (err) {
+                            showError(err);
+
+                        }).finally(function () {
                             self.delivery.DraftAddress = {};
                             hideSpinner();
                         })
-                    }else { 
-                        self.delivery.Address = self.delivery.DraftAddress; 
+                    } else {
+                        self.delivery.Address = self.delivery.DraftAddress;
                         self.delivery.DraftAddress = {};
                         self.updateDeliveryLocation(self.delivery.Address);
                     }
@@ -527,7 +556,7 @@
                 onCitySelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
-                    self.hideKeyboard().then(function(){
+                    self.hideKeyboard().then(function () {
                         self.delivery.DraftAddress.City = item;
                         self.delivery.DraftAddress.State = item.State;
                         self.delivery.DraftAddress.Country = item.State.Country;
@@ -552,9 +581,9 @@
                 onPinCodeSelect: function (e, item) {
                     e && e.preventDefault();
                     let self = this;
-                    self.hideKeyboard().then(function(){
+                    self.hideKeyboard().then(function () {
                         self.delivery.DraftAddress.PinCode = item;
-                        if (self.delivery.DraftAddress.PinCode.City && self.delivery.DraftAddress.PinCode.City.Id){
+                        if (self.delivery.DraftAddress.PinCode.City && self.delivery.DraftAddress.PinCode.City.Id) {
                             self.delivery.DraftAddress.City = self.delivery.DraftAddress.PinCode.City;
                         }
                         self.lookup.PinCodes = [];
@@ -584,22 +613,22 @@
                 removeList: function (e) {
                     let elem = e.target;
                     let self = this;
-                    self.hideKeyboard().then(function(){
+                    self.hideKeyboard().then(function () {
                         self.lookup.Cities = [];
                         self.lookup.PinCodes = [];
                         $(".lookups-list").removeClass("offsetTop");
                     });
                 },
-                hideKeyboard: function(){
-                    return new Promise(function(resolve,reject){
+                hideKeyboard: function () {
+                    return new Promise(function (resolve, reject) {
                         //let dummy = $("#dummy");
                         let dummy = $(document.documentElement);
-                        setTimeout(function(){
+                        setTimeout(function () {
                             dummy.focus();
-                            setTimeout(function(){
+                            setTimeout(function () {
                                 resolve();
-                            },50);
-                        },50);
+                            }, 50);
+                        }, 50);
                     });
                 },
             }
@@ -665,8 +694,11 @@
         </div>
         <div class="container">
             <div id="search-holder" class="form-row search-holder mb-sm-6">
-                <div class="col-12 d-flex flex-row align-items-center mt-3" v-if="delivery && delivery.Address" >
-                    <a class="h6 fa fa-map-marker-alt" @click="editDeliveryAddress($event)" > {{ delivery.Address.LongName ? "Deliver to " + delivery.Address.LongName +"-" + delivery.Address.PinCode.PinCode  : "Where are you?" }}</a>
+                <div class="col-12 d-flex flex-row align-items-center mt-3" v-if="delivery && delivery.Address">
+                    <a @click="editDeliveryAddress($event)">
+                        <i class="h6 fa fa-map-marker-alt mr-1"></i>
+                        {{ delivery.Address.LongName ? "Deliver to " + delivery.Address.LongName +"-" +
+                        delivery.Address.PinCode.PinCode : "Where are you?" }}</a>
                 </div>
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
@@ -779,7 +811,7 @@
                         <div class="form-row mt-sm-3">
                             <div class="col-4 col-sm-4 order-sm-last">
                                 <div class="btn-group" role="group" aria-label="Basic example"
-                                        v-if="!isDeliverySku(result.Sku)" >
+                                    v-if="!isDeliverySku(result.Sku)">
                                     <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
                                         v-on:click="reduce($event,index)">
                                         <i class="fa fa-minus"></i>
@@ -795,13 +827,11 @@
                                 </div>
                                 <div class="btn-group" role="group" aria-label="Basic example" v-else>
                                     <a href="#" class="btn btn-sm btn-outline-primary"
-                                        v-if="(result.OrderedQuantity * 1.0 > 0)"
-                                        v-on:click="reduce($event,index)">
+                                        v-if="(result.OrderedQuantity * 1.0 > 0)" v-on:click="reduce($event,index)">
                                         <i class="fas fa-toggle-on"></i>
                                     </a>
                                     <a href="#" class="btn btn-sm btn-outline-primary"
-                                        v-if="(result.OrderedQuantity * 1.0 <= 0)"
-                                        v-on:click="increase($event,index)">
+                                        v-if="(result.OrderedQuantity * 1.0 <= 0)" v-on:click="increase($event,index)">
                                         <i class="fas fa-toggle-off"></i>
                                     </a>
                                 </div>
@@ -840,7 +870,8 @@
         <div class="bottom-card" v-if="OrderLineCount > 0">
             <div class="form-row">
                 <div class="col-8">
-                    <h6 class="m-0" v-if="OrderAmount * 1.0 > 0">{{OrderLineCount}} Items | &#x20B9; {{(OrderAmount * 1.0).toFixed(2)}}</h6>
+                    <h6 class="m-0" v-if="OrderAmount * 1.0 > 0">{{OrderLineCount}} Items | &#x20B9; {{(OrderAmount *
+                        1.0).toFixed(2)}}</h6>
                     <small class="m-0 text-muted" v-if="DeliveryAmount * 1.0 > 0">Fixed/Delivery charges &#x20B9;
                         {{(DeliveryAmount *1.0).toFixed(2)}}</small>
                 </div>
@@ -849,73 +880,90 @@
                 </div>
             </div>
         </div>
-        <!-- Address choosing --> 
-        <div class="show-update" v-if="delivery && delivery.beingEdited">
+        <!-- Address choosing -->
+        <div class="show-update delivery-address" v-if="delivery && delivery.beingEdited">
             <div class="form-row">
                 <div class="col-12">
-                    <h6>Deliver To</h6>
+                    <h6>Deliver To <a v-bind:hidden="!hideNewDelivery" class="float-right"
+                            @click="setNewDeliveryAddress($event,false)">Add New
+                            Address</a> <a v-bind:hidden="hideNewDelivery" class="float-right"
+                            @click="setNewDeliveryAddress($event,true)">Choose
+                            Address</a></h6>
                 </div>
-                <div class="col-12" v-for="(address,index) in User.SavedAddresses">
-                    <a href="#" @click="selectDeliveryAddress($event, address,index)" class="small text-muted">
-                        {{address.LongName + "," + address.AddressLine1}}
-                        {{(blank(address.AddressLine2)? "" : "," )}}
-                        {{address.AddressLine2}}
-                        {{(blank(address.AddressLine3)? "" : "," )}}
-                        {{address.AddressLine3}}
-                        {{(blank(address.AddressLine4)? "" : "," )}}
-                        {{address.AddressLine4}}
-                        , {{address.City.Name}}-{{address.State.Name}},
-                        {{address.PinCode.PinCode}}
-                    </a>
+                <div class="col-12" v-bind:hidden="!hideNewDelivery">
+                    <div class="address-wrapper">
+                        <div v-for="(address,index) in User.SavedAddresses"
+                            @click="selectDeliveryAddress($event, address,index)" class="address-block" :class="[
+                            delivery.DraftAddress.Email == address.Email ? 'active' : '',
+                          ]">
+                            <h6>{{address.LongName}}</h6>
+                            <div class="address-block-text">
+                                {{address.AddressLine1}}
+                                {{(blank(address.AddressLine2)? "" : "," )}}
+                                {{address.AddressLine2}}
+                                {{(blank(address.AddressLine3)? "" : "," )}}
+                                {{address.AddressLine3}}
+                                {{(blank(address.AddressLine4)? "" : "," )}}
+                                {{address.AddressLine4}}
+                            </div>
+                            {{address.City.Name}}-{{address.State.Name}},
+                            {{address.PinCode.PinCode}}
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="col-12 mb-2">
-                    <input class="form-control form-control-sm" id="name" v-model="delivery.DraftAddress.LongName"
-                        placeholder="Full Name" />
+                <div class="form-row" v-bind:hidden="hideNewDelivery">
+                    <div class="col-12 mb-2">
+                        <input class="form-control form-control-sm" id="name" v-model="delivery.DraftAddress.LongName"
+                            placeholder="Full Name" />
+                    </div>
+                    <div class="col-6 mb-2">
+                        <input class="form-control form-control-sm" id="a1" v-model="delivery.DraftAddress.AddressLine1"
+                            placeholder="House Number" />
+                    </div>
+                    <div class="col-6 mb-2">
+                        <input class="form-control form-control-sm" id="a2" v-model="delivery.DraftAddress.AddressLine2"
+                            placeholder="Building Name" />
+                    </div>
+                    <div class="col-6 mb-2">
+                        <input class="form-control form-control-sm" id="a3" v-model="delivery.DraftAddress.AddressLine3"
+                            placeholder="Locality" />
+                    </div>
+                    <div class="col-6 mb-2">
+                        <input class="form-control form-control-sm" id="a4" v-model="delivery.DraftAddress.AddressLine4"
+                            placeholder="Locality" />
+                    </div>
+                    <div class="col-6 mb-2">
+                        <input id="city" class="form-control form-control-sm" placeholder="City Name"
+                            v-model="delivery.DraftAddress.City.Name" v-on:input="onCityChange($event)"
+                            v-on:focus="removeList($event)" v-on:keyup.down="navigate($event,0,lookup.Cities.length)"
+                            v-if="delivery.DraftAddress.City" />
+                    </div>
+                    <div class="col-6 mb-2">
+                        <input id="pincode" class="form-control form-control-sm" placeholder="Pin Code"
+                            v-model="delivery.DraftAddress.PinCode.PinCode" v-on:input="onPinCodeChange($event)"
+                            v-on:focus="removeList($event)" v-on:keyup.down="navigate($event,0,lookup.PinCodes.length)"
+                            v-if="delivery.DraftAddress.PinCode" />
+                    </div>
+                    <div class="col-6 mb-2">
+                        <input id="phone" class="form-control form-control-sm" placeholder="PhoneNumber"
+                            v-model="delivery.DraftAddress.PhoneNumber" />
+                    </div>
+                    <div class="col-6 mb-2">
+                        <input id="email" class="form-control form-control-sm" placeholder="Email"
+                            v-model="delivery.DraftAddress.Email" />
+                    </div>
                 </div>
-                <div class="col-6 mb-2">
-                    <input class="form-control form-control-sm" id="a1" v-model="delivery.DraftAddress.AddressLine1"
-                        placeholder="House Number" />
-                </div>
-                <div class="col-6 mb-2">
-                    <input class="form-control form-control-sm" id="a2" v-model="delivery.DraftAddress.AddressLine2"
-                        placeholder="Building Name" />
-                </div>
-                <div class="col-6 mb-2">
-                    <input class="form-control form-control-sm" id="a3" v-model="delivery.DraftAddress.AddressLine3"
-                        placeholder="Locality" />
-                </div>
-                <div class="col-6 mb-2">
-                    <input class="form-control form-control-sm" id="a4" v-model="delivery.DraftAddress.AddressLine4"
-                        placeholder="Locality" />
-                </div>
-                <div class="col-6 mb-2">
-                    <input id="city" class="form-control form-control-sm" placeholder="City Name"
-                        v-model="delivery.DraftAddress.City.Name" v-on:input="onCityChange($event)" v-on:focus="removeList($event)"
-                        v-on:keyup.down="navigate($event,0,lookup.Cities.length)" v-if="delivery.DraftAddress.City" />
-                </div>
-                <div class="col-6 mb-2">
-                    <input id="pincode" class="form-control form-control-sm" placeholder="Pin Code"
-                        v-model="delivery.DraftAddress.PinCode.PinCode" v-on:input="onPinCodeChange($event)" v-on:focus="removeList($event)"
-                        v-on:keyup.down="navigate($event,0,lookup.PinCodes.length)" v-if="delivery.DraftAddress.PinCode" />
-                </div>
-                <div class="col-6 mb-2">
-                    <input id="phone" class="form-control form-control-sm" placeholder="PhoneNumber"
-                        v-model="delivery.DraftAddress.PhoneNumber" />
-                </div>
-                <div class="col-6 mb-2">
-                    <input id="email" class="form-control form-control-sm" placeholder="Email"
-                        v-model="delivery.DraftAddress.Email" />
-                </div>
+
+
                 <div class="col-12 text-right">
                     <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditDeliveryAddress($event)">Cancel</a>
                     <a href="#/" class="btn btn-sm btn-primary" @click="saveDeliveryAddress($event)">Submit</a>
                 </div>
             </div>
             <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
-                <a href="#" class="text-truncate" v-for="(city,index) in lookup.Cities"
-                    v-if="lookup.Cities.length > 0" v-on:click="onCitySelect($event,city)"
-                    v-on:keyup.enter="onCitySelect($event,city)" v-on:keyup.space="onCitySelect($event,city)"
+                <a href="#" class="text-truncate" v-for="(city,index) in lookup.Cities" v-if="lookup.Cities.length > 0"
+                    v-on:click="onCitySelect($event,city)" v-on:keyup.enter="onCitySelect($event,city)"
+                    v-on:keyup.space="onCitySelect($event,city)"
                     v-on:keyup.up="navigate($event,index-1,lookup.Cities.length)"
                     v-on:keyup.down="navigate($event,index+1,lookup.Cities.length)">{{city.Name}} -
                     {{city.State.Name}}</a>
@@ -927,6 +975,6 @@
                     v-on:keyup.down="navigate($event,index+1,lookup.PinCodes.length)">{{pincode.PinCode}} </a>
             </div>
         </div>
-        <div class="pop-overlay" v-if="delivery && delivery.beingEdited" > </div>
+        <div class="pop-overlay" v-if="delivery && delivery.beingEdited"> </div>
     </div>
 </div>

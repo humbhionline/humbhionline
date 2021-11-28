@@ -154,6 +154,7 @@ footer * {
 .slide-text p {
     line-height: 1.2;
 }
+
 @media only screen and (max-width: 640px) {
     .slide-img {
         width: 70%;
