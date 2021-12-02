@@ -5,6 +5,9 @@
 * {
     font-family: var(--hbo-font);
 }
+a:not([href]):not([class]) {
+    color: #007bff;
+}
 body {
     padding-top: 0;
     background-color: var(--hbo-bg);
