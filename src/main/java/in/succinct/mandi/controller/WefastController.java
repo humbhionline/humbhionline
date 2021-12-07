@@ -2,16 +2,18 @@ package in.succinct.mandi.controller;
 
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.controller.Controller;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.SWFHttpResponse;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.TaskManager;
-import com.venky.swf.controller.Controller;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
-import in.succinct.mandi.integrations.courier.Wefast;
+import in.succinct.mandi.integrations.courier.Courier;
+import in.succinct.mandi.integrations.courier.Courier.CourierOrder;
+import in.succinct.mandi.integrations.courier.CourierFactory;
 import in.succinct.plugins.ecommerce.agents.order.tasks.deliver.DeliverOrderTask;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
@@ -45,12 +47,10 @@ public class WefastController extends Controller {
         String payload = StringUtil.read(getPath().getInputStream());
         JSONObject input = (JSONObject) JSONValue.parse(payload);
         if (ObjectUtil.equals(input.get("event_type"),"order_changed")){
-            Wefast wefast = new Wefast();
+            Courier wefast = CourierFactory.getInstance().getCourier(Inventory.WEFAST);
+            Order productOrder = wefast.getOrder(input);
+            CourierOrder courierOrder = wefast.getCourierOrder(input);
 
-            JSONObject order = (JSONObject)input.get("order");
-
-            long productOrderId = wefast.getOrderId(input);
-            Order productOrder = Database.getTable(Order.class).get(productOrderId);
             if (productOrder != null){
                 Order transportOrder = productOrder.getTransportOrder();
 
@@ -59,18 +59,18 @@ public class WefastController extends Controller {
                     throw new RuntimeException("Signature does not match");
                 }
 
-                String trackingUrl = wefast.getTrackingUrl(input);
+                String trackingUrl = courierOrder.getTrackingUrl();
                 if (!ObjectUtil.isVoid(trackingUrl)){
                     Map<String, OrderAttribute> map = transportOrder.getAttributeMap();
                     map.get("tracking_url").setValue(trackingUrl);
                     transportOrder.saveAttributeMap(map);
                 }
 
-                if (ObjectUtil.equals(order.get("status"),"completed")){
+                if (courierOrder.isCompleted()){
                     if (productOrder.getTransportOrder() != null){
                         TaskManager.instance().executeAsync(new DeliverOrderTask(productOrder.getTransportOrder().getId()));
                     }else {
-                        TaskManager.instance().executeAsync(new DeliverOrderTask(Long.valueOf(productOrderId)));
+                        TaskManager.instance().executeAsync(new DeliverOrderTask(productOrder.getId()));
                     }
                 }
 

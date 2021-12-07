@@ -1,22 +1,17 @@
 package in.succinct.mandi.controller;
 
 import com.venky.cache.Cache;
-import com.venky.core.collections.IgnoreCaseMap;
-import com.venky.core.collections.SequenceSet;
 import com.venky.core.date.DateUtils;
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
-import com.venky.digest.Encryptor;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.io.ModelIOFactory;
-import com.venky.swf.db.model.io.ModelReader;
 import com.venky.swf.db.model.reflection.ModelReflector;
-import com.venky.swf.db.table.Record;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.integration.api.Call;
@@ -26,7 +21,6 @@ import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.CompositeTask;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
-import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.user.UserFacility;
 import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
@@ -34,19 +28,19 @@ import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
-import com.venky.swf.util.SharedKeys;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
-import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
-import in.succinct.mandi.db.model.RefOrder;
 import in.succinct.mandi.db.model.ServerNode;
-import in.succinct.mandi.db.model.ShipToAddress;
 import in.succinct.mandi.db.model.User;
-import in.succinct.mandi.integrations.courier.Wefast;
+import in.succinct.mandi.integrations.courier.Courier;
+import in.succinct.mandi.integrations.courier.Courier.CourierOrder;
+import in.succinct.mandi.integrations.courier.CourierAggregator;
+import in.succinct.mandi.integrations.courier.CourierAggregatorFactory;
+import in.succinct.mandi.integrations.courier.CourierFactory;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.mandi.util.InternalNetwork;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
@@ -55,7 +49,6 @@ import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
-import org.apache.xmlbeans.impl.common.SAXHelper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -66,7 +59,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -243,20 +235,28 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
             OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement);
 
-            if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && ObjectUtil.equals(inventory.getManagedBy(),Inventory.WEFAST)){
-                Wefast wefast = new Wefast();
-                JSONObject wefastResponse = wefast.createOrder(order,order.getParentOrder());
-                double sellingPrice = wefast.getPrice(wefastResponse);
-                double discount = wefast.getDiscount(wefastResponse);
-                long orderId = wefast.getOrderId(wefastResponse);
-                String tracking_url = wefast.getTrackingUrl(wefastResponse);
+            if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && !ObjectUtil.isVoid(inventory.getManagedBy())){
+                CourierOrder courierOrder = null;
+                if (inventory.isCourierAggregator()){
+                    CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(inventory.getManagedBy());
+                    order.setExternalTransactionReference(inventory.getQuoteRef());
+                    courierOrder = courierAggregator.book(order,order.getParentOrder());
+                }else {
+                    Courier courier = CourierFactory.getInstance().getCourier(inventory.getManagedBy());
+                    courierOrder = courier.book(order,order.getParentOrder());
+                }
 
-                order.setReference("Wefast Order Id:" + orderId);
+                double sellingPrice = courierOrder.getSellingPrice();
+                double discount = courierOrder.getDiscount();
+                String orderId = courierOrder.getOrderNumber();
+                String tracking_url = courierOrder.getTrackingUrl();
+
+                order.setReference("Courier Order Id:" + orderId);
                 order.setShippingSellingPrice(sellingPrice);
-                order.setShippingPrice(sellingPrice);
+                order.setShippingPrice(sellingPrice * (1.0 - line.getSku().getTaxRate()/100.0));
                 Map<String, OrderAttribute> map = order.getAttributeMap();
-                map.get("courier").setValue(Inventory.WEFAST);
-                map.get("order_id").setValue(StringUtil.valueOf(orderId));
+                map.get("courier").setValue(inventory.getManagedBy());
+                map.get("order_id").setValue(orderId);
                 if (!ObjectUtil.isVoid(tracking_url)){
                     map.get("tracking_url").setValue(tracking_url);
                 }
@@ -286,15 +286,9 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             Item item = sku.getItem();
             AssetCode assetCode = item.getAssetCode();
 
-            Double taxRate = sku.getTaxRate();
+            double taxRate = sku.getTaxRate();
 
-            if (taxRate == null && assetCode != null){
-                taxRate = assetCode.getGstPct();
-            }
-            if (taxRate == null){
-                taxRate = defaultGSTPct;
-            }
-            if (ObjectUtil.isVoid(shipFrom.getGSTIN())){
+           if (ObjectUtil.isVoid(shipFrom.getGSTIN())){
                 taxRate = 0.0;
             }
             line.setPrice(new DoubleHolder(line.getSellingPrice()/(1.0 + taxRate/100.0),2).getHeldDouble().doubleValue());

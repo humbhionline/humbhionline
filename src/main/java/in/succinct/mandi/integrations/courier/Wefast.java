@@ -26,8 +26,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-public class Wefast {
-    private static Cache<JSONObject, JSONObject> pricingApiResponse = new Cache<JSONObject, JSONObject>(100,0.2) {
+class Wefast implements Courier{
+
+    private static final Cache<JSONObject, JSONObject> pricingApiResponse = new Cache<JSONObject, JSONObject>(100,0.2) {
         @Override
         protected JSONObject getValue(JSONObject orderJson) {
             Call<JSONObject> call = new Call<JSONObject>().url(Config.instance().getProperty("wefast.api.url") ,
@@ -42,12 +43,12 @@ public class Wefast {
             return call.getResponseAsJson();
         }
     };
-    public JSONObject createOrder(Order transportOrder, Order order){
+    private JSONObject createOrder(Facility transportFacility, Order order){
         JSONObject orderJson = makeJson(order);
 
         Call<JSONObject> call = new Call<JSONObject>().url(Config.instance().getProperty("wefast.api.url") ,
                 "/create-order").
-                header("X-DV-Auth-Token",getApiToken(transportOrder)).
+                header("X-DV-Auth-Token",getApiToken(transportFacility)).
                 inputFormat(InputFormat.JSON).input(orderJson).method(HttpMethod.POST);
 
         if (call.hasErrors()){
@@ -57,26 +58,26 @@ public class Wefast {
         return call.getResponseAsJson();
     }
 
-    public String getApiToken(Order transportOrder){
-        Inventory rule = transportOrder.getFacility().getDeliveryRule(true);
+    private String getApiToken(Facility transportFacility){
+        Inventory rule = transportFacility.getDeliveryRule(true);
         if (rule == null || ObjectUtil.isVoid(rule.getApiToken())){
-            throw new RuntimeException(transportOrder.getFacility().getName() + " does not have integration with wefast");
+            throw new RuntimeException(transportFacility.getName() + " does not have integration with wefast");
         }
         return rule.getApiToken();
     }
 
 
 
-    public JSONObject getPrice(Order order){
+    private JSONObject getPrice(Order order){
         return pricingApiResponse.get(makeJson(order));
     }
-    public JSONObject getPrice(Address from, Address to, Inventory inventory){
+    private JSONObject getPrice(Address from, Address to, Inventory inventory){
         return pricingApiResponse.get(makeJson(from,to,inventory));
     }
-    public JSONObject getPrice(Address from, Address to, List<Inventory> inventories){
+    private JSONObject getPrice(Address from, Address to, List<Inventory> inventories){
         return pricingApiResponse.get(makeJson(from,to,inventories));
     }
-    public JSONObject makeJson(Address from, Address to, Inventory inventory){
+    private JSONObject makeJson(Address from, Address to, Inventory inventory){
         return makeJson(from,to,Arrays.asList(inventory));
     }
     private JSONObject makeJson(Address from, Address to, List<Inventory> inventories) {
@@ -251,7 +252,7 @@ public class Wefast {
 
         return point;
     }
-    public boolean isSuccessful(JSONObject response){
+    private boolean isSuccessful(JSONObject response){
         Boolean success = response.containsKey("is_successful")? (Boolean)response.get("is_successful") : response.get("event_type") != null;
         if (success && response.containsKey("warnings")){
             JSONArray warnings = (JSONArray) response.get("warnings");
@@ -263,30 +264,30 @@ public class Wefast {
 
     }
 
-    public double getPrice(JSONObject response){
+    private double getPrice(JSONObject response){
         if (isSuccessful(response)){
             JSONObject jsonResponseOrder = (JSONObject) response.get("order");
-            return Database.getInstance().getJdbcTypeHelper("").getTypeRef(Double.class).getTypeConverter().valueOf(jsonResponseOrder.get("payment_amount"));
+            return Database.getJdbcTypeHelper("").getTypeRef(Double.class).getTypeConverter().valueOf(jsonResponseOrder.get("payment_amount"));
         }
         return Double.POSITIVE_INFINITY;
     }
-    public double getDiscount(JSONObject response){
+    private double getDiscount(JSONObject response){
         if (isSuccessful(response)){
             JSONObject jsonResponseOrder = (JSONObject) response.get("order");
-            return Database.getInstance().getJdbcTypeHelper("").getTypeRef(Double.class).getTypeConverter().valueOf(jsonResponseOrder.get("discount_amount"));
+            return Database.getJdbcTypeHelper("").getTypeRef(Double.class).getTypeConverter().valueOf(jsonResponseOrder.get("discount_amount"));
         }
         return Double.POSITIVE_INFINITY;
     }
 
-    public Long getOrderId(JSONObject response) {
+    private Long getOrderId(JSONObject response) {
         if (isSuccessful(response)){
             JSONObject jsonResponseOrder = (JSONObject) response.get("order");
-            return Database.getInstance().getJdbcTypeHelper("").getTypeRef(Long.class).getTypeConverter().valueOf(jsonResponseOrder.get("order_id"));
+            return Database.getJdbcTypeHelper("").getTypeRef(Long.class).getTypeConverter().valueOf(jsonResponseOrder.get("order_id"));
         }
         return 0L;
     }
 
-    public String getTrackingUrl(JSONObject response) {
+    private String getTrackingUrl(JSONObject response) {
         String trackingUrl = null;
         if (isSuccessful(response)){
             JSONObject jsonResponseOrder = (JSONObject) response.get("order");
@@ -297,5 +298,93 @@ public class Wefast {
             }
         }
         return trackingUrl;
+    }
+
+    @Override
+    public Quote getQuote(Address from, Address to, Inventory inventory) {
+        final JSONObject response = getPrice(from,to,inventory);
+        return new Quote() {
+            @Override
+            public CourierDescriptor getCourierDescriptor() {
+                return courierDescriptor;
+            }
+
+            @Override
+            public double getSellingPrice() {
+                return Wefast.this.getPrice(response);
+            }
+        };
+    }
+    CourierDescriptor courierDescriptor = new CourierDescriptor() {
+        @Override
+        public String getName() {
+            return Inventory.WEFAST;
+        }
+
+        @Override
+        public String getId() {
+            return Inventory.WEFAST;
+        }
+
+        @Override
+        public String getLogoUrl() {
+            return "https://borzodelivery.com/img/global/logo-mobile.svg";
+        }
+
+    };
+
+    @Override
+    public Quote getQuote(Order retailOrder) {
+        return new Quote() {
+            @Override
+            public CourierDescriptor getCourierDescriptor() {
+                return courierDescriptor;
+            }
+
+            @Override
+            public double getSellingPrice() {
+                return Wefast.this.getPrice(Wefast.this.getPrice(retailOrder));
+            }
+        };
+    }
+
+    @Override
+    public CourierOrder book(final Order transportOrder, final Order retailOrder) {
+        final JSONObject response = Wefast.this.createOrder(transportOrder.getFacility(),retailOrder);
+        return getCourierOrder(response);
+    }
+
+    public CourierOrder getCourierOrder(JSONObject statusJson){
+        return new CourierOrder() {
+            @Override
+            public CourierDescriptor getCourierDescriptor() {
+                return courierDescriptor;
+            }
+
+            @Override
+            public String getTrackingUrl() {
+                return Wefast.this.getTrackingUrl(statusJson);
+            }
+
+            @Override
+            public String getOrderNumber() {
+                return String.valueOf(Wefast.this.getOrderId(statusJson));
+            }
+
+            @Override
+            public boolean isCompleted() {
+                JSONObject order = (JSONObject) statusJson.get("order");
+                return  ObjectUtil.equals(order.get("status"),"completed");
+            }
+
+            @Override
+            public double getSellingPrice() {
+                return Wefast.this.getPrice(statusJson);
+            }
+        };
+    }
+    public Order getOrder(JSONObject statusJson) {
+        long productOrderId = Wefast.this.getOrderId(statusJson);
+        return Database.getTable(Order.class).get(productOrderId);
     }
 }

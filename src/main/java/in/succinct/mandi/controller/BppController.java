@@ -1,17 +1,12 @@
 package in.succinct.mandi.controller;
 
-import com.venky.core.io.StringReader;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
-import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
-import com.venky.swf.db.Transaction;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
-import com.venky.swf.db.model.SWFHttpResponse;
-import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
@@ -48,14 +43,11 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
-import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -107,14 +99,14 @@ public class BppController extends Controller {
 
         ServerNode node = InternalNetwork.getRemoteServer(getPath(),true);
         if (node == null){
-            String callbackUrl = getGatewayUrl(request.extractAuthorizationParams("Proxy-Authorization",headers));
+            String callbackUrl = getGatewayUrl(request.extractAuthorizationParams("X-Gateway-Authorization",headers));
             if (callbackUrl == null) {
                 callbackUrl = request.getContext().getBapUri();
             }
             request.getExtendedAttributes().set(BecknExtnAttributes.CALLBACK_URL,callbackUrl);
 
             if ( Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
-                return request.verifySignature("Proxy-Authorization",headers , false) &&
+                return request.verifySignature("X-Gateway-Authorization",headers , false) &&
                         request.verifySignature("Authorization",headers , Config.instance().getBooleanProperty("beckn.auth.enabled", false));
 
             }else {
@@ -130,7 +122,7 @@ public class BppController extends Controller {
     private <C extends BecknAsyncTask> View act(Class<C> clazzTask){
         try {
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            request.getContext().setBppId(BecknUtil.getSubscriberId());
+            request.getContext().setBppId(BecknUtil.getSubscriberId(request.getContext().getDomain(),"BPP"));
             request.getContext().setBppUri(Config.instance().getServerBaseUrl() + "/bpp");
 
             if (isRequestAuthenticated(request)){

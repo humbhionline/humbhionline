@@ -11,6 +11,7 @@ import in.succinct.beckn.Error;
 import in.succinct.beckn.Error.Type;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.ServerNode;
+import in.succinct.mandi.util.beckn.BecknUtil;
 import org.json.simple.JSONObject;
 
 import java.io.PrintWriter;
@@ -72,7 +73,7 @@ public abstract class BecknAsyncTask implements Task {
         }else if (Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
 
             headers.put("Authorization", request.generateAuthorizationHeader(request.getContext().getBppId(),
-                    request.getContext().getBppId() + ".k1"));
+                    BecknUtil.getNetworkParticipantId() + ".k1"));
         }
         headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
         headers.put("Accept", MimeType.APPLICATION_JSON.toString());

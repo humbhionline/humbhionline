@@ -20,16 +20,27 @@ public interface Inventory extends in.succinct.plugins.ecommerce.db.model.invent
     public Double getChargeableDistance();
     public void setChargeableDistance(Double distance);
 
+    @IS_VIRTUAL
+    public String getQuoteRef();
+    public void setQuoteRef(String ref);
+
     @Index
     public String getTags();
     public void setTags(String tags);
 
     //Valid for delivery items!!
     public static final String WEFAST  = "wefast" ;
-    @Enumeration(" ,"+WEFAST)
+    public static final String BECKN  = "beckn" ;
+
+    @Enumeration(" ,"+WEFAST+","+BECKN)
     @IS_NULLABLE
     public String getManagedBy();
     public void setManagedBy(String managedBy);
+
+
+    @IS_VIRTUAL
+    public boolean isCourierAggregator();
+
 
     public String getApiToken();
     public void setApiToken(String token);

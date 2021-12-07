@@ -9,12 +9,9 @@ import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.agent.AgentSeederTask;
 import com.venky.swf.plugins.background.core.agent.AgentSeederTaskBuilder;
 import com.venky.swf.plugins.datamart.agent.datamart.ExtractorTask;
-import com.venky.swf.routing.Config;
-import in.succinct.beckn.Address;
 import in.succinct.beckn.Circle;
 import in.succinct.beckn.City;
 import in.succinct.beckn.Country;
-import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Facility;
@@ -79,7 +76,7 @@ public class RegisterProviderLocationAgent extends ExtractorTask<Facility> imple
                     inputFormat(InputFormat.JSON).
                     header("Content-Type", MimeType.APPLICATION_JSON.toString());
 
-            call.header("Authorization", new Request(provider_location.toString()).generateAuthorizationHeader(BecknUtil.getSubscriberId(), BecknUtil.getSubscriberId()+".k1"));
+            call.header("Authorization", new Request(provider_location.toString()).generateAuthorizationHeader(BecknUtil.getNetworkParticipantId(), BecknUtil.getNetworkParticipantId()+".k1"));
             call.getResponseAsJson();
 
         }

@@ -2,6 +2,9 @@ package in.succinct.mandi.db.model;
 
 import com.venky.swf.db.table.ModelImpl;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class InventoryImpl extends ModelImpl<Inventory> {
     public InventoryImpl(){
 
@@ -33,4 +36,20 @@ public class InventoryImpl extends ModelImpl<Inventory> {
         this.chargeableDistance = distance;
     }
 
+
+    private final Set<String> courierIntegrators = new HashSet<String>(){{
+       add(Inventory.BECKN);
+    }};
+    public boolean isCourierAggregator(){
+        Inventory inventory = getProxy();
+        return courierIntegrators.contains(inventory.getManagedBy());
+    }
+
+    String ref = null;
+    public String getQuoteRef(){
+        return ref;
+    }
+    public void setQuoteRef(String ref){
+        this.ref = ref;
+    }
 }

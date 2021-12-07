@@ -90,7 +90,7 @@ public interface BecknMessage extends Model {
             }
             validateResponse(consolidated);
             Request request = new Request(consolidated);
-            request.getContext().setBppId(BecknUtil.getSubscriberId());
+            request.getContext().setBppId(BecknUtil.getSubscriberId(request.getContext().getDomain(),"BPP"));
             request.getContext().setBppUri(Config.instance().getServerBaseUrl() + "/bpp");
             return request;
         }

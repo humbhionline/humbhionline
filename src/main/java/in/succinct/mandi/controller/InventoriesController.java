@@ -25,7 +25,11 @@ import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.db.model.UserLocation;
-import in.succinct.mandi.integrations.courier.Wefast;
+import in.succinct.mandi.integrations.courier.Courier;
+import in.succinct.mandi.integrations.courier.Courier.Quote;
+import in.succinct.mandi.integrations.courier.CourierAggregator;
+import in.succinct.mandi.integrations.courier.CourierAggregatorFactory;
+import in.succinct.mandi.integrations.courier.CourierFactory;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
@@ -124,12 +128,24 @@ public class InventoriesController extends ModelController<Inventory> {
                     record.setDeliveryProvided(true);
                     if (ObjectUtil.isVoid(record.getManagedBy())){
                         record.setDeliveryCharges(facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation));
-                    }else if (ObjectUtil.equals(record.getManagedBy(),"wefast")){
-                        Wefast wefast = new Wefast();
-                        record.setDeliveryCharges(wefast.getPrice(wefast.getPrice(order)));
+                    }else if (!record.isCourierAggregator()){
+                        Courier courier = CourierFactory.getInstance().getCourier(record.getManagedBy());
+                        record.setDeliveryCharges(courier.getQuote(order).getSellingPrice());
+                    }else {
+                        List<Quote> quotes = CourierAggregatorFactory.getInstance().getCourierAggregator(record.getManagedBy()).getQuotes(order);
+                        pass = !quotes.isEmpty();
+                        if (pass) {
+                            Quote quote = quotes.stream().min((o1, o2) -> (int) (o1.getSellingPrice() - o2.getSellingPrice())).get();
+                            record.setDeliveryCharges(quote.getSellingPrice());
+                            record.setQuoteRef(quote.getQuoteRef());
+                        }
                     }
                     record.setChargeableDistance(Math.max(facility.getMinChargeableDistance(),new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue()));
-                    facility.setDistance(new DoubleHolder(new GeoCoordinate(deliveryBoyLocation).distanceTo(new GeoCoordinate(order.getFacility())),2).getHeldDouble().doubleValue());
+                    if (deliveryBoyLocation != null) {
+                        facility.setDistance(new DoubleHolder(new GeoCoordinate(deliveryBoyLocation).distanceTo(new GeoCoordinate(order.getFacility())), 2).getHeldDouble().doubleValue());
+                    }else {
+                        facility.setDistance(0.0);
+                    }
                 }
             }else {
                 //Dont return Delivery items.
@@ -140,11 +156,18 @@ public class InventoriesController extends ModelController<Inventory> {
                         Inventory deliveryRule = facility.getDeliveryRule(false);
                         if (deliveryRule == null || ObjectUtil.isVoid(deliveryRule.getManagedBy())){
                             record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
-                        }else if (ObjectUtil.equals(deliveryRule.getManagedBy(),Inventory.WEFAST)){
-                            Wefast wefast = new Wefast();
-                            record.setDeliveryCharges(wefast.getPrice(wefast.getPrice(facility,getCurrentUser(),record)));
+                        }else if (!record.isCourierAggregator()){
+                            Courier courier = CourierFactory.getInstance().getCourier(record.getManagedBy());
+                            record.setDeliveryCharges(courier.getQuote(facility,getCurrentUser(),record).getSellingPrice());
                         }else {
-                            throw new RuntimeException("Unknown courier:" + deliveryRule.getManagedBy());
+                            CourierAggregator aggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(record.getManagedBy());
+                            List<Quote> quotes = aggregator.getQuotes(facility,getCurrentUser(),record);
+                            pass = !quotes.isEmpty();
+                            if (pass) {
+                                Quote quote = quotes.stream().min((o1, o2) -> (int) (o1.getSellingPrice() - o2.getSellingPrice())).get();
+                                record.setDeliveryCharges(quote.getSellingPrice());
+                                record.setQuoteRef(quote.getQuoteRef());
+                            }
                         }
                         record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
                     }
@@ -162,7 +185,7 @@ public class InventoriesController extends ModelController<Inventory> {
 
     private GeoLocation getDeliveryBoyLocation(Facility facility, Inventory record) {
         if (!ObjectUtil.isVoid(record.getManagedBy())){
-            return facility;
+            return null;
         }else {
             User creator = facility.getCreatorUser().getRawRecord().getAsProxy(User.class);
             if (!creator.getUserLocations().isEmpty()){

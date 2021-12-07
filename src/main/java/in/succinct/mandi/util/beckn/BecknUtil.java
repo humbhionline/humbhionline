@@ -1,7 +1,6 @@
 package in.succinct.mandi.util.beckn;
 
 import com.venky.core.util.ObjectUtil;
-import com.venky.swf.db.Database;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.routing.Config;
 
@@ -11,15 +10,19 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class BecknUtil {
-    public static String getSubscriberId(){
+    public static String getNetworkParticipantId(){
         return Config.instance().getHostName();
+    }
+    public static String getSubscriberId(String domain, String type){
+        return String.format("%s.%s.%s",getNetworkParticipantId(),domain,type);
     }
     public static String getIdPrefix(){
         //return "./nic2004:52110/IND.std:080/";
         return "./retail.kirana/ind.blr/";
     }
+
     public static String getIdSuffix(){
-        return getSubscriberId();
+        return getNetworkParticipantId();
     }
     public enum Entity {
         fulfillment,
@@ -66,18 +69,14 @@ public class BecknUtil {
 
     }
     public static CryptoKey getSelfEncryptionKey(){
-        CryptoKey encryptionKey = Database.getTable(CryptoKey.class).newRecord();
-        encryptionKey.setAlias(Config.instance().getHostName() + ".encrypt.k1");
-        encryptionKey = Database.getTable(CryptoKey.class).getRefreshed(encryptionKey);
+        CryptoKey encryptionKey = CryptoKey.find(Config.instance().getHostName()+".k1",CryptoKey.PURPOSE_ENCRYPTION);
         if (encryptionKey.getRawRecord().isNewRecord()){
             return null;
         }
         return encryptionKey;
     }
     public static CryptoKey getSelfKey(){
-        CryptoKey key = Database.getTable(CryptoKey.class).newRecord();
-        key.setAlias(Config.instance().getHostName() + ".k1");
-        key = Database.getTable(CryptoKey.class).getRefreshed(key);
+        CryptoKey key = CryptoKey.find(Config.instance().getHostName()+".k1",CryptoKey.PURPOSE_SIGNING);
         if (key.getRawRecord().isNewRecord()){
             return null;
         }

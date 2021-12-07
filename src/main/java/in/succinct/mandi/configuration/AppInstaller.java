@@ -2,12 +2,10 @@ package in.succinct.mandi.configuration;
 
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
-import com.venky.core.util.MultiException;
 import com.venky.core.util.ObjectUtil;
 import com.venky.digest.Encryptor;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
-import com.venky.swf.db.Transaction;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.jdbc.ConnectionManager;
 import com.venky.swf.db.model.Model;
@@ -54,7 +52,9 @@ import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 
@@ -174,34 +174,39 @@ public class AppInstaller implements Installer {
         if (!ObjectUtil.isVoid(BecknUtil.getRegistryUrl())){
             CryptoKey encryptionKey = BecknUtil.getSelfEncryptionKey();
             CryptoKey key = BecknUtil.getSelfKey();
-            String subscriberId = Config.instance().getHostName();
             String uniqueKeyId = key.getAlias();
-            JSONObject object = new JSONObject();
-            object.put("subscriber_id",subscriberId);
-            object.put("country","IND");
-            object.put("city","std:080");
-            object.put("domain","nic2004:52110");
-            object.put("nonce", Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
-            object.put("signing_public_key",Request.getRawSigningKey(key.getPublicKey()));
-            object.put("encr_public_key",Request.getRawEncryptionKey(encryptionKey.getPublicKey()));
-            object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(key.getUpdatedAt()));
-            object.put("valid_until",BecknObject.TIMESTAMP_FORMAT.format(
-                    new Date(key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L)))) ; //10 years
-            /*
-            if (ObjectUtil.isVoid(Request.getPublicKey(subscriberId,String.format("%s.k1",subscriberId)))){
-                object.put("type","bpp");
-                object.put("subscriber_url",Config.instance().getServerBaseUrl() + "/bpp");
-            }
-            not part of spec. First onboarding happens on registry and then one can call subscribe api.
-             */
+            Map<String,String> domainMap = new HashMap<String,String>(){{
+                put(".nic2004:55204.BAP", "nic2004:55204");
+                put(".nic2004:52110.BPP.","nic2004:52110");
+            }};
+            for (String subscriberPrefix : new String[]{ ".nic2004:55204.BAP" , ".nic2004:52110.BPP" }){
+                String domain  = domainMap.get(subscriberPrefix);
+                String subscriberId = String.format("%s%s",Config.instance().getHostName(),subscriberPrefix);
+                JSONObject object = new JSONObject();
+                object.put("subscriber_id",subscriberId);
+                object.put("country","IND");
+                object.put("city","std:080");
+                object.put("nonce", Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
+                object.put("unique_key_id",uniqueKeyId);
+                object.put("signing_public_key",Request.getRawSigningKey(key.getPublicKey()));
+                object.put("encr_public_key",Request.getRawEncryptionKey(encryptionKey.getPublicKey()));
+                object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(key.getUpdatedAt()));
+                object.put("valid_until",BecknObject.TIMESTAMP_FORMAT.format(
+                        new Date(key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L)))) ; //10 years
 
-            TaskManager.instance().executeAsync((Task) () -> {
-                JSONObject response = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
-                        header("Content-Type", MimeType.APPLICATION_JSON.toString()).
-                        header("Accept",MimeType.APPLICATION_JSON.toString()).
-                        //header("Authorization", new Request().generateAuthorizationHeader(subscriberId, uniqueKeyId)).
-                        getResponseAsJson();
-            },false);
+                Request request = new Request(object);
+
+                TaskManager.instance().executeAsync((Task) () -> {
+
+                    JSONObject response = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
+                            header("Content-Type", MimeType.APPLICATION_JSON.toString()).
+                            header("Accept",MimeType.APPLICATION_JSON.toString()).
+                            header("Authorization", request.generateAuthorizationHeader(subscriberId, uniqueKeyId)).
+                                    getResponseAsJson();
+                },false);
+            }
+
+
 
         }
         registerWithHumBhiOnlineRegistry();
@@ -215,7 +220,7 @@ public class AppInstaller implements Installer {
 
         ServerNode node = Database.getTable(ServerNode.class).newRecord();
         node.setBaseUrl(Config.instance().getServerBaseUrl());
-        node.setClientId(BecknUtil.getSubscriberId());
+        node.setClientId(BecknUtil.getNetworkParticipantId());
         node = Database.getTable(ServerNode.class).getRefreshed(node);
 
         if (node.getRawRecord().isNewRecord()){
@@ -246,9 +251,7 @@ public class AppInstaller implements Installer {
     }
 
     private void generateBecknKeys() {
-        CryptoKey key = Database.getTable(CryptoKey.class).newRecord();
-        key.setAlias(Config.instance().getHostName() + ".k1");
-        key = Database.getTable(CryptoKey.class).getRefreshed(key);
+        CryptoKey key = CryptoKey.find(Config.instance().getHostName() + ".k1",CryptoKey.PURPOSE_SIGNING);
         if (key.getRawRecord().isNewRecord()) {
             key.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
             key.setCreatedAt(key.getUpdatedAt());
@@ -256,17 +259,17 @@ public class AppInstaller implements Installer {
         boolean keyExpired = key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L) <= System.currentTimeMillis();
         if ( key.getRawRecord().isNewRecord() || keyExpired){
             KeyPair pair = Crypt.getInstance().generateKeyPair(Request.SIGNATURE_ALGO,Request.SIGNATURE_ALGO_KEY_LENGTH);
+            key.setAlgorithm(Request.SIGNATURE_ALGO);
             key.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
             key.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
             key.save();
         }
 
-        CryptoKey encryptionKey = Database.getTable(CryptoKey.class).newRecord();
-        encryptionKey.setAlias(Config.instance().getHostName() + ".encrypt.k1");
-        encryptionKey = Database.getTable(CryptoKey.class).getRefreshed(encryptionKey);
+        CryptoKey encryptionKey =  CryptoKey.find(Config.instance().getHostName() + ".k1",CryptoKey.PURPOSE_ENCRYPTION);
 
         if (encryptionKey.getRawRecord().isNewRecord() || keyExpired){
             KeyPair pair = Crypt.getInstance().generateKeyPair(Request.ENCRYPTION_ALGO,Request.ENCRYPTION_ALGO_KEY_LENGTH);
+            encryptionKey.setAlgorithm(Request.ENCRYPTION_ALGO);
             encryptionKey.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
             encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
             encryptionKey.save();
