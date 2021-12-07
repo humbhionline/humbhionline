@@ -163,7 +163,7 @@ class BecknCourierAggregator implements CourierAggregator {
     }
     private List<OnSearch> search(Request request) {
         JSONObject gw = getGateway();
-        String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),"k1");
+        String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),BecknUtil.getCryptoKeyId());
 
         InputStream responseStream = new Call<>().url((String)gw.get("subscriber_url")).header("content-type","application/json").header("accept","application/json").
                 header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(request.toString()).getResponseStream();

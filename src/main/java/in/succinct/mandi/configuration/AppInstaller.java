@@ -21,6 +21,7 @@ import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Company;
 import com.venky.swf.plugins.security.db.model.Role;
+import com.venky.swf.plugins.sequence.db.model.SequentialNumber;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
@@ -251,7 +252,13 @@ public class AppInstaller implements Installer {
     }
 
     private void generateBecknKeys() {
-        CryptoKey key = CryptoKey.find(Config.instance().getHostName() + ".k1",CryptoKey.PURPOSE_SIGNING);
+        String skeyNumber = SequentialNumber.get("KEYS").getCurrentNumber();
+        if (Long.parseLong(skeyNumber) == 0){
+            skeyNumber = SequentialNumber.get("KEYS").next();
+        }
+        long keyNumber = Long.parseLong(skeyNumber);
+
+        CryptoKey key = CryptoKey.find(BecknUtil.getCryptoKeyId(),CryptoKey.PURPOSE_SIGNING);
         if (key.getRawRecord().isNewRecord()) {
             key.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
             key.setCreatedAt(key.getUpdatedAt());
@@ -265,8 +272,11 @@ public class AppInstaller implements Installer {
             key.save();
         }
 
-        CryptoKey encryptionKey =  CryptoKey.find(Config.instance().getHostName() + ".k1",CryptoKey.PURPOSE_ENCRYPTION);
-
+        CryptoKey encryptionKey =  CryptoKey.find(BecknUtil.getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION);
+        if (encryptionKey.getRawRecord().isNewRecord()) {
+            encryptionKey.setUpdatedAt(key.getUpdatedAt());
+            encryptionKey.setCreatedAt(key.getUpdatedAt());
+        }
         if (encryptionKey.getRawRecord().isNewRecord() || keyExpired){
             KeyPair pair = Crypt.getInstance().generateKeyPair(Request.ENCRYPTION_ALGO,Request.ENCRYPTION_ALGO_KEY_LENGTH);
             encryptionKey.setAlgorithm(Request.ENCRYPTION_ALGO);

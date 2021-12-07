@@ -2,6 +2,7 @@ package in.succinct.mandi.util.beckn;
 
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
+import com.venky.swf.plugins.sequence.db.model.SequentialNumber;
 import com.venky.swf.routing.Config;
 
 import java.util.ArrayList;
@@ -69,17 +70,25 @@ public class BecknUtil {
 
     }
     public static CryptoKey getSelfEncryptionKey(){
-        CryptoKey encryptionKey = CryptoKey.find(Config.instance().getHostName()+".k1",CryptoKey.PURPOSE_ENCRYPTION);
+        CryptoKey encryptionKey = CryptoKey.find(getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION);
         if (encryptionKey.getRawRecord().isNewRecord()){
             return null;
         }
         return encryptionKey;
     }
     public static CryptoKey getSelfKey(){
-        CryptoKey key = CryptoKey.find(Config.instance().getHostName()+".k1",CryptoKey.PURPOSE_SIGNING);
+        CryptoKey key = CryptoKey.find(getCryptoKeyId() ,CryptoKey.PURPOSE_SIGNING);
         if (key.getRawRecord().isNewRecord()){
             return null;
         }
         return key;
+    }
+
+    public static long  getCurrentKeyNumber(){
+        String sKeyNumber =  SequentialNumber.get("KEYS").getCurrentNumber();
+        return Long.parseLong(sKeyNumber);
+    }
+    public static String getCryptoKeyId(){
+        return BecknUtil.getNetworkParticipantId() + ".k"+  BecknUtil.getCurrentKeyNumber();
     }
 }

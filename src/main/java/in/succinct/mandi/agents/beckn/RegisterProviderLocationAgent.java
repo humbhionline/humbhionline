@@ -76,7 +76,8 @@ public class RegisterProviderLocationAgent extends ExtractorTask<Facility> imple
                     inputFormat(InputFormat.JSON).
                     header("Content-Type", MimeType.APPLICATION_JSON.toString());
 
-            call.header("Authorization", new Request(provider_location.toString()).generateAuthorizationHeader(BecknUtil.getNetworkParticipantId(), BecknUtil.getNetworkParticipantId()+".k1"));
+            call.header("Authorization", new Request(provider_location.toString()).generateAuthorizationHeader(BecknUtil.getNetworkParticipantId(),
+                    BecknUtil.getCryptoKeyId()));
             call.getResponseAsJson();
 
         }

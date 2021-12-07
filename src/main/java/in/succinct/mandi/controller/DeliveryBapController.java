@@ -35,7 +35,6 @@ public class DeliveryBapController extends Controller {
     }
     public View nack(Request request, String realm){
         Acknowledgement nack = new Acknowledgement(Status.NACK);
-        //nack.setSignature(Request.generateSignature(request.hash(),request.getPrivateKey(request.getContext().getBppId(),request.getContext().getBppId() +".k1")));
 
         return new BytesView(getPath(),
                 new Response(request.getContext(),new Acknowledgement(Status.NACK)).toString().getBytes(StandardCharsets.UTF_8),
@@ -49,7 +48,6 @@ public class DeliveryBapController extends Controller {
     }
     public View ack(Request request){
         Acknowledgement ack = new Acknowledgement(Status.ACK);
-        //ack.setSignature(Request.generateSignature(request.hash(),request.getPrivateKey(request.getContext().getBapId(),request.getContext().getBapId() +".k1")));
         return new BytesView(getPath(),new Response(request.getContext(),ack).toString().getBytes(StandardCharsets.UTF_8));
     }
 

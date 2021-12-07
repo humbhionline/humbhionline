@@ -65,7 +65,6 @@ public class BppController extends Controller {
 
     public View nack(Request request,String realm){
         Acknowledgement nack = new Acknowledgement(Status.NACK);
-        //nack.setSignature(Request.generateSignature(request.hash(),request.getPrivateKey(request.getContext().getBppId(),request.getContext().getBppId() +".k1")));
 
         return new BytesView(getPath(),
                 new Response(request.getContext(),new Acknowledgement(Status.NACK)).getInner().toString().getBytes(StandardCharsets.UTF_8),
