@@ -16,6 +16,7 @@ import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Tag;
 import in.succinct.mandi.db.model.User;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
@@ -33,6 +34,15 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
     }
     @Override
     public void beforeSave(Inventory inventory) {
+        if (inventory.isCourierAggregator() && ObjectUtil.equals(Inventory.BECKN,inventory.getManagedBy())){
+            if (inventory.getBecknNetwork() == null){
+                List<BecknNetwork> all = BecknNetwork.all();
+                if (all.size() == 1){
+                    inventory.setBecknNetworkId(all.get(0).getId());
+                }
+                throw new RuntimeException("Can be managed only by one Beckn Network");
+            }
+        }
         Sku sku = inventory.getSku();
         Item item = sku.getItem().getRawRecord().getAsProxy(Item.class);
         if (item.isItemRestrictedToSingleSeller()){

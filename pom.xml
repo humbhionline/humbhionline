@@ -9,13 +9,14 @@
     <description>mandi</description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <revision>2.7-SNAPSHOT</revision>
     </properties>
     <build>
         <plugins>
             <plugin>
                 <groupId>com.github.venkatramanm.swf-all</groupId>
                 <artifactId>swf-maven-plugin</artifactId>
-                <version>2.6-SNAPSHOT</version>
+                <version>${revision}</version>
                 <dependencies>
                     <dependency>
                         <groupId>in.succinct</groupId>
@@ -65,27 +66,27 @@
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-mobilesignup</artifactId>
-            <version>[2.6-SNAPSHOT,)</version>
+                <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-calendar</artifactId>
-            <version>[2.6-SNAPSHOT,)</version>
+                <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-wiki</artifactId>
-            <version>[2.6-SNAPSHOT,)</version>
+                <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-datamart</artifactId>
-            <version>[2.6-SNAPSHOT,)</version>
+                <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-slideshow</artifactId>
-            <version>[2.6-SNAPSHOT,)</version>
+                <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>in.succinct.beckn</groupId>

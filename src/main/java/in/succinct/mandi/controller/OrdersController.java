@@ -238,7 +238,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && !ObjectUtil.isVoid(inventory.getManagedBy())){
                 CourierOrder courierOrder = null;
                 if (inventory.isCourierAggregator()){
-                    CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(inventory.getManagedBy());
+                    CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(inventory);
                     order.setExternalTransactionReference(inventory.getQuoteRef());
                     courierOrder = courierAggregator.book(order,order.getParentOrder());
                 }else {

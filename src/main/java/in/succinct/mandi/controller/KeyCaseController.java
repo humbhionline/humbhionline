@@ -12,14 +12,14 @@ public class KeyCaseController extends Controller {
         super(path);
     }
 
-    public <T> View title() throws  Exception{
+    public <T> View snake() throws  Exception{
         FormatHelper<T> helper = FormatHelper.instance(getPath().getProtocol(),getPath().getInputStream());
-        helper.change_key_case(KeyCase.TITLE);
-        return new BytesView(getPath(),helper.toString().getBytes());
+        helper.change_key_case(KeyCase.SNAKE);
+        return new BytesView(getPath(),helper.toString().getBytes(),getPath().getReturnProtocol());
     }
     public <T> View camel() throws  Exception{
         FormatHelper<T> helper = FormatHelper.instance(getPath().getProtocol(),getPath().getInputStream());
         helper.change_key_case(KeyCase.CAMEL);
-        return new BytesView(getPath(),helper.toString().getBytes());
+        return new BytesView(getPath(),helper.toString().getBytes(),getPath().getReturnProtocol());
     }
 }

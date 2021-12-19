@@ -8,12 +8,14 @@ import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
-import in.succinct.beckn.Request;
+import com.venky.swf.sql.Select;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.util.Iterator;
+import java.util.List;
 
 public class BecknPublicKeyFinder implements Extension {
     static {
@@ -28,10 +30,9 @@ public class BecknPublicKeyFinder implements Extension {
 
         JSONObject object = new JSONObject();
         object.put("subscriber_id",subscriber_id);
-        //object.put("type","bpp");
-        //object.put("domain","local-retail");
 
-        JSONArray responses = lookup(subscriber_id);
+
+        JSONArray responses = lookup(object);
 
         if (responses != null && !responses.isEmpty()){
             JSONObject response = (JSONObject) responses.get(0);
@@ -44,15 +45,24 @@ public class BecknPublicKeyFinder implements Extension {
         object.put("subscriber_id",subscriber_id);
         return lookup(object);
     }
-    public static JSONArray lookup(JSONObject object){
-        //object.put("type","bpp");
-        //object.put("domain","local-retail");
-
-        JSONArray responses = new Call<JSONObject>().method(HttpMethod.POST).url(BecknUtil.getRegistryUrl() +"/lookup").input(object).inputFormat(InputFormat.JSON)
+    public static JSONArray lookup(BecknNetwork network,JSONObject object){
+        JSONArray responses = new Call<JSONObject>().method(HttpMethod.POST).url(network.getRegistryUrl() +"/lookup").input(object).inputFormat(InputFormat.JSON)
                 .header("content-type", MimeType.APPLICATION_JSON.toString())
                 .header("accept",MimeType.APPLICATION_JSON.toString()).getResponseAsJson();
+        return responses;
 
-        if (responses == null ) {
+    }
+    public static JSONArray lookup(JSONObject object){
+        List<BecknNetwork> allNetworks = new Select().from(BecknNetwork.class).execute();
+        JSONArray responses = null;
+        for (BecknNetwork network : allNetworks){
+            responses = lookup(network,object);
+            if (responses != null &&  !responses.isEmpty()){
+                break;
+            }
+        }
+
+        if (responses == null) {
             responses = new JSONArray();
         }
         for (Iterator<?> i = responses.iterator(); i.hasNext(); ) {

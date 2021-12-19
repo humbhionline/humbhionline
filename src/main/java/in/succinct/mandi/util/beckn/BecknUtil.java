@@ -1,12 +1,17 @@
 package in.succinct.mandi.util.beckn;
 
+import com.venky.cache.Cache;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.sequence.db.model.SequentialNumber;
 import com.venky.swf.routing.Config;
+import in.succinct.beckn.Subscriber;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,9 +19,21 @@ public class BecknUtil {
     public static String getNetworkParticipantId(){
         return Config.instance().getHostName();
     }
-    public static String getSubscriberId(String domain, String type){
+    public static String getSubscriberId(String domain, String type , String registryId){
+        BecknNetwork network = BecknNetwork.find(registryId);
+        return getSubscriberId(domain,type,network);
+    }
+    public static String getSubscriberId(String domain, String type , BecknNetwork network){
+        if (network != null) {
+            if (ObjectUtil.equals(type, Subscriber.SUBSCRIBER_TYPE_BAP)) {
+                return network.getDeliveryBapSubscriberId();
+            } else if (ObjectUtil.equals(type, Subscriber.SUBSCRIBER_TYPE_BPP)) {
+                return network.getRetailBppSubscriberId();
+            }
+        }
         return String.format("%s.%s.%s",getNetworkParticipantId(),domain,type);
     }
+
     public static String getIdPrefix(){
         //return "./nic2004:52110/IND.std:080/";
         return "./retail.kirana/ind.blr/";
@@ -65,10 +82,6 @@ public class BecknUtil {
         return "-1" ;//throw new RuntimeException("Id not formated as expected!");
     }
 
-    public static String getRegistryUrl(){
-        return Config.instance().getProperty("beckn.registry.url");
-
-    }
     public static CryptoKey getSelfEncryptionKey(){
         CryptoKey encryptionKey = CryptoKey.find(getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION);
         if (encryptionKey.getRawRecord().isNewRecord()){

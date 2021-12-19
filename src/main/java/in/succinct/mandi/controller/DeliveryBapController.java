@@ -14,6 +14,7 @@ import in.succinct.beckn.Acknowledgement.Status;
 import in.succinct.beckn.Error;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.extensions.BecknPublicKeyFinder;
 import in.succinct.mandi.integrations.beckn.MessageCallbackUtil;
 import in.succinct.mandi.util.beckn.BecknUtil;
@@ -119,7 +120,12 @@ public class DeliveryBapController extends Controller {
         JSONObject object = (JSONObject) JSONValue.parse(payload);
 
         JSONObject lookupJSON = new JSONObject();
-        lookupJSON.put("subscriber_id", Config.instance().getProperty("beckn.registry.id"));
+        BecknNetwork network = BecknNetwork.findByDeliveryBapUrl(getPath().controllerPath());
+        if (network == null){
+            throw new RuntimeException("Could  not identify network from path");
+        }
+
+        lookupJSON.put("subscriber_id", network.getRegistryId());
         lookupJSON.put("domain","nic2004:55204");
         JSONArray array = BecknPublicKeyFinder.lookup(lookupJSON);
         String signingPublicKey = null;

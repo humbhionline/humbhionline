@@ -55,6 +55,9 @@ public interface BecknMessage extends Model {
 
     public ResponseConsolidator getConsolidator();
 
+    void setRequestPath(String target);
+    public String getRequestPath();
+
     public static abstract class ResponseConsolidator extends BecknAsyncTask {
         BecknMessage message ;
 
@@ -90,7 +93,7 @@ public interface BecknMessage extends Model {
             }
             validateResponse(consolidated);
             Request request = new Request(consolidated);
-            request.getContext().setBppId(BecknUtil.getSubscriberId(request.getContext().getDomain(),"BPP"));
+            request.getContext().setBppId(BecknNetwork.findByRetailBppUrl(message.getRequestPath()).getRetailBppSubscriberId());
             request.getContext().setBppUri(Config.instance().getServerBaseUrl() + "/bpp");
             return request;
         }

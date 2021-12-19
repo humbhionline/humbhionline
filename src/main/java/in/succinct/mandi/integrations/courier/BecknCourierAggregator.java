@@ -8,6 +8,7 @@ import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Select;
 import in.succinct.beckn.Acknowledgement.Status;
 import in.succinct.beckn.Context;
 import in.succinct.beckn.Descriptor;
@@ -16,6 +17,7 @@ import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Intent;
 import in.succinct.beckn.Item;
+import in.succinct.beckn.Items;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnSearch;
@@ -25,8 +27,10 @@ import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
+import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.extensions.BecknPublicKeyFinder;
 import in.succinct.mandi.integrations.beckn.MessageCallbackUtil;
 import in.succinct.mandi.integrations.courier.Courier.CourierDescriptor;
@@ -45,26 +49,19 @@ import java.util.Locale;
 import java.util.UUID;
 
 class BecknCourierAggregator implements CourierAggregator {
-    private static BecknCourierAggregator instance;
-    public static BecknCourierAggregator getInstance(){
-        if (instance == null){
-            synchronized (BecknCourierAggregator.class){
-                if (instance == null){
-                    instance = new BecknCourierAggregator();
-                }
-            }
-        }
-        return instance;
+    private final BecknNetwork network ;
+    public BecknCourierAggregator(BecknNetwork network){
+        this.network = network;
     }
-    private BecknCourierAggregator(){}
 
     private Context makeContext(){
         Context context = new Context();
-        context.setDomain("nic2004:55204");context.setCity("std:080");context.setCountry("IND");
+        context.setDomain("nic2004:55204");
+        context.setCity("std:080");
+        context.setCountry("IND");
 
-
-        context.setBapId("dbap."+ Config.instance().getHostName() );
-        context.setBapUri(Config.instance().getServerBaseUrl() +"/delivery_bap");
+        context.setBapId(network.getDeliveryBapUrl());
+        context.setBapUri(network.getDeliveryBapUrl());
         context.setTimestamp(new Timestamp(System.currentTimeMillis()));
         context.setMessageId(UUID.randomUUID().toString());
         context.setTransactionId(context.getMessageId());
@@ -107,25 +104,6 @@ class BecknCourierAggregator implements CourierAggregator {
         fulfillment.setStart(makeFulfillmentStop(from));
         fulfillment.setEnd(makeFulfillmentStop(to));
         intent.setFulfillment(fulfillment);
-
-        Item item = new Item();
-        item.setId(BecknUtil.getBecknId(inventory.getId(), Entity.item));
-        item.setLocationId(BecknUtil.getBecknId(inventory.getFacilityId(),Entity.provider_location));
-        item.setDescriptor(new Descriptor());
-        item.getDescriptor().setName(inventory.getSku().getName());
-        Price price = new Price();
-        item.setPrice(price);
-
-        price.setListedValue(inventory.getMaxRetailPrice());
-        price.setCurrency("INR");
-        if (DoubleUtils.compareTo(inventory.getMaxRetailPrice(),inventory.getSellingPrice(),2)>0){
-            price.setOfferedValue(inventory.getSellingPrice());
-        }
-        price.setValue(inventory.getSellingPrice());
-
-        intent.setItem(item);
-
-
         return message;
     }
     private Request makeSearchJson(Address from, Address to, Inventory inventory){
@@ -146,6 +124,35 @@ class BecknCourierAggregator implements CourierAggregator {
         request.setMessage(message);
         return request;
     }
+    private Request makeConfirmJson(Order transportOrder, Order parentOrder){
+        Request request = new Request();
+        Context context = makeContext();
+        context.setAction("confirm");
+        request.setContext(context);
+        Message message = makeConfirmMessage(transportOrder,parentOrder);
+        request.setMessage(message);
+        return request;
+    }
+    private Message makeConfirmMessage(Order transportOrder,Order parentOrder){
+        Message message = new Message();
+
+        Address from = parentOrder.getFacility();
+        Address to = parentOrder.getShipToAddress();
+
+        in.succinct.beckn.Order order = new in.succinct.beckn.Order();
+        message.setOrder(order);
+
+        Fulfillment fulfillment = new Fulfillment();
+        fulfillment.setStart(makeFulfillmentStop(from));
+        fulfillment.setEnd(makeFulfillmentStop(to));
+        order.setFulfillment(fulfillment);
+        Item item = new Item();
+        Items items = new Items();
+        order.setItems(items);
+        items.add(item);
+        item.setId("0");
+        return message;
+    }
     JSONObject gw = null;
     @SuppressWarnings("unchecked")
     public JSONObject getGateway(){
@@ -153,8 +160,8 @@ class BecknCourierAggregator implements CourierAggregator {
             JSONObject input = new JSONObject();
             input.put("type","BG");
             input.put("domain","nic2004:55204");input.put("city","std:080");input.put("country","IND");
-            JSONArray out = BecknPublicKeyFinder.lookup(input);
-            if (out.size() > 0){
+            JSONArray out = BecknPublicKeyFinder.lookup(network,input);
+            if (out != null && out.size() > 0){
                 gw = (JSONObject)out.get(0);
             }
         }
@@ -250,10 +257,11 @@ class BecknCourierAggregator implements CourierAggregator {
 
     @Override
     public CourierOrder book(Order transportOrder, Order parentOrder) {
-        Request searchRequest = makeSearchJson(parentOrder);
+        Request searchRequest = makeConfirmJson(transportOrder,parentOrder);
         if (ObjectUtil.isVoid(transportOrder.getExternalTransactionReference())){
             throw new RuntimeException("Cannot book with out searching first.");
         }
+
         searchRequest.getContext().setTransactionId(transportOrder.getExternalTransactionReference());
         
 
@@ -300,7 +308,7 @@ class BecknCourierAggregator implements CourierAggregator {
 
                         @Override
                         public double getSellingPrice() {
-                            return item.getPrice().getValue();
+                            return item.getPrice().getEstimatedValue();
                         }
 
                     });
@@ -318,7 +326,4 @@ class BecknCourierAggregator implements CourierAggregator {
         Request searchRequest = makeSearchJson(from,to,inventory);
         return getQuotes(searchRequest);
     }
-
-
-
 }

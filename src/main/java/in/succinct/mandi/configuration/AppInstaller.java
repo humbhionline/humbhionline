@@ -37,6 +37,7 @@ import in.succinct.mandi.db.model.OrderAddress;
 import in.succinct.mandi.db.model.SavedAddress;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.extensions.AfterSaveOrderAddress;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import org.apache.commons.io.FileUtils;
@@ -172,17 +173,25 @@ public class AppInstaller implements Installer {
     }
 
     private void registerBecknKeys() {
-        if (!ObjectUtil.isVoid(BecknUtil.getRegistryUrl())){
-            CryptoKey encryptionKey = BecknUtil.getSelfEncryptionKey();
-            CryptoKey key = BecknUtil.getSelfKey();
-            String uniqueKeyId = key.getAlias();
-            Map<String,String> domainMap = new HashMap<String,String>(){{
-                put(".nic2004:55204.BAP", "nic2004:55204");
-                put(".nic2004:52110.BPP.","nic2004:52110");
-            }};
+        CryptoKey encryptionKey = BecknUtil.getSelfEncryptionKey();
+        CryptoKey key = BecknUtil.getSelfKey();
+        String uniqueKeyId = key.getAlias();
+
+        List<BecknNetwork> networks = new Select().from(BecknNetwork.class).execute();
+        for (BecknNetwork network : networks){
+            if (network.isSubscriptionActive()){
+                continue;
+            }
             for (String subscriberPrefix : new String[]{ ".nic2004:55204.BAP" , ".nic2004:52110.BPP" }){
-                String domain  = domainMap.get(subscriberPrefix);
-                String subscriberId = String.format("%s%s",Config.instance().getHostName(),subscriberPrefix);
+                String[] parts = subscriberPrefix.split("\\.");
+
+                String domain  = parts[1];
+                String type = parts[2];
+
+                String subscriberId = BecknUtil.getSubscriberId(domain,type,network);
+                if (ObjectUtil.isVoid( subscriberId)) {
+                    continue;
+                }
                 JSONObject object = new JSONObject();
                 object.put("subscriber_id",subscriberId);
                 object.put("country","IND");
@@ -199,14 +208,13 @@ public class AppInstaller implements Installer {
 
                 TaskManager.instance().executeAsync((Task) () -> {
 
-                    JSONObject response = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
+                    JSONObject response = new Call<JSONObject>().url(network.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
                             header("Content-Type", MimeType.APPLICATION_JSON.toString()).
                             header("Accept",MimeType.APPLICATION_JSON.toString()).
                             header("Authorization", request.generateAuthorizationHeader(subscriberId, uniqueKeyId)).
-                                    getResponseAsJson();
+                            getResponseAsJson();
                 },false);
             }
-
 
 
         }

@@ -4,6 +4,7 @@ import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.indexing.Index;
 import com.venky.swf.db.annotations.column.validations.Enumeration;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 
 public interface Inventory extends in.succinct.plugins.ecommerce.db.model.inventory.Inventory {
 
@@ -36,6 +37,11 @@ public interface Inventory extends in.succinct.plugins.ecommerce.db.model.invent
     @IS_NULLABLE
     public String getManagedBy();
     public void setManagedBy(String managedBy);
+
+    @IS_NULLABLE
+    public Long getBecknNetworkId();
+    public void setBecknNetworkId(Long id);
+    public BecknNetwork getBecknNetwork();
 
 
     @IS_VIRTUAL

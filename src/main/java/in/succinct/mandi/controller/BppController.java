@@ -3,6 +3,8 @@ package in.succinct.mandi.controller;
 import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
+import com.venky.core.util.ObjectUtil;
+import com.venky.network.Network;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
@@ -23,6 +25,7 @@ import in.succinct.beckn.Option;
 import in.succinct.beckn.Options;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
+import in.succinct.beckn.Subscriber;
 import in.succinct.mandi.agents.beckn.BecknAsyncTask;
 import in.succinct.mandi.agents.beckn.BecknExtnAttributes;
 import in.succinct.mandi.agents.beckn.Cancel;
@@ -34,6 +37,7 @@ import in.succinct.mandi.agents.beckn.Update;
 import in.succinct.mandi.db.model.OrderCancellationReason;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.beckn.BecknMessage;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.db.model.beckn.ServerResponse;
 import in.succinct.mandi.extensions.BecknPublicKeyFinder;
 import in.succinct.mandi.util.InternalNetwork;
@@ -55,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -106,6 +111,7 @@ public class BppController extends Controller {
 
             if ( Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
                 return request.verifySignature("X-Gateway-Authorization",headers , false) &&
+                        request.verifySignature("Proxy-Authorization",headers , false) &&
                         request.verifySignature("Authorization",headers , Config.instance().getBooleanProperty("beckn.auth.enabled", false));
 
             }else {
@@ -121,8 +127,9 @@ public class BppController extends Controller {
     private <C extends BecknAsyncTask> View act(Class<C> clazzTask){
         try {
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            request.getContext().setBppId(BecknUtil.getSubscriberId(request.getContext().getDomain(),"BPP"));
-            request.getContext().setBppUri(Config.instance().getServerBaseUrl() + "/bpp");
+            request.getContext().setBppId(BecknNetwork.findByRetailBppUrl(getPath().controllerPath()).getRetailBppSubscriberId());
+            request.getContext().setBppUri(Config.instance().getServerBaseUrl() + getPath().controllerPath());
+            request.getContext().setAction(clazzTask.getSimpleName().toLowerCase(Locale.ROOT));
 
             if (isRequestAuthenticated(request)){
                 if (clazzTask != null){
@@ -155,6 +162,7 @@ public class BppController extends Controller {
         message.setExpirationTime(System.currentTimeMillis() + request.getContext().getTtl() * 1000L);
         message.setNumPendingResponses(new Bucket(nodes.size()));
         message.setCallBackUri(request.getExtendedAttributes().get(BecknExtnAttributes.CALLBACK_URL));
+        message.setRequestPath(getPath().controllerPath());
         message.setRequestPayload(request.toString());
         message.save();
 
@@ -309,15 +317,21 @@ public class BppController extends Controller {
         }
 
     }
-
     @RequireLogin(value = false)
     public View on_subscribe() throws Exception{
         String payload = StringUtil.read(getPath().getInputStream());
         JSONObject object = (JSONObject) JSONValue.parse(payload);
 
+
+        BecknNetwork network = BecknNetwork.findByRetailBppUrl(getPath().controllerPath());
+        if (network == null){
+            throw new RuntimeException("Could  not identify network from path");
+        }
+
         JSONObject lookupJSON = new JSONObject();
-        lookupJSON.put("subscriber_id",Config.instance().getProperty("beckn.registry.id"));
+        lookupJSON.put("subscriber_id",network.getRegistryId());
         lookupJSON.put("domain","nic2004:52110");
+        lookupJSON.put("type", Subscriber.SUBSCRIBER_TYPE_LOCAL_REGISTRY);
         JSONArray array = BecknPublicKeyFinder.lookup(lookupJSON);
         String signingPublicKey = null;
         String encrPublicKey = null;
@@ -347,7 +361,7 @@ public class BppController extends Controller {
         JSONObject output = new JSONObject();
         output.put("answer", Crypt.getInstance().decrypt((String)object.get("challenge"),"AES",key));
 
-        return new BytesView(getPath(),output.toString().getBytes());
+        return new BytesView(getPath(),output.toString().getBytes(),MimeType.APPLICATION_JSON);
     }
 
 }

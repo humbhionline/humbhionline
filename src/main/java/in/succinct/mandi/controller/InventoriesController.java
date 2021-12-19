@@ -132,7 +132,7 @@ public class InventoriesController extends ModelController<Inventory> {
                         Courier courier = CourierFactory.getInstance().getCourier(record.getManagedBy());
                         record.setDeliveryCharges(courier.getQuote(order).getSellingPrice());
                     }else {
-                        List<Quote> quotes = CourierAggregatorFactory.getInstance().getCourierAggregator(record.getManagedBy()).getQuotes(order);
+                        List<Quote> quotes = CourierAggregatorFactory.getInstance().getCourierAggregator(record).getQuotes(order);
                         pass = !quotes.isEmpty();
                         if (pass) {
                             Quote quote = quotes.stream().min((o1, o2) -> (int) (o1.getSellingPrice() - o2.getSellingPrice())).get();
@@ -160,7 +160,7 @@ public class InventoriesController extends ModelController<Inventory> {
                             Courier courier = CourierFactory.getInstance().getCourier(record.getManagedBy());
                             record.setDeliveryCharges(courier.getQuote(facility,getCurrentUser(),record).getSellingPrice());
                         }else {
-                            CourierAggregator aggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(record.getManagedBy());
+                            CourierAggregator aggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(record);
                             List<Quote> quotes = aggregator.getQuotes(facility,getCurrentUser(),record);
                             pass = !quotes.isEmpty();
                             if (pass) {

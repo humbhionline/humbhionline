@@ -15,6 +15,7 @@ import in.succinct.beckn.Country;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Facility;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import org.json.simple.JSONObject;
@@ -71,15 +72,18 @@ public class RegisterProviderLocationAgent extends ExtractorTask<Facility> imple
                 apiName = "/deregister_location";
             }
 
-            Call<JSONObject> call = new Call<JSONObject>().url(BecknUtil.getRegistryUrl() + apiName).method(HttpMethod.POST).
-                    input(provider_location.getInner()).
-                    inputFormat(InputFormat.JSON).
-                    header("Content-Type", MimeType.APPLICATION_JSON.toString());
+            for (BecknNetwork network : BecknNetwork.all()){
+                if (network.isProviderLocationRegistrySupported()){
+                    Call<JSONObject> call = new Call<JSONObject>().url(network.getRegistryUrl() + apiName).method(HttpMethod.POST).
+                            input(provider_location.getInner()).
+                            inputFormat(InputFormat.JSON).
+                            header("Content-Type", MimeType.APPLICATION_JSON.toString());
 
-            call.header("Authorization", new Request(provider_location.toString()).generateAuthorizationHeader(BecknUtil.getNetworkParticipantId(),
-                    BecknUtil.getCryptoKeyId()));
-            call.getResponseAsJson();
-
+                    call.header("Authorization", new Request(provider_location.toString()).generateAuthorizationHeader(network.getRetailBppSubscriberId(),
+                            BecknUtil.getCryptoKeyId()));
+                    call.getResponseAsJson();
+                }
+            }
         }
     }
 
