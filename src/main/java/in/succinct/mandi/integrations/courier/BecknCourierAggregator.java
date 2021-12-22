@@ -1,6 +1,7 @@
 package in.succinct.mandi.integrations.courier;
 
 import com.venky.core.math.DoubleUtils;
+import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
@@ -20,6 +21,7 @@ import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Message;
+import in.succinct.beckn.OnConfirm;
 import in.succinct.beckn.OnSearch;
 import in.succinct.beckn.OnStatus;
 import in.succinct.beckn.Price;
@@ -42,6 +44,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,7 +63,7 @@ class BecknCourierAggregator implements CourierAggregator {
         context.setCity("std:080");
         context.setCountry("IND");
 
-        context.setBapId(network.getDeliveryBapUrl());
+        context.setBapId(network.getDeliveryBapSubscriberId());
         context.setBapUri(network.getDeliveryBapUrl());
         context.setTimestamp(new Timestamp(System.currentTimeMillis()));
         context.setMessageId(UUID.randomUUID().toString());
@@ -168,6 +171,7 @@ class BecknCourierAggregator implements CourierAggregator {
 
         return gw;
     }
+
     private List<OnSearch> search(Request request) {
         JSONObject gw = getGateway();
         String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),BecknUtil.getCryptoKeyId());
@@ -252,19 +256,30 @@ class BecknCourierAggregator implements CourierAggregator {
             public double getSellingPrice() {
                 return becknOrder.getPayment().getDouble("amount");
             }
+
         };
     }
 
     @Override
     public CourierOrder book(Order transportOrder, Order parentOrder) {
-        Request searchRequest = makeConfirmJson(transportOrder,parentOrder);
+        Request confirmRequest = makeConfirmJson(transportOrder,parentOrder);
         if (ObjectUtil.isVoid(transportOrder.getExternalTransactionReference())){
             throw new RuntimeException("Cannot book with out searching first.");
         }
 
-        searchRequest.getContext().setTransactionId(transportOrder.getExternalTransactionReference());
-        
+        confirmRequest.getContext().setTransactionId(transportOrder.getExternalTransactionReference());
 
+        String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId());
+
+
+        InputStream responseStream = new Call<>().url(confirmRequest.getContext().getBppUri()).header("content-type","application/json").header("accept","application/json").
+                header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(confirmRequest.toString()).getResponseStream();
+
+        Response response = new Response(StringUtil.read(responseStream));
+        if (response.getAcknowledgement().getStatus() == Status.ACK) {
+            JSONObject aResponse = MessageCallbackUtil.getInstance().getNextResponse(confirmRequest.getContext().getMessageId(),3000L);
+            OnConfirm onConfirm = new OnConfirm(aResponse);
+        }
 
         return null;
     }

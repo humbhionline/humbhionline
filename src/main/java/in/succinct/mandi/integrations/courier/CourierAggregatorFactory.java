@@ -33,7 +33,7 @@ public class CourierAggregatorFactory {
     public String getAggregatorKey(Inventory deliveryRecord){
         String aggregatorKey ;
         if (ObjectUtil.equals(Inventory.BECKN,deliveryRecord.getManagedBy())){
-            aggregatorKey = String.format("%s://%s",Inventory.BECKN,deliveryRecord.getBecknNetwork().getRegistryId());
+            aggregatorKey = getBecknNetworkAggregatorKey(deliveryRecord.getBecknNetwork());
         }else {
             aggregatorKey = deliveryRecord.getManagedBy();
         }
