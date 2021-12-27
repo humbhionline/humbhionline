@@ -58,12 +58,15 @@ public class BecknUtil {
         return getBecknId(String.valueOf(localUniqueId),becknEntity);
     }
     public static String getBecknId(String localUniqueId,Entity becknEntity){
+        return getBecknId(getIdPrefix(),localUniqueId, getIdSuffix(), becknEntity);
+    }
+    public static String getBecknId(String prefix, String localUniqueId, String suffix , Entity becknEntity){
         StringBuilder builder = new StringBuilder();
-        builder.append(getIdPrefix());
+        builder.append(prefix);
         if (!ObjectUtil.isVoid(localUniqueId)){
             builder.append(localUniqueId).append("@");
         }
-        builder.append(getIdSuffix());
+        builder.append(suffix);
         if (becknEntity != null){
             builder.append(".").append(becknEntity);
         }

@@ -34,15 +34,6 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
     }
     @Override
     public void beforeSave(Inventory inventory) {
-        if (inventory.isCourierAggregator() && ObjectUtil.equals(Inventory.BECKN,inventory.getManagedBy())){
-            if (inventory.getBecknNetwork() == null){
-                List<BecknNetwork> all = BecknNetwork.all();
-                if (all.size() == 1){
-                    inventory.setBecknNetworkId(all.get(0).getId());
-                }
-                throw new RuntimeException("Can be managed only by one Beckn Network");
-            }
-        }
         Sku sku = inventory.getSku();
         Item item = sku.getItem().getRawRecord().getAsProxy(Item.class);
         if (item.isItemRestrictedToSingleSeller()){
@@ -61,11 +52,6 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
         }
         List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
         boolean currentSkuIsDeliveryAsset = deliverySkuIds.contains(inventory.getSkuId());
-        if (currentSkuIsDeliveryAsset && !ObjectUtil.isVoid(inventory.getManagedBy())){
-            if (!inventory.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).isStaff()){
-                throw new RuntimeException("Courier integrations are maintained by HumBhiOnline!");
-            }
-        }
         if (inventory.isInfinite() || inventory.getQuantity() > 0 ){
             Expression where = new Expression(inventory.getReflector().getPool(),Conjunction.AND);
             where.add(new Expression(inventory.getReflector().getPool(),"FACILITY_ID",Operator.EQ,inventory.getFacilityId()));

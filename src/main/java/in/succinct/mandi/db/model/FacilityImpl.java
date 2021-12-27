@@ -130,7 +130,7 @@ public class FacilityImpl extends ModelImpl<Facility> {
         if (facility.isDeliveryProvided()){
             charges =  facility.getMinDeliveryCharge();
             Inventory deliveryRule = getDeliveryRule(false);
-            if (deliveryRule != null && ObjectUtil.isVoid(deliveryRule.getManagedBy())){
+            if (deliveryRule != null){
                 double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, deliveryRule.getSku().getPackagingUOM().getName());
                 cf = new DoubleHolder(cf,4).getHeldDouble().doubleValue();
                 if (cf == 0){

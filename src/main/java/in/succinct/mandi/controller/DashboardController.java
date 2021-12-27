@@ -9,7 +9,7 @@ import com.venky.swf.controller.Controller;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
-import org.pegdown.PegDownProcessor;
+import com.venky.swf.plugins.wiki.util.PegDownProcessor;
 
 import java.io.File;
 import java.io.FileInputStream;

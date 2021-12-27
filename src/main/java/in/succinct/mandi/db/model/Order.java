@@ -198,8 +198,8 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     public void setOnHold(boolean hold);
 
 
-    public static Order find (String beckTransactionId){
-        List<Order> orders = new Select().from(Order.class).where(new Expression(ModelReflector.instance(Order.class).getPool(), "EXTERNAL_TRANSACTION_REFERENCE", Operator.EQ,beckTransactionId)).execute();
+    public static Order find (String externalTransactionReference){
+        List<Order> orders = new Select().from(Order.class).where(new Expression(ModelReflector.instance(Order.class).getPool(), "EXTERNAL_TRANSACTION_REFERENCE", Operator.EQ,externalTransactionReference)).execute();
         if (orders.size() != 1){
             return null;
         }
