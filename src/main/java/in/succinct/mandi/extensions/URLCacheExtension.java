@@ -77,7 +77,7 @@ public class URLCacheExtension implements Extension {
         return false;
     }
     private String getURL(Path path) {
-        StringBuilder requestURL = new StringBuilder(path.getRequest().getRequestURL().toString());
+        StringBuilder requestURL = new StringBuilder(path.getTarget()); // Need to check based on target and not request path. Or else there is an infinite loop with forwarding.
         String queryString = path.getRequest().getQueryString();
 
         if (queryString == null) {

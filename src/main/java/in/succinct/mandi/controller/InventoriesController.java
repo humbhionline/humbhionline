@@ -4,11 +4,13 @@ import com.venky.core.math.DoubleHolder;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
+import com.venky.network.Network;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.util.BoundingBox;
 import com.venky.swf.pm.DataSecurityFilter;
@@ -24,13 +26,13 @@ import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
-import in.succinct.mandi.db.model.UserLocation;
-import in.succinct.mandi.integrations.courier.Courier;
-import in.succinct.mandi.integrations.courier.Courier.Quote;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.integrations.courier.CourierAggregator;
+import in.succinct.mandi.integrations.courier.CourierAggregator.CourierQuote;
 import in.succinct.mandi.integrations.courier.CourierAggregatorFactory;
-import in.succinct.mandi.integrations.courier.CourierFactory;
 import in.succinct.mandi.util.CompanyUtil;
+import in.succinct.mandi.util.beckn.BecknUtil;
+import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
@@ -83,6 +85,53 @@ public class InventoriesController extends ModelController<Inventory> {
         return null;
     }
 
+    @Override
+    protected <T> View list(List<Inventory> records, boolean isCompleteList, IntegrationAdaptor<Inventory, T> overrideIntegrationAdaptor) {
+        Order retailOrder = getOrder();
+        if (retailOrder  != null){
+            addExternalDeliveryInventory(records);
+        }else {
+            addExternalInventory(records);
+        }
+        return super.list(records, isCompleteList, overrideIntegrationAdaptor);
+    }
+
+    private void addExternalInventory(List<Inventory> records) {
+    }
+
+    private void addExternalDeliveryInventory(List<Inventory> records) {
+        Order retailOrder = getOrder();
+        for (BecknNetwork network : BecknNetwork.all()){
+            CourierAggregator aggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(network);
+            List<CourierQuote> quotes = aggregator.getQuotes(retailOrder);
+            for (CourierQuote quote : quotes){
+                Inventory record = Database.getTable(Inventory.class).newRecord();
+                ///record.
+                //Quantity is number of persons to do the job..
+                record.setInfinite(true);
+                record.setFacilityId(retailOrder.getFacilityId());
+                record.setChargeableDistance(retailOrder.getFacility().getDistance());
+                record.setDeliveryCharges(quote.getItem().getPrice().getEstimatedValue());
+                record.setDeliveryProvided(true);
+                record.setExternal(true);
+                record.setTags(quote.getItem().getDescriptor().getName()+", "+quote.getProvider().getDescriptor().getName());
+                record.setNetworkId(network.getRegistryId());
+                record.setMaxRetailPrice(0.0D);
+                record.setSellingPrice(0.0D);
+
+
+                String itemId = BecknUtil.getBecknId("/nic2004:55204/",quote.getItem().getId(), "@" + quote.getContext().getBppId(),Entity.item);
+
+                record.setExternalSkuId(itemId);
+                record.setExternalFacilityId(BecknUtil.getBecknId("/nic2004:55204/",quote.getProvider().getId(), "@" + quote.getContext().getBppId(),Entity.provider));
+                record.setSkuId(deliverySkuIds.get(0)) ; //May need to fine tune this TODO VENKY
+                records.add(record);
+
+            }
+        }
+    }
+
+
     List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
     boolean HBO_SUBSCRIPTION_ITEM_PRESENT = CompanyUtil.isHumBhiOnlineSubscriptionItemPresent();
     @Override
@@ -97,8 +146,7 @@ public class InventoriesController extends ModelController<Inventory> {
             boolean pass = facility.isPublished();
             pass = pass && record.isPublished();
             pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
-                    || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem() ||
-                    !ObjectUtil.isVoid(record.getManagedBy()));
+                    || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem());
 
 
             if (order != null) {
@@ -106,10 +154,10 @@ public class InventoriesController extends ModelController<Inventory> {
                 //
                 GeoLocation deliveryBoyLocation = getDeliveryBoyLocation(facility,record);
 
-                double distanceToDeliveryLocation = 0;
-                double distanceBetweenPickUpAndDeliveryLocation = 0 ;
-                double distanceToPickLocation = 0 ;
-                GeoCoordinate shipTo = null;
+                double distanceToDeliveryLocation ;
+                double distanceBetweenPickUpAndDeliveryLocation = 0;
+                double distanceToPickLocation ;
+                GeoCoordinate shipTo ;
 
                 pass = pass && facility.isDeliveryProvided() && deliverySkuIds.contains(record.getSkuId());
                 if (pass){
@@ -126,20 +174,7 @@ public class InventoriesController extends ModelController<Inventory> {
                 pass = pass && distanceToPickLocation < facility.getDeliveryRadius();
                 if (pass){
                     record.setDeliveryProvided(true);
-                    if (ObjectUtil.isVoid(record.getManagedBy())){
-                        record.setDeliveryCharges(facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation));
-                    }else if (!record.isCourierAggregator()){
-                        Courier courier = CourierFactory.getInstance().getCourier(record.getManagedBy());
-                        record.setDeliveryCharges(courier.getQuote(order).getSellingPrice());
-                    }else {
-                        List<Quote> quotes = CourierAggregatorFactory.getInstance().getCourierAggregator(record).getQuotes(order);
-                        pass = !quotes.isEmpty();
-                        if (pass) {
-                            Quote quote = quotes.stream().min((o1, o2) -> (int) (o1.getSellingPrice() - o2.getSellingPrice())).get();
-                            record.setDeliveryCharges(quote.getSellingPrice());
-                            record.setQuoteRef(quote.getQuoteRef());
-                        }
-                    }
+                    record.setDeliveryCharges(facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation));
                     record.setChargeableDistance(Math.max(facility.getMinChargeableDistance(),new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue()));
                     if (deliveryBoyLocation != null) {
                         facility.setDistance(new DoubleHolder(new GeoCoordinate(deliveryBoyLocation).distanceTo(new GeoCoordinate(order.getFacility())), 2).getHeldDouble().doubleValue());
@@ -148,27 +183,13 @@ public class InventoriesController extends ModelController<Inventory> {
                     }
                 }
             }else {
-                //Dont return Delivery items.
+                //Do not return Delivery items.
                 pass = pass && !deliverySkuIds.contains(record.getSkuId());
                 if (pass){
                     record.setDeliveryProvided(facility.isDeliveryProvided() && facility.getDeliveryRadius() > facility.getDistance());
                     if (record.isDeliveryProvided()){
                         Inventory deliveryRule = facility.getDeliveryRule(false);
-                        if (deliveryRule == null || ObjectUtil.isVoid(deliveryRule.getManagedBy())){
-                            record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
-                        }else if (!record.isCourierAggregator()){
-                            Courier courier = CourierFactory.getInstance().getCourier(record.getManagedBy());
-                            record.setDeliveryCharges(courier.getQuote(facility,getCurrentUser(),record).getSellingPrice());
-                        }else {
-                            CourierAggregator aggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(record);
-                            List<Quote> quotes = aggregator.getQuotes(facility,getCurrentUser(),record);
-                            pass = !quotes.isEmpty();
-                            if (pass) {
-                                Quote quote = quotes.stream().min((o1, o2) -> (int) (o1.getSellingPrice() - o2.getSellingPrice())).get();
-                                record.setDeliveryCharges(quote.getSellingPrice());
-                                record.setQuoteRef(quote.getQuoteRef());
-                            }
-                        }
+                        record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
                         record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
                     }
                 }
@@ -184,16 +205,11 @@ public class InventoriesController extends ModelController<Inventory> {
     
 
     private GeoLocation getDeliveryBoyLocation(Facility facility, Inventory record) {
-        if (!ObjectUtil.isVoid(record.getManagedBy())){
-            return null;
+        User creator = facility.getCreatorUser().getRawRecord().getAsProxy(User.class);
+        if (!creator.getUserLocations().isEmpty()){
+            return creator.getUserLocations().get(0);
         }else {
-            User creator = facility.getCreatorUser().getRawRecord().getAsProxy(User.class);
-            if (!creator.getUserLocations().isEmpty()){
-                UserLocation location = creator.getUserLocations().get(0);
-                return location;
-            }else {
-                return facility;
-            }
+            return facility;
         }
     }
 
@@ -203,7 +219,7 @@ public class InventoriesController extends ModelController<Inventory> {
         int maxDistance = getMaxDistance();
         if (maxDistance <= 10){
             Order order = getOrder();
-            GeoCoordinate reference = null;
+            GeoCoordinate reference;
             if (order == null){
                 reference = getCurrentUserLocation();
             }else {

@@ -1,5 +1,6 @@
 package in.succinct.mandi.db.model;
 
+import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.table.ModelImpl;
 
 import java.util.HashSet;
@@ -37,19 +38,36 @@ public class InventoryImpl extends ModelImpl<Inventory> {
     }
 
 
-    private final Set<String> courierIntegrators = new HashSet<String>(){{
-       add(Inventory.BECKN);
-    }};
-    public boolean isCourierAggregator(){
-        Inventory inventory = getProxy();
-        return courierIntegrators.contains(inventory.getManagedBy());
+    Boolean external = false;
+    public Boolean isExternal() {
+        return external;
+    }
+    public void setExternal(Boolean external) {
+        this.external =external;
     }
 
-    String ref = null;
-    public String getQuoteRef(){
-        return ref;
+    String externalSkuId = null;
+    public String getExternalSkuId(){
+        return externalSkuId;
     }
-    public void setQuoteRef(String ref){
-        this.ref = ref;
+    public void setExternalSkuId(String externalSkuId){
+        this.externalSkuId = externalSkuId;
     }
+
+    String externalFacilityId = null;
+    public String getExternalFacilityId(){
+        return externalFacilityId;
+    }
+    public void setExternalFacilityId(String facilityId){
+        this.externalFacilityId = facilityId;
+    }
+
+    String networkId = null;
+    public String getNetworkId() {
+        return networkId;
+    }
+    public void setNetworkId(String networkId){
+        this.networkId = networkId;
+    }
+
 }

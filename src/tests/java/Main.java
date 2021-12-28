@@ -1,6 +1,8 @@
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.security.Crypt;
 import in.succinct.beckn.Request;
+import in.succinct.mandi.util.beckn.BecknUtil;
+import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Test;
@@ -243,4 +245,9 @@ public class Main {
 
 
     }*/
+
+    @Test
+    public void testBecknId(){
+        System.out.println(BecknUtil.getLocalUniqueId("./nic2004:52110/IND.std:080/"+33+"@dunzo.com.item" , Entity.item));
+    }
 }

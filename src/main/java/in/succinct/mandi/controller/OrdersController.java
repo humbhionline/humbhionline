@@ -36,11 +36,10 @@ import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
-import in.succinct.mandi.integrations.courier.Courier;
-import in.succinct.mandi.integrations.courier.Courier.CourierOrder;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.integrations.courier.CourierAggregator;
+import in.succinct.mandi.integrations.courier.CourierAggregator.CourierOrder;
 import in.succinct.mandi.integrations.courier.CourierAggregatorFactory;
-import in.succinct.mandi.integrations.courier.CourierFactory;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.mandi.util.InternalNetwork;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
@@ -49,6 +48,7 @@ import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
+import in.succinct.plugins.ecommerce.db.model.order.OrderLineAttribute;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -235,31 +235,25 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
             OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement);
 
-            if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && !ObjectUtil.isVoid(inventory.getManagedBy())){
-                CourierOrder courierOrder = null;
-                if (inventory.isCourierAggregator()){
-                    CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(inventory);
-                    order.setExternalTransactionReference(inventory.getQuoteRef());
-                    courierOrder = courierAggregator.book(order,order.getParentOrder());
-                }else {
-                    Courier courier = CourierFactory.getInstance().getCourier(inventory.getManagedBy());
-                    courierOrder = courier.book(order,order.getParentOrder());
-                }
+            if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && inventory.isExternal() ){
+                CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(BecknNetwork.find(inventory.getNetworkId()));
+                CourierOrder courierOrder = courierAggregator.book(inventory,order.getParentOrder());
 
-                double sellingPrice = courierOrder.getSellingPrice();
-                double discount = courierOrder.getDiscount();
-                String orderId = courierOrder.getOrderNumber();
-                String tracking_url = courierOrder.getTrackingUrl();
-
+                double sellingPrice = courierOrder.getOrder().getPayment().getParams().getAmount();
+                String orderId = courierOrder.getOrder().getId();
+                order.setExternalTransactionReference(orderId);
                 order.setReference("Courier Order Id:" + orderId);
+
                 order.setShippingSellingPrice(sellingPrice);
                 order.setShippingPrice(sellingPrice * (1.0 - line.getSku().getTaxRate()/100.0));
                 Map<String, OrderAttribute> map = order.getAttributeMap();
-                map.get("courier").setValue(inventory.getManagedBy());
-                map.get("order_id").setValue(orderId);
-                if (!ObjectUtil.isVoid(tracking_url)){
-                    map.get("tracking_url").setValue(tracking_url);
-                }
+                map.get("courier_id").setValue(courierOrder.getContext().getBppId());
+                map.get("courier_url").setValue(courierOrder.getContext().getBppUri());
+                map.get("external_facility_id").setValue(inventory.getExternalFacilityId());
+                map.get("external_order_id").setValue(orderId);
+                map.get("network_id").setValue(inventory.getNetworkId());
+
+
                 order.saveAttributeMap(map);
                 line.setSellingPrice(0);
                 line.setMaxRetailPrice(0);
@@ -314,6 +308,10 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             }
 
             line.save();
+            Map<String, OrderLineAttribute> attrMap = line.getAttributeMap();
+            attrMap.get("external_sku_id").setValue(inventory.getExternalSkuId());
+            line.saveAttributeMap(attrMap);
+
         }
         if (shippingWithinSameState == null){
             throw new RuntimeException("No Lines passed");
@@ -321,8 +319,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
         // Remove lines not passed.
         {
-            for (Iterator<Long> lineIdIterator = existingOrderLineMap.keySet().iterator(); lineIdIterator.hasNext(); ) {
-                Long id = lineIdIterator.next();
+            for (Long id : existingOrderLineMap.keySet()) {
                 OrderLine line = existingOrderLineMap.get(id);
                 line.destroy();
             }
@@ -356,9 +353,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         if (order.getReflector().isVoid(order.getReference())){
             order.setReference(""+order.getId());
         }
-        if (shipFrom != null) {
-            order.setFacilityId(shipFrom.getId());
-        }
+        order.setFacilityId(shipFrom.getId());
         order.save();
 
         List<User> users = new ArrayList<>();
@@ -438,7 +433,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
                 continue;
             }
             StringBuilder signedToVerify = new StringBuilder();
-            signedToVerify.append("JSESSIONID:"+getPath().getSession().getId()).append(",").append("fms.Token:" +fmsToken).append(",");
+            signedToVerify.append("JSESSIONID:").append(getPath().getSession().getId()).append(",").append("fms.Token:").append(fmsToken).append(",");
             signedToVerify.append("/orders/processUpi").append("|").append(payload);
             Config.instance().getLogger(getClass().getName()).info("Payload to verify:\n" + signedToVerify);
             verified = Crypt.getInstance().verifySignature(signedToVerify.toString(),Crypt.SIGNATURE_ALGO,signature,

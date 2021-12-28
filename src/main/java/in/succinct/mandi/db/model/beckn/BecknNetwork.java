@@ -6,6 +6,9 @@ import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.UNIQUE_KEY;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.model.Model;
+import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.sql.Expression;
+import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 
 import java.util.List;
@@ -58,7 +61,7 @@ public interface BecknNetwork  extends Model {
         return Database.getTable(BecknNetwork.class).find(network,false);
     }
     public static List<BecknNetwork> all(){
-        return new Select().from(BecknNetwork.class).execute(BecknNetwork.class);
+        return new Select().from(BecknNetwork.class).where(new Expression(ModelReflector.instance(BecknNetwork.class).getPool(),"SUBSCRIPTION_ACTIVE", Operator.EQ,true)).execute(BecknNetwork.class);
     }
 
 }

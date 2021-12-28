@@ -1,21 +1,18 @@
 package in.succinct.mandi.integrations.courier;
 
-import com.venky.core.math.DoubleUtils;
-import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
-import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.swf.integration.api.Call;
+import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
-import com.venky.swf.routing.Config;
-import com.venky.swf.sql.Select;
 import in.succinct.beckn.Acknowledgement.Status;
+import in.succinct.beckn.Billing;
+import in.succinct.beckn.Category;
+import in.succinct.beckn.Contact;
 import in.succinct.beckn.Context;
-import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.FulfillmentStop;
-import in.succinct.beckn.Images;
 import in.succinct.beckn.Intent;
 import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
@@ -24,32 +21,29 @@ import in.succinct.beckn.Message;
 import in.succinct.beckn.OnConfirm;
 import in.succinct.beckn.OnSearch;
 import in.succinct.beckn.OnStatus;
-import in.succinct.beckn.Price;
+import in.succinct.beckn.Payment;
+import in.succinct.beckn.Payment.Params;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
-import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.extensions.BecknPublicKeyFinder;
 import in.succinct.mandi.integrations.beckn.MessageCallbackUtil;
-import in.succinct.mandi.integrations.courier.Courier.CourierDescriptor;
-import in.succinct.mandi.integrations.courier.Courier.CourierOrder;
-import in.succinct.mandi.integrations.courier.Courier.Quote;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class BecknCourierAggregator implements CourierAggregator {
     private final BecknNetwork network ;
@@ -91,6 +85,9 @@ class BecknCourierAggregator implements CourierAggregator {
         address1.setState(address.getState().getCode());
         address1.setCountry(address.getCountry().getIsoCode());
         location.setGps(new GeoCoordinate(address.getLat(),address.getLng()));
+        stop.setContact(new Contact());
+        stop.getContact().setEmail(address.getEmail());
+        stop.getContact().setPhone(address.getPhoneNumber());
 
         return stop;
     }
@@ -127,16 +124,19 @@ class BecknCourierAggregator implements CourierAggregator {
         request.setMessage(message);
         return request;
     }
-    private Request makeConfirmJson(Order transportOrder, Order parentOrder){
+    private Request makeConfirmJson(Inventory inventory, Order parentOrder){
         Request request = new Request();
         Context context = makeContext();
         context.setAction("confirm");
         request.setContext(context);
-        Message message = makeConfirmMessage(transportOrder,parentOrder);
+
+
+        Message message = makeConfirmMessage(context,inventory,parentOrder);
         request.setMessage(message);
+
         return request;
     }
-    private Message makeConfirmMessage(Order transportOrder,Order parentOrder){
+    private Message makeConfirmMessage(Context context,Inventory inventory,Order parentOrder){
         Message message = new Message();
 
         Address from = parentOrder.getFacility();
@@ -147,13 +147,31 @@ class BecknCourierAggregator implements CourierAggregator {
 
         Fulfillment fulfillment = new Fulfillment();
         fulfillment.setStart(makeFulfillmentStop(from));
+        fulfillment.setTracking(false);
         fulfillment.setEnd(makeFulfillmentStop(to));
         order.setFulfillment(fulfillment);
         Item item = new Item();
         Items items = new Items();
         order.setItems(items);
+        order.setBilling(new Billing());
+        order.getBilling().setPhone(parentOrder.getBillToAddress().getPhoneNumber());
+        order.getBilling().setName(parentOrder.getBillToAddress().getLongName());
         items.add(item);
-        item.setId("0");
+
+        String externalItemIdPattern = "/nic2004:55204/(.*)@(.*)\\."+Entity.item ;
+        Matcher matcher = Pattern.compile(externalItemIdPattern).matcher(inventory.getExternalSkuId());
+        if (matcher.find()){
+            item.setId(matcher.group(1));
+            context.setBppId(matcher.group(2));
+            JSONObject bpp = getBpp(context.getBppId());
+            context.setBppUri((String)bpp.get("subscriber_url"));
+
+        }
+        Payment payment = new Payment();
+        order.setPayment(payment);
+        payment.setParams(new Params());
+        payment.getParams().set("currency","INR");
+        //item.setId(inventory.getExternalSkuId());
         return message;
     }
     JSONObject gw = null;
@@ -171,13 +189,25 @@ class BecknCourierAggregator implements CourierAggregator {
 
         return gw;
     }
+    public JSONObject getBpp(String bppId){
+        JSONObject input = new JSONObject();
+        input.put("subscriber_id",bppId);
+        input.put("type","BPP");
+        input.put("domain","nic2004:55204");
+        input.put("country","IND");
+        JSONArray out = BecknPublicKeyFinder.lookup(network,input);
+        if (out != null && out.size() > 0){
+            return (JSONObject) out.get(0);
+        }
+        return null;
+    }
 
     private List<OnSearch> search(Request request) {
         JSONObject gw = getGateway();
         String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),BecknUtil.getCryptoKeyId());
 
-        InputStream responseStream = new Call<>().url((String)gw.get("subscriber_url")).header("content-type","application/json").header("accept","application/json").
-                header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(request.toString()).getResponseStream();
+        InputStream responseStream = new Call<>().url((String)gw.get("subscriber_url") +"/search").header("content-type","application/json").header("accept","application/json").
+                header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(request.getInner()).method(HttpMethod.POST).getResponseStream();
 
         Response response = new Response(StringUtil.read(responseStream));
         List<OnSearch> onSearches = new ArrayList<>();
@@ -192,153 +222,99 @@ class BecknCourierAggregator implements CourierAggregator {
 
 
     @Override
-    public List<Quote> getQuotes(Order retailOrder) {
+    public List<CourierQuote> getQuotes(Order retailOrder) {
         Request searchRequest = makeSearchJson(retailOrder);
         return getQuotes(searchRequest);
     }
 
     @Override
     public Order getOrder(JSONObject statusJson) {
-        OnStatus onStatus = new OnStatus(statusJson);
-        return Order.find(onStatus.getContext().getTransactionId());
+        return Order.find(getCourierOrder(statusJson).getOrder().getId());
     }
 
     @Override
     public CourierOrder getCourierOrder(JSONObject statusJson) {
         OnStatus onStatus = new OnStatus(statusJson);
-        in.succinct.beckn.Order becknOrder =  onStatus.getMessage().getOrder();
 
         return new CourierOrder() {
+
             @Override
-            public String getTrackingUrl() {
-                return "";
+            public in.succinct.beckn.Order getOrder() {
+                return onStatus.getMessage().getOrder();
             }
 
             @Override
-            public String getOrderNumber() {
-                return onStatus.getContext().getTransactionId();
+            public Context getContext() {
+                return onStatus.getContext();
             }
-
-            @Override
-            public boolean isCompleted() {
-                return (
-                        becknOrder.getState().toLowerCase(Locale.ROOT).startsWith("complete") ||
-                                becknOrder.getState().toLowerCase(Locale.ROOT).startsWith("delivered")
-                );
-            }
-
-            @Override
-            public CourierDescriptor getCourierDescriptor() {
-                Provider provider = becknOrder.getProvider();
-                return new CourierDescriptor() {
-                    @Override
-                    public String getId() {
-                        return provider.getId();
-                    }
-
-                    @Override
-                    public String getName() {
-                        return provider.getDescriptor().getName();
-                    }
-
-                    @Override
-                    public String getLogoUrl() {
-                        Images images = provider.getDescriptor().getImages();
-                        if (images.size() > 0){
-                            return images.get(0);
-                        }
-                        return null;
-                    }
-                };
-            }
-
-            @Override
-            public double getSellingPrice() {
-                return becknOrder.getPayment().getDouble("amount");
-            }
-
         };
     }
 
     @Override
-    public CourierOrder book(Order transportOrder, Order parentOrder) {
-        Request confirmRequest = makeConfirmJson(transportOrder,parentOrder);
-        if (ObjectUtil.isVoid(transportOrder.getExternalTransactionReference())){
-            throw new RuntimeException("Cannot book with out searching first.");
-        }
+    public CourierOrder book(Inventory inventory, Order parentOrder) {
+        Request confirmRequest = makeConfirmJson(inventory,parentOrder);
 
-        confirmRequest.getContext().setTransactionId(transportOrder.getExternalTransactionReference());
 
         String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId());
 
 
-        InputStream responseStream = new Call<>().url(confirmRequest.getContext().getBppUri()).header("content-type","application/json").header("accept","application/json").
+        InputStream responseStream = new Call<>().url(confirmRequest.getContext().getBppUri() +"/confirm").header("content-type","application/json").header("accept","application/json").
                 header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(confirmRequest.toString()).getResponseStream();
 
         Response response = new Response(StringUtil.read(responseStream));
         if (response.getAcknowledgement().getStatus() == Status.ACK) {
             JSONObject aResponse = MessageCallbackUtil.getInstance().getNextResponse(confirmRequest.getContext().getMessageId(),3000L);
             OnConfirm onConfirm = new OnConfirm(aResponse);
+            return new CourierOrder() {
+                @Override
+                public in.succinct.beckn.Order getOrder() {
+                    return onConfirm.getMessage().getOrder();
+                }
+
+                @Override
+                public Context getContext() {
+                    return onConfirm.getContext();
+                }
+            };
         }
 
-        return null;
+        throw new RuntimeException("Could not book order with partner courier. Please try later.");
     }
 
-    private List<Quote> getQuotes(Request searchRequest){
+    private List<CourierQuote> getQuotes(Request searchRequest){
         List<OnSearch> onSearches = search(searchRequest);
 
-        List<Quote> quotes = new ArrayList<>();
+        List<CourierQuote> quotes = new ArrayList<>();
         onSearches.forEach(onSearch-> {
             Providers providers = onSearch.getMessage().getCatalog().getProviders();
             for (Provider provider : providers){
                 for (Item item : provider.getItems()){
-                    quotes.add(new Quote() {
+                    quotes.add(new CourierQuote() {
+
                         @Override
-                        public CourierDescriptor getCourierDescriptor() {
-                            return new CourierDescriptor() {
-                                @Override
-                                public String getId() {
-                                    return provider.getId();
-                                }
-
-                                @Override
-                                public String getName() {
-                                    return provider.getDescriptor().getName();
-                                }
-
-                                @Override
-                                public String getLogoUrl() {
-                                    Images images = provider.getDescriptor().getImages();
-                                    if (images.size() > 0){
-                                        return images.get(0);
-                                    }
-                                    return null;
-                                }
-
-                            };
-                        }
-                        public String getQuoteRef(){
-                            return onSearch.getContext().getTransactionId();
+                        public Item getItem() {
+                            return item;
                         }
 
                         @Override
-                        public double getSellingPrice() {
-                            return item.getPrice().getEstimatedValue();
+                        public Provider getProvider() {
+                            return provider;
                         }
 
+                        @Override
+                        public Context getContext() {
+                            return onSearch.getContext();
+                        }
+
+                        @Override
+                        public Category getCategory() {
+                            return provider.getCategories().get(item.getCategoryId());
+                        }
                     });
                 }
             }
-
-
-
         });
         return quotes;
     }
 
-    @Override
-    public List<Quote> getQuotes(Address from, Address to, Inventory inventory) {
-        Request searchRequest = makeSearchJson(from,to,inventory);
-        return getQuotes(searchRequest);
-    }
 }

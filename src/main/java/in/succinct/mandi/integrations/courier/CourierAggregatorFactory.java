@@ -30,25 +30,15 @@ public class CourierAggregatorFactory {
         }
     }};
 
-    public String getAggregatorKey(Inventory deliveryRecord){
-        String aggregatorKey ;
-        if (ObjectUtil.equals(Inventory.BECKN,deliveryRecord.getManagedBy())){
-            aggregatorKey = getBecknNetworkAggregatorKey(deliveryRecord.getBecknNetwork());
-        }else {
-            aggregatorKey = deliveryRecord.getManagedBy();
-        }
-        return aggregatorKey;
-    }
+
     public String getBecknNetworkAggregatorKey(BecknNetwork network){
-        return String.format("%s://%s",Inventory.BECKN,network.getRegistryId());
+        return String.format("beckn://%s",network.getRegistryId());
     }
 
 
-    public CourierAggregator getCourierAggregator(Inventory deliveryRecord){
-        if (!deliveryRecord.isCourierAggregator()){
-            throw new RuntimeException("Not a courier integrator");
-        }
-        String aggregatorKey = getAggregatorKey(deliveryRecord);
+    public CourierAggregator getCourierAggregator(BecknNetwork network){
+
+        String aggregatorKey = getBecknNetworkAggregatorKey(network);
         CourierAggregator aggregator =  courierAggregatorMap.get(aggregatorKey);
 
         if (aggregator == null){

@@ -158,6 +158,12 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     @IS_VIRTUAL
     public ShipToAddress getShipToAddress();
 
+    @IS_VIRTUAL
+    public Long getBillToAddressId();
+    public void setBillToAddressId(Long id);
+    @IS_VIRTUAL
+    public BillToAddress getBillToAddress();
+
 
     @IS_VIRTUAL
     @Index

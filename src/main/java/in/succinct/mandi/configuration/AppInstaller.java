@@ -177,7 +177,7 @@ public class AppInstaller implements Installer {
         CryptoKey key = BecknUtil.getSelfKey();
         String uniqueKeyId = key.getAlias();
 
-        List<BecknNetwork> networks = new Select().from(BecknNetwork.class).execute();
+        List<BecknNetwork> networks = BecknNetwork.all();
         for (BecknNetwork network : networks){
             if (network.isSubscriptionActive()){
                 continue;

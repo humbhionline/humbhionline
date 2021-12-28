@@ -7,6 +7,7 @@ import com.venky.swf.plugins.sequence.db.model.SequentialNumber;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.Subscriber;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
+import org.apache.xmlbeans.impl.regex.Match;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,6 +61,14 @@ public class BecknUtil {
     public static String getBecknId(String localUniqueId,Entity becknEntity){
         return getBecknId(getIdPrefix(),localUniqueId, getIdSuffix(), becknEntity);
     }
+    public static String getLocalUniqueId(String beckId, Entity becknEntity) {
+        String pattern = "^(.*/)(.*)@(.*)\\." + becknEntity + "$";
+        Matcher matcher = Pattern.compile(pattern).matcher(beckId);
+        if (matcher.find()){
+            return matcher.group(2);
+        }
+        return "-1";
+    }
     public static String getBecknId(String prefix, String localUniqueId, String suffix , Entity becknEntity){
         StringBuilder builder = new StringBuilder();
         builder.append(prefix);
@@ -72,18 +81,7 @@ public class BecknUtil {
         }
         return builder.toString();
     }
-    public static String getLocalUniqueId(String beckId, Entity becknEntity){
-        String  pattern = String.format("^%s(.*)@%s[.]%s$",getIdPrefix(),getIdSuffix(),becknEntity == null ? "" : becknEntity.toString());
-        Matcher matcher = Pattern.compile(pattern).matcher(beckId);
-        List<String> ids = new ArrayList<>();
-        while(matcher.find()){
-            ids.add(matcher.group(1));
-        }
-        if (ids.size() == 1){
-            return ids.get(0);
-        }
-        return "-1" ;//throw new RuntimeException("Id not formated as expected!");
-    }
+
 
     public static CryptoKey getSelfEncryptionKey(){
         CryptoKey encryptionKey = CryptoKey.find(getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION);

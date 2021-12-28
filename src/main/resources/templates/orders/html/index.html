@@ -597,7 +597,7 @@
                                 action: function () {
                                     var weight = this.$content.find('.weight').val();
                                     if (weight && weight * 1 > 0) {
-                                        api().url("/network/call/orders/save"+o.Id ).parameters({ Order: { Id: o.Id, Weight: weight, WeightUom: { Name: "Kgs", Measures: "Weight" } } }).post().then(function (response) {
+                                        api().url("/network/call/orders/save/"+o.Id ).parameters({ Order: { Id: o.Id, Weight: weight, WeightUom: { Name: "Kgs", Measures: "Weight" } } }).post().then(function (response) {
                                             window.location.href = ("/network/call/orders/delivery_plan/" + o.Id);
                                         });
                                     }

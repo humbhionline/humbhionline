@@ -1,10 +1,7 @@
 package in.succinct.mandi.db.model;
 
-import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.indexing.Index;
-import com.venky.swf.db.annotations.column.validations.Enumeration;
-import in.succinct.mandi.db.model.beckn.BecknNetwork;
 
 public interface Inventory extends in.succinct.plugins.ecommerce.db.model.inventory.Inventory {
 
@@ -21,37 +18,28 @@ public interface Inventory extends in.succinct.plugins.ecommerce.db.model.invent
     public Double getChargeableDistance();
     public void setChargeableDistance(Double distance);
 
-    @IS_VIRTUAL
-    public String getQuoteRef();
-    public void setQuoteRef(String ref);
 
     @Index
     public String getTags();
     public void setTags(String tags);
 
-    //Valid for delivery items!!
-    public static final String WEFAST  = "wefast" ;
-    public static final String BECKN  = "beckn" ;
 
-    @Enumeration(" ,"+WEFAST+","+BECKN)
-    @IS_NULLABLE
-    public String getManagedBy();
-    public void setManagedBy(String managedBy);
-
-    @IS_NULLABLE
-    public Long getBecknNetworkId();
-    public void setBecknNetworkId(Long id);
-    public BecknNetwork getBecknNetwork();
+    @IS_VIRTUAL
+    public String getNetworkId();
+    public void setNetworkId(String networkId);
 
 
     @IS_VIRTUAL
-    public boolean isCourierAggregator();
+    public Boolean isExternal();
+    public void setExternal(Boolean external);
+
+    @IS_VIRTUAL
+    public String getExternalSkuId();
+    public void setExternalSkuId(String externalSkuId);
 
 
-    public String getApiToken();
-    public void setApiToken(String token);
-
-    public String getCallbackToken();
-    public void setCallbackToken(String token);
+    @IS_VIRTUAL
+    public String getExternalFacilityId();
+    public void setExternalFacilityId(String facilityId);
 
 }
