@@ -80,7 +80,7 @@ public class RegisterProviderLocationAgent extends ExtractorTask<Facility> imple
                             header("Content-Type", MimeType.APPLICATION_JSON.toString());
 
                     call.header("Authorization", new Request(provider_location.toString()).generateAuthorizationHeader(network.getRetailBppSubscriberId(),
-                            BecknUtil.getCryptoKeyId()));
+                            BecknUtil.getCryptoKeyId(network)));
                     call.getResponseAsJson();
                 }
             }

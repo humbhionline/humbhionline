@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Map;
+import java.util.logging.Level;
 
 public class DeliveryBapController extends Controller {
     public DeliveryBapController(Path path) {
@@ -56,8 +58,11 @@ public class DeliveryBapController extends Controller {
         Request request =null ;
         try {
             request = new Request(StringUtil.read(getPath().getInputStream()));
-            if (!Config.instance().getBooleanProperty("beckn.auth.enabled", false)  || request.verifySignature("Authorization",getPath().getHeaders())){
+            Map<String, String> params = request.extractAuthorizationParams("Authorization",getPath().getHeaders());
+
+            if (!Config.instance().getBooleanProperty("beckn.auth.enabled", false)  || request.verifySignature(params,false)){
                 String messageId = request.getContext().getMessageId();
+                //request.getContext().setBppId(params.get("subscriber_id")); //Dunzo bug to be fixed!!
                 MessageCallbackUtil.getInstance().registerResponse(messageId,request.getInner());
                return ack(request);
             }else {
@@ -74,41 +79,53 @@ public class DeliveryBapController extends Controller {
             error.setCode(ex.getMessage());
             error.setMessage(ex.getMessage());
             return new BytesView(getPath(),response.toString().getBytes(StandardCharsets.UTF_8));
+        }finally {
+            Config.instance().getLogger(getClass().getName()).log(Level.INFO,"Api input " + request.toString());
         }
     }
 
+    @RequireLogin(false)
     public View on_search(){
         return act();
     }
+    @RequireLogin(false)
     public View on_select(){
         return act();
     }
+    @RequireLogin(false)
     public View on_init(){
         return act();
     }
 
+    @RequireLogin(false)
     public View on_confirm(){
         return act();
     }
 
+    @RequireLogin(false)
     public View on_status(){
         return act();
     }
+    @RequireLogin(false)
     public View on_track(){
         return act();
     }
+    @RequireLogin(false)
     public View on_cancel(){
         return act();
     }
+    @RequireLogin(false)
     public View on_update(){
         return act();
     }
 
 
+    @RequireLogin(false)
     public View on_rating(){
         return act();
     }
 
+    @RequireLogin(false)
     public View on_support(){
         return act();
     }
@@ -144,7 +161,7 @@ public class DeliveryBapController extends Controller {
             throw new RuntimeException("Cannot verify Signature");
         }
 
-        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO, BecknUtil.getSelfEncryptionKey().getPrivateKey());
+        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO, BecknUtil.getSelfEncryptionKey(network).getPrivateKey());
         PublicKey registryPublicKey = Request.getEncryptionPublicKey(encrPublicKey);
 
         KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);

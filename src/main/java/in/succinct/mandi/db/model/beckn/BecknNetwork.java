@@ -7,6 +7,7 @@ import com.venky.swf.db.annotations.column.UNIQUE_KEY;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
@@ -17,6 +18,10 @@ public interface BecknNetwork  extends Model {
     @COLUMN_DEF(StandardDefault.BOOLEAN_TRUE)
     public boolean isSubscriptionActive();
     public void setSubscriptionActive(boolean active);
+
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isDisabled();
+    public void setDisabled(boolean disabled);
 
     @UNIQUE_KEY
     public String getRegistryId();
@@ -44,6 +49,9 @@ public interface BecknNetwork  extends Model {
     public String getDeliveryBapUrl();
     public void setDeliveryBapUrl(String url);
 
+    public String getCryptoKeyId();
+    public void setCryptoKeyId(String cryptoKeyId);
+
     public  static BecknNetwork find(String registryId){
         BecknNetwork network = Database.getTable(BecknNetwork.class).newRecord();
         network.setRegistryId(registryId);
@@ -61,7 +69,11 @@ public interface BecknNetwork  extends Model {
         return Database.getTable(BecknNetwork.class).find(network,false);
     }
     public static List<BecknNetwork> all(){
-        return new Select().from(BecknNetwork.class).where(new Expression(ModelReflector.instance(BecknNetwork.class).getPool(),"SUBSCRIPTION_ACTIVE", Operator.EQ,true)).execute(BecknNetwork.class);
+        return new Select().from(BecknNetwork.class).where(
+                new Expression(ModelReflector.instance(BecknNetwork.class).getPool(), Conjunction.AND).
+                        add(new Expression(ModelReflector.instance(BecknNetwork.class).getPool(),"SUBSCRIPTION_ACTIVE", Operator.EQ,true)).
+                        add(new Expression(ModelReflector.instance(BecknNetwork.class).getPool(),"DISABLED", Operator.EQ,false))
+        ).execute(BecknNetwork.class);
     }
 
 }

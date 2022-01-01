@@ -1,10 +1,10 @@
 package in.succinct.mandi.controller;
 
 import com.venky.core.math.DoubleHolder;
+import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
-import com.venky.network.Network;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
@@ -20,6 +20,9 @@ import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import com.venky.swf.sql.Select.ResultFilter;
 import com.venky.swf.views.View;
+import in.succinct.beckn.Image;
+import in.succinct.beckn.Images;
+import in.succinct.beckn.Provider;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Item;
@@ -35,10 +38,16 @@ import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
+import in.succinct.plugins.ecommerce.db.model.attributes.AssetCodeAttribute;
+import in.succinct.plugins.ecommerce.db.model.attributes.Attribute;
+import in.succinct.plugins.ecommerce.db.model.attributes.AttributeValue;
+import in.succinct.plugins.ecommerce.db.model.catalog.ItemAttributeValue;
+import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -111,7 +120,11 @@ public class InventoriesController extends ModelController<Inventory> {
                 record.setInfinite(true);
                 record.setFacilityId(retailOrder.getFacilityId());
                 record.setChargeableDistance(retailOrder.getFacility().getDistance());
-                record.setDeliveryCharges(quote.getItem().getPrice().getEstimatedValue());
+                double charges = quote.getItem().getPrice().getValue();
+                if (DoubleUtils.equals(0,charges,2)){
+                    charges = quote.getItem().getPrice().getEstimatedValue();
+                }
+                record.setDeliveryCharges(charges);
                 record.setDeliveryProvided(true);
                 record.setExternal(true);
                 record.setTags(quote.getItem().getDescriptor().getName()+", "+quote.getProvider().getDescriptor().getName());
@@ -120,16 +133,124 @@ public class InventoriesController extends ModelController<Inventory> {
                 record.setSellingPrice(0.0D);
 
 
-                String itemId = BecknUtil.getBecknId("/nic2004:55204/",quote.getItem().getId(), "@" + quote.getContext().getBppId(),Entity.item);
+                String itemId = BecknUtil.getBecknId("/nic2004:55204/",quote.getItem().getId(),  quote.getContext().getBppId(),Entity.item);
 
                 record.setExternalSkuId(itemId);
-                record.setExternalFacilityId(BecknUtil.getBecknId("/nic2004:55204/",quote.getProvider().getId(), "@" + quote.getContext().getBppId(),Entity.provider));
-                record.setSkuId(deliverySkuIds.get(0)) ; //May need to fine tune this TODO VENKY
+                record.setExternalFacilityId(BecknUtil.getBecknId("/nic2004:55204/",quote.getProvider().getId(), quote.getContext().getBppId(),Entity.provider));
+                Sku sku = createDeliverySku(quote);
+                record.setSkuId(sku.getId()) ;
                 records.add(record);
 
             }
         }
     }
+
+    final String SERVICE_PROVIDER_LITERAL = "Service Provider";
+    final String SERVICE_OPTION_LITERAL = "Service Option";
+
+    private AssetCode createDeliveryAssetCode(){
+        AssetCode assetCode = Database.getTable(AssetCode.class).newRecord();
+        assetCode.setCode("996813");
+        assetCode.setDescription("Local Delivery");
+        assetCode.setGstPct(18.0);
+        assetCode = Database.getTable(AssetCode.class).getRefreshed(assetCode);
+        if (assetCode.getRawRecord().isNewRecord()) {
+            assetCode.save();
+        }
+        return assetCode;
+    }
+    private Map<String, AttributeValue> registerAttributeValues(Map<String, String> anItemAttributeValueMap) {
+        Map<String,AttributeValue> map = new HashMap<>();
+        for (String name : anItemAttributeValueMap.keySet()){
+            String value = anItemAttributeValueMap.get(name);
+            Attribute attribute = Attribute.find(name);
+
+            AttributeValue attributeValue = Database.getTable(AttributeValue.class).newRecord();
+            attributeValue.setAttributeId(attribute.getId());
+            attributeValue.setPossibleValue(value);
+            attributeValue = Database.getTable(AttributeValue.class).getRefreshed(attributeValue);
+            if (attributeValue.getRawRecord().isNewRecord()){
+                attributeValue.save();
+            }
+            map.put(name,attributeValue);
+        }
+        return map;
+    }
+
+    private void registerItemAttributeValues(Item item, Map<String,AttributeValue> anItemAttributeValueMap) {
+        AssetCode assetCode = item.getAssetCode();
+
+        for (String name : anItemAttributeValueMap.keySet()){
+            AttributeValue attributeValue = anItemAttributeValueMap.get(name);
+
+            AssetCodeAttribute assetCodeAttribute = Database.getTable(AssetCodeAttribute.class).newRecord();
+            assetCodeAttribute.setAttributeType(AssetCodeAttribute.ATTRIBUTE_TYPE_CATALOG);
+            assetCodeAttribute.setAssetCodeId(assetCode.getId());
+            assetCodeAttribute.setAttributeId(attributeValue.getAttributeId());
+            assetCodeAttribute = Database.getTable(AssetCodeAttribute.class).getRefreshed(assetCodeAttribute);
+            if(assetCodeAttribute.getRawRecord().isNewRecord()){
+                assetCodeAttribute.save();
+            }
+
+            ItemAttributeValue itemAttributeValue = Database.getTable(ItemAttributeValue.class).newRecord();
+            itemAttributeValue.setItemId(item.getId());
+            itemAttributeValue.setAttributeValueId(attributeValue.getId());
+            itemAttributeValue.save();
+        }
+    }
+    private Sku createDeliverySku(CourierQuote quote){
+        AssetCode deliveryAssetCode = createDeliveryAssetCode();
+
+        in.succinct.beckn.Item qi = quote.getItem();
+        Provider qp = quote.getProvider();
+
+        Map<String,String> itemAttributeValueMap = new HashMap<String,String>(){{
+            put(SERVICE_OPTION_LITERAL,BecknUtil.getBecknId("/nic2004:55204/",qi.getId(),  quote.getContext().getBppId(),Entity.item));
+            put(SERVICE_PROVIDER_LITERAL,BecknUtil.getBecknId("/nic2004:55204/",qp.getId(), quote.getContext().getBppId(),Entity.provider));
+        }};
+
+        Map<String,AttributeValue> map = registerAttributeValues(itemAttributeValueMap);
+
+
+        Item item = Database.getTable(Item.class).newRecord();
+        item.setName(qp.getDescriptor().getName() + " - " + qi.getDescriptor().getName());
+        item.setCompanyId(CompanyUtil.getCompanyId());
+        item.setTags(qi.getDescriptor().getName()  + "," + qp.getDescriptor().getName());
+        item.setAssetCodeId(deliveryAssetCode.getId());
+        item.setItemHash(in.succinct.plugins.ecommerce.db.model.catalog.Item.hash(deliveryAssetCode,map.values()));
+
+        item = Database.getTable(Item.class).getRefreshed(item);
+        if (item.getRawRecord().isNewRecord()) {
+            item.save();
+            registerItemAttributeValues(item, map);
+        }
+
+        Sku sku = Database.getTable(Sku.class).newRecord();
+        sku.setItemId(item.getId());
+        sku.setCompanyId(item.getCompanyId());
+        sku.setPackagingUOMId(UnitOfMeasure.getMeasure(UnitOfMeasure.MEASURES_PACKAGING,"Kms").getId());
+        sku = Database.getTable(Sku.class).getRefreshed(sku);
+        sku.setPublished(true);
+        if (sku.getRawRecord().isNewRecord()) {
+            sku.save();
+        }
+        if (sku.getAttachments().isEmpty()){
+            Images images = quote.getDescriptor().getImages();
+            if (images != null && images.size() > 0){
+                String url = images.get(0);
+
+                Attachment attachment = Database.getTable(Attachment.class).newRecord();
+                attachment.setSkuId(sku.getId());
+                attachment.setUploadUrl(url);
+                attachment.save();
+            }
+        }
+
+
+
+        return sku;
+    }
+
 
 
     List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();

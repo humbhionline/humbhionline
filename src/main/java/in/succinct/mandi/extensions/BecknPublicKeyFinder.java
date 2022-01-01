@@ -30,6 +30,8 @@ public class BecknPublicKeyFinder implements Extension {
 
         JSONObject object = new JSONObject();
         object.put("subscriber_id",subscriber_id);
+        object.put("pub_key_id",uniqueKeyId);
+        object.put("unique_key_id",uniqueKeyId);
 
 
         JSONArray responses = lookup(object);
@@ -53,7 +55,7 @@ public class BecknPublicKeyFinder implements Extension {
 
     }
     public static JSONArray lookup(JSONObject object){
-        List<BecknNetwork> allNetworks = new Select().from(BecknNetwork.class).execute();
+        List<BecknNetwork> allNetworks = BecknNetwork.all();
         JSONArray responses = null;
         for (BecknNetwork network : allNetworks){
             responses = lookup(network,object);

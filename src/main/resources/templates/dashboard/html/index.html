@@ -336,7 +336,9 @@
                                     result.DeliveryProvided = 'N';
                                 }
                                 order.OrderLines.forEach((orderLine, i) => {
-                                    if (orderLine.Inventory.Sku.Id === result.Sku.Id && orderLine.Inventory.Facility.Id === result.Facility.Id) {
+                                    if ( (orderLine.Inventory.Sku.Id === result.Sku.Id)  
+                                        && (orderLine.Inventory.Tags === result.Tags )
+                                        && orderLine.Inventory.Facility.Id === result.Facility.Id) {
                                         result.OrderedQuantity = orderLine.OrderedQuantity
                                         result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                                     }
@@ -400,7 +402,9 @@
                     var order = self.facilityOrders[result.Facility.Id];
                     if (order) {
                         let index = order.OrderLines.findIndex(function (ol) {
-                            return ol.Inventory.Sku.Id === result.Sku.Id && ol.Inventory.Facility.Id === result.Facility.Id;
+                            return ol.Inventory.Sku.Id === result.Sku.Id && 
+                            ol.Inventory.Tags === result.Tags &&
+                            ol.Inventory.Facility.Id === result.Facility.Id;
                         });
                         let ol = {
                             Inventory: result,
@@ -767,8 +771,9 @@
                             </div>
                             <div class="col pb-4 pb-sm-0">
                                 <h6 class="m-0 text-truncate" v-bind:title="result.Sku.Name">
-                                    {{result.Sku.Name}}
+                                    {{ result.Sku.Name }} 
                                 </h6>
+                                <span class="small text-muted">{{ result.Tags }}</span>
                                 <!-- <p class="mb-0 small">{{result.Tags}}</p> -->
                                 <p class="mb-1 small text-muted text-truncate" v-bind:title="result.Facility.Name">
                                     By: <a

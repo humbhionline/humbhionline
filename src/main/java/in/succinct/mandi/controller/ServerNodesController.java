@@ -176,7 +176,7 @@ public class ServerNodesController extends ModelController<ServerNode> {
     public static SecretKey getSecretKey(String b64StringX25519OtherPubKey){
         try {
             PublicKey otherKey = Crypt.getInstance().getPublicKey("X25519", b64StringX25519OtherPubKey);
-            PrivateKey key = Crypt.getInstance().getPrivateKey("X25519", BecknUtil.getSelfEncryptionKey().getPrivateKey());
+            PrivateKey key = Crypt.getInstance().getPrivateKey("X25519", BecknUtil.getSelfEncryptionKey(null).getPrivateKey());
             KeyAgreement agreement = KeyAgreement.getInstance("X25519");
             agreement.init(key);
             agreement.doPhase(otherKey, true);
@@ -204,7 +204,7 @@ public class ServerNodesController extends ModelController<ServerNode> {
             }
             SecretKey secretKey = getSecretKey(node);
 
-            on_register.put("pub_key", BecknUtil.getSelfEncryptionKey().getPublicKey());
+            on_register.put("pub_key", BecknUtil.getSelfEncryptionKey(null).getPublicKey());
             on_register.put("challenge", Crypt.getInstance().encrypt(otp.toString(),"AES",getSecretKey(node)));
 
 

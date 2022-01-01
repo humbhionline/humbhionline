@@ -232,6 +232,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             lineHelper.setAttribute("OrderId",StringUtil.valueOf(order.getId()));
             lineHelper.setAttribute("ShipFromId",StringUtil.valueOf(inventory.getFacilityId()));
             lineHelper.setAttribute("SkuId",StringUtil.valueOf(inventory.getSkuId()));
+            lineHelper.removeElementAttribute("Inventory");
 
             OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement);
 

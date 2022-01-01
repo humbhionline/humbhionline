@@ -124,10 +124,20 @@ public class BppController extends Controller {
         }
     }
 
+    private <C extends BecknAsyncTask> C createTask(Class<C> clazzTask, Request request, BecknNetwork network){
+        try {
+            C task = clazzTask.getConstructor(Request.class).newInstance(request);
+            task.setNetwork(network);
+            return task;
+        }catch(Exception ex){
+            throw new RuntimeException(ex);
+        }
+    }
     private <C extends BecknAsyncTask> View act(Class<C> clazzTask){
         try {
+            BecknNetwork network = BecknNetwork.findByRetailBppUrl(getPath().controllerPath());
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            request.getContext().setBppId(BecknNetwork.findByRetailBppUrl(getPath().controllerPath()).getRetailBppSubscriberId());
+            request.getContext().setBppId(network.getRetailBppSubscriberId());
             request.getContext().setBppUri(Config.instance().getServerBaseUrl() + getPath().controllerPath());
             request.getContext().setAction(clazzTask.getSimpleName().toLowerCase(Locale.ROOT));
 
@@ -136,12 +146,12 @@ public class BppController extends Controller {
                     if (!request.getExtendedAttributes().getBoolean(BecknExtnAttributes.INTERNAL)){
                         List<ServerNode> shards = InternalNetwork.getNodes();
                         if (shards.size() <= 1 ){
-                            TaskManager.instance().executeAsync(clazzTask.getConstructor(Request.class).newInstance(request), false);
+                            TaskManager.instance().executeAsync(createTask(clazzTask,request,network), false);
                         }else {
                             submitInternalRequestToShards(shards,request);
                         }
                     }else{
-                        TaskManager.instance().executeAsync(clazzTask.getConstructor(Request.class).newInstance(request), false);
+                        TaskManager.instance().executeAsync(createTask(clazzTask,request,network), false);
                     }
                 }
                 return ack(request);
@@ -349,7 +359,7 @@ public class BppController extends Controller {
             throw new RuntimeException("Cannot verify Signature");
         }
 
-        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,BecknUtil.getSelfEncryptionKey().getPrivateKey());
+        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,BecknUtil.getSelfEncryptionKey(network).getPrivateKey());
         PublicKey registryPublicKey = Request.getEncryptionPublicKey(encrPublicKey);
 
         KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);

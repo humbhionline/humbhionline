@@ -35,6 +35,14 @@ public class BecknUtil {
         return String.format("%s.%s.%s",getNetworkParticipantId(),domain,type);
     }
 
+    public static String getCryptoKeyId(BecknNetwork network){
+        if (network != null){
+            return network.getCryptoKeyId();
+        }else {
+            return BecknUtil.getNetworkParticipantId() + ".k" + BecknUtil.getCurrentKeyNumber();
+        }
+    }
+
     public static String getIdPrefix(){
         //return "./nic2004:52110/IND.std:080/";
         return "./retail.kirana/ind.blr/";
@@ -73,8 +81,11 @@ public class BecknUtil {
         StringBuilder builder = new StringBuilder();
         builder.append(prefix);
         if (!ObjectUtil.isVoid(localUniqueId)){
-            builder.append(localUniqueId).append("@");
+            builder.append(localUniqueId);
+        }else {
+            builder.append(0);
         }
+        builder.append("@");
         builder.append(suffix);
         if (becknEntity != null){
             builder.append(".").append(becknEntity);
@@ -83,15 +94,15 @@ public class BecknUtil {
     }
 
 
-    public static CryptoKey getSelfEncryptionKey(){
-        CryptoKey encryptionKey = CryptoKey.find(getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION);
+    public static CryptoKey getSelfEncryptionKey(BecknNetwork network){
+        CryptoKey encryptionKey = CryptoKey.find(getCryptoKeyId(network),CryptoKey.PURPOSE_ENCRYPTION);
         if (encryptionKey.getRawRecord().isNewRecord()){
             return null;
         }
         return encryptionKey;
     }
-    public static CryptoKey getSelfKey(){
-        CryptoKey key = CryptoKey.find(getCryptoKeyId() ,CryptoKey.PURPOSE_SIGNING);
+    public static CryptoKey getSelfKey(BecknNetwork network){
+        CryptoKey key = CryptoKey.find(getCryptoKeyId(network) ,CryptoKey.PURPOSE_SIGNING);
         if (key.getRawRecord().isNewRecord()){
             return null;
         }
@@ -102,7 +113,5 @@ public class BecknUtil {
         String sKeyNumber =  SequentialNumber.get("KEYS").getCurrentNumber();
         return Long.parseLong(sKeyNumber);
     }
-    public static String getCryptoKeyId(){
-        return BecknUtil.getNetworkParticipantId() + ".k"+  BecknUtil.getCurrentKeyNumber();
-    }
+
 }

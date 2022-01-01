@@ -6,11 +6,13 @@ import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
+import com.venky.swf.routing.Config;
 import in.succinct.beckn.Acknowledgement.Status;
 import in.succinct.beckn.Billing;
 import in.succinct.beckn.Category;
 import in.succinct.beckn.Contact;
 import in.succinct.beckn.Context;
+import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Intent;
@@ -25,6 +27,7 @@ import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
+import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.mandi.db.model.Inventory;
@@ -58,13 +61,13 @@ class BecknCourierAggregator implements CourierAggregator {
         context.setCountry("IND");
 
         context.setBapId(network.getDeliveryBapSubscriberId());
-        context.setBapUri(network.getDeliveryBapUrl());
+        context.setBapUri(Config.instance().getServerBaseUrl() + "/" + network.getDeliveryBapUrl());
         context.setTimestamp(new Timestamp(System.currentTimeMillis()));
         context.setMessageId(UUID.randomUUID().toString());
         context.setTransactionId(context.getMessageId());
         context.setCoreVersion("0.9.1");
         context.setTtl(30);
-        context.setKey(BecknUtil.getSelfEncryptionKey().getPublicKey());
+        //context.setKey(BecknUtil.getSelfEncryptionKey(network).getPublicKey());
         return context;
     }
     private FulfillmentStop makeFulfillmentStop(Address address){
@@ -150,22 +153,21 @@ class BecknCourierAggregator implements CourierAggregator {
         fulfillment.setTracking(false);
         fulfillment.setEnd(makeFulfillmentStop(to));
         order.setFulfillment(fulfillment);
-        Item item = new Item();
-        Items items = new Items();
-        order.setItems(items);
         order.setBilling(new Billing());
         order.getBilling().setPhone(parentOrder.getBillToAddress().getPhoneNumber());
         order.getBilling().setName(parentOrder.getBillToAddress().getLongName());
-        items.add(item);
-
+        Items items = new Items();
+        Item item = new Item();
         String externalItemIdPattern = "/nic2004:55204/(.*)@(.*)\\."+Entity.item ;
         Matcher matcher = Pattern.compile(externalItemIdPattern).matcher(inventory.getExternalSkuId());
         if (matcher.find()){
             item.setId(matcher.group(1));
+            item.setQuantity(new Quantity());
             context.setBppId(matcher.group(2));
             JSONObject bpp = getBpp(context.getBppId());
             context.setBppUri((String)bpp.get("subscriber_url"));
-
+            items.add(item);
+            order.setItems(items);
         }
         Payment payment = new Payment();
         order.setPayment(payment);
@@ -204,20 +206,25 @@ class BecknCourierAggregator implements CourierAggregator {
 
     private List<OnSearch> search(Request request) {
         JSONObject gw = getGateway();
-        String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),BecknUtil.getCryptoKeyId());
+        String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),BecknUtil.getCryptoKeyId(network));
 
-        InputStream responseStream = new Call<>().url((String)gw.get("subscriber_url") +"/search").header("content-type","application/json").header("accept","application/json").
-                header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(request.getInner()).method(HttpMethod.POST).getResponseStream();
+        MessageCallbackUtil.getInstance().initializeCallBackData(request.getContext().getMessageId());
+        try {
+            InputStream responseStream = new Call<>().url((String)gw.get("subscriber_url") +"/search").header("content-type","application/json").header("accept","application/json").
+                    header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(request.getInner()).method(HttpMethod.POST).getResponseStream();
 
-        Response response = new Response(StringUtil.read(responseStream));
-        List<OnSearch> onSearches = new ArrayList<>();
-        if (response.getAcknowledgement().getStatus() == Status.ACK) {
-            JSONObject aResponse;
-            while ((aResponse = MessageCallbackUtil.getInstance().getNextResponse(request.getContext().getMessageId(),3000L)) != null){
-                onSearches.add(new OnSearch(aResponse));
+            Response response = new Response(StringUtil.read(responseStream));
+            List<OnSearch> onSearches = new ArrayList<>();
+            if (response.getAcknowledgement().getStatus() == Status.ACK) {
+                JSONObject aResponse;
+                while ((aResponse = MessageCallbackUtil.getInstance().getNextResponse(request.getContext().getMessageId())) != null){
+                    onSearches.add(new OnSearch(aResponse));
+                }
             }
+            return onSearches;
+        }finally {
+            MessageCallbackUtil.getInstance().shutdownCallBacks(request.getContext().getMessageId());
         }
-        return onSearches;
     }
 
 
@@ -255,27 +262,33 @@ class BecknCourierAggregator implements CourierAggregator {
         Request confirmRequest = makeConfirmJson(inventory,parentOrder);
 
 
-        String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId());
+        String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId(network));
 
 
-        InputStream responseStream = new Call<>().url(confirmRequest.getContext().getBppUri() +"/confirm").header("content-type","application/json").header("accept","application/json").
-                header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(confirmRequest.toString()).getResponseStream();
+        MessageCallbackUtil.getInstance().initializeCallBackData(confirmRequest.getContext().getMessageId());
 
-        Response response = new Response(StringUtil.read(responseStream));
-        if (response.getAcknowledgement().getStatus() == Status.ACK) {
-            JSONObject aResponse = MessageCallbackUtil.getInstance().getNextResponse(confirmRequest.getContext().getMessageId(),3000L);
-            OnConfirm onConfirm = new OnConfirm(aResponse);
-            return new CourierOrder() {
-                @Override
-                public in.succinct.beckn.Order getOrder() {
-                    return onConfirm.getMessage().getOrder();
-                }
+        try {
+            InputStream responseStream = new Call<>().url(confirmRequest.getContext().getBppUri() +"/confirm").header("content-type","application/json").header("accept","application/json").
+                    header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(confirmRequest.getInner()).getResponseStream();
 
-                @Override
-                public Context getContext() {
-                    return onConfirm.getContext();
-                }
-            };
+            Response response = new Response(StringUtil.read(responseStream));
+            if (response.getAcknowledgement().getStatus() == Status.ACK) {
+                    JSONObject aResponse = MessageCallbackUtil.getInstance().getNextResponse(confirmRequest.getContext().getMessageId());
+                    OnConfirm onConfirm = new OnConfirm(aResponse);
+                    return new CourierOrder() {
+                        @Override
+                        public in.succinct.beckn.Order getOrder() {
+                            return onConfirm.getMessage().getOrder();
+                        }
+
+                        @Override
+                        public Context getContext() {
+                            return onConfirm.getContext();
+                        }
+                    };
+            }
+        }finally {
+            MessageCallbackUtil.getInstance().shutdownCallBacks(confirmRequest.getContext().getMessageId());
         }
 
         throw new RuntimeException("Could not book order with partner courier. Please try later.");
@@ -290,6 +303,9 @@ class BecknCourierAggregator implements CourierAggregator {
             for (Provider provider : providers){
                 for (Item item : provider.getItems()){
                     quotes.add(new CourierQuote() {
+                        public Descriptor getDescriptor(){
+                            return onSearch.getMessage().getCatalog().getDescriptor();
+                        }
 
                         @Override
                         public Item getItem() {

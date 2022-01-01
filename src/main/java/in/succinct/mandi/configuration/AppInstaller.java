@@ -173,15 +173,15 @@ public class AppInstaller implements Installer {
     }
 
     private void registerBecknKeys() {
-        CryptoKey encryptionKey = BecknUtil.getSelfEncryptionKey();
-        CryptoKey key = BecknUtil.getSelfKey();
-        String uniqueKeyId = key.getAlias();
 
-        List<BecknNetwork> networks = BecknNetwork.all();
+        List<BecknNetwork> networks =  new Select().from(BecknNetwork.class).execute(BecknNetwork.class);
         for (BecknNetwork network : networks){
-            if (network.isSubscriptionActive()){
+            if (network.isSubscriptionActive() || network.isDisabled()){
                 continue;
             }
+            CryptoKey encryptionKey = BecknUtil.getSelfEncryptionKey(network);
+            CryptoKey key = BecknUtil.getSelfKey(network);
+            String uniqueKeyId = key.getAlias();
             for (String subscriberPrefix : new String[]{ ".nic2004:55204.BAP" , ".nic2004:52110.BPP" }){
                 String[] parts = subscriberPrefix.split("\\.");
 
@@ -243,8 +243,8 @@ public class AppInstaller implements Installer {
             }
 
             node.setClientSecret(Encryptor.encrypt(node.getClientId() + "-" + System.currentTimeMillis()));
-            node.setSigningPublicKey(BecknUtil.getSelfKey().getPublicKey());
-            node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey().getPublicKey());
+            node.setSigningPublicKey(BecknUtil.getSelfKey(null).getPublicKey());
+            node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey(null).getPublicKey());
             node.save();
         }else {
             if (node.isRegistry()){
@@ -266,7 +266,7 @@ public class AppInstaller implements Installer {
         }
         long keyNumber = Long.parseLong(skeyNumber);
 
-        CryptoKey key = CryptoKey.find(BecknUtil.getCryptoKeyId(),CryptoKey.PURPOSE_SIGNING);
+        CryptoKey key = CryptoKey.find(BecknUtil.getCryptoKeyId(null),CryptoKey.PURPOSE_SIGNING);
         if (key.getRawRecord().isNewRecord()) {
             key.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
             key.setCreatedAt(key.getUpdatedAt());
@@ -280,7 +280,7 @@ public class AppInstaller implements Installer {
             key.save();
         }
 
-        CryptoKey encryptionKey =  CryptoKey.find(BecknUtil.getCryptoKeyId(),CryptoKey.PURPOSE_ENCRYPTION);
+        CryptoKey encryptionKey =  CryptoKey.find(BecknUtil.getCryptoKeyId(null),CryptoKey.PURPOSE_ENCRYPTION);
         if (encryptionKey.getRawRecord().isNewRecord()) {
             encryptionKey.setUpdatedAt(key.getUpdatedAt());
             encryptionKey.setCreatedAt(key.getUpdatedAt());

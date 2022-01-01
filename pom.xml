@@ -9,7 +9,7 @@
     <description>mandi</description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>2.7-SNAPSHOT</revision>
+        <revision>2.6-SNAPSHOT</revision>
     </properties>
     <build>
         <plugins>

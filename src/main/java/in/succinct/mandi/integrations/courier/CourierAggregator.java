@@ -2,6 +2,7 @@ package in.succinct.mandi.integrations.courier;
 
 import in.succinct.beckn.Category;
 import in.succinct.beckn.Context;
+import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Item;
 import in.succinct.beckn.Provider;
 import in.succinct.mandi.db.model.Inventory;
@@ -22,6 +23,7 @@ public interface CourierAggregator {
 
 
     public static interface CourierQuote {
+        Descriptor getDescriptor();
         Item getItem();
         Provider getProvider();
         Context getContext();
