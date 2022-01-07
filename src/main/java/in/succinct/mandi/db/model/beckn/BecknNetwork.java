@@ -52,6 +52,12 @@ public interface BecknNetwork  extends Model {
     public String getCryptoKeyId();
     public void setCryptoKeyId(String cryptoKeyId);
 
+    public String getDeliveryBapKeyId();
+    public void setDeliveryBapKeyId(String deliveryBapKeyId);
+    
+    public Integer getPriority();
+    public void setPriority(Integer priority);
+
     public  static BecknNetwork find(String registryId){
         BecknNetwork network = Database.getTable(BecknNetwork.class).newRecord();
         network.setRegistryId(registryId);
@@ -73,7 +79,7 @@ public interface BecknNetwork  extends Model {
                 new Expression(ModelReflector.instance(BecknNetwork.class).getPool(), Conjunction.AND).
                         add(new Expression(ModelReflector.instance(BecknNetwork.class).getPool(),"SUBSCRIPTION_ACTIVE", Operator.EQ,true)).
                         add(new Expression(ModelReflector.instance(BecknNetwork.class).getPool(),"DISABLED", Operator.EQ,false))
-        ).execute(BecknNetwork.class);
+        ).orderBy("PRIORITY").execute(BecknNetwork.class);
     }
 
 }

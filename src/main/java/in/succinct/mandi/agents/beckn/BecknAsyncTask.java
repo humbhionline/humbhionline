@@ -78,7 +78,7 @@ public abstract class BecknAsyncTask implements Task {
         }else if (Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
 
             headers.put("Authorization", request.generateAuthorizationHeader(request.getContext().getBppId(),
-                    BecknUtil.getCryptoKeyId(network)));
+                    BecknUtil.getCryptoKeyId(network,request.getContext().getDomain())));
         }
         headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
         headers.put("Accept", MimeType.APPLICATION_JSON.toString());

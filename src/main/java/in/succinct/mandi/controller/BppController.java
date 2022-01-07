@@ -359,7 +359,7 @@ public class BppController extends Controller {
             throw new RuntimeException("Cannot verify Signature");
         }
 
-        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,BecknUtil.getSelfEncryptionKey(network).getPrivateKey());
+        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,BecknUtil.getSelfEncryptionKey(network,BecknUtil.LOCAL_RETAIL).getPrivateKey());
         PublicKey registryPublicKey = Request.getEncryptionPublicKey(encrPublicKey);
 
         KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);

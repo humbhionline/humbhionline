@@ -31,7 +31,6 @@ import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Select;
 import com.venky.swf.sql.Select.ResultFilter;
 import com.venky.swf.views.BytesView;
-import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.MobileMeta;
 import in.succinct.mandi.db.model.SavedAddress;
@@ -91,7 +90,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
 
     @Override
     @RequireLogin
-    public HtmlView html(String path) {
+    public View html(String path) {
         return html(path, false);
     }
 

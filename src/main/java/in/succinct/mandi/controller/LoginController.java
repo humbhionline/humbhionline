@@ -6,7 +6,6 @@ import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.path.Path;
 import com.venky.swf.controller.Controller;
-import com.venky.swf.views.HtmlView;
 import com.venky.swf.views.RedirectorView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.MobileMeta;
@@ -47,7 +46,7 @@ public class LoginController extends Controller {
 
 
     @Override
-    public HtmlView html(String path) {
+    public View html(String path) {
         return html(path,false);
     }
 

@@ -179,15 +179,15 @@ public class AppInstaller implements Installer {
             if (network.isSubscriptionActive() || network.isDisabled()){
                 continue;
             }
-            CryptoKey encryptionKey = BecknUtil.getSelfEncryptionKey(network);
-            CryptoKey key = BecknUtil.getSelfKey(network);
-            String uniqueKeyId = key.getAlias();
             for (String subscriberPrefix : new String[]{ ".nic2004:55204.BAP" , ".nic2004:52110.BPP" }){
                 String[] parts = subscriberPrefix.split("\\.");
 
                 String domain  = parts[1];
                 String type = parts[2];
+                CryptoKey encryptionKey = BecknUtil.getSelfEncryptionKey(network,domain);
+                CryptoKey key = BecknUtil.getSelfKey(network,domain);
 
+                String uniqueKeyId = key.getAlias();
                 String subscriberId = BecknUtil.getSubscriberId(domain,type,network);
                 if (ObjectUtil.isVoid( subscriberId)) {
                     continue;
@@ -243,8 +243,8 @@ public class AppInstaller implements Installer {
             }
 
             node.setClientSecret(Encryptor.encrypt(node.getClientId() + "-" + System.currentTimeMillis()));
-            node.setSigningPublicKey(BecknUtil.getSelfKey(null).getPublicKey());
-            node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey(null).getPublicKey());
+            node.setSigningPublicKey(BecknUtil.getSelfKey(null,BecknUtil.LOCAL_RETAIL).getPublicKey());
+            node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey(null,BecknUtil.LOCAL_RETAIL).getPublicKey());
             node.save();
         }else {
             if (node.isRegistry()){

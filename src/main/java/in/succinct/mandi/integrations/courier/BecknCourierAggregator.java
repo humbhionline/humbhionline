@@ -206,7 +206,7 @@ class BecknCourierAggregator implements CourierAggregator {
 
     private List<OnSearch> search(Request request) {
         JSONObject gw = getGateway();
-        String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),BecknUtil.getCryptoKeyId(network));
+        String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),BecknUtil.getCryptoKeyId(network,BecknUtil.LOCAL_DELIVERY));
 
         MessageCallbackUtil.getInstance().initializeCallBackData(request.getContext().getMessageId());
         try {
@@ -261,8 +261,7 @@ class BecknCourierAggregator implements CourierAggregator {
     public CourierOrder book(Inventory inventory, Order parentOrder) {
         Request confirmRequest = makeConfirmJson(inventory,parentOrder);
 
-
-        String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId(network));
+        String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId(network,BecknUtil.LOCAL_DELIVERY));
 
 
         MessageCallbackUtil.getInstance().initializeCallBackData(confirmRequest.getContext().getMessageId());

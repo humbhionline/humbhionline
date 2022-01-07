@@ -34,10 +34,19 @@ public class BecknUtil {
         }
         return String.format("%s.%s.%s",getNetworkParticipantId(),domain,type);
     }
+    public static String LOCAL_RETAIL = "nic2004:52110";
+    public static String LOCAL_DELIVERY = "nic2004:55204";
 
     public static String getCryptoKeyId(BecknNetwork network){
+        return getCryptoKeyId(network,LOCAL_RETAIL);
+    }
+    public static String getCryptoKeyId(BecknNetwork network,String domain){
         if (network != null){
-            return network.getCryptoKeyId();
+            if (domain.equals(LOCAL_RETAIL)) {
+                return network.getCryptoKeyId();
+            }else {
+                return network.getDeliveryBapKeyId();
+            }
         }else {
             return BecknUtil.getNetworkParticipantId() + ".k" + BecknUtil.getCurrentKeyNumber();
         }
@@ -94,14 +103,14 @@ public class BecknUtil {
     }
 
 
-    public static CryptoKey getSelfEncryptionKey(BecknNetwork network){
+    public static CryptoKey getSelfEncryptionKey(BecknNetwork network,String domain){
         CryptoKey encryptionKey = CryptoKey.find(getCryptoKeyId(network),CryptoKey.PURPOSE_ENCRYPTION);
         if (encryptionKey.getRawRecord().isNewRecord()){
             return null;
         }
         return encryptionKey;
     }
-    public static CryptoKey getSelfKey(BecknNetwork network){
+    public static CryptoKey getSelfKey(BecknNetwork network,String domain){
         CryptoKey key = CryptoKey.find(getCryptoKeyId(network) ,CryptoKey.PURPOSE_SIGNING);
         if (key.getRawRecord().isNewRecord()){
             return null;
