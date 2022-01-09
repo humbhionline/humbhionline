@@ -30,8 +30,8 @@ public class Confirm extends BecknAsyncTask{
         in.succinct.beckn.Order becknOrder = request.getMessage().getOrder();
         if ("PAID".equals(becknOrder.getPayment().getStatus())){
             order.setAmountPaid(becknOrder.getPayment().getParams().getAmount());
-            order.save();
         }
+        order.save();
 
         onConfirm.getMessage().setOrder(OrderUtil.toBeckn(order, OrderFormat.order));
         return (onConfirm);

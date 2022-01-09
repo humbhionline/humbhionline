@@ -138,7 +138,7 @@ public class Search extends BecknAsyncTask {
 
         List<Inventory> inventories = new Select().from(Inventory.class).where(inventoryWhere).execute(Inventory.class,MAX_LIST_RECORDS,
                 record -> {
-                    Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
+                        Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
                     boolean pass = facility.isPublished();
                     pass = pass && record.isPublished();
                     pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0 );

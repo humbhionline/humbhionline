@@ -238,9 +238,12 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
             if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && inventory.isExternal() ){
                 CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(BecknNetwork.find(inventory.getNetworkId()));
-                CourierOrder courierOrder = courierAggregator.book(inventory,order.getParentOrder());
+                CourierOrder courierOrder = courierAggregator.book(inventory,order,order.getParentOrder());
 
                 double sellingPrice = courierOrder.getOrder().getPayment().getParams().getAmount();
+                if  (sellingPrice == 0){
+                    sellingPrice = courierOrder.getOrder().getQuote().getPrice().getValue();
+                }
                 String orderId = courierOrder.getOrder().getId();
                 order.setExternalTransactionReference(orderId);
                 order.setReference("Courier Order Id:" + orderId);

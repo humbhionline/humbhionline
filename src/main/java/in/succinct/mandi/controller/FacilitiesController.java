@@ -103,14 +103,12 @@ public class FacilitiesController extends ModelController<Facility> {
             skuFields.add("ID");
 
             map.put(Sku.class,skuFields);
-
             map.put(AssetCode.class, Arrays.asList("CODE","LONG_DESCRIPTION","GST_PCT"));
-
-            map.put(User.class,ModelReflector.instance(User.class).getUniqueFields());
-            map.get(User.class).addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
-
-            map.put(Attachment.class,Arrays.asList("ID","ATTACHMENT_URL"));
         }
+        map.put(User.class,ModelReflector.instance(User.class).getUniqueFields());
+        map.get(User.class).addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
+
+        map.put(Attachment.class,Arrays.asList("ID","ATTACHMENT_URL"));
         return map;
     }
 
@@ -118,6 +116,7 @@ public class FacilitiesController extends ModelController<Facility> {
     protected Map<Class<? extends Model>, List<Class<? extends Model>>> getConsideredChildModels() {
         Map<Class<? extends Model>,List<Class<? extends Model>>> consideredModels = super.getConsideredChildModels();
         consideredModels.get(Sku.class).add(Attachment.class);
+        consideredModels.get(Facility.class).add(Attachment.class);
         return consideredModels;
     }
 

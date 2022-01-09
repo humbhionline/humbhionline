@@ -15,7 +15,7 @@ public interface CourierAggregator {
     //This is shown in inventory search against a retail order.
     public List<CourierQuote> getQuotes(final Order retailOrder);
 
-    public CourierOrder book(Inventory inventory, Order parentOrder);
+    public CourierOrder book(Inventory inventory, Order courierOrder , Order parentOrder);
 
     public Order getOrder(JSONObject statusJson);
     public CourierOrder getCourierOrder(JSONObject statusJson);

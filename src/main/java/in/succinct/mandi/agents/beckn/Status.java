@@ -44,7 +44,7 @@ public class Status extends BecknAsyncTask {
         }
 
 
-        in.succinct.beckn.Order becknOrder = new OrderUtil().toBeckn(order, OrderFormat.order);
+        in.succinct.beckn.Order becknOrder = OrderUtil.toBeckn(order, OrderFormat.order);
 
         onStatus.getMessage().setOrder(becknOrder);
 

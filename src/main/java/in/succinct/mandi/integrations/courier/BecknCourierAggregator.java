@@ -25,11 +25,14 @@ import in.succinct.beckn.OnSearch;
 import in.succinct.beckn.OnStatus;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
+import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
 import in.succinct.beckn.Quantity;
+import in.succinct.beckn.Quote;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
+import in.succinct.mandi.db.model.BillToAddress;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
@@ -127,19 +130,19 @@ class BecknCourierAggregator implements CourierAggregator {
         request.setMessage(message);
         return request;
     }
-    private Request makeConfirmJson(Inventory inventory, Order parentOrder){
+    private Request makeConfirmJson(Inventory inventory, Order courierOrder, Order parentOrder){
         Request request = new Request();
         Context context = makeContext();
         context.setAction("confirm");
         request.setContext(context);
 
 
-        Message message = makeConfirmMessage(context,inventory,parentOrder);
+        Message message = makeConfirmMessage(context,inventory,courierOrder,parentOrder);
         request.setMessage(message);
 
         return request;
     }
-    private Message makeConfirmMessage(Context context,Inventory inventory,Order parentOrder){
+    private Message makeConfirmMessage(Context context,Inventory inventory,Order courierOrder, Order parentOrder){
         Message message = new Message();
 
         Address from = parentOrder.getFacility();
@@ -153,9 +156,33 @@ class BecknCourierAggregator implements CourierAggregator {
         fulfillment.setTracking(false);
         fulfillment.setEnd(makeFulfillmentStop(to));
         order.setFulfillment(fulfillment);
-        order.setBilling(new Billing());
-        order.getBilling().setPhone(parentOrder.getBillToAddress().getPhoneNumber());
-        order.getBilling().setName(parentOrder.getBillToAddress().getLongName());
+
+        Billing billing = new Billing();
+        in.succinct.beckn.Address address = new in.succinct.beckn.Address();
+        BillToAddress billToAddress = parentOrder.getBillToAddress();
+        billing.setAddress(address);
+
+        order.setBilling(billing);
+        order.setQuote(new Quote());
+        order.getQuote().setPrice(new Price());
+        order.getQuote().getPrice().setValue(courierOrder.getShippingSellingPrice());
+
+
+        //TOODO FILL
+        billing.setName(billToAddress.getFirstName() + " " + StringUtil.valueOf(billToAddress.getLastName()));
+        billing.setEmail(billToAddress.getEmail());
+        billing.setPhone(billToAddress.getPhoneNumber());
+
+
+        address.setPinCode(billToAddress.getPinCode().getPinCode());
+        address.setDoor(billToAddress.getAddressLine1());
+        address.setBuilding(billToAddress.getAddressLine2());
+        address.setStreet(billToAddress.getAddressLine3());
+        address.setLocality(billToAddress.getAddressLine4());
+        address.setCity(billToAddress.getCity().getName());
+        address.setState(billToAddress.getState().getName());
+        address.setCountry(billToAddress.getCountry().getName());
+
         Items items = new Items();
         Item item = new Item();
         String externalItemIdPattern = "/nic2004:55204/(.*)@(.*)\\."+Entity.item ;
@@ -258,8 +285,8 @@ class BecknCourierAggregator implements CourierAggregator {
     }
 
     @Override
-    public CourierOrder book(Inventory inventory, Order parentOrder) {
-        Request confirmRequest = makeConfirmJson(inventory,parentOrder);
+    public CourierOrder book(Inventory inventory, Order courierOrder , Order parentOrder) {
+        Request confirmRequest = makeConfirmJson(inventory,courierOrder,parentOrder);
 
         String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId(network,BecknUtil.LOCAL_DELIVERY));
 

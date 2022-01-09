@@ -4,9 +4,17 @@ import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
+import com.venky.swf.db.Database;
+import com.venky.swf.db.annotations.column.DATA_TYPE;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
+import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
+import com.venky.swf.plugins.background.core.Task;
+import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Expression;
+import com.venky.swf.sql.Operator;
+import com.venky.swf.sql.Select;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
 import in.succinct.beckn.Acknowledgement;
@@ -14,6 +22,8 @@ import in.succinct.beckn.Acknowledgement.Status;
 import in.succinct.beckn.Error;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
+import in.succinct.mandi.agents.beckn.BecknAsyncTask;
+import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.extensions.BecknPublicKeyFinder;
 import in.succinct.mandi.integrations.beckn.MessageCallbackUtil;
@@ -29,6 +39,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -51,7 +63,7 @@ public class DeliveryBapController extends Controller {
     }
     public View ack(Request request){
         Acknowledgement ack = new Acknowledgement(Status.ACK);
-        return new BytesView(getPath(),new Response(request.getContext(),ack).toString().getBytes(StandardCharsets.UTF_8));
+        return new BytesView(getPath(),new Response(request.getContext(),ack).getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
     private View act(){
@@ -63,7 +75,11 @@ public class DeliveryBapController extends Controller {
             if (!Config.instance().getBooleanProperty("beckn.auth.enabled", false)  || request.verifySignature(params,false)){
                 String messageId = request.getContext().getMessageId();
                 //request.getContext().setBppId(params.get("subscriber_id")); //Dunzo bug to be fixed!!
-                MessageCallbackUtil.getInstance().registerResponse(messageId,request.getInner());
+                if (request.getContext().getAction().equals("on_status")){
+                    TaskManager.instance().executeAsync(new OnStatus(request),false);
+                }else {
+                    MessageCallbackUtil.getInstance().registerResponse(messageId, request.getInner());
+                }
                return ack(request);
             }else {
                 return nack(request,request.getContext().getBppId());
@@ -81,6 +97,24 @@ public class DeliveryBapController extends Controller {
             return new BytesView(getPath(),response.toString().getBytes(StandardCharsets.UTF_8));
         }finally {
             Config.instance().getLogger(getClass().getName()).log(Level.INFO,"Api input " + request.toString());
+        }
+    }
+    public static class OnStatus  implements Task {
+        Request request;
+        public OnStatus(Request request){
+            this.request = request;
+        }
+
+        @Override
+        public void execute() {
+            in.succinct.beckn.Order order = this.request.getMessage().getOrder();
+            String orderId = order.getId();
+            Order myorder = Order.find(orderId);
+            if (myorder != null){
+                if (order.getState().equals("COMPLETE")){
+                    myorder.deliver();
+                }
+            }
         }
     }
 

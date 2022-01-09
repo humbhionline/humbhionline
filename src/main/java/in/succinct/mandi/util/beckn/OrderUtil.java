@@ -212,39 +212,41 @@ public class OrderUtil {
                 buckets.get("IGST").increment(shippingTax);
             }
 
-            if (format.ordinal() < OrderFormat.order.ordinal()) {
-                Quote quote = new Quote();
-                becknOrder.setQuote(quote);
+            Quote quote = new Quote();
+            becknOrder.setQuote(quote);
 
-                Price price = new Price();
-                price.setListedValue(buckets.get("MRP").doubleValue() + buckets.get("SHIPPING_SELLING_PRICE").doubleValue());
-                price.setCurrency("INR");
-                quote.setPrice(price);
+            Price price = new Price();
+            price.setListedValue(buckets.get("MRP").doubleValue() + buckets.get("SHIPPING_SELLING_PRICE").doubleValue());
+            price.setValue(price.getListedValue());
+            price.setCurrency("INR");
+            quote.setPrice(price);
 
-                Price productPrice = new Price();
-                productPrice.setListedValue(buckets.get("MRP").doubleValue());
-                productPrice.setCurrency("INR");
+            Price productPrice = new Price();
+            productPrice.setListedValue(buckets.get("MRP").doubleValue());
+            productPrice.setValue(price.getListedValue());
+            productPrice.setCurrency("INR");
 
-                Price fulfillmentPrice = new Price();
-                fulfillmentPrice.setListedValue(order.getShippingSellingPrice());
-                fulfillmentPrice.setCurrency("INR");
+            Price fulfillmentPrice = new Price();
+            fulfillmentPrice.setListedValue(order.getShippingSellingPrice());
+            fulfillmentPrice.setValue(fulfillmentPrice.getListedValue());
+            fulfillmentPrice.setCurrency("INR");
 
-                if (DoubleUtils.compareTo(buckets.get("MRP").doubleValue() ,order.getProductSellingPrice(), 2)>0){
-                    price.setOfferedValue(order.getProductSellingPrice() + order.getShippingSellingPrice());
-                    productPrice.setOfferedValue(order.getSellingPrice());
-                }
-
-
-                quote.setTtl(15L*60L); //15 minutes.
-
-                BreakUp breakUp = new BreakUp();
-                BreakUpElement element = breakUp.createElement("item","Total Product", productPrice);
-                breakUp.add(element);
-                BreakUpElement fulfillmentElement = breakUp.createElement("fulfillment", "Delivery Charges", fulfillmentPrice);
-                breakUp.add(fulfillmentElement);
-                quote.setBreakUp(breakUp);
-
+            if (DoubleUtils.compareTo(buckets.get("MRP").doubleValue() ,order.getProductSellingPrice(), 2)>0){
+                price.setOfferedValue(order.getProductSellingPrice() + order.getShippingSellingPrice());
+                price.setValue(price.getOfferedValue());
+                productPrice.setOfferedValue(order.getSellingPrice());
+                productPrice.setValue(price.getOfferedValue());
             }
+
+
+            quote.setTtl(15L*60L); //15 minutes.
+
+            BreakUp breakUp = new BreakUp();
+            BreakUpElement element = breakUp.createElement("item","Total Product", productPrice);
+            breakUp.add(element);
+            BreakUpElement fulfillmentElement = breakUp.createElement("fulfillment", "Delivery Charges", fulfillmentPrice);
+            breakUp.add(fulfillmentElement);
+            quote.setBreakUp(breakUp);
 
         }
         return becknOrder;
@@ -371,7 +373,7 @@ public class OrderUtil {
             @Override
             public State getState() {
                 if (state == null){
-                    state = State.findByCountryAndCode(getCountryId(),address.getState());
+                    state = State.findByCountryAndName(getCountryId(),address.getState());
                 }
                 return state;
             }

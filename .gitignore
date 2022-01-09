@@ -10,6 +10,10 @@ overrideProperties/
 nohup.out
 database/*.db
 database/indexes/**/*.done
+database/images/**
+database/*xlsx
+database/*csv
+
 /.gradle/
 .keystore
 doc/
