@@ -33,6 +33,7 @@ import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.mandi.util.beckn.OrderUtil.OrderFormat;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
+import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 
 import java.sql.Timestamp;
@@ -93,7 +94,16 @@ public class Init extends BecknAsyncTask {
             order.setShipAfterDate(new Timestamp(today));
         }
         order.setExternalTransactionReference(context.getTransactionId());
+        order.setExternalPlatformId(context.getBapId());
         order.save();
+        Map<String, OrderAttribute> map = order.getAttributeMap();
+        map.get("external_platform_url").setValue(context.getBapUri());
+        map.get("external_platform_id").setValue(context.getBapId());
+        map.get("network_id").setValue(getNetwork().getRegistryId());
+
+
+        order.saveAttributeMap(map);
+
         Fulfillment fulfillment = becknOrder.getFulfillment();
         Billing billing = becknOrder.getBilling();
         OrderAddress shipTo = createShipTo(order,fulfillment);

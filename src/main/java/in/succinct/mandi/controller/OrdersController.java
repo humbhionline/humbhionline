@@ -246,6 +246,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
                 }
                 String orderId = courierOrder.getOrder().getId();
                 order.setExternalTransactionReference(orderId);
+                order.setExternalPlatformId(courierOrder.getContext().getBppId());
                 order.setReference("Courier Order Id:" + orderId);
 
                 order.setShippingSellingPrice(sellingPrice);

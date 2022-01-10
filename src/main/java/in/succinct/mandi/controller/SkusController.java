@@ -1,14 +1,11 @@
 package in.succinct.mandi.controller;
 
-import com.ondc.client.utils.OCRUtils;
 import com.venky.cache.Cache;
-import com.venky.core.collections.SequenceSet;
 import com.venky.core.string.StringUtil;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
-import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
 import com.venky.swf.routing.Config;
@@ -22,7 +19,9 @@ import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
+import in.succinct.beckn.Price;
 import in.succinct.mandi.db.model.Sku;
+import in.succinct.mandi.util.OCRUtils;
 import in.succinct.plugins.ecommerce.db.model.attachments.Attachment;
 import org.apache.lucene.search.Query;
 
@@ -30,12 +29,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringTokenizer;
 
 public class SkusController extends in.succinct.plugins.ecommerce.controller.SkusController<Sku> {
@@ -44,14 +39,15 @@ public class SkusController extends in.succinct.plugins.ecommerce.controller.Sku
     }
 
     @RequireLogin(false)
-    public View image_search() throws Exception{
-        String strings = getStrings(StringUtil.readBytes((InputStream)getPath().getFormFields().get("file")));
+    public View image_search() {
+        String content_type = (String)getPath().getFormFields().get("file_CONTENT_TYPE");
+        String strings = getStrings(StringUtil.readBytes((InputStream)getPath().getFormFields().get("file")),MimeType.getMimeType(content_type));
         return open_search(strings);
     }
-    public String getStrings(byte[] imageArray){
+    public String getStrings(byte[] imageArray,MimeType mimeType){
         String imageUrl = "data:image/png;base64," +
                 Base64.getEncoder().encodeToString(imageArray);
-        return OCRUtils.parseImage(imageUrl);
+        return OCRUtils.parseImage(imageUrl,mimeType);
     }
     @RequireLogin(false)
     public View index(){
@@ -128,6 +124,8 @@ public class SkusController extends in.succinct.plugins.ecommerce.controller.Sku
                 descriptor.setImages(images);
             }
             item.setId(String.valueOf(record.getId()));
+            item.setPrice(new Price());
+            item.getPrice().setListedValue(record.getMaxRetailPrice());
             items.add(item);
         }
         return new BytesView(getPath(),items.toString().getBytes(StandardCharsets.UTF_8), MimeType.APPLICATION_JSON);

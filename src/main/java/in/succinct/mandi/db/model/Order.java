@@ -203,6 +203,11 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
     public boolean isOnHold();
     public void setOnHold(boolean hold);
 
+    @HIDDEN
+    public String getExternalPlatformId();
+    public void setExternalPlatformId(String bppId);
+    
+
 
     public static Order find (String externalTransactionReference){
         List<Order> orders = new Select().from(Order.class).where(new Expression(ModelReflector.instance(Order.class).getPool(), "EXTERNAL_TRANSACTION_REFERENCE", Operator.EQ,externalTransactionReference)).execute();

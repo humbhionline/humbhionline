@@ -39,6 +39,10 @@ public abstract class BecknAsyncTask implements Task {
         this.network = network;
     }
 
+    public BecknNetwork getNetwork() {
+        return network;
+    }
+
     public final void execute(){
         try {
             Request out = executeInternal();
