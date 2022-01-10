@@ -973,7 +973,7 @@
                                 </div>
                                 <div class="col-7 small text-right">
                                     <span>{{blank(search.term)? "Store" : "Filtered"}} Items:
-                                        {{search.results.length}}</span> |
+                                        {{search.results.length}} of {{Facility.NumSkus}} </span> |
                                     <a href="#/" class="mt-1 btn-outline-primary" role="button"
                                         v-on:click="create($event)" v-if="blank(search.term)">
                                         + New Product
