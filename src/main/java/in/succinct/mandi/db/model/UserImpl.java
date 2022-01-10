@@ -33,27 +33,30 @@ public class UserImpl  extends ModelImpl<User> {
         //Do nothing.
     }
 
+    List<Long> operatingFacilityIds = null;
     public List<Long> getOperatingFacilityIds() {
-        User user = getProxy();
-        SequenceSet<Long> ret = new SequenceSet<>();
-        for (UserFacility uf : user.getUserFacilities()) {
-            ret.add(uf.getFacilityId());
-        }
-
-        Set<String> phoneNumbers= new HashSet<>();
-        for (UserPhone userPhone : user.getUserPhones()) {
-            if (userPhone.isValidated()) {
-                phoneNumbers.add(userPhone.getPhoneNumber());
+        if (operatingFacilityIds == null) {
+            operatingFacilityIds = new SequenceSet<>();
+            User user = getProxy();
+            for (UserFacility uf : user.getUserFacilities()) {
+                operatingFacilityIds.add(uf.getFacilityId());
             }
+
+            Set<String> phoneNumbers = new HashSet<>();
+            for (UserPhone userPhone : user.getUserPhones()) {
+                if (userPhone.isValidated()) {
+                    phoneNumbers.add(userPhone.getPhoneNumber());
+                }
+            }
+            Expression where = new Expression(getReflector().getPool(), Conjunction.OR);
+            if (!phoneNumbers.isEmpty()) {
+                where.add(new Expression(getReflector().getPool(), "PHONE_NUMBER", Operator.IN, phoneNumbers.toArray()));
+                where.add(new Expression(getReflector().getPool(), "ALTERNATE_PHONE_NUMBER", Operator.IN, phoneNumbers.toArray()));
+            }
+            where.add(new Expression(getReflector().getPool(), "CREATOR_ID", Operator.EQ, user.getId()));
+            List<Facility> facilities = new Select().from(Facility.class).where(where).execute();
+            operatingFacilityIds.addAll(DataSecurityFilter.getIds(facilities));
         }
-        Expression where = new Expression(getReflector().getPool(), Conjunction.OR);
-        if (!phoneNumbers.isEmpty()){
-            where.add(new Expression(getReflector().getPool(),"PHONE_NUMBER", Operator.IN, phoneNumbers.toArray()));
-            where.add(new Expression(getReflector().getPool(),"ALTERNATE_PHONE_NUMBER", Operator.IN, phoneNumbers.toArray()));
-        }
-        where.add(new Expression(getReflector().getPool(), "CREATOR_ID",Operator.EQ, user.getId()) );
-        List<Facility> facilities = new Select().from(Facility.class).where(where).execute();
-        ret.addAll(DataSecurityFilter.getIds(facilities));
-        return ret;
+        return operatingFacilityIds;
     }
 }

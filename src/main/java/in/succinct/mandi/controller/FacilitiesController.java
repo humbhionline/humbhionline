@@ -89,7 +89,7 @@ public class FacilitiesController extends ModelController<Facility> {
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map =  super.getIncludedModelFields();
-
+        /*
         if (getPath().action().equals("show") || getPath().action().equals("importInventory")) {
             map.put(Inventory.class, ModelReflector.instance(Inventory.class).getFields());
             List<String> itemFields = ModelReflector.instance(Item.class).getUniqueFields();
@@ -105,6 +105,7 @@ public class FacilitiesController extends ModelController<Facility> {
             map.put(Sku.class,skuFields);
             map.put(AssetCode.class, Arrays.asList("CODE","LONG_DESCRIPTION","GST_PCT"));
         }
+         */
         map.put(User.class,ModelReflector.instance(User.class).getUniqueFields());
         map.get(User.class).addAll(Arrays.asList("ID","NAME_AS_IN_BANK_ACCOUNT","VIRTUAL_PAYMENT_ADDRESS"));
 

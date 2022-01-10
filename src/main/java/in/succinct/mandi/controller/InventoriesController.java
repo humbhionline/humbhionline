@@ -1,5 +1,6 @@
 package in.succinct.mandi.controller;
 
+import com.venky.core.collections.SequenceSet;
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.ObjectUtil;
@@ -258,11 +259,13 @@ public class InventoriesController extends ModelController<Inventory> {
     @Override
     protected ResultFilter<Inventory> getFilter() {
         final ResultFilter<Inventory> superFilter = super.getFilter();
-
+        final List<Long> operatingFacilityIds =  getCurrentUser().getOperatingFacilityIds();
         return record -> {
+            if (operatingFacilityIds.contains(record.getFacilityId())){
+                return true;
+            }
             Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
             Order order = getOrder();
-
 
             boolean pass = facility.isPublished();
             pass = pass && record.isPublished();
@@ -365,8 +368,12 @@ public class InventoriesController extends ModelController<Inventory> {
                 Expression deliveryNotProvidedWhere = bb.getWhereClause(Facility.class);
                 or.add(deliveryNotProvidedWhere);
                 List<Facility> facilities = new Select().from(Facility.class).where(fWhere).execute();
-                if (!facilities.isEmpty()){
-                    where.add(Expression.createExpression(getReflector().getPool(),"FACILITY_ID", Operator.IN, DataSecurityFilter.getIds(facilities).toArray()));
+                List<Long> facilityIds = DataSecurityFilter.getIds(facilities);
+                if (getCurrentUser() != null) {
+                    facilityIds.addAll(getCurrentUser().getOperatingFacilityIds());
+                }
+                if (!facilityIds.isEmpty()){
+                    where.add(Expression.createExpression(getReflector().getPool(),"FACILITY_ID", Operator.IN, facilityIds.toArray()));
                 }else {
                     where.add(new Expression(getReflector().getPool(), "ID",Operator.EQ, -1)); //Impossible!!
                 }

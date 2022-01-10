@@ -44,8 +44,9 @@
                 let self = this;
                 showSpinner();
                 api().url("/facilities/show/" + id).get().then(function (response) {
-                    self.fixFacilityAttributes(response.Facility);
-                    self.showApp();
+                    self.loadInventory(response.Facility).then(function(){
+                        self.showApp();
+                    });
                 }).catch(function (err) {
                     self.showApp();
                     showError(err);
@@ -55,30 +56,22 @@
 
             },
             methods: {
+                fixInventoryAttributes: function(f,i){
+                    i.forEach((inv, index) => {
+                        inv.Sku.Item.AssetCode ||= { Code: "" };
+                        inv.Sku.Attachments ||= [{ Sku: { Id: inv.Sku.Id } }];
+                        inv.ManagedBy ||= "";
+                    });
+                    f.Inventories = i; 
+                    self.search.results = f.Inventories;
+                },
                 fixFacilityAttributes: function (f) {
                     try {
                         let self = this;
-                        if (!f.Inventories) {
-                            f.Inventories = [];
-                        }
-                        f.Inventories.forEach((inv, i) => {
-                            if (!inv.Sku.Item.AssetCode) {
-                                inv.Sku.Item.AssetCode = { Code: "" };
-                            }
-                            if (!inv.Sku.Attachments) {
-                                inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
-                            }
-                        });
-                        if (!f.Attachments) {
-                            f.Attachments = [];
-                        }
+                        f.Inventories ||= [];
+                        f.Attachments ||= [];
                         self.Facility = f;
                         self.search.results = f.Inventories;
-                        f.Inventories.forEach((inventory, i) => {
-                            inventory.ManagedBy ||= "";
-                        });
-
-
                     } catch (err) {
                         console.log(err);
                     }
@@ -846,14 +839,23 @@
                         e.preventDefault();
                     }
                     if (blank(self.search.term)) {
-                        self.search.results = self.Facility.Inventories
+                        self.search.results = self.loadInventory(self.Facility).then(function(){
+                            console.log(self.search.results);
+                        });
                     } else {
                         let term = self.search.term.toLowerCase();
-                        self.search.results = self.Facility.Inventories.filter(function (inv, index) {
-                            return inv.Sku.Name.toLowerCase().indexOf(term) >= 0 || (inv.Tags && inv.Tags.toLowerCase().indexOf(term) >= 0);
+                        self.loadInventory(self.Facility, { q : term }).then(function(){
+                            self.search.results = self.Facility.Inventories;
+                            console.log(self.search.results);
                         });
                     }
-                    console.log(self.search.results);
+                },
+                loadInventory: function(f,q = {} ){
+                    let self = this; 
+                    return api().url("/facilities/show/`id`/inventories/search").get(q).then(function(invResponse){
+                        self.fixInventoryAttributes(f, invResponse.Inventories);
+                        self.fixFacilityAttributes(f);
+                    });
                 },
                 isDeliverySku: function (sku) {
                     return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
