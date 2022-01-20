@@ -35,8 +35,8 @@ import java.util.Map;
 
 public class Select extends BecknAsyncTask {
 
-    public Select(Request request){
-        super(request);
+    public Select(Request request,Map<String,String> headers){
+        super(request,headers);
     }
     boolean forMyShard(Order selected){
         if (selected == null){

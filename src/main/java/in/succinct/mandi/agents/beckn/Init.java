@@ -41,8 +41,8 @@ import java.util.Map;
 
 public class Init extends BecknAsyncTask {
 
-    public Init(Request request){
-        super(request);
+    public Init(Request request , Map<String,String> headers){
+        super(request,headers);
     }
     @Override
     public Request executeInternal() {
@@ -99,7 +99,7 @@ public class Init extends BecknAsyncTask {
         Map<String, OrderAttribute> map = order.getAttributeMap();
         map.get("external_platform_url").setValue(context.getBapUri());
         map.get("external_platform_id").setValue(context.getBapId());
-        map.get("network_id").setValue(getNetwork().getRegistryId());
+        //map.get("network_id").setValue(getNetwork().getRegistryId());
 
 
         order.saveAttributeMap(map);

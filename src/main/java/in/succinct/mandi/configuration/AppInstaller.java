@@ -17,6 +17,10 @@ import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.plugins.beckn.messaging.BapSubscriber;
+import com.venky.swf.plugins.beckn.messaging.BppSubscriber;
+import com.venky.swf.plugins.beckn.messaging.QueueSubscriber;
+import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Company;
@@ -30,6 +34,15 @@ import com.venky.swf.sql.Select;
 import com.venky.swf.util.SharedKeys;
 import in.succinct.beckn.BecknObject;
 import in.succinct.beckn.Request;
+import in.succinct.mandi.agents.beckn.Cancel;
+import in.succinct.mandi.agents.beckn.Confirm;
+import in.succinct.mandi.agents.beckn.Init;
+import in.succinct.mandi.agents.beckn.Search;
+import in.succinct.mandi.agents.beckn.Status;
+import in.succinct.mandi.agents.beckn.Track;
+import in.succinct.mandi.agents.beckn.Update;
+import in.succinct.mandi.agents.beckn.bap.delivery.GenericCallBackRecorder;
+import in.succinct.mandi.agents.beckn.bap.delivery.OnStatus;
 import in.succinct.mandi.controller.ServerNodesController.Sync;
 import in.succinct.mandi.db.model.EncryptedModel;
 import in.succinct.mandi.db.model.Facility;
@@ -173,47 +186,90 @@ public class AppInstaller implements Installer {
     }
 
     private void registerBecknKeys() {
+        Map<String,Map<String, Class<? extends Task>>> participantActions = new HashMap<String,Map<String, Class<? extends Task>>>(){{
+            // put(NetworkRole.SUBSCRIBER_TYPE_BG,Arrays.asList("search")); No need for bg.!!
+            put("nic2004:52110", new HashMap<String,Class<? extends Task>>(){{
+                put("search", Search.class);
+                put("select", in.succinct.mandi.agents.beckn.Select.class);
+                put("init", Init.class);
+                put("confirm", Confirm.class);
+                put("track", Track.class);
+                put("cancel", Cancel.class);
+                put("update", Update.class);
+                put("status", Status.class);
+            }});
+            put("nic2004:55204",new HashMap<String,Class<? extends Task>>(){{
+                put("on_search", GenericCallBackRecorder.class);
+                put("on_select", GenericCallBackRecorder.class);
+                put("on_init", GenericCallBackRecorder.class);
+                put("on_confirm", GenericCallBackRecorder.class);
+                put("on_status", OnStatus.class);
+                put("on_track", GenericCallBackRecorder.class);
+                put("on_cancel", GenericCallBackRecorder.class);
+                put("on_update", GenericCallBackRecorder.class);
+            }});
+        }};
 
         List<BecknNetwork> networks =  new Select().from(BecknNetwork.class).execute(BecknNetwork.class);
         for (BecknNetwork network : networks){
-            if (network.isSubscriptionActive() || network.isDisabled()){
+            if (network.isDisabled()){
                 continue;
             }
+            Map<String, Subscriber> subscriberMap = new HashMap<String,Subscriber>(){{
+               put(BecknUtil.LOCAL_RETAIL,network.getRetailBppSubscriber());
+               put(BecknUtil.LOCAL_DELIVERY,network.getDeliveryBapSubscriber());
+            }};
             for (String subscriberPrefix : new String[]{ ".nic2004:55204.BAP" , ".nic2004:52110.BPP" }){
                 String[] parts = subscriberPrefix.split("\\.");
 
                 String domain  = parts[1];
                 String type = parts[2];
-                CryptoKey encryptionKey = BecknUtil.getSelfEncryptionKey(network,domain);
-                CryptoKey key = BecknUtil.getSelfKey(network,domain);
 
-                String uniqueKeyId = key.getAlias();
-                String subscriberId = BecknUtil.getSubscriberId(domain,type,network);
+                Subscriber subscriber = subscriberMap.get(domain);
+                CryptoKey encryptionKey = CryptoKey.find(subscriber.getPubKeyId(),CryptoKey.PURPOSE_ENCRYPTION);
+                CryptoKey key = CryptoKey.find(subscriber.getPubKeyId(),CryptoKey.PURPOSE_SIGNING);
+
+
+                String uniqueKeyId = subscriber.getPubKeyId();
+                String subscriberId = subscriber.getSubscriberId();
                 if (ObjectUtil.isVoid( subscriberId)) {
                     continue;
                 }
-                JSONObject object = new JSONObject();
-                object.put("subscriber_id",subscriberId);
-                object.put("country","IND");
-                object.put("city","std:080");
-                object.put("nonce", Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
-                object.put("unique_key_id",uniqueKeyId);
-                object.put("signing_public_key",Request.getRawSigningKey(key.getPublicKey()));
-                object.put("encr_public_key",Request.getRawEncryptionKey(encryptionKey.getPublicKey()));
-                object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(key.getUpdatedAt()));
-                object.put("valid_until",BecknObject.TIMESTAMP_FORMAT.format(
-                        new Date(key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L)))) ; //10 years
 
-                Request request = new Request(object);
+                if (network.isMqSupported()) {
+                    QueueSubscriber queueSubscriber = null ;
+                    if (ObjectUtil.equals(type, in.succinct.beckn.Subscriber.SUBSCRIBER_TYPE_BPP)) {
+                        queueSubscriber = new BppSubscriber(subscriber);
+                    }else {
+                        queueSubscriber = new BapSubscriber(subscriber);
+                    }
+                    queueSubscriber.registerSubscriber();
+                }
 
-                TaskManager.instance().executeAsync((Task) () -> {
+                if (!network.isSubscriptionActive()) {
+                    JSONObject object = new JSONObject();
+                    object.put("subscriber_id", subscriberId);
+                    object.put("country", "IND");
+                    object.put("city", "std:080");
+                    object.put("nonce", Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
+                    object.put("unique_key_id", uniqueKeyId);
+                    object.put("signing_public_key", Request.getRawSigningKey(key.getPublicKey()));
+                    object.put("encr_public_key", Request.getRawEncryptionKey(encryptionKey.getPublicKey()));
+                    object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(key.getUpdatedAt()));
+                    object.put("valid_until", BecknObject.TIMESTAMP_FORMAT.format(
+                            new Date(key.getUpdatedAt().getTime() + (long) (10L * 365.25D * 24L * 60L * 60L * 1000L)))); //10 years
 
-                    JSONObject response = new Call<JSONObject>().url(network.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
-                            header("Content-Type", MimeType.APPLICATION_JSON.toString()).
-                            header("Accept",MimeType.APPLICATION_JSON.toString()).
-                            header("Authorization", request.generateAuthorizationHeader(subscriberId, uniqueKeyId)).
-                            getResponseAsJson();
-                },false);
+                    Request request = new Request(object);
+
+                    TaskManager.instance().executeAsync((Task) () -> {
+
+                        JSONObject response = new Call<JSONObject>().url(network.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
+                                header("Content-Type", MimeType.APPLICATION_JSON.toString()).
+                                header("Accept", MimeType.APPLICATION_JSON.toString()).
+                                header("Authorization", request.generateAuthorizationHeader(subscriberId, uniqueKeyId)).
+                                getResponseAsJson();
+                    }, false);
+                }
             }
 
 

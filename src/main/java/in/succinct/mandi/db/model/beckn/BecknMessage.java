@@ -20,11 +20,11 @@ import in.succinct.beckn.Providers;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.agents.beckn.BecknAsyncTask;
 import in.succinct.mandi.agents.beckn.BecknExtnAttributes;
-import in.succinct.mandi.util.beckn.BecknUtil;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import java.io.Reader;
+import java.util.HashMap;
 import java.util.List;
 
 public interface BecknMessage extends Model {
@@ -62,7 +62,7 @@ public interface BecknMessage extends Model {
         BecknMessage message ;
 
         public ResponseConsolidator(BecknMessage message){
-            super(getRequest(message));
+            super(getRequest(message),new HashMap<>());
             this.message = message;
         }
         public static BecknMessage getMessage(String messageId) {
@@ -93,8 +93,9 @@ public interface BecknMessage extends Model {
             }
             validateResponse(consolidated);
             Request request = new Request(consolidated);
-            request.getContext().setBppId(BecknNetwork.findByRetailBppUrl(message.getRequestPath()).getRetailBppSubscriberId());
-            request.getContext().setBppUri(Config.instance().getServerBaseUrl() + "/bpp");
+            BecknNetwork network = BecknNetwork.findByRetailBppUrl(message.getRequestPath());
+            request.getContext().setBppId(network.getRetailBppSubscriberId());
+            request.getContext().setBppUri(network.getRetailBppUrl());
             return request;
         }
         public void validateResponse(JSONObject consolidatedResponse) throws RuntimeException {

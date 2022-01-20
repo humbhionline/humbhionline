@@ -11,6 +11,9 @@ import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.plugins.beckn.messaging.Subscriber;
+import com.venky.swf.plugins.beckn.tasks.BecknTask;
+import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
@@ -69,18 +72,22 @@ public class DeliveryBapController extends Controller {
     private View act(){
         Request request =null ;
         try {
+            String action = getPath().action();
             request = new Request(StringUtil.read(getPath().getInputStream()));
-            Map<String, String> params = request.extractAuthorizationParams("Authorization",getPath().getHeaders());
-
-            if (!Config.instance().getBooleanProperty("beckn.auth.enabled", false)  || request.verifySignature(params,false)){
-                String messageId = request.getContext().getMessageId();
-                //request.getContext().setBppId(params.get("subscriber_id")); //Dunzo bug to be fixed!!
-                if (request.getContext().getAction().equals("on_status")){
-                    TaskManager.instance().executeAsync(new OnStatus(request),false);
+            BecknNetwork network = BecknNetwork.findByDeliveryBapUrl(getPath().controllerPath());
+            Subscriber subscriber = network.getDeliveryBapSubscriber();
+            BecknTask task = subscriber.getTaskClass(action).getConstructor(Request.class,Map.class).newInstance(request,getPath().getHeaders());
+            task.setSubscriber(subscriber);
+            if (Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
+                task.registerSignatureHeaders("Authorization");
+            }
+            if (task.verifySignatures(false)){
+                if (task.async()){
+                    TaskManager.instance().executeAsync(task,false);
                 }else {
-                    MessageCallbackUtil.getInstance().registerResponse(messageId, request.getInner());
+                    TaskManager.instance().execute(task);
                 }
-               return ack(request);
+                return ack(request);
             }else {
                 return nack(request,request.getContext().getBppId());
             }
@@ -97,24 +104,6 @@ public class DeliveryBapController extends Controller {
             return new BytesView(getPath(),response.toString().getBytes(StandardCharsets.UTF_8));
         }finally {
             Config.instance().getLogger(getClass().getName()).log(Level.INFO,"Api input " + request.toString());
-        }
-    }
-    public static class OnStatus  implements Task {
-        Request request;
-        public OnStatus(Request request){
-            this.request = request;
-        }
-
-        @Override
-        public void execute() {
-            in.succinct.beckn.Order order = this.request.getMessage().getOrder();
-            String orderId = order.getId();
-            Order myorder = Order.find(orderId);
-            if (myorder != null){
-                if (order.getState().equals("COMPLETE")){
-                    myorder.deliver();
-                }
-            }
         }
     }
 
@@ -177,7 +166,7 @@ public class DeliveryBapController extends Controller {
         }
 
         lookupJSON.put("subscriber_id", network.getRegistryId());
-        lookupJSON.put("domain","nic2004:55204");
+        lookupJSON.put("domain",BecknUtil.LOCAL_DELIVERY);
         JSONArray array = BecknPublicKeyFinder.lookup(lookupJSON);
         String signingPublicKey = null;
         String encrPublicKey = null;
@@ -195,7 +184,11 @@ public class DeliveryBapController extends Controller {
             throw new RuntimeException("Cannot verify Signature");
         }
 
-        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO, BecknUtil.getSelfEncryptionKey(network,BecknUtil.LOCAL_DELIVERY).getPrivateKey());
+        Subscriber delivery_bap = network.getDeliveryBapSubscriber();
+
+        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,
+                CryptoKey.find(delivery_bap.getPubKeyId(),CryptoKey.PURPOSE_ENCRYPTION).getPrivateKey());
+
         PublicKey registryPublicKey = Request.getEncryptionPublicKey(encrPublicKey);
 
         KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);

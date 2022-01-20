@@ -25,8 +25,8 @@ import java.util.Map;
 
 public class Cancel extends BecknAsyncTask {
 
-    public Cancel(Request request){
-        super(request);
+    public Cancel(Request request,Map<String,String> headers){
+        super(request,headers);
     }
 
     @Override

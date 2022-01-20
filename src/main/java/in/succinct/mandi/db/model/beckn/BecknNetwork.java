@@ -1,12 +1,13 @@
 package in.succinct.mandi.db.model.beckn;
 
-import com.venky.core.collections.SequenceSet;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
+import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.UNIQUE_KEY;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
@@ -82,4 +83,22 @@ public interface BecknNetwork  extends Model {
         ).orderBy("PRIORITY").execute(BecknNetwork.class);
     }
 
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isMqSupported();
+    public void setMqSupported(boolean mqSupported);
+
+    public String getMqHost();
+    public void setMqHost(String url);
+
+    public Integer getMqPort();
+    public void setMqPort(Integer port);
+
+    public String getMqProvider();
+    public void setMqProvider(String mqProvider);
+
+    @IS_VIRTUAL
+    Subscriber getRetailBppSubscriber();
+
+    @IS_VIRTUAL
+    Subscriber getDeliveryBapSubscriber();
 }

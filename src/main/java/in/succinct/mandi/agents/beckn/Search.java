@@ -57,8 +57,8 @@ import java.util.Map;
 
 public class Search extends BecknAsyncTask {
 
-    public Search(Request request){
-        super(request);
+    public Search(Request request,Map<String,String> headers){
+        super(request,headers);
     }
     static final int MAX_LIST_RECORDS = 10;
 

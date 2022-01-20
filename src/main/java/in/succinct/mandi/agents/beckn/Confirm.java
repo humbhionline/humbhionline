@@ -8,9 +8,11 @@ import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.mandi.util.beckn.OrderUtil.OrderFormat;
 
+import java.util.Map;
+
 public class Confirm extends BecknAsyncTask{
-    public Confirm(Request request){
-        super(request);
+    public Confirm(Request request, Map<String,String> headers){
+        super(request,headers);
     }
     @Override
     public Request executeInternal() {

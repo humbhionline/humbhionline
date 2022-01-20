@@ -27,7 +27,7 @@ then
     export DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=${suspend},address=${dport}"
 fi
 
-pid=`ps -ef |grep java.*PORT=${wport}|grep -v grep |tr -s ' ' |cut -f2 -d ' '`
+pid=`ps -fu $USER |grep java.*PORT=${wport}|grep -v grep |tr -s ' ' |cut -f2 -d ' '`
 if [ "$pid" != "" ]
 then 
 kill -9 $pid

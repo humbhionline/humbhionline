@@ -15,6 +15,9 @@ import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.plugins.beckn.messaging.Mq;
+import com.venky.swf.plugins.beckn.tasks.BecknTask;
+import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.routing.Config;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
@@ -33,6 +36,7 @@ import in.succinct.mandi.agents.beckn.Confirm;
 import in.succinct.mandi.agents.beckn.Init;
 import in.succinct.mandi.agents.beckn.Search;
 import in.succinct.mandi.agents.beckn.Select;
+import in.succinct.mandi.agents.beckn.Track;
 import in.succinct.mandi.agents.beckn.Update;
 import in.succinct.mandi.db.model.OrderCancellationReason;
 import in.succinct.mandi.db.model.ServerNode;
@@ -61,6 +65,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 public class BppController extends Controller {
@@ -98,7 +103,7 @@ public class BppController extends Controller {
         }
         return url;
     }
-    protected boolean isRequestAuthenticated(Request request){
+    protected boolean isRequestAuthenticated(BecknAsyncTask task, Request request){
         Map<String,String> headers = getPath().getHeaders();
 
         ServerNode node = InternalNetwork.getRemoteServer(getPath(),true);
@@ -110,10 +115,16 @@ public class BppController extends Controller {
             request.getExtendedAttributes().set(BecknExtnAttributes.CALLBACK_URL,callbackUrl);
 
             if ( Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {
-                return request.verifySignature("X-Gateway-Authorization",headers , false) &&
-                        request.verifySignature("Proxy-Authorization",headers , false) &&
-                        request.verifySignature("Authorization",headers , Config.instance().getBooleanProperty("beckn.auth.enabled", false));
-
+                if (getPath().getHeader("X-Gateway-Authorization") != null) {
+                    task.registerSignatureHeaders("X-Gateway-Authorization");
+                }
+                if (getPath().getHeader("Proxy-Authorization") != null){
+                    task.registerSignatureHeaders("Proxy-Authorization");
+                }
+                if (getPath().getHeader("Authorization") != null) {
+                    task.registerSignatureHeaders("Authorization");
+                }
+                return task.verifySignatures(false);
             }else {
                 return true;
             }
@@ -124,35 +135,48 @@ public class BppController extends Controller {
         }
     }
 
-    private <C extends BecknAsyncTask> C createTask(Class<C> clazzTask, Request request, BecknNetwork network){
+    private <C extends BecknAsyncTask> BecknAsyncTask createTask(Class<C> clazzTask, Request request, Map<String,String> headers, BecknNetwork network){
         try {
-            C task = clazzTask.getConstructor(Request.class).newInstance(request);
-            task.setNetwork(network);
+            BecknAsyncTask task = null;
+            if (clazzTask == null){
+                task = new BecknAsyncTask(request,headers){
+
+                    @Override
+                    public Request executeInternal() {
+                        return null;
+                    }
+                };
+            }else {
+                task = clazzTask.getConstructor(Request.class,Map.class).newInstance(request,headers);
+            }
+            task.setSubscriber(network.getRetailBppSubscriber());
             return task;
         }catch(Exception ex){
             throw new RuntimeException(ex);
         }
     }
-    private <C extends BecknAsyncTask> View act(Class<C> clazzTask){
+    private View act(){
         try {
             BecknNetwork network = BecknNetwork.findByRetailBppUrl(getPath().controllerPath());
+            com.venky.swf.plugins.beckn.messaging.Subscriber subscriber =network.getRetailBppSubscriber();
+            Class<? extends BecknAsyncTask> clazzTask = subscriber.getTaskClass(getPath().action());
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            request.getContext().setBppId(network.getRetailBppSubscriberId());
-            request.getContext().setBppUri(Config.instance().getServerBaseUrl() + getPath().controllerPath());
-            request.getContext().setAction(clazzTask.getSimpleName().toLowerCase(Locale.ROOT));
+            request.getContext().setBppId(subscriber.getSubscriberId());
+            request.getContext().setBppUri(subscriber.getSubscriberUrl());
+            request.getContext().setAction(getPath().action());
 
-            if (isRequestAuthenticated(request)){
-                if (clazzTask != null){
-                    if (!request.getExtendedAttributes().getBoolean(BecknExtnAttributes.INTERNAL)){
-                        List<ServerNode> shards = InternalNetwork.getNodes();
-                        if (shards.size() <= 1 ){
-                            TaskManager.instance().executeAsync(createTask(clazzTask,request,network), false);
-                        }else {
-                            submitInternalRequestToShards(shards,request);
-                        }
-                    }else{
-                        TaskManager.instance().executeAsync(createTask(clazzTask,request,network), false);
+            BecknAsyncTask task = createTask(clazzTask,request,getPath().getHeaders(),network);
+
+            if (isRequestAuthenticated(task,request)){
+                if (!request.getExtendedAttributes().getBoolean(BecknExtnAttributes.INTERNAL)){
+                    List<ServerNode> shards = InternalNetwork.getNodes();
+                    if (shards.size() <= 1 ){
+                        TaskManager.instance().executeAsync(task, false);
+                    }else {
+                        submitInternalRequestToShards(shards,request);
                     }
+                }else{
+                    TaskManager.instance().executeAsync(task, false);
                 }
                 return ack(request);
             }else {
@@ -207,50 +231,50 @@ public class BppController extends Controller {
 
     @RequireLogin(false)
     public View search() {
-        return act(Search.class);
+        return act();
     }
     @RequireLogin(false)
     public View select(){
-        return act(Select.class);
+        return act();
     }
     @RequireLogin(false)
     public View cancel(){
-        return act(Cancel.class);
+        return act();
     }
 
     @RequireLogin(false)
     public View init(){
-        return act(Init.class);
+        return act();
     }
     @RequireLogin(false)
     public View confirm(){
-        return act(Confirm.class);
+        return act();
     }
 
     @RequireLogin(false)
     public View status(){
-        return act(in.succinct.mandi.agents.beckn.Status.class);
+        return act();
     }
 
     @RequireLogin(false)
     public View update(){
-        return act(Update.class);
+        return act();
     }
 
 
     @RequireLogin(false)
     public View track(){
-        return act(null);
+        return act();
     }
 
     @RequireLogin(false)
     public View rating(){
-        return act(null);
+        return act();
     }
 
     @RequireLogin(false)
     public View support(){
-        return act(null);
+        return act();
     }
 
     @RequireLogin(false)
@@ -340,7 +364,7 @@ public class BppController extends Controller {
 
         JSONObject lookupJSON = new JSONObject();
         lookupJSON.put("subscriber_id",network.getRegistryId());
-        lookupJSON.put("domain","nic2004:52110");
+        lookupJSON.put("domain",BecknUtil.LOCAL_RETAIL);
         lookupJSON.put("type", Subscriber.SUBSCRIBER_TYPE_LOCAL_REGISTRY);
         JSONArray array = BecknPublicKeyFinder.lookup(lookupJSON);
         String signingPublicKey = null;
@@ -358,8 +382,12 @@ public class BppController extends Controller {
         if (!Request.verifySignature(getPath().getHeader("Signature"), payload, signingPublicKey)){
             throw new RuntimeException("Cannot verify Signature");
         }
+        com.venky.swf.plugins.beckn.messaging.Subscriber bpp = network.getRetailBppSubscriber();
 
-        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,BecknUtil.getSelfEncryptionKey(network,BecknUtil.LOCAL_RETAIL).getPrivateKey());
+
+        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,
+                CryptoKey.find(bpp.getPubKeyId(),CryptoKey.PURPOSE_ENCRYPTION).getPrivateKey());
+
         PublicKey registryPublicKey = Request.getEncryptionPublicKey(encrPublicKey);
 
         KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);

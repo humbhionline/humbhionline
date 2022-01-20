@@ -24,8 +24,8 @@ import java.util.Map;
 public class Status extends BecknAsyncTask {
 
 
-    public Status(Request request){
-        super(request);
+    public Status(Request request,Map<String,String> headers){
+        super(request,headers);
     }
     @Override
     public Request executeInternal() {
