@@ -94,6 +94,16 @@
             <version>${revision}</version>
         </dependency>
         <dependency>
+            <groupId>com.github.venkatramanm.swf-all</groupId>
+            <artifactId>swf-plugin-hivemq</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.venkatramanm.swf-all</groupId>
+            <artifactId>swf-plugin-nats</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
             <groupId>in.succinct.beckn</groupId>
             <artifactId>sdk</artifactId>
             <version>1.0-SNAPSHOT</version>

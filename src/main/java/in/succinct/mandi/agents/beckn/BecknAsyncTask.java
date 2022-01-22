@@ -6,15 +6,9 @@ import in.succinct.beckn.Request;
 import java.util.Map;
 
 public abstract class BecknAsyncTask extends BppTask {
-    public Request getRequest() {
-        return request;
-    }
-
-    private Request request;
     public BecknAsyncTask( Request request , Map<String,String> headers){
         super(request,headers);
     }
-
     @Override
     public Request generateCallBackRequest() {
         return executeInternal();

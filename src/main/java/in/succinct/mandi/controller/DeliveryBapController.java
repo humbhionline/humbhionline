@@ -11,6 +11,8 @@ import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.plugins.beckn.messaging.Mq;
+import com.venky.swf.plugins.beckn.messaging.ProxySubscriberImpl;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
@@ -75,7 +77,12 @@ public class DeliveryBapController extends Controller {
             String action = getPath().action();
             request = new Request(StringUtil.read(getPath().getInputStream()));
             BecknNetwork network = BecknNetwork.findByDeliveryBapUrl(getPath().controllerPath());
-            Subscriber subscriber = network.getDeliveryBapSubscriber();
+            Subscriber subscriber = new ProxySubscriberImpl(network.getDeliveryBapSubscriber()){
+                @Override
+                public Mq getMq() {
+                    return null; //Respond vid http
+                }
+            };
             BecknTask task = subscriber.getTaskClass(action).getConstructor(Request.class,Map.class).newInstance(request,getPath().getHeaders());
             task.setSubscriber(subscriber);
             if (Config.instance().getBooleanProperty("beckn.auth.enabled", false)) {

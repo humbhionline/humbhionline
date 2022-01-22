@@ -15,7 +15,9 @@ import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.Task;
 import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.plugins.beckn.messaging.CommunicationPreference;
 import com.venky.swf.plugins.beckn.messaging.Mq;
+import com.venky.swf.plugins.beckn.messaging.ProxySubscriberImpl;
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
 import com.venky.swf.routing.Config;
@@ -135,6 +137,7 @@ public class BppController extends Controller {
         }
     }
 
+
     private <C extends BecknAsyncTask> BecknAsyncTask createTask(Class<C> clazzTask, Request request, Map<String,String> headers, BecknNetwork network){
         try {
             BecknAsyncTask task = null;
@@ -149,7 +152,12 @@ public class BppController extends Controller {
             }else {
                 task = clazzTask.getConstructor(Request.class,Map.class).newInstance(request,headers);
             }
-            task.setSubscriber(network.getRetailBppSubscriber());
+            task.setSubscriber(new ProxySubscriberImpl(network.getRetailBppSubscriber()){
+                @Override
+                public Mq getMq() {
+                    return null;
+                }
+            });
             return task;
         }catch(Exception ex){
             throw new RuntimeException(ex);

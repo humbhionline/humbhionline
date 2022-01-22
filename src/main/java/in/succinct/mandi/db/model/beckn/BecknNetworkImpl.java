@@ -60,6 +60,9 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
 
             @Override
             public Mq getMq() {
+                if (!network.isMqSupported()){
+                    return null;
+                }
                 return new Mq() {
 
                     @Override
