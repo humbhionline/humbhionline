@@ -2,40 +2,41 @@
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer ></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
 <script type="text/javascript" >
-    function loadRight(ev,link){
-        ev && ev.preventDefault();
-        $("#right").load("/blog/markdownFragment/"+link, {} , function(){});
-    }
-    $(
-        function () {
-            new Vue({
-                el: "#root",
-                data: {
-                    root : {
-                        tocFragment : "" , 
-                    } , 
-                },
-                created: function () {
+    var vue;
+    $(function(){
+        Vue.component('htc',{
+            props:["htc"],
+            template :'<div v-html="htc"></div>'
+        });
+        vue = new Vue({
+            el : "#root",
+            data : {
+                left:"",
+                right:"",
+            },
+            created: function(){
+                this.load(null,"left","toc");
+                this.load(null,"right","whyonline");
+            },
+            methods: {
+                load: function(ev,ref,link){
                     let self = this;
-                    api().url("/blog/markdownFragment/toc").get().then(function(r){
-                        self.root.tocFragment = r;  
-                    }).then(function(){
-                        loadRight(null,"/blog/markdownFragment/whyonline");
+                    ev && ev.preventDefault();
+                    api().url("/blog/markdownFragment/"+link).get().then(function(r){
+                        self[ref] = r;
                     });
-                },
-            });
-        }
-   );
+                }
+            }
+        });
+    });
 </script>
 
 
 <div id="root" style="w-100">
     <div class="container" > 
         <div class="row">
-            <div class="col-4" id="toc" v-html="root.tocFragment">
-            </div>
-            <div class="col-8" id="right" >
-            </div>
+            <htc v-bind:htc="left" class="col-4" id="left" ref="left"></htc>
+            <htc v-bind:htc="right" class="col-8" id="right" ref="left"></htc>
         </div>
     </div>
 </div>
