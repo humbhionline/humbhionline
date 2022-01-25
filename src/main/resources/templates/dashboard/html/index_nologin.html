@@ -1,4 +1,4 @@
-<link rel="preload" as="style" href="/dashboard/css/style.css" onload="this.onload=null;this.rel='stylesheet'" >
+<link rel="preload" as="style" href="./dashboard/css/style.css" onload="this.onload=null;this.rel='stylesheet'" >
 <script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer ></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
 <script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
@@ -90,10 +90,14 @@
                                         <a class="nav-link" onclick="hideMenu()" href="/support" tabindex="-1"
                                             aria-disabled="true">Support</a>
                                     </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" onclick="hideMenu()" href="/blog" tabindex="-1"
+                                            aria-disabled="true">Blog</a>
+                                    </li>
                                 </ul>
                                 <a v-if="!isAndroidApp"
                                     href="https://play.google.com/store/apps/details?id=in.humbhionline"
-                                    class="btn btn-primary rounded-pill d-none d-sm-block" type="submit">Download
+                                    class="btn btn-primary rounded-pill d-none d-sm-block ml-2" type="submit">Download
                                     Now</a>
                             </div>
                         </div>

@@ -155,6 +155,21 @@ footer * {
     line-height: 1.2;
 }
 
+.blog-description h2{
+    font-weight: 500;
+    font-size: 24px;
+}
+
+.blog-links a.link {
+    padding: 9px 10px;
+    margin-bottom: 6px;
+    background-color: #ff0033;
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: white;
+}
+
 @media only screen and (max-width: 640px) {
     .slide-img {
         width: 70%;
