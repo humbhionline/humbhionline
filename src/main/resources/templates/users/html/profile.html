@@ -540,6 +540,40 @@
                         </div>
                     </div>
                 </div>
+                <!-- Kyc Option -->
+                <div id="kyc" v-if="User.Seller === 'Y'">
+                    <div class="row" v-if="!User.Verified || User.Verified === 'N'">
+                        <div class="col">
+                            <h6 class="mt-4 d-inline-block">KYC : Aadhar Upload</h6>
+                        </div>
+                    </div>
+                    <div class="content-box" v-if="!User.Verified || User.Verified === 'N'">
+                        <div class="form-row">
+                            <div class="col">
+                                <div class="form-row no-gutters">
+                                    <div class="col-12">
+                                        <input type="file" class="file-upload" id="aadharzipfile"
+                                            v-on:input="onAadharKycFileChange($event)" />
+                                        <label class="btn btn-sm btn-primary" for="aadharzipfile">
+                                            {{ kycSelectedFileName && kycSelectedFileName.length > 0 ? kycSelectedFileName :
+                                                "Click to Select Aadhar e-KYC zipfile"}}
+                                        </label>
+                                    </div>
+                                    <div class="col-8">
+                                        <input id="aadharzippassword" class="form-control form-control-sm" type="password"
+                                            placeholder="Zipfile security code?" />
+                                    </div>
+                                    <div class="col-4 text-right">
+                                        <a href="#" class="btn btn-sm btn-block btn-primary" role="button" title="Upload"
+                                            v-on:click="doAadharKyc($event)">
+                                            Upload
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Payment Option -->
                 <div class="row">
                     <div class="col">
@@ -597,40 +631,6 @@
                     Entering incorrectly can cause money to reach some one else's account when you are supposed to receive
                     money.</p>
 
-                <!-- Kyc Option -->
-                <div id="kyc" v-if="User.Seller === 'Y'">
-                    <div class="row" v-if="!User.Verified || User.Verified === 'N'">
-                        <div class="col">
-                            <h6 class="mt-4 d-inline-block">KYC : Aadhar Upload</h6>
-                        </div>
-                    </div>
-                    <div class="content-box" v-if="!User.Verified || User.Verified === 'N'">
-                        <div class="form-row">
-                            <div class="col">
-                                <div class="form-row no-gutters">
-                                    <div class="col-12">
-                                        <input type="file" class="file-upload" id="aadharzipfile"
-                                            v-on:input="onAadharKycFileChange($event)" />
-                                        <label class="btn btn-sm btn-primary" for="aadharzipfile">
-                                            {{ kycSelectedFileName && kycSelectedFileName.length > 0 ? kycSelectedFileName :
-                                                "Click to Select Aadhar e-KYC zipfile"}}
-                                        </label>
-                                    </div>
-                                    <div class="col-8">
-                                        <input id="aadharzippassword" class="form-control form-control-sm" type="password"
-                                            placeholder="Zipfile security code?" />
-                                    </div>
-                                    <div class="col-4 text-right">
-                                        <a href="#" class="btn btn-sm btn-block btn-primary" role="button" title="Upload"
-                                            v-on:click="doAadharKyc($event)">
-                                            Upload
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <!-- HBO Balance -->
                 <div class="row" v-if="User.Seller === 'Y'">
                     <div class="col">
