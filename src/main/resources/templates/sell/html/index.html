@@ -28,6 +28,7 @@
             },
             created: function () {
                 let self = this;
+                /*
                 if (self.User.Verified === 'N') {
                     if (self.User.Seller !== "Y" ){
                         self.User.Seller = "Y";
@@ -43,7 +44,7 @@
                         window.location.href = "/users/html/profile";
                     }
                     return;
-                }
+                }*/
                 showSpinner();
                 api().url("/facilities/mine").get().then(function (response) {
                     self.fixFacilities(response.Facilities);
@@ -93,7 +94,7 @@
                         Company: self.User.Company,
                         Inventories : []
                     };
-                    if (self.User.Verified && self.Facilities.length == 0) {
+                    if (self.Facilities.length == 0) {
                         f.Name = self.User.LongName.replaceAll(" ",".") + ".home";
                         f.AddressLine1 = self.User.AddressLine1;
                         f.AddressLine2 = self.User.AddressLine2;

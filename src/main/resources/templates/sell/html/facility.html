@@ -852,7 +852,7 @@
                 },
                 loadInventory: function(f,q = {} ){
                     let self = this; 
-                    return api().url("/facilities/show/`id`/inventories/search").get(q).then(function(invResponse){
+                    return api().url("/facilities/show/"+id+"/inventories/search").get(q).then(function(invResponse){
                         self.fixInventoryAttributes(f, invResponse.Inventories);
                         self.fixFacilityAttributes(f);
                     });
