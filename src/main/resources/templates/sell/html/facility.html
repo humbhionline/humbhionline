@@ -478,7 +478,6 @@
                     delete self.current.Inventory.Sku.Id; //An Sku's modification is a change of Sku and not update of SKU.!!
                     delete self.current.Inventory.Sku.PackagingUOM.Id;
                     new Autocomplete("unit_of_measures", e.target, 1).search("NAME", "MEASURES:Packaging").then(function (response) {
-
                         if (response) {
                             self.current.UnitOfMeasures = response.UnitOfMeasures;
                         } else {
@@ -491,7 +490,35 @@
                                 Name: e.target.value,
                             };
                         } else {
-                            self.loadLookupEntries(e.target);
+                            self.sortByItemUoms().then(function(){
+                                self.loadLookupEntries(e.target);
+                            });
+                        }
+                    });
+                },
+                sortByItemUoms: function(){
+                    let self =this; 
+                    return new Promise(function (resolve, reject) {
+                        if (self.current.Inventory.Sku.Item.Id){ 
+                            let acUoms = self.current.UnitOfMeasures.map(uom=>uom.Id); 
+
+                            api().url("/skus/search").get({ "q" : "ITEM_ID:"+self.current.Inventory.Sku.Item.Id}).then(function(r){
+                                return r.Skus.map(function(sku){
+                                    if (acUoms.indexOf(sku.PackagingUOM.Id) <0){
+                                        acUoms.push(sku.PackagingUOM.Id);
+                                        self.current.UnitOfMeasures.splice(0,0,sku.PackagingUOM);
+                                    }
+                                    (sku.PackagingUOM.Id);
+                                })
+                            }).then(function(uomIds){
+                                let length = self.current.UnitOfMeasures.length; 
+                                self.current.UnitOfMeasures.sort(function(a,b){
+                                    return Math.max(uomIds.indexOf(a.Id),length) - Math.max(uomIds.indexOf(b.Id),length); 
+                                });
+                                resolve();
+                            });
+                        }else {
+                            resolve();
                         }
                     });
                 },
@@ -511,8 +538,9 @@
                                 let sku = response.Skus[0];
                                 if (sku.PackagingUOM.Name === uom.Name && sku.Item.Name === self.current.Inventory.Sku.Item.Name) {
                                     self.current.Inventory.Sku = sku;
-                                    self.current.Inventory.MaxRetailPrice = self.current.Inventory.MaxRetailPrice || self.current.Inventory.Sku.MaxRetailPrice || 0;
-                                    self.current.Inventory.SellingPrice = self.current.Inventory.SellingPrice || self.current.Inventory.MaxRetailPrice || 0;
+                                    self.current.Inventory.MaxRetailPrice = self.current.Inventory.Sku.MaxRetailPrice || 0;
+                                    self.current.Inventory.SellingPrice = self.current.Inventory.MaxRetailPrice || 0;
+                                    self.current.Inventory.Tags = self.current.Inventory.Sku.Item.Tags;
 
                                     if (!self.current.Inventory.Sku.Item.AssetCode) {
                                         self.current.Inventory.Sku.Item.AssetCode = { Code: "" };

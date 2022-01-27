@@ -65,6 +65,7 @@ public class InventoriesController extends ModelController<Inventory> {
             List<String> itemFields = ModelReflector.instance(Item.class).getUniqueFields();
             itemFields.add("ASSET_CODE_ID");
             itemFields.add("ID");
+            itemFields.add("HUM_BHI_ONLINE_SUBSCRIPTION_ITEM");
 
             map.put(Item.class, itemFields);
         }
@@ -219,7 +220,7 @@ public class InventoriesController extends ModelController<Inventory> {
         item.setTags(qi.getDescriptor().getName()  + "," + qp.getDescriptor().getName());
         item.setAssetCodeId(deliveryAssetCode.getId());
         item.setItemHash(in.succinct.plugins.ecommerce.db.model.catalog.Item.hash(deliveryAssetCode,map.values()));
-
+        item.setItemRestrictedToSingleSeller(true);
         item = Database.getTable(Item.class).getRefreshed(item);
         if (item.getRawRecord().isNewRecord()) {
             item.save();

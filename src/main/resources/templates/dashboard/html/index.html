@@ -369,6 +369,11 @@
                 isDeliverySku: function (sku) {
                     return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
                 },
+                isSubscriptionAllowed: function(index){
+                    let self = this;
+                    let result = self.search.results[index];
+                    return result.Sku.Item.HumBhiOnlineSubscriptionItem == 'Y' && self.User.Verified == 'N' && result.SellingPrice <= 50;
+                } ,
                 increase: function (event, index) {
                     if (event) {
                         event.preventDefault();
@@ -816,7 +821,7 @@
                         <div class="form-row mt-sm-3">
                             <div class="col-4 col-sm-4 order-sm-last">
                                 <div class="btn-group" role="group" aria-label="Basic example"
-                                    v-if="!isDeliverySku(result.Sku)">
+                                    v-if="!isDeliverySku(result.Sku) && isSubscriptionAllowed(index)">
                                     <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
                                         v-on:click="reduce($event,index)">
                                         <i class="fa fa-minus"></i>
@@ -829,6 +834,9 @@
                                         v-on:click="increase($event,index)">
                                         <i class="fa fa-plus"></i>
                                     </button>
+                                </div>
+                                <div class="btn-group" role="group" aria-label="Basic example" v-else-if="!isDeliverySku(result.Sku)">
+                                    <h5><a href="/users/html/profile">Kyc Required</a></h5>
                                 </div>
                                 <div class="btn-group" role="group" aria-label="Basic example" v-else>
                                     <a href="#" class="btn btn-sm btn-outline-primary"

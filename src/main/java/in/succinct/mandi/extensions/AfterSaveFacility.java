@@ -40,8 +40,10 @@ public class AfterSaveFacility extends AfterModelSaveExtension<Facility> {
                 Sku deliverySku = null;
                 for (Sku sku : AssetCode.getDeliverySkus()){
                     if (sku.getItem().getAssetCode().getGstPct() > 0){
-                        deliverySku = sku;
-                        break;
+                        if (!sku.getItem().getRawRecord().getAsProxy(Item.class).isItemRestrictedToSingleSeller()) {
+                            deliverySku = sku;
+                            break;
+                        }
                     }
                 }
                 inventory.setFacilityId(model.getId());
