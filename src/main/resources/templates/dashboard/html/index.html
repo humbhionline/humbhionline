@@ -303,17 +303,28 @@
                     let self = this;
                     let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
                     let term = search_term;
+                    term = (term.length > 0 ? "( SKU:" + term + "* OR TAG:" + term + "* )" : "") ;
+
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
-                        term = "(FACILITY_ID:" + self.search.facility_id + (term.length > 0 ? " AND ( SKU:" + term + "* OR TAG:" + term + "* )" : "") + ")";
+                        if (term.length > 0 ){
+                            term = term + " AND " ; 
+                        }
+                        term += "(FACILITY_ID:" + self.search.facility_id +")" 
                     }
+                    if (term.length > 0 ){
+                        term = term + " AND " ; 
+                    }
+                    term += " PUBLISHED:Y "; 
+
                     var params = {};
                     params.MaxDistance = self.search.MaxDistance;
 
                     if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0) {
                         params.OrderId = self.search.Order.Id;
                     }
+                    params.q = term ;
                     showSpinner();
-                    api().url("/network/call/inventories/search/" + term).get(params).then(function (response) {
+                    api().url("/network/call/inventories/search" ).get(params).then(function (response) {
                         if (self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim() != search_term) {
                             return;
                         }
@@ -322,6 +333,9 @@
                         }
                         self.search.results = response.Inventories.sort(function (o1, o2) {
                             return o1.Facility.Distance - o2.Facility.Distance;
+                        });
+                        self.search.results = self.search.results.filter(function(inventory){
+                            return !self.isDeliverySku(inventory.Sku)  || (self.search.Order.Id && self.search.Order.Id * 1.0 > 0 )
                         });
                         if (self.search.results.length === 0) {
                             return;
@@ -372,7 +386,7 @@
                 isSubscriptionAllowed: function(index){
                     let self = this;
                     let result = self.search.results[index];
-                    return result.Sku.Item.HumBhiOnlineSubscriptionItem == 'Y' && self.User.Verified == 'N' && result.SellingPrice <= 50;
+                    return result.Sku.Item.HumBhiOnlineSubscriptionItem != 'Y' || self.User.Verified == 'Y' || result.SellingPrice <= 50;
                 } ,
                 increase: function (event, index) {
                     if (event) {
@@ -541,6 +555,7 @@
                     } else {
                         self.delivery.Address = self.delivery.DraftAddress;
                         self.delivery.DraftAddress = {};
+                        Lockr.set("delivery", self.delivery);
                         self.updateDeliveryLocation(self.delivery.Address);
                     }
                 },
