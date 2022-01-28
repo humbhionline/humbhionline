@@ -49,7 +49,7 @@ public class MessageCallbackUtil  {
 
     public static class CallBackData {
         private final LinkedList<JSONObject> responses = new LinkedList<>();
-        long timeOutMillis = (long)Math.pow(2,13); // 8 Seconds
+        long timeOutMillis = (long)Math.pow(2,14); // 8 Seconds
         public void add(JSONObject response) {
             synchronized (this){
                 responses.add(response);
@@ -63,13 +63,13 @@ public class MessageCallbackUtil  {
                 while (responses.isEmpty() && timeOutMillis >= 256) {
                     try {
                         wait(timeOutMillis);
-                        timeOutMillis = timeOutMillis / 2L ;
                     } catch (InterruptedException ex) {
                         //It was interrupted by some response being added.
+                    }finally {
+                        timeOutMillis = timeOutMillis / 2L ;
                     }
                 }
                 if (!responses.isEmpty()) {
-                    timeOutMillis = timeOutMillis / 4L; //Don't wait for tomuch more time.
                     return responses.removeFirst();
                 }
             }

@@ -8,6 +8,7 @@ import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.Acknowledgement.Status;
+import in.succinct.beckn.AddOns;
 import in.succinct.beckn.Billing;
 import in.succinct.beckn.Category;
 import in.succinct.beckn.Contact;
@@ -20,6 +21,7 @@ import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Message;
+import in.succinct.beckn.Offers;
 import in.succinct.beckn.OnConfirm;
 import in.succinct.beckn.OnSearch;
 import in.succinct.beckn.OnStatus;
@@ -200,6 +202,12 @@ class BecknCourierAggregator implements CourierAggregator {
         order.setPayment(payment);
         payment.setParams(new Params());
         payment.getParams().set("currency","INR");
+        payment.getParams().set("transaction_id",context.getTransactionId());
+        payment.getParams().set("transaction_status","NOT-PAID");
+        payment.setType("POST-FULFILLMENT");
+        payment.setStatus("NOT-PAID");
+        order.setAddOns(new AddOns());
+        order.setOffers(new Offers());
         //item.setId(inventory.getExternalSkuId());
         return message;
     }

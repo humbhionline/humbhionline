@@ -21,6 +21,7 @@ import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import com.venky.swf.sql.Select.ResultFilter;
 import com.venky.swf.views.View;
+import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Image;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Provider;
@@ -47,6 +48,7 @@ import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -237,7 +239,9 @@ public class InventoriesController extends ModelController<Inventory> {
             sku.save();
         }
         if (sku.getAttachments().isEmpty()){
-            Images images = quote.getDescriptor().getImages();
+            Descriptor descriptor = quote.getDescriptor();
+
+            Images images = descriptor == null ? null: descriptor.getImages();
             if (images != null && images.size() > 0){
                 String url = images.get(0);
 
@@ -260,19 +264,17 @@ public class InventoriesController extends ModelController<Inventory> {
     @Override
     protected ResultFilter<Inventory> getFilter() {
         final ResultFilter<Inventory> superFilter = super.getFilter();
-        final List<Long> operatingFacilityIds =  getCurrentUser().getOperatingFacilityIds();
+        User user = getCurrentUser();
+        final List<Long> operatingFacilityIds =  user == null ? new ArrayList<>() : user.getOperatingFacilityIds();
         return record -> {
-            if (operatingFacilityIds.contains(record.getFacilityId())){
-                return true;
-            }
             Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
             Order order = getOrder();
+            boolean myFacility = operatingFacilityIds.contains(record.getFacilityId());
 
             boolean pass = facility.isPublished();
             pass = pass && record.isPublished();
             pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
                     || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem());
-
 
             if (order != null) {
                 //Return only delivery items
@@ -307,6 +309,8 @@ public class InventoriesController extends ModelController<Inventory> {
                         facility.setDistance(0.0);
                     }
                 }
+            }else if (myFacility) {
+                return superFilter.pass(record);
             }else {
                 //Do not return Delivery items.
                 pass = pass && !deliverySkuIds.contains(record.getSkuId());

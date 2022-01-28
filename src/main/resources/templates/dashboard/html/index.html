@@ -335,7 +335,8 @@
                             return o1.Facility.Distance - o2.Facility.Distance;
                         });
                         self.search.results = self.search.results.filter(function(inventory){
-                            return !self.isDeliverySku(inventory.Sku)  || (self.search.Order.Id && self.search.Order.Id * 1.0 > 0 )
+                            return !self.isDeliverySku(inventory.Sku)  || 
+                                    ((self.search.Order.Id && self.search.Order.Id * 1.0 > 0 ) && inventory.DeliveryProvided=='Y')
                         });
                         if (self.search.results.length === 0) {
                             return;
