@@ -27,6 +27,7 @@ import in.succinct.beckn.OnSearch;
 import in.succinct.beckn.OnStatus;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
+import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
@@ -35,6 +36,7 @@ import in.succinct.beckn.Quote;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.mandi.db.model.BillToAddress;
+import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
@@ -42,6 +44,7 @@ import in.succinct.mandi.extensions.BecknPublicKeyFinder;
 import in.succinct.mandi.integrations.beckn.MessageCallbackUtil;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
+import in.succinct.plugins.ecommerce.db.model.order.PersonAddress;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -94,6 +97,12 @@ class BecknCourierAggregator implements CourierAggregator {
         address1.setCountry(address.getCountry().getIsoCode());
         location.setGps(new GeoCoordinate(address.getLat(),address.getLng()));
         stop.setContact(new Contact());
+        stop.setPerson(new Person());
+        if (address instanceof PersonAddress) {
+            stop.getPerson().setName(((PersonAddress)address).getLongName());
+        }else if (address.getClass().getSimpleName().equals(Facility.class.getSimpleName())){
+            stop.getPerson().setName(((Facility)address).getCreatorUser().getLongName());
+        }
         stop.getContact().setEmail(address.getEmail());
         stop.getContact().setPhone(address.getPhoneNumber());
 
@@ -204,6 +213,7 @@ class BecknCourierAggregator implements CourierAggregator {
         payment.getParams().set("currency","INR");
         payment.getParams().set("transaction_id",context.getTransactionId());
         payment.getParams().set("transaction_status","NOT-PAID");
+        payment.getParams().set("amount",String.valueOf(courierOrder.getShippingSellingPrice()));
         payment.setType("POST-FULFILLMENT");
         payment.setStatus("NOT-PAID");
         order.setAddOns(new AddOns());
