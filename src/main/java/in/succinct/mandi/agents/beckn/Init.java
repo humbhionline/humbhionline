@@ -7,7 +7,6 @@ import com.venky.core.math.DoubleHolder;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
-import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
 import in.succinct.beckn.Billing;
@@ -19,7 +18,6 @@ import in.succinct.beckn.Items;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnInit;
 import in.succinct.beckn.Order;
-import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Facility;
@@ -99,7 +97,8 @@ public class Init extends BecknAsyncTask {
         Map<String, OrderAttribute> map = order.getAttributeMap();
         map.get("external_platform_url").setValue(context.getBapUri());
         map.get("external_platform_id").setValue(context.getBapId());
-        //map.get("network_id").setValue(getNetwork().getRegistryId());
+        map.get("self_platform_url").setValue(context.getBppUri());
+        map.get("self_platform_id").setValue(context.getBppId());
 
 
         order.saveAttributeMap(map);

@@ -47,7 +47,7 @@ An affordable and inclusive refreshingly Indian market place that buyers and sel
 2. Direct payment between parties.
 3. Prepaid Credits purchased by sellers (@ rate of 1 Re per credit) are deducted on order bookings @ very nomimal rate of 1 Credit/Ordered Item. 
 4. Buyer or Seller can organize delivery by themselves, humbhionline registered delivery agents or 3rd party courier partners. 
-5. HumbhiOnline is a social venture with intention to re-create livelihood of people in local communities by making it easy for sellers to go online and retain their local customers, it's pricing is cost based rather than value based. We continously work on keeping the cost of running the platform low.
+5. HumbhiOnline is a social venture with intention to rejuvenate livelihood of people in local communities by making it easy for sellers to go online and retain their local customers, it's pricing is cost based rather than value based. We continously work on keeping the cost of running the platform low.
 
 
 
@@ -73,7 +73,7 @@ An affordable and inclusive refreshingly Indian market place that buyers and sel
 We are an early stage startup. We have an mvp and 8 pilot sellers with whom we are working to get them off the feet. 
 
 ## Team 
-The Humbhionline platform was conceived and founded by a 2 member Team. It is conceived to be run through employees and volunteers. 
+The Humbhionline platform was conceived and founded by a 2 member Team. It is conceived to be run by volunteers. 
 
 1. Venkatraman Mahadevan (Primary contributor / CTO )
 is a passionate technology enthusiast and has been part of the founding team in several successful supply chain startups after completing his MSc Statistics degree from IIT Kanpur. He is also the author of Succinct Web Framework (an opensource web application framework), that he has used effectively in several large scale production applications. Post retirement at 37, his favourite past time has been building applications on the Succinct Framework for enterpreneur friends and family. During covid 19 pandemeic, seeing small sellers and farmers struggling to make a living taking orders on phone and text messages, he decided to put his technology and supply chain skills to use for his local seller friends and came up with this refreshingly inclusive market place, where, any one can start selling online and proudly feel HumBhiOnline!
@@ -82,7 +82,7 @@ is a passionate technology enthusiast and has been part of the founding team in 
 has had a rich experience of designing and building User interaction for several projects as a UI/Ux architect. Some of the more recent projects were with Venky having Succinct framework as the backend.
 
 3. UnNamed (Yet to find)- A market development officer-volunteer.
-Whose role is to find ways to take the platform to sellers with volunteers/employees who are  feet on street evalgenizing this social movement..
+Whose role is to find ways to take the platform to sellers with volunteers who are  feet on street evalgenizing this social movement..
 <div style="page-break-after: always;"></div>
 
 ## Short-Medium Term Plans

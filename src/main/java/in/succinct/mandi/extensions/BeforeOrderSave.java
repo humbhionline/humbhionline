@@ -1,12 +1,31 @@
 package in.succinct.mandi.extensions;
 
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.extensions.BeforeModelSaveExtension;
+import com.venky.swf.plugins.background.core.TaskManager;
+import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
+import com.venky.swf.routing.Config;
+import in.succinct.beckn.Context;
+import in.succinct.beckn.Message;
+import in.succinct.beckn.Request;
+import in.succinct.mandi.agents.beckn.BecknAsyncTask;
+import in.succinct.mandi.agents.beckn.Status;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
+import in.succinct.mandi.db.model.beckn.BecknNetwork;
+import in.succinct.mandi.util.beckn.BecknUtil;
+import in.succinct.mandi.util.beckn.OrderUtil;
+import in.succinct.mandi.util.beckn.OrderUtil.OrderFormat;
+import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
+import org.apache.commons.compress.harmony.pack200.BcBands;
 
 import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
     static {
@@ -32,6 +51,10 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
             if (!facility.isCodEnabled() && isBeingPaid(model)) {
                 facility.notifyEvent(Facility.EVENT_TYPE_BOOK_ORDER,model);
             }
+            if (model.getRawRecord().isFieldDirty("FULFILLMENT_STATUS") || model.getRawRecord().isFieldDirty("AMOUNT_PAID") ||model.getRawRecord().isFieldDirty("AMOUNT_REFUNDED") ){
+                TaskManager.instance().executeAsync(createFakeStatusTask(model),false);
+            }
+
             return;
         }
         if (model.getRawRecord().isFieldDirty("FULFILLMENT_STATUS") &&
@@ -52,6 +75,38 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
         }
 
 
+    }
+    private Status createFakeStatusTask(Order model){
+        Map<String,OrderAttribute> attributeMap = model.getAttributeMap();
+        BecknNetwork network = BecknNetwork.findByRetailBppUrl(attributeMap.get("self_platform_url").getValue().substring(Config.instance().getServerBaseUrl().length()));;
+        Subscriber subscriber = network.getRetailBppSubscriber();
+
+        Map<String,String> headers = new HashMap<>();
+        headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());
+        headers.put("Accept", MimeType.APPLICATION_JSON.toString());
+
+        Request request = new Request();
+        Context context = new Context();
+        Message message = new Message();
+        request.setMessage(message);request.setContext(context);
+        in.succinct.beckn.Order becknOrder = OrderUtil.toBeckn(model, OrderFormat.order);
+        message.setOrder(becknOrder);
+
+        context.setBapId(attributeMap.get("external_platform_id").getValue());
+        context.setBapUri(attributeMap.get("external_platform_url").getValue());
+        context.setBppId(subscriber.getSubscriberId());
+        context.setBppUri(subscriber.getSubscriberUrl());
+        context.setAction("status");
+        context.setMessageId(UUID.randomUUID().toString());
+        context.setTransactionId(model.getExternalTransactionReference());
+        context.setTimestamp(new Date());
+        context.setCountry("IND");
+        context.setCity(model.getFacility().getCity().getCode());
+        context.setCoreVersion("0.9.3");
+        Status status = new Status(request,headers);
+        status.setSubscriber(subscriber);
+        task.registerSignatureHeaders("Authorization");
+        return status;
     }
     private boolean isBeingPaid(Order model){
         return (!model.getRawRecord().isNewRecord() && model.getRawRecord().isFieldDirty("AMOUNT_PAID") && model.getAmountPaid() > 0 && model.getAmountPendingPayment() == 0);
