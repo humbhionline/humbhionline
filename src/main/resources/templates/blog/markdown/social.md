@@ -1,4 +1,4 @@
-# Hum Bhi Online
+# Hum Bhi Online 
 <hr/>
 
 ## Covid the disrupter
@@ -89,9 +89,9 @@ Whose role is to find ways to take the platform to sellers with volunteers who a
 1. Social media ads/seo for enroling  volunteers to drive Seller engagement. 
 4. Training a core-team to hand hold volunteers who are onboarding sellers. 
 2. Design volunteer incentives to onboard sellers and their catalog. 
-3. Explore consulting oppurtunities  to companies who wish create a market place with our open sourced code.
+3. Consulting to companies who wish create a market place with our open sourced code.
 4. Help Small Food Operators to get Gov fssai registrations. 
-4. Auto Rate based on frequent purchases.
+4. Auto Rate products , sellers  and buyers based on frequent purchases.
 
 
 ## Long Term Plans
