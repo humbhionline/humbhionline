@@ -105,7 +105,7 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
         context.setCoreVersion("0.9.3");
         Status status = new Status(request,headers);
         status.setSubscriber(subscriber);
-        task.registerSignatureHeaders("Authorization");
+        status.registerSignatureHeaders("Authorization");
         return status;
     }
     private boolean isBeingPaid(Order model){
