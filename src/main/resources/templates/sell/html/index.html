@@ -28,27 +28,13 @@
             },
             created: function () {
                 let self = this;
-                /*
-                if (self.User.Verified === 'N') {
-                    if (self.User.Seller !== "Y" ){
-                        self.User.Seller = "Y";
-                        showSpinner();
-                        api().url("/users/save").parameters({"User" : self.User}).post().then(function(response){
-                            self.User = response.Users[0];
-                            Lockr.set("User",self.User);
-                            window.location.href = "/users/html/profile";
-                        }).finally(function(){
-                            hideSpinner();
-                        });
-                    }else {
-                        window.location.href = "/users/html/profile";
-                    }
-                    return;
-                }*/
                 showSpinner();
                 api().url("/facilities/mine").get().then(function (response) {
                     self.fixFacilities(response.Facilities);
                     self.Facilities = response.Facilities;
+                    if (!self.Facilities) {
+                        self.Facilities = [];
+                    }
                     self.showApp();
                 }).catch(function (err) {
                     self.showApp();
@@ -70,10 +56,14 @@
                     }
                 },
                 showApp: function () {
+                    let self = this;
                     $("#header").load("/fragments/html/header", {}, function(){
                         fixMenu();
                         $("#pageTitle").html("Manage Facilities");
                         $("#root").show();
+                        if (self.Facilities.length == 0){
+                            self.create();
+                        }
                     });
                 },
                 create: function (event) {
@@ -83,6 +73,12 @@
                     let self = this;
                     if (!self.Facilities) {
                         self.Facilities = [];
+                    }
+                    if (!self.User.City || !self.User.City.Name){
+                        showErrorMessage("Your Profile is not complete. Please wait while we redirect.").then(function(){
+                            window.location.replace("/users/html/profile");
+                        });
+                        return;
                     }
 
                     var f = {
@@ -105,6 +101,7 @@
                         f.PhoneNumber = self.User.PhoneNumber;
                         f.AlternatePhoneNumber = self.User.AlternatePhoneNumber;
                     }
+
                     let last = self.Facilities.length > 0 ? self.Facilities[self.Facilities.length - 1] : null;
 
                     if (!last || last.Id) {
@@ -586,7 +583,7 @@
                                 Cancel
                             </a>
                             <a href="#/" class="btn btn-primary btn-sm" role="button" v-on:click="save($event)">
-                                Submit
+                                Save
                             </a>
                         </div>
                     </div>

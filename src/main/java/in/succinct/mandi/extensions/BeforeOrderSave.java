@@ -52,7 +52,10 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
                 facility.notifyEvent(Facility.EVENT_TYPE_BOOK_ORDER,model);
             }
             if (model.getRawRecord().isFieldDirty("FULFILLMENT_STATUS") || model.getRawRecord().isFieldDirty("AMOUNT_PAID") ||model.getRawRecord().isFieldDirty("AMOUNT_REFUNDED") ){
-                TaskManager.instance().executeAsync(createFakeStatusTask(model),false);
+                Status status = createFakeStatusTask(model);
+                if (status != null) {
+                    TaskManager.instance().executeAsync(createFakeStatusTask(model), false);
+                }
             }
 
             return;
@@ -77,8 +80,16 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
 
     }
     private Status createFakeStatusTask(Order model){
+        if (ObjectUtil.isVoid(model.getExternalPlatformId()) || ObjectUtil.isVoid(model.getExternalTransactionReference())){
+            return null;
+        }
         Map<String,OrderAttribute> attributeMap = model.getAttributeMap();
-        BecknNetwork network = BecknNetwork.findByRetailBppUrl(attributeMap.get("self_platform_url").getValue().substring(Config.instance().getServerBaseUrl().length()));;
+        OrderAttribute selfPlatformAttribute = attributeMap.get("self_platform_url");
+        if (selfPlatformAttribute == null){
+            return null;
+        }
+
+        BecknNetwork network = BecknNetwork.findByRetailBppUrl(selfPlatformAttribute.getValue().substring(Config.instance().getServerBaseUrl().length()));
         Subscriber subscriber = network.getRetailBppSubscriber();
 
         Map<String,String> headers = new HashMap<>();

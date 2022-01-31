@@ -39,14 +39,14 @@ Thats when I thought, Is there any thing I could put my supply chain knowledge a
 
 ## HumbhiOnline - Mandi
 
-An affordable and inclusive refreshingly Indian market place that buyers and sellers love. 
+An affordable and inclusive, refreshingly Indian, market place, that buyers and sellers love. 
 
 
 ## How are we different? 
 1. Users of the platform can be buyer, seller or delivery agent based on their role on a transaction. This makes it easy for retailer to buy from wholesalers or home enterprenur who normally buy from retailers to also sell their craft on the platform. 
 2. Direct payment between parties.
 3. Prepaid Credits purchased by sellers (@ rate of 1 Re per credit) are deducted on order bookings @ very nomimal rate of 1 Credit/Ordered Item. 
-4. Buyer or Seller can organize delivery by themselves, humbhionline registered delivery agents or 3rd party courier partners. 
+4. Buyer or Seller can organize delivery by themselves, through humbhionline registered delivery agents or using 3rd party courier partners. 
 5. HumbhiOnline is a social venture with intention to rejuvenate livelihood of people in local communities by making it easy for sellers to go online and retain their local customers, it's pricing is cost based rather than value based. We continously work on keeping the cost of running the platform low.
 
 
@@ -101,4 +101,10 @@ Whose role is to find ways to take the platform to sellers with volunteers who a
 
 ## Vision
 Humbhionline, A friendly social platform for commerce.
+
+-By Venky-
+
+([email:venky@humbhionline.in ](mailto:venky@humbhionline.in))
+
+The author is the founder of [humbhionline](https://humbhionline.in) (an open source ecommerce platform ) and volunter with beckn foundation.
 

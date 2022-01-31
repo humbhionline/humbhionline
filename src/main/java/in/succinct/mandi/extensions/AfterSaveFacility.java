@@ -29,11 +29,11 @@ public class AfterSaveFacility extends AfterModelSaveExtension<Facility> {
         preferredCarrier.save();
         //Add Hand Delivery in all facilities.
         */
+        Inventory inventory = model.getDeliveryRule(true);
+        if (inventory == null){
+            inventory = model.getDeliveryRule(false);
+        }
         if (model.isDeliveryProvided()){
-            Inventory inventory = model.getDeliveryRule(true);
-            if (inventory == null){
-                inventory = model.getDeliveryRule(false);
-            }
             if (inventory == null){
                 inventory = Database.getTable(Inventory.class).newRecord();
                 inventory.setInfinite(false);
@@ -59,6 +59,8 @@ public class AfterSaveFacility extends AfterModelSaveExtension<Facility> {
             inventory.setSellingPrice(model.getChargesPerKm()*cf);
             inventory.save();
 
+        }else if (inventory != null ){
+            inventory.destroy();
         }
         if (model.getLat() != null  && model.getLng() != null){
             TaskManager.instance().executeAsync(new RegisterProviderLocationTask(model),false);

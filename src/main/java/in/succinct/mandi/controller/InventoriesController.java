@@ -269,7 +269,7 @@ public class InventoriesController extends ModelController<Inventory> {
         return record -> {
             Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
             Order order = getOrder();
-            boolean myFacility = operatingFacilityIds.contains(record.getFacilityId());
+            boolean myFacility =  operatingFacilityIds.contains(record.getFacilityId()) || ( user != null && (user.isStaff() || user.isAdmin()));
 
             boolean pass = facility.isPublished();
             pass = pass && record.isPublished();

@@ -20,6 +20,7 @@ public class BeforeSaveFacility extends BeforeSaveAddress<Facility> {
     public void beforeSave(Facility model) {
         super.beforeSave(model);
         if (!model.getRawRecord().isFieldDirty("LAT") && !model.getRawRecord().isFieldDirty("LNG") && !model.getRawRecord().isFieldDirty("DELIVERY_RADIUS")
+                && !model.getRawRecord().isFieldDirty("DELIVERY_PROVIDED")
                 && model.getMinLat() != null && model.getMaxLat() != null ){
             return;
         }

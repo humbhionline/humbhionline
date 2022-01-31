@@ -31,7 +31,7 @@
                     PinCodes: [],
                     lookupselectionIndex: -1,
                 },
-                Steps : [ "Preference", "Address" , "Password" ],
+                Steps : [ "Preference", "Password","Address" ],
                 NumStepsComplete: 0
             },
             created: function () {
@@ -48,24 +48,30 @@
                 });
             },
             methods: {
-                enableNextStep: function(event){
+                enableNextStep: function(event,showMessage){
                     event && event.preventDefault();
                     let self = this;
                     if (!self.User.Seller){
                         self.NumStepsComplete = 0;
                         return ;
                     }else {
-                        if (!self.User.AddressLine1 || !self.User.City || !self.User.City.Name) {
-                            self.User.LongName = "";
-                        }
-                        if (self.User.LongName.length <= 0 ){
+                        if (self.User.PasswordSet !== 'Y'){
                             self.NumStepsComplete = 1;
-                            self.editAddress(null) ;
-                        }else if (self.User.PasswordSet !== 'Y'){
-                            self.NumStepsComplete = 2;
                             self.editPassword(null);
                         }else {
-                            self.NumStepsComplete = 3;
+                            if (!self.User.AddressLine1 || !self.User.City || !self.User.City.Name) {
+                                self.User.LongName = "";
+                            }
+                            if (self.User.LongName.length <= 0 ){
+                                self.NumStepsComplete = 2;
+                                if (self.User.Seller === 'Y' ){
+                                    showMessage && showErrorMessage("Please enter your name and address or upload your EKyc information");
+                                }else {
+                                    showMessage && showErrorMessage("Let us know your name and address.");
+                                }
+                            }else {
+                                self.NumStepsComplete = 3;
+                            }
                         }
                     }
                     return true;
@@ -100,7 +106,7 @@
                         Lockr.set("User", self.User);
                     }
 
-                    //self.enableNextStep();
+                    self.enableNextStep(null,false);
                 },
                 isKeyTriggerable: function (e) {
                     return (e && e.target.value.length > 1);
@@ -180,19 +186,15 @@
                 saveUser: function (e) {
                     e && e.preventDefault();
                     self = this;
-                    if (!self.User.LongName) {
-                        showErrorMessage("Let us know your full name.");
-                    } else {
-                        showSpinner();
-                        api().url("/users/save").parameters({ "User": self.User }).post().then(function (response) {
-                            self.User = response.Users[0];
-                            self.fixUserAttributes();
-                        }).catch(function (err) {
-                            showError(err);
-                        }).finally(function(){
-                            hideSpinner();
-                        });
-                    }
+                    showSpinner();
+                    api().url("/users/save").parameters({ "User": self.User }).post().then(function (response) {
+                        self.User = response.Users[0];
+                        self.fixUserAttributes();
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function(){
+                        hideSpinner();
+                    });
                 },
                 onAadharKycFileChange: function (e) {
                     e.preventDefault();
@@ -222,6 +224,7 @@
                             self.User = response.User;
                             self.fixUserAttributes();
                         }).catch(function (err) {
+                            self.kycSelectedFileName = "";
                             showError(err);
                         }).finally(function(){
                             hideSpinner();
@@ -427,10 +430,19 @@
                         hideSpinner();
                     });
                 },
+                mystores: function(event){
+                    let self = this; 
+                    event && event.preventDefault();
+                    window.location.replace("/sell");
+                },
+                isMyProfile: function(event){
+                    let self = this;
+                    return Lockr.get("User").Id == self.User.Id;
+                },
                 close: function (event) {
                     let self = this;
                     event && event.preventDefault();
-                    if (Lockr.get("User").Id != self.User.Id) {
+                    if (!self.isMyProfile()) {
                         window.location.replace("/users/pendingKyc");
                     }else {
                         window.history.back();
@@ -949,8 +961,11 @@
             <div class="content-box mt-4">
                 <div class="row">
                     <div class="col d-flex flex-row justify-content-end">
-                        <button class="btn btn-block btn-primary btn-sm" @click="NumStepsComplete >=3 ? close($event) : enableNextStep($event)">
-                            {{ NumStepsComplete >= 3 ? "Done" : "Next"}}</button>
+                        <button class="btn btn-block btn-primary btn-sm" @click="NumStepsComplete >=3 ? close($event) : enableNextStep($event,true)">
+                            {{ NumStepsComplete >= 3 ? "Close" : "Next"}}</button>
+                    </div>
+                    <div class="col d-flex flex-row justify-content-end" v-if="NumStepsComplete >=3 && User.Seller === 'Y' && isMyProfile()">
+                        <button class="btn btn-block btn-primary btn-sm" @click="mystores($event)">My Stores</button>
                     </div>
                 </div>
             </div>

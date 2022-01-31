@@ -289,7 +289,7 @@
 
                     let newRecord = !i.Id;
                     if (!newRecord) {
-                        i.Infinite = "Y";
+                        //i.Infinite = "Y";
                         showSpinner();
                         api().url("/inventories/destroy/" + i.Id).get().then(function (response) {
                             self.clearFromLists(i);
@@ -1013,7 +1013,7 @@
                             <div class="col-12">
                                 <div class="d-flex flex-row align-items-center">
                                     <input key="search" id="search" class="search-control"
-                                        placeholder="Search for Items or Store" v-on:input="find($event)"
+                                        placeholder="Search for Items" v-on:input="find($event)"
                                         v-model="search.term" />
                                     <i class="fa fa-search"></i>
                                 </div>
