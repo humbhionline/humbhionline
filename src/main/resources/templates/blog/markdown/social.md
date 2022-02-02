@@ -12,6 +12,7 @@ It was during these times, Online shopping also increased several folds with loc
 
 ## Restoring livelyhood of local communities
 I tried asking some of the sellers who were fighting to survive, how are they managing? 
+
 1. Many sellers selling essential commodities/services had turned to messaging apps to take orders and keep business afloat. 
 2. Some started doing batched deliveries. 
 3. Tied up with hyperlocal delivery folks to do deliveries.
@@ -43,10 +44,10 @@ An affordable and inclusive, refreshingly Indian, market place, that buyers and 
 
 
 ## How are we different? 
-1. Users of the platform can be buyer, seller or delivery agent based on their role on a transaction. This makes it easy for retailer to buy from wholesalers or home enterprenur who normally buy from retailers to also sell their craft on the platform. 
+1. Users of the platform can be buyer, seller or delivery agent based on their role on a transaction. This makes it easy for retailer to buy from wholesalers or for home enterprenurs who normally buy from retailers to also sell their craft on the platform. 
 2. Direct payment between parties.
 3. Prepaid Credits purchased by sellers (@ rate of 1 Re per credit) are deducted on order bookings @ very nomimal rate of 1 Credit/Ordered Item. 
-4. Buyer or Seller can organize delivery by themselves, through humbhionline registered delivery agents or using 3rd party courier partners. 
+4. Buyer or Seller can organize delivery by themselves or through humbhionline registered delivery agents or through 3rd party courier partners. 
 5. HumbhiOnline is a social venture with intention to rejuvenate livelihood of people in local communities by making it easy for sellers to go online and retain their local customers, it's pricing is cost based rather than value based. We continously work on keeping the cost of running the platform low.
 
 
@@ -86,12 +87,12 @@ Whose role is to find ways to take the platform to sellers with volunteers who a
 <div style="page-break-after: always;"></div>
 
 ## Short-Medium Term Plans
-1. Social media ads/seo for enroling  volunteers to drive Seller engagement. 
-4. Training a core-team to hand hold volunteers who are onboarding sellers. 
-2. Design volunteer incentives to onboard sellers and their catalog. 
-3. Consulting to companies who wish create a market place with our open sourced code.
-4. Help Small Food Operators to get Gov fssai registrations. 
-4. Auto Rate products , sellers  and buyers based on frequent purchases.
+1. Social media ads/seo for enroling  volunteers to drive Seller engagement.
+2. Training a core-team to hand hold volunteers who are onboarding sellers. 
+3. Design volunteer incentives to onboard sellers and their catalog. 
+4. Consulting to companies who wish create a market place with our open sourced code.
+5. Help Small Food Operators to get Gov fssai registrations. 
+6. Auto Rate products , sellers  and buyers based on frequent purchases.
 
 
 ## Long Term Plans
