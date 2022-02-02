@@ -40,7 +40,7 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
             }};
             @Override
             public String getSubscriberUrl() {
-                return String.format("%s/%s", Config.instance().getServerBaseUrl() , network.getRetailBppUrl());
+                return String.format("%s%s", Config.instance().getServerBaseUrl() , network.getRetailBppUrl()); // Network URLS start with "/"
             }
 
             @Override
