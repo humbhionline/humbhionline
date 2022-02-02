@@ -5,8 +5,8 @@
 <script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
 <script src="/fragments/js/cropper.js" defer></script>
 <script type="text/javascript" src="/fragments/js/util.js" defer></script>
-<link rel="preload" as="style" href="/fragments/css/cropper.css" onload="this.onload=null;this.rel='stylesheet'" >
-<link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'" >
+<link rel="preload" as="style" href="/fragments/css/cropper.css" onload="this.onload=null;this.rel='stylesheet'">
+<link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'">
 
 
 <script type="text/javascript">
@@ -44,7 +44,7 @@
                 let self = this;
                 showSpinner();
                 api().url("/facilities/show/" + id).get().then(function (response) {
-                    self.loadInventory(response.Facility).then(function(){
+                    self.loadInventory(response.Facility).then(function () {
                         self.showApp();
                     });
                 }).catch(function (err) {
@@ -56,13 +56,13 @@
 
             },
             methods: {
-                fixInventoryAttributes: function(f,i){
+                fixInventoryAttributes: function (f, i) {
                     i.forEach((inv, index) => {
                         inv.Sku.Item.AssetCode ||= { Code: "" };
                         inv.Sku.Attachments ||= [{ Sku: { Id: inv.Sku.Id } }];
                         inv.ManagedBy ||= "";
                     });
-                    f.Inventories = i; 
+                    f.Inventories = i;
                     self.search.results = f.Inventories;
                 },
                 fixFacilityAttributes: function (f) {
@@ -200,7 +200,7 @@
                             showError(err);
                         }).finally(function () {
                             self.selectedDataFileName = ""
-                            $("#datafile")[0].value = null; 
+                            $("#datafile")[0].value = null;
                             hideSpinner();
                         });
                     });
@@ -490,34 +490,34 @@
                                 Name: e.target.value,
                             };
                         } else {
-                            self.sortByItemUoms().then(function(){
+                            self.sortByItemUoms().then(function () {
                                 self.loadLookupEntries(e.target);
                             });
                         }
                     });
                 },
-                sortByItemUoms: function(){
-                    let self =this; 
+                sortByItemUoms: function () {
+                    let self = this;
                     return new Promise(function (resolve, reject) {
-                        if (self.current.Inventory.Sku.Item.Id){ 
-                            let acUoms = self.current.UnitOfMeasures.map(uom=>uom.Id); 
+                        if (self.current.Inventory.Sku.Item.Id) {
+                            let acUoms = self.current.UnitOfMeasures.map(uom => uom.Id);
 
-                            api().url("/skus/search").get({ "q" : "ITEM_ID:"+self.current.Inventory.Sku.Item.Id}).then(function(r){
-                                return r.Skus.map(function(sku){
-                                    if (acUoms.indexOf(sku.PackagingUOM.Id) <0){
+                            api().url("/skus/search").get({ "q": "ITEM_ID:" + self.current.Inventory.Sku.Item.Id }).then(function (r) {
+                                return r.Skus.map(function (sku) {
+                                    if (acUoms.indexOf(sku.PackagingUOM.Id) < 0) {
                                         acUoms.push(sku.PackagingUOM.Id);
-                                        self.current.UnitOfMeasures.splice(0,0,sku.PackagingUOM);
+                                        self.current.UnitOfMeasures.splice(0, 0, sku.PackagingUOM);
                                     }
                                     (sku.PackagingUOM.Id);
                                 })
-                            }).then(function(uomIds){
-                                let length = self.current.UnitOfMeasures.length; 
-                                self.current.UnitOfMeasures.sort(function(a,b){
-                                    return Math.max(uomIds.indexOf(a.Id),length) - Math.max(uomIds.indexOf(b.Id),length); 
+                            }).then(function (uomIds) {
+                                let length = self.current.UnitOfMeasures.length;
+                                self.current.UnitOfMeasures.sort(function (a, b) {
+                                    return Math.max(uomIds.indexOf(a.Id), length) - Math.max(uomIds.indexOf(b.Id), length);
                                 });
                                 resolve();
                             });
-                        }else {
+                        } else {
                             resolve();
                         }
                     });
@@ -531,7 +531,7 @@
                         delete self.current.Inventory.Sku.Name;
                         self.current.Inventory.Sku.PackagingUOM = uom;
                         self.current.UnitOfMeasures = [];
-                        let q = { q: "ITEM:" + "\"" + self.current.Inventory.Sku.Item.Name + "\" AND PACKAGING_U_O_M:\"" + uom.Name +"\""};
+                        let q = { q: "ITEM:" + "\"" + self.current.Inventory.Sku.Item.Name + "\" AND PACKAGING_U_O_M:\"" + uom.Name + "\"" };
                         showSpinner();
                         api().url("/skus/search").get(q).then(function (response) {
                             if (response.Skus.length === 1) {
@@ -704,7 +704,7 @@
                     var snap = $("#show-updated-img").cropper("getCroppedCanvas", { width: 360, height: 165 });
                     var img = snap.toDataURL();
                     // // Convert Base64 image to binary
-                    var croppedfile = self.dataURItoBlob(img,$('#attachment-'+index)[0].files[0].name);
+                    var croppedfile = self.dataURItoBlob(img, $('#attachment-' + index)[0].files[0].name);
 
                     var file = croppedfile;
                     let formData = new FormData();
@@ -790,7 +790,7 @@
 
                     reader.readAsDataURL(file);
                 },
-                dataURItoBlob: function (dataURI,name) {
+                dataURItoBlob: function (dataURI, name) {
                     // convert base64/URLEncoded data component to raw binary data held in a string
                     var byteString;
                     if (dataURI.split(',')[0].indexOf('base64') >= 0)
@@ -804,7 +804,7 @@
                     for (var i = 0; i < byteString.length; i++) {
                         ia[i] = byteString.charCodeAt(i);
                     }
-                    return new File([ia],  name , { type: mimeString });
+                    return new File([ia], name, { type: mimeString });
                 },
                 uploadSkuBannerFile: function (e, inventoryIndex, attachmentIndex) {
                     let self = this;
@@ -818,7 +818,7 @@
                     var snap = $("#PrivewImage" + inventoryIndex).cropper("getCroppedCanvas", { width: 500, height: 500 });
                     var img = snap.toDataURL();
                     // // Convert Base64 image to binary
-                    var croppedfile = self.dataURItoBlob(img,$('#sku-attachment-'+inventoryIndex)[0].files[0].name);
+                    var croppedfile = self.dataURItoBlob(img, $('#sku-attachment-' + inventoryIndex)[0].files[0].name);
 
                     // if (!files.length) {
                     //     return;
@@ -867,20 +867,20 @@
                         e.preventDefault();
                     }
                     if (blank(self.search.term)) {
-                        self.search.results = self.loadInventory(self.Facility).then(function(){
+                        self.search.results = self.loadInventory(self.Facility).then(function () {
                             console.log(self.search.results);
                         });
                     } else {
                         let term = self.search.term.toLowerCase();
-                        self.loadInventory(self.Facility, { q : term }).then(function(){
+                        self.loadInventory(self.Facility, { q: term }).then(function () {
                             self.search.results = self.Facility.Inventories;
                             console.log(self.search.results);
                         });
                     }
                 },
-                loadInventory: function(f,q = {} ){
-                    let self = this; 
-                    return api().url("/facilities/show/"+id+"/inventories/search").get(q).then(function(invResponse){
+                loadInventory: function (f, q = {}) {
+                    let self = this;
+                    return api().url("/facilities/show/" + id + "/inventories/search").get(q).then(function (invResponse) {
                         self.fixInventoryAttributes(f, invResponse.Inventories);
                         self.fixFacilityAttributes(f);
                     });
@@ -945,11 +945,12 @@
 
             </div>
             <div class="container facility-info">
-                <a href="#" class="banner-edit btn btn-sm btn-outline-primary border-0" @click="editBanner($event)"
-                    v-if="!facilityBannerBeingEdited"><i class="fas fa-edit"></i> Banner</a>
                 <div class="row">
                     <div class="col-12">
                         <div class="content-box">
+                            <a href="#" class="banner-edit btn btn-sm btn-outline-primary bg-white"
+                                @click="editBanner($event)" v-if="!facilityBannerBeingEdited"><i
+                                    class="fas fa-camera"></i></a>
                             <div class="form-row">
                                 <div class="col">
                                     <h6 class="mb-1"> {{Facility.Name}} </h6>
@@ -1174,7 +1175,7 @@
                                     </div>
                                 </span>
                             </div>
-                            <div class="col pb-4 pb-sm-0">
+                            <div class="col pb-sm-0">
                                 <div class="form-row mb-0">
                                     <div class="col text-right">
                                         <a href="#/" class="btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"

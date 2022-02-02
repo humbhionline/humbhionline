@@ -303,18 +303,18 @@
                     let self = this;
                     let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
                     let term = search_term;
-                    term = (term.length > 0 ? "( SKU:" + term + "* OR TAG:" + term + "* )" : "") ;
+                    term = (term.length > 0 ? "( SKU:" + term + "* OR TAG:" + term + "* )" : "");
 
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
-                        if (term.length > 0 ){
-                            term = term + " AND " ; 
+                        if (term.length > 0) {
+                            term = term + " AND ";
                         }
-                        term += "(FACILITY_ID:" + self.search.facility_id +")" 
+                        term += "(FACILITY_ID:" + self.search.facility_id + ")"
                     }
-                    if (term.length > 0 ){
-                        term = term + " AND " ; 
+                    if (term.length > 0) {
+                        term = term + " AND ";
                     }
-                    term += " PUBLISHED:Y "; 
+                    term += " PUBLISHED:Y ";
 
                     var params = {};
                     params.MaxDistance = self.search.MaxDistance;
@@ -322,9 +322,9 @@
                     if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0) {
                         params.OrderId = self.search.Order.Id;
                     }
-                    params.q = term ;
+                    params.q = term;
                     showSpinner();
-                    api().url("/network/call/inventories/search" ).get(params).then(function (response) {
+                    api().url("/network/call/inventories/search").get(params).then(function (response) {
                         if (self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim() != search_term) {
                             return;
                         }
@@ -334,9 +334,9 @@
                         self.search.results = response.Inventories.sort(function (o1, o2) {
                             return o1.Facility.Distance - o2.Facility.Distance;
                         });
-                        self.search.results = self.search.results.filter(function(inventory){
-                            return !self.isDeliverySku(inventory.Sku)  || 
-                                    ((self.search.Order.Id && self.search.Order.Id * 1.0 > 0 ) && inventory.DeliveryProvided=='Y')
+                        self.search.results = self.search.results.filter(function (inventory) {
+                            return !self.isDeliverySku(inventory.Sku) ||
+                                ((self.search.Order.Id && self.search.Order.Id * 1.0 > 0) && inventory.DeliveryProvided == 'Y')
                         });
                         if (self.search.results.length === 0) {
                             return;
@@ -351,8 +351,8 @@
                                     result.DeliveryProvided = 'N';
                                 }
                                 order.OrderLines.forEach((orderLine, i) => {
-                                    if ( (orderLine.Inventory.Sku.Id === result.Sku.Id)  
-                                        && (orderLine.Inventory.Tags === result.Tags )
+                                    if ((orderLine.Inventory.Sku.Id === result.Sku.Id)
+                                        && (orderLine.Inventory.Tags === result.Tags)
                                         && orderLine.Inventory.Facility.Id === result.Facility.Id) {
                                         result.OrderedQuantity = orderLine.OrderedQuantity
                                         result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
@@ -384,11 +384,11 @@
                 isDeliverySku: function (sku) {
                     return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
                 },
-                isSubscriptionAllowed: function(index){
+                isSubscriptionAllowed: function (index) {
                     let self = this;
                     let result = self.search.results[index];
                     return result.Sku.Item.HumBhiOnlineSubscriptionItem != 'Y' || self.User.Verified == 'Y' || result.SellingPrice <= 50;
-                } ,
+                },
                 increase: function (event, index) {
                     if (event) {
                         event.preventDefault();
@@ -422,9 +422,9 @@
                     var order = self.facilityOrders[result.Facility.Id];
                     if (order) {
                         let index = order.OrderLines.findIndex(function (ol) {
-                            return ol.Inventory.Sku.Id === result.Sku.Id && 
-                            ol.Inventory.Tags === result.Tags &&
-                            ol.Inventory.Facility.Id === result.Facility.Id;
+                            return ol.Inventory.Sku.Id === result.Sku.Id &&
+                                ol.Inventory.Tags === result.Tags &&
+                                ol.Inventory.Facility.Id === result.Facility.Id;
                         });
                         let ol = {
                             Inventory: result,
@@ -718,35 +718,41 @@
             </div>
         </div>
         <div class="container">
-            <div id="search-holder" class="form-row search-holder mb-sm-6">
-                <div class="col-12 d-flex flex-row align-items-center mt-3" v-if="delivery && delivery.Address">
-                    <a @click="editDeliveryAddress($event)">
-                        <i class="h6 fa fa-map-marker-alt mr-1"></i>
-                        {{ delivery.Address.LongName ? "Deliver to " + delivery.Address.LongName +"-" +
-                        delivery.Address.PinCode.PinCode : "Where are you?" }}</a>
-                </div>
+            <div id="search-holder" class="form-row search-holder mb-sm-6 mt-2">
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
                         <input key="search" id="search" class="search-control" placeholder="Search for Items or Store"
                             v-on:input="find($event)" v-model="search.term" />
                         <i class="fa fa-search"></i>
                     </div>
-                    <div class="form-check-inline align-middle mr-1">
-                        <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
-                            name="MaxDistance" id="distance_filter_5" value="5" @change="setPreferredDistance(5)">
-                        <label class="form-check-label small" for="distance_filter_5">0 - 5</label>
+                    <div class="form-row mt-1">
+                        <div class="col">
+                            <div class="form-check-inline align-middle mr-1">
+                                <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
+                                    name="MaxDistance" id="distance_filter_5" value="5"
+                                    @change="setPreferredDistance(5)">
+                                <label class="form-check-label small" for="distance_filter_5">0 - 5</label>
+                            </div>
+                            <div class="form-check-inline align-middle mr-1">
+                                <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
+                                    name="MaxDistance" id="distance_filter_10" value="10"
+                                    @change="setPreferredDistance(10)">
+                                <label class="form-check-label small" for="distance_filter_10">0 - 10</label>
+                            </div>
+                            <div class="form-check-inline align-middle mr-1">
+                                <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
+                                    name="MaxDistance" id="distance_filter_10000" value="10000"
+                                    @change="setPreferredDistance(10000)">
+                                <label class="form-check-label small" for="distance_filter_10000">>10</label>
+                            </div>
+                        </div>
+                        <div class="col text-right">
+                            <a @click="editDeliveryAddress($event)" v-if="delivery && delivery.Address">
+                                <i class="h6 fa fa-map-marker-alt mr-1"></i>
+                                {{ delivery.Address.PinCode ? delivery.Address.PinCode.PinCode : "Where are you?" }}</a>
+                        </div>
                     </div>
-                    <div class="form-check-inline align-middle mr-1">
-                        <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
-                            name="MaxDistance" id="distance_filter_10" value="10" @change="setPreferredDistance(10)">
-                        <label class="form-check-label small" for="distance_filter_10">0 - 10</label>
-                    </div>
-                    <div class="form-check-inline align-middle mr-1">
-                        <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
-                            name="MaxDistance" id="distance_filter_10000" value="10000"
-                            @change="setPreferredDistance(10000)">
-                        <label class="form-check-label small" for="distance_filter_10000">>10</label>
-                    </div>
+
                 </div>
             </div>
             <div class="row mt-sm-3">
@@ -792,15 +798,15 @@
                             </div>
                             <div class="col pb-4 pb-sm-0">
                                 <h6 class="m-0 text-truncate" v-bind:title="result.Sku.Name">
-                                    {{ result.Sku.Name }} 
+                                    {{ result.Sku.Name }}
                                 </h6>
                                 <span class="small text-muted">{{ result.Tags }}</span>
                                 <!-- <p class="mb-0 small">{{result.Tags}}</p> -->
                                 <p class="mb-1 small text-muted text-truncate" v-bind:title="result.Facility.Name">
-                                    By: <a 
+                                    By: <a
                                         v-bind:href="'/dashboard?facility_id=' +result.Facility.Id">{{result.Facility.Name}}
-                                            <i v-bind:class="User.Verified === 'Y' ? 'fas fa-check' : '' "></i>
-                                        </a>
+                                        <i v-bind:class="User.Verified === 'Y' ? 'fas fa-check' : '' "></i>
+                                    </a>
                                 </p>
                                 <div class="form-row">
                                     <div class="col small">
@@ -853,7 +859,8 @@
                                         <i class="fa fa-plus"></i>
                                     </button>
                                 </div>
-                                <div class="btn-group" role="group" aria-label="Basic example" v-else-if="!isDeliverySku(result.Sku)">
+                                <div class="btn-group" role="group" aria-label="Basic example"
+                                    v-else-if="!isDeliverySku(result.Sku)">
                                     <h5><a href="/users/html/profile#kyc">Kyc Required</a></h5>
                                 </div>
                                 <div class="btn-group" role="group" aria-label="Basic example" v-else>
