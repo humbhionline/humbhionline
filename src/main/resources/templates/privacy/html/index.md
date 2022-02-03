@@ -73,7 +73,7 @@ If you are a seller, you can add your operating locations, Stock information etc
 
 
 ##Are Children Allowed to Use HumBhiOnline?
-We do not sell products for purchase by children. We sell children's products for purchase by adults. If you are under the age of 18 years, you may use our Services only with the involvement of a parent or guardian.
+This platform is to be used by people over 18 years of age. If you are under the age of 18 years, you may use our Services only with the involvement of a parent or guardian.
 
 
 ##Conditions of Use, Notices , and Revisions

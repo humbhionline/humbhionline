@@ -537,13 +537,14 @@
                     </div>
                 </div>
                 <!-- Payment Option -->
-                <div class="row">
+                <div class="row" >
                     <div class="col">
                         <h6 class="mt-4 d-inline-block">UPI (Current A/c)</h6>
+                        <p class="text-note text-muted mb-3" >Your virtual payment Address would be used to receive payments/refunds into your bank account. Please enter this correctly.<br/><b>Entering incorrectly can cause money to reach some one else's account when you are supposed to receive money.</b></p>
                     </div>
                 </div>
 
-                <div class="content-box">
+                <div class="content-box" >
                     <div class="row">
                         <div class="col-12">
                             <p class="mb-0 text-muted">UPI ID </p>
@@ -582,18 +583,13 @@
                                     <button class="btn btn-light btn-sm" type="button"
                                         v-on:click="viewAddVPA($event,false)">Cancel</button>
                                     <button class="btn btn-primary btn-sm" type="submit" v-on:click="saveUser($event)">
-                                        {{User.VirtualPaymentAddress && User.NameAsInBankAccount?"Update":"Submit"}}
+                                        {{User.VirtualPaymentAddress || User.NameAsInBankAccount?"Update":"Submit"}}
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <p class="text-note text-muted mb-3">Your virtual payment Address would be used to receive payments/refunds
-                    into
-                    your bank account. Please enter this correctly.
-                    Entering incorrectly can cause money to reach some one else's account when you are supposed to receive
-                    money.</p>
 
                 <!-- HBO Balance -->
                 <div class="row" v-if="User.Seller === 'Y'">
