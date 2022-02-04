@@ -9,9 +9,13 @@ import in.succinct.mandi.agents.beckn.BecknAsyncTask;
 import in.succinct.mandi.agents.beckn.Cancel;
 import in.succinct.mandi.agents.beckn.Confirm;
 import in.succinct.mandi.agents.beckn.Init;
+import in.succinct.mandi.agents.beckn.Rating;
 import in.succinct.mandi.agents.beckn.Search;
 import in.succinct.mandi.agents.beckn.Select;
 import in.succinct.mandi.agents.beckn.Status;
+import in.succinct.mandi.agents.beckn.Support;
+import in.succinct.mandi.agents.beckn.Track;
+import in.succinct.mandi.agents.beckn.Update;
 import in.succinct.mandi.agents.beckn.bap.delivery.GenericCallBackRecorder;
 import in.succinct.mandi.agents.beckn.bap.delivery.OnStatus;
 import in.succinct.mandi.util.beckn.BecknUtil;
@@ -34,9 +38,12 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                 put("init", Init.class);
                 put("confirm", Confirm.class);
                 put("status", Status.class);
+                put("track", Track.class);
                 put("cancel", Cancel.class);
-                //put("track", Track.class);
-                //put("update", Update.class);
+                put("update", Update.class);
+                put("rating", Rating.class);
+                put("support", Support.class);
+
             }};
             @Override
             public String getSubscriberUrl() {
