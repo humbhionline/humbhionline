@@ -17,8 +17,11 @@
 
         let PreferredMaxDistance = Lockr.get("PreferredMaxDistance");
         if (!PreferredMaxDistance) {
-            Lockr.set("PreferredMaxDistance", 10);
+            PreferredMaxDistance = 5; 
+        }else if (PreferredMaxDistance > 20){
+            PreferredMaxDistance = 20; 
         }
+        Lockr.set("PreferredMaxDistance", PreferredMaxDistance);
 
         new Vue({
             el: "#app",
@@ -741,9 +744,9 @@
                             </div>
                             <div class="form-check-inline align-middle mr-1">
                                 <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
-                                    name="MaxDistance" id="distance_filter_10000" value="10000"
-                                    @change="setPreferredDistance(10000)">
-                                <label class="form-check-label small" for="distance_filter_10000">>10</label>
+                                    name="MaxDistance" id="distance_filter_20" value="20"
+                                    @change="setPreferredDistance(20)">
+                                <label class="form-check-label small" for="distance_filter_20">>10</label>
                             </div>
                         </div>
                         <div class="col text-right">

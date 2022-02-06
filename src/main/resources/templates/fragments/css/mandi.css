@@ -104,6 +104,7 @@ h6 {
     background-color: white;
     border-radius: 6px 6px 0 0;
     padding: 15px;
+    padding-bottom: 30px;
     box-shadow: var(--hbo-shadow);
     position: fixed;
     z-index: 4;
@@ -585,6 +586,7 @@ h6 {
         background-color: white;
         border-radius: 6px 6px 0 0;
         padding: 15px;
+        padding-bottom: 30px;
         box-shadow: var(--hbo-shadow);
         position: fixed;
         z-index: 4;
