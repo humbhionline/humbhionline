@@ -27,6 +27,7 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
     public void setSelfFacilityId(long id);
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    @Index
     public boolean isPublished();
     public void setPublished(boolean published);
 

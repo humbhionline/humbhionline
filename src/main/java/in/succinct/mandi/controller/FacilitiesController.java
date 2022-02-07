@@ -1,7 +1,9 @@
 package in.succinct.mandi.controller;
 
+import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient.Mqtt3SubscribeAndCallbackBuilder.Call.Ex;
 import com.venky.core.collections.SequenceMap;
 import com.venky.core.string.StringUtil;
+import com.venky.geo.GeoCoordinate;
 import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
@@ -9,6 +11,7 @@ import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.path.Path;
+import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
@@ -41,7 +44,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
-public class FacilitiesController extends ModelController<Facility> {
+public class FacilitiesController extends LocalSearchController<Facility> {
     public FacilitiesController(Path path) {
         super(path);
     }
@@ -81,6 +84,23 @@ public class FacilitiesController extends ModelController<Facility> {
         return list(facilityList,true);
     }
 
+    @Override
+    protected Expression getWhereClause() {
+        Expression complete = super.getWhereClause();
+        GeoCoordinate serviceLocation = getServiceRequirementLocation();
+
+        Expression where = new Expression(getReflector().getPool(), Conjunction.OR);
+        if (serviceLocation != null) {
+            where.add(getFacilityWhereClause(serviceLocation, false));
+        }
+
+        List<Long> myFacilityIds = getCurrentUserOperatedFacilityIds();
+        if (!myFacilityIds.isEmpty()){
+            where.add(new Expression(getReflector().getPool(),"ID",Operator.IN,myFacilityIds.toArray()));
+        }
+        complete.add(where);
+        return complete;
+    }
 
     /* Keep in sync with apicontroller*/
     @Override

@@ -54,7 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class InventoriesController extends ModelController<Inventory> {
+public class InventoriesController extends LocalSearchController<Inventory> {
     public InventoriesController(Path path) {
         super(path);
     }
@@ -82,21 +82,7 @@ public class InventoriesController extends ModelController<Inventory> {
         cache.get(Sku.class).add(Attachment.class);
         return cache;
     }
-    protected int getMaxDistance(){
-        return Math.max(5,getReflector().getJdbcTypeHelper().getTypeRef(Integer.class).getTypeConverter().
-                valueOf(getPath().getFormFields().get("MaxDistance")));
-    }
 
-    public long getOrderId(){
-        return getReflector().getJdbcTypeHelper().getTypeRef(Long.class).getTypeConverter().valueOf(getPath().getFormFields().get("OrderId"));
-    }
-    public Order getOrder(){
-        long orderId = getOrderId();
-        if (orderId > 0){
-            return Database.getTable(Order.class).get(orderId);
-        }
-        return null;
-    }
 
     @Override
     protected <T> View list(List<Inventory> records, boolean isCompleteList, IntegrationAdaptor<Inventory, T> overrideIntegrationAdaptor) {
@@ -331,8 +317,10 @@ public class InventoriesController extends ModelController<Inventory> {
         };
 
     }
-    
 
+    protected Expression getWhereClause(){
+        return getWhereClause("FACILITY_ID");
+    }
     private GeoLocation getDeliveryBoyLocation(Facility facility, Inventory record) {
         User creator = facility.getCreatorUser().getRawRecord().getAsProxy(User.class);
         if (!creator.getUserLocations().isEmpty()){
@@ -340,85 +328,6 @@ public class InventoriesController extends ModelController<Inventory> {
         }else {
             return facility;
         }
-    }
-
-    @Override
-    protected Expression getWhereClause() {
-        Expression where = super.getWhereClause();
-        int maxDistance = getMaxDistance();
-        if (maxDistance <= 10){
-            Order order = getOrder();
-            GeoCoordinate reference;
-            if (order == null){
-                reference = getCurrentUserLocation();
-            }else {
-                reference = new GeoCoordinate(order.getFacility());
-            }
-            if (reference != null){
-                ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);
-                Expression fWhere = new Expression(ref.getPool(),Conjunction.AND);
-                fWhere.add(new Expression(ref.getPool(),"PUBLISHED",Operator.EQ,true));
-                Expression or = new Expression(ref.getPool(), Conjunction.OR);
-                fWhere.add(or);
-
-                Expression deliveryProvidedWhere = new Expression(ref.getPool(),Conjunction.AND);
-                deliveryProvidedWhere.add(new Expression(ref.getPool(),"DELIVERY_RADIUS",Operator.GT, 0));
-                deliveryProvidedWhere.add(new Expression(ref.getPool(),"MIN_LAT",Operator.LE,reference.getLat()));
-                deliveryProvidedWhere.add(new Expression(ref.getPool(),"MAX_LAT",Operator.GE,reference.getLat()));
-                deliveryProvidedWhere.add(new Expression(ref.getPool(),"MIN_LNG",Operator.LE,reference.getLng()));
-                deliveryProvidedWhere.add(new Expression(ref.getPool(),"MAX_LNG",Operator.GE,reference.getLng()));
-                or.add(deliveryProvidedWhere);
-
-                BoundingBox bb = new BoundingBox(new GeoCoordinate(reference),0,maxDistance);
-                Expression deliveryNotProvidedWhere = bb.getWhereClause(Facility.class);
-                or.add(deliveryNotProvidedWhere);
-                List<Facility> facilities = new Select().from(Facility.class).where(fWhere).execute();
-                List<Long> facilityIds = DataSecurityFilter.getIds(facilities);
-                if (getCurrentUser() != null) {
-                    facilityIds.addAll(getCurrentUser().getOperatingFacilityIds());
-                }
-                if (!facilityIds.isEmpty()){
-                    where.add(Expression.createExpression(getReflector().getPool(),"FACILITY_ID", Operator.IN, facilityIds.toArray()));
-                }else {
-                    where.add(new Expression(getReflector().getPool(), "ID",Operator.EQ, -1)); //Impossible!!
-                }
-            }
-        }
-        return where;
-    }
-    private User getCurrentUser(){
-        com.venky.swf.db.model.User currentUser = Database.getInstance().getCurrentUser();
-        if (currentUser != null){
-            return currentUser.getRawRecord().getAsProxy(User.class);
-        }
-        return null;
-    }
-    private GeoCoordinate getCurrentUserLocation() {
-        com.venky.swf.db.model.User currentUser = Database.getInstance().getCurrentUser();
-        if (currentUser != null && currentUser.getCurrentLat() != null){
-            return new GeoCoordinate(new GeoLocation() {
-                @Override
-                public BigDecimal getLat() {
-                    return currentUser.getCurrentLat();
-                }
-
-                @Override
-                public void setLat(BigDecimal bigDecimal) {
-                    currentUser.setCurrentLat(bigDecimal);
-                }
-
-                @Override
-                public BigDecimal getLng() {
-                    return currentUser.getCurrentLng();
-                }
-
-                @Override
-                public void setLng(BigDecimal bigDecimal) {
-                    currentUser.setCurrentLng(bigDecimal);
-                }
-            });
-        }
-        return null;
     }
 
     @Override
