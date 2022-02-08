@@ -11,28 +11,31 @@
         Vue.component('accordion', {
             template: '#accordion',
             props: ['items'],
+            watch: {
+                items: function(items) { 
+                    console.log("asdfasd",items[0].Link);
+                    this.load(null,items[0],items[0].Link);
+                }
+            },
             methods: {
-                openItem: function(item){
-                    item.isopen = !  item.isopen
-                },                
-                setClass: function(item){
-                    if (item.isopen == true ) {
-                    return 'open'
+                load: function(ev,ref,link){
+                    let self = this;
+                    ev && ev.preventDefault();
+                    if(ref.isopen){
+                        api().url(link).get().then(function(r){
+                            $("#"+ref.Id).html(r)
+                        });
+                    }else{
+                        $("#"+ref.Id).html("")
                     }
-                    return 'close'
                 },
-                enter: function(el, done){   
-                    Velocity(el, 'slideDown', {duration: 400,  
-                                            easing: "easeInBack"},
-                                            {complete: done})
+                openItem: function(item){
+                    let self = this;
+                    item.isopen = !item.isopen;
+                    self.load(null,item,item.Link);
                 },
-                leave: function(el, done){
-                    Velocity(el, 'slideUp', {duration: 400,  
-                                            easing: "easeInBack"},
-                                            {complete: done})
-                },
-            }, 
-        })
+            }
+        });
         vue = new Vue({
             el : "#root",
             data : {
@@ -43,6 +46,7 @@
             created: function(){
                 let self = this;
                 api().url("/posts").get().then(function(r){
+                    r.Posts.forEach((v,i)=> i === 0 ? v.isopen = true : v.isopen = false)
                    self.items = r.Posts;
                 }).then(function(){
                     self.load(null,"left","toc");
@@ -64,12 +68,12 @@
 
 <header>
     <template id="accordion">
-        <ul>
+        <ul class="list-unstyled">
             <li v-for="item in items" @click="openItem(item)">
-                <div class="arrow_box" :class="{'arrow_box--open' : item.isopen}"></div>
-                    {{item.title}}
-                <div v-show="item.isopen" class="item">
-                    {{item.content}}
+                <i :class="{'fa fa-angle-up' : item.isopen,'fa fa-angle-down':!item.isopen}"></i>
+                    {{item.Title}}
+                <div v-show="item.isopen" :id="item.Id" class="blog-description">
+                    {{item.Author}}
                 </div>  
             </li>
         </ul>
@@ -133,11 +137,13 @@
 <div id="root">
     <div class="container"> 
         <div class="row">
-            <htc v-bind:htc="left" class="col-3 blog-links d-none d-xl-block" id="left" ref="left"></htc>
-            <div class="col-sm blog-description">
-                <!-- <accordion :items="items"></accordion> -->
-                <htc v-bind:htc="right" id="right" ref="left"></htc>
+            <div class="col">
+                <accordion :items="items"></accordion>
             </div>
+            <!-- <htc v-bind:htc="left" class="col-3 blog-links d-none d-xl-block" id="left" ref="left"></htc>
+            <div class="col-sm blog-description">
+                <htc v-bind:htc="right" id="right" ref="left"></htc>
+            </div> -->
         </div>
     </div>
 </div>
