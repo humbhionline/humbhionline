@@ -22,6 +22,9 @@
             PreferredMaxDistance = 20; 
         }
         Lockr.set("PreferredMaxDistance", PreferredMaxDistance);
+        if (!Lockr.get("search.Category")){
+            Lockr.set("search.Category","Inventory"); 
+        }
 
         new Vue({
             el: "#app",
@@ -37,7 +40,7 @@
                 blank: blank,
                 search: {
                     MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
-                    Category : "Inventory" ,
+                    Category : facility_id ? "Inventory" : Lockr.get("search.Category")  ,
                     facility_id: facility_id,
                     order_id: order_id,
                     clone_order_id: clone_order_id,
@@ -292,37 +295,43 @@
                         self.search.term = e.target.value;
                     }
                     self.search.results = [];
-                    if (self.search.facilitySearchTimer){
-                        clearTimeout(self.search.facilitySearchTimer);
-                        self.search.facilitySearchTimer = undefined;
-                    }
-
-                    self.search.facilitySearchTimer = setTimeout(function(){
-                        if (!self.search.order_id && !self.search.clone_order_id ){
-                            let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim().replace(" ","* AND NAME:");
-                            let term = search_term;
-                            var q = {"q":"(PUBLISHED:Y" + (term.length > 0 ? ` AND NAME:${term}*` : "" ) + " )" } ;
-                            api().url("/network/call/facilities/search").get(q).then(function(r){
-                                self.search.nearByFacilities= r.Facilities; 
-                                self.$forceUpdate();
-                            });
-                        }
-                        self.search.facilitySearchTimer =undefined;
-                    },400);
+                    self.search.nearByFacilities = [];
 
 
                     if (self.search.timer) {
                         clearTimeout(self.search.timer);
                         self.search.timer = undefined;
                     }
+                    if (self.search.facilitySearchTimer){
+                        clearTimeout(self.search.facilitySearchTimer);
+                        self.search.facilitySearchTimer = undefined;
+                    }
 
                     if (!self.isSearchTriggerable()) {
+                        self.search.facilitySearchTimer = setTimeout(function(){
+                            if (!self.search.order_id && !self.search.clone_order_id ){
+                                let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim().replace(" ","* AND NAME:");
+                                let term = search_term;
+                                var q = {"q":"(PUBLISHED:Y" + (term.length > 0 ? ` AND NAME:${term}*` : "" ) + " )" } ;
+                                self._findFacilities(q);
+                            }
+                            self.search.facilitySearchTimer =undefined;
+                        },400);
+
                         return;
                     }
                     self.search.timer = setTimeout(function () {
                         self._find();
                         self.search.timer = undefined;
                     }, 400);
+                },
+                _findFacilities: function(q = { "q" : "(PUBLISHED:Y)"} ){
+                    let self = this;
+                    api().url("/network/call/facilities/search").get(q).then(function(r){
+                        self.search.nearByFacilities= r.Facilities; 
+                        self.$forceUpdate();
+                    });
+                    
                 },
                 _find: function () {
                     let self = this;
@@ -366,11 +375,12 @@
                             return !self.isDeliverySku(inventory.Sku) ||
                                 ((self.search.Order.Id && self.search.Order.Id * 1.0 > 0) && inventory.DeliveryProvided == 'Y')
                         });
-                        if (self.search.results.length === 0) {
-                            return;
-                        }
+
+
                         self.itemWidth = $("#item-0").width();
+                        let facilityIds  = new Set();
                         self.search.results.forEach((result, i) => {
+                            facilityIds.add(result.Facility.Id); 
                             var order = self.facilityOrders[result.Facility.Id];
                             result.OrderedQuantity = 0;
                             result.OrderedAmount = (0.00).toFixed(2);
@@ -388,7 +398,20 @@
                                 });
                             }
                         });
+                        let q  = { q: "" }; 
+                        if (facilityIds.size > 0 ){
+                            facilityIds.forEach(function(fId){
+                                if (q.q.length > 0){
+                                    q.q += " OR "
+                                }
+                                q.q += `ID:${fId}`
+                            });
+                        }
 
+                        let term = search_term.replace(" ","* AND NAME:");
+
+                        q.q = q.q.length >0 ? `( ${q.q} ) OR (NAME:${term}*)` : `(NAME:${term}*)`  ;
+                        self._findFacilities(q);
                     }).finally(function () {
                         hideSpinner();
                     });
@@ -688,7 +711,14 @@
                 },
                 openFacility: function(f){
                     window.location.href = `/dashboard?facility_id=${f.Id}`
+                },
+                onSearchCategoryChange: function(){
+                    let self = this;
+                    if (!facility_id){
+                        Lockr.set("search.Category", self.search.Category);
+                    }
                 }
+                
             }
         });
     });
@@ -755,7 +785,7 @@
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
                         <div class="form-check-inline align-middle " >
-                            <select v-model="search.Category" class="pt-1 pb-1" v-bind:disabled="search.facility_id && search.Facility.Name ? true : false" >
+                            <select v-model="search.Category" class="pt-1 pb-1" v-bind:disabled="search.facility_id && search.Facility.Name ? true : false" :on_change="onSearchCategoryChange()" >
                                 <option>Inventory</option>
                                 <option>Facility</option>
                             </select>
