@@ -274,78 +274,23 @@ public class BppController extends Controller {
 
     @RequireLogin(false)
     public View get_cancellation_reasons(){
-        try {
-            Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            if (!Config.instance().getBooleanProperty("beckn.auth.enabled", false) ||
-                request.verifySignature("Authorization",getPath().getHeaders())){
-                List<OrderCancellationReason> reasons = new com.venky.swf.sql.Select().from(OrderCancellationReason.class).execute();
-                Options options = new Options();
-                reasons.forEach(r->{
-                    if (r.isUsableBeforeDelivery()){
-                        Option option = new Option();
-                        option.setId(BecknUtil.getBecknId(String.valueOf(r.getId()),
-                                Entity.cancellation_reason));
-                        Descriptor descriptor = new Descriptor();
-                        option.setDescriptor(descriptor);
-                        descriptor.setName(r.getReason());
-                        descriptor.setCode(String.valueOf(r.getId()));
-                        options.add(option);
-                    }
-                });
-                return new BytesView(getPath(),options.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
-            }else {
-                return nack(request,request.getContext().getBapId());
-            }
-        }catch (Exception ex){
-            throw new RuntimeException(ex);
-        }
-
+        return act();
     }
 
     @RequireLogin(false)
     public View get_return_reasons(){
-        try {
-            Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            if (!Config.instance().getBooleanProperty("beckn.auth.enabled", false) ||
-                    request.verifySignature("Authorization",getPath().getHeaders())){
-                List<OrderCancellationReason> reasons = new com.venky.swf.sql.Select().from(OrderCancellationReason.class).execute();
-                Options options = new Options();
-                reasons.forEach(r->{
-                    if (r.isUsableAfterDelivery()){
-                        Option option = new Option();
-                        option.setId(BecknUtil.getBecknId(String.valueOf(r.getId()),
-                                Entity.cancellation_reason));
-                        Descriptor descriptor = new Descriptor();
-                        option.setDescriptor(descriptor);
-                        descriptor.setName(r.getReason());
-                        descriptor.setCode(String.valueOf(r.getId()));
-                        options.add(option);
-                    }
-                });
-                return new BytesView(getPath(),options.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
-            }else {
-                return nack(request,request.getContext().getBapId());
-            }
-        }catch (Exception ex){
-            throw new RuntimeException(ex);
-        }
-
+        return act();
     }
 
     @RequireLogin(false)
     public View get_rating_categories(){
-        try {
-            Request request = new Request(StringUtil.read(getPath().getInputStream()));
-            if (request.verifySignature("Authorization",getPath().getHeaders())){
-                return new BytesView(getPath(),new JSONArray().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
-            }else {
-                return nack(request,request.getContext().getBapId());
-            }
-        }catch (Exception ex){
-            throw new RuntimeException(ex);
-        }
-
+        return act();
     }
+    @RequireLogin(false)
+    public View get_feedback_categories(){
+        return act();
+    }
+
     @RequireLogin(value = false)
     public View on_subscribe() throws Exception{
         String payload = StringUtil.read(getPath().getInputStream());

@@ -160,7 +160,7 @@ public class Init extends BecknAsyncTask {
 
     }
 
-    private OrderAddress createBillTo(in.succinct.mandi.db.model.Order order, Billing billing) {
+    protected OrderAddress createBillTo(in.succinct.mandi.db.model.Order order, Billing billing) {
         Address address = OrderUtil.getAddress(billing.getAddress());
         OrderAddress orderAddress = Database.getTable(OrderAddress.class).newRecord();
         loadAddress(orderAddress,address);
@@ -175,11 +175,12 @@ public class Init extends BecknAsyncTask {
         }
         orderAddress.setOrderId(order.getId());
         orderAddress.setAddressType(in.succinct.plugins.ecommerce.db.model.order.OrderAddress.ADDRESS_TYPE_BILL_TO);
+        orderAddress = Database.getTable(OrderAddress.class).getRefreshed(orderAddress); // To support update
         orderAddress.save();
         return orderAddress;
     }
 
-    private OrderAddress createShipTo(in.succinct.mandi.db.model.Order order, Fulfillment fulfillment) {
+    protected OrderAddress createShipTo(in.succinct.mandi.db.model.Order order, Fulfillment fulfillment) {
         FulfillmentStop end = fulfillment.getEnd();
         Address address = OrderUtil.getAddress(end.getLocation());
         OrderAddress orderAddress = Database.getTable(OrderAddress.class).newRecord();
@@ -192,11 +193,12 @@ public class Init extends BecknAsyncTask {
         orderAddress.setEmail(end.getContact().getEmail());
         orderAddress.setLat(address.getLat());
         orderAddress.setLng(address.getLng());
+        orderAddress = Database.getTable(OrderAddress.class).getRefreshed(orderAddress);// To Support modification;
         orderAddress.save();
         return orderAddress;
     }
 
-    private User ensureUser(OrderAddress orderAddress) {
+    protected User ensureUser(OrderAddress orderAddress) {
         User user = Database.getTable(User.class).newRecord();
         user.setPhoneNumber(Phone.sanitizePhoneNumber(orderAddress.getPhoneNumber()));
         user = Database.getTable(User.class).getRefreshed(user);
@@ -206,7 +208,7 @@ public class Init extends BecknAsyncTask {
         return user;
     }
 
-    private void loadAddress(Address to, Address from) {
+    protected void loadAddress(Address to, Address from) {
         to.setAddressLine1(from.getAddressLine1());
         to.setAddressLine2(from.getAddressLine2());
         to.setAddressLine3(from.getAddressLine3());

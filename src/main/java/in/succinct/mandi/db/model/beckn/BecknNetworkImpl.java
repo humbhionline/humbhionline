@@ -7,9 +7,13 @@ import com.venky.swf.plugins.beckn.tasks.BecknTask;
 import com.venky.swf.routing.Config;
 import in.succinct.mandi.agents.beckn.BecknAsyncTask;
 import in.succinct.mandi.agents.beckn.Cancel;
+import in.succinct.mandi.agents.beckn.CancellationReason;
 import in.succinct.mandi.agents.beckn.Confirm;
+import in.succinct.mandi.agents.beckn.FeedbackCategory;
 import in.succinct.mandi.agents.beckn.Init;
 import in.succinct.mandi.agents.beckn.Rating;
+import in.succinct.mandi.agents.beckn.RatingCategory;
+import in.succinct.mandi.agents.beckn.ReturnReason;
 import in.succinct.mandi.agents.beckn.Search;
 import in.succinct.mandi.agents.beckn.Select;
 import in.succinct.mandi.agents.beckn.Status;
@@ -43,6 +47,11 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                 put("update", Update.class);
                 put("rating", Rating.class);
                 put("support", Support.class);
+                put("get_rating_categories", RatingCategory.class);
+                put("get_feedback_categories", FeedbackCategory.class);
+                put("get_cancellation_reasons", CancellationReason.class);
+                put("get_return_reasons", ReturnReason.class);
+
 
             }};
             @Override
