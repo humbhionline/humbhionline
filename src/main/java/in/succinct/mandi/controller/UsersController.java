@@ -181,11 +181,21 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>,List<String>> map = super.getIncludedModelFields();
-        map.put(SignUp.class, ModelReflector.instance(SignUp.class).getVisibleFields());
-        map.put(UserRole.class, Arrays.asList("ID","USER_ID","ROLE_ID"));
-        map.put(Role.class,Arrays.asList("ID","NAME"));
-        map.put(Device.class,ModelReflector.instance(Device.class).getVisibleFields());
-        map.put(SavedAddress.class,ModelReflector.instance(SavedAddress.class).getVisibleFields());
+        if (!map.containsKey(SignUp.class)) {
+            map.put(SignUp.class, ModelReflector.instance(SignUp.class).getVisibleFields());
+        }
+        if (!map.containsKey(UserRole.class)) {
+            map.put(UserRole.class, Arrays.asList("ID", "USER_ID", "ROLE_ID"));
+        }
+        if (!map.containsKey(Role.class)) {
+            map.put(Role.class, Arrays.asList("ID", "NAME"));
+        }
+        if (!map.containsKey(Device.class)) {
+            map.put(Device.class, ModelReflector.instance(Device.class).getVisibleFields());
+        }
+        if (!map.containsKey(SavedAddress.class)) {
+            map.put(SavedAddress.class, ModelReflector.instance(SavedAddress.class).getVisibleFields());
+        }
         return map;
     }
 
