@@ -531,7 +531,7 @@
                         delete self.current.Inventory.Sku.Name;
                         self.current.Inventory.Sku.PackagingUOM = uom;
                         self.current.UnitOfMeasures = [];
-                        let q = { q: "ITEM:" + "\"" + self.current.Inventory.Sku.Item.Name + "\" AND PACKAGING_U_O_M:\"" + uom.Name + "\"" };
+                        let q = { q: "ITEM:" + "\"LUCENE_START " + self.current.Inventory.Sku.Item.Name + " LUCENE_END\" AND PACKAGING_U_O_M:\"LUCENE_START " + uom.Name + " LUCENE_END\"" };
                         showSpinner();
                         api().url("/skus/search").get(q).then(function (response) {
                             if (response.Skus.length === 1) {

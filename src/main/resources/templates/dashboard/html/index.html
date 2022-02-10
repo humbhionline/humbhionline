@@ -37,6 +37,7 @@
                 OrderAmount: 0,
                 DeliveryAmount: 0,
                 itemWidth: 0,
+                facilityWidth: 0,
                 blank: blank,
                 search: {
                     MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
@@ -327,6 +328,7 @@
                 },
                 _findFacilities: function(q = { "q" : "(PUBLISHED:Y)"} ){
                     let self = this;
+                    self.facilityWidth = "200";
                     api().url("/network/call/facilities/search").get(q).then(function(r){
                         self.search.nearByFacilities= r.Facilities; 
                         self.$forceUpdate();
@@ -829,22 +831,17 @@
                     v-if="search.nearByFacilities.length > 0">
                     <div class="item-list" v-bind:id="'facility-'+index">
                         <div class="form-row">
-                            <div class="col-4 col-sm-12">
+                            <div class="col-12">
                                 <div class="img-holder border rounded-sm" @click="openFacility(result)">
                                     <img class="img-fluid w-100 h-100"
                                         v-bind:src="'/network/call'+result.Attachments[0].AttachmentUrl"
                                         v-if="result.Attachments && result.Attachments.length > 0" />
                                     <div v-else
                                         class="default-img d-flex bg-light align-items-center justify-content-center"
-                                        v-bind:style="{ height: itemWidth + 'px' }">
+                                        v-bind:style="{ height: facilityWidth + 'px' }">
                                         <span class="font-weight-bold text-muted">{{result.Name}}</span>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col pb-4 pb-sm-0">
-                                <h6 class="m-0 text-truncate" v-bind:title="result.Name">
-                                    {{ result.Name }}
-                                </h6>
                             </div>
                         </div>
                     </div>

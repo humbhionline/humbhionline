@@ -59,7 +59,11 @@
                                 Lockr.set("SignUp",response.data.User.SignUps[0]);
                                 Lockr.set("User",response.data.User);
                                 loadLocation(true).then(function(){
-                                    window.location.replace("/index");
+                                    if (response.data.User.Seller === 'Y' ){
+                                        window.location.replace("/orders?type=sales");
+                                    }else {
+                                        window.location.replace("/index");
+                                    }
                                 });
                             } else {
                                 showErrorMessage("Password doesnot match.") ;

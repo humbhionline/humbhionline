@@ -5,7 +5,7 @@ Hi,
 Thanks for taking interest in volunteering for the HumbhiOnline mission to help local-sellers sell online. 
 
 There are various tasks in the mission which you may volunteer for, based on your interests. 
-We have a discord channel for volunteers of Humbhionline. You are invited to join the same at [https://discord.gg/myzWjTuV](https://discord.gg/myzWjTuV) .
+We have a discord channel for volunteers of Humbhionline. You are invited to join the same at [https://discord.gg/ccngbCrZ7C](https://discord.gg/ccngbCrZ7C) .
 
 
 ### These are the following Volunteering Tracks available currently  
