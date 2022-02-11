@@ -331,6 +331,9 @@
                     self.facilityWidth = "200";
                     api().url("/network/call/facilities/search").get(q).then(function(r){
                         self.search.nearByFacilities= r.Facilities; 
+                        self.search.nearByFacilities.sort(function(f1,f2){
+                            return f1.Distance - f2.Distance;
+                        });
                         self.$forceUpdate();
                     });
                     
@@ -412,7 +415,9 @@
 
                         let term = search_term.replace(" ","* AND NAME:");
 
-                        q.q = q.q.length >0 ? `( ${q.q} ) OR (NAME:${term}*)` : `(NAME:${term}*)`  ;
+                        if (term.length >  0){
+                            q.q = q.q.length >0 ? `( ${q.q} ) OR (NAME:${term}*)` : `(NAME:${term}*)`  ;
+                        }
                         self._findFacilities(q);
                     }).finally(function () {
                         hideSpinner();
@@ -578,7 +583,6 @@
                     self.delivery.beingEdited = false;
                     self.delivery.DraftAddress = {};
                     self.initDeliveryAddress();
-                    //TODO VENKY
                 },
                 updateDeliveryLocation: function (address) {
                     let location = Lockr.get("Location");
@@ -838,7 +842,7 @@
                                         v-if="result.Attachments && result.Attachments.length > 0" />
                                     <div v-else
                                         class="default-img d-flex bg-light align-items-center justify-content-center"
-                                        v-bind:style="{ height: facilityWidth + 'px' }">
+                                        v-bind:style="{ height: facilityWidth + 'px' }" >
                                         <span class="font-weight-bold text-muted">{{result.Name}}</span>
                                     </div>
                                 </div>
@@ -853,7 +857,7 @@
                     <div class="item-list" v-bind:id="'item-'+index">
                         <div class="form-row">
                             <div class="col-4 col-sm-12">
-                                <div class="img-holder border rounded-sm">
+                                <div class="img-holder border rounded-sm" >
                                     <img class="img-fluid w-100 h-100"
                                         v-bind:src="'/network/call'+result.Sku.Attachments[0].AttachmentUrl"
                                         v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
@@ -884,6 +888,7 @@
                                                         v-bind:src="'/network/call' + result.Sku.Attachments[0].AttachmentUrl" />
                                                 </div>
                                             </div>
+                                            
                                         </div>
                                     </div>
                                 </div>
