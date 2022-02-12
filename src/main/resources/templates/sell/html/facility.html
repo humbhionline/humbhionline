@@ -983,7 +983,7 @@
                                 </div>
                                 <div v-bind:class="[!selectedDataFileName ? 'col-4 text-right':'col-3']">
                                     <input type="file" class="file-upload" id="datafile"
-                                        v-on:input="onDataFileChange($event)" />
+                                        v-on:input="onDataFileChange($event)" accept="*/*" />
                                     <label v-if="!selectedDataFileName"
                                         v-bind:class="[!selectedDataFileName ? 'btn-outline-primary mb-0 w-100' :'']"
                                         for="datafile">
@@ -1306,13 +1306,13 @@
                             v-if="!current.Inventory.ManagedBy || current.Inventory.ManagedBy.trim().length === 0">
                             <div class="col-7">
                                 <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
-                                <input v-bind:key="'price' + i" v-bind:id="'price' + i"
+                                <input v-bind:key="'price' + i" v-bind:id="'price' + i" type="number"
                                     class="form-control form-control-sm" placeholder="&#x20B9;0"
                                     v-model="current.Inventory.SellingPrice" />
                             </div>
                             <div class="col-5">
                                 <label class="small mb-0" v-bind:for="'mrp' + i">MRP</label>
-                                <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
+                                <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm" type="number"
                                     placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" />
                             </div>
                         </div>

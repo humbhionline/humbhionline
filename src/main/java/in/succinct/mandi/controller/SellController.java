@@ -16,7 +16,7 @@ public class SellController extends Controller {
     }
 
     public View template(){
-        return load("template.xlsx", MimeType.APPLICATION_XLS.toString(),true);
+        return load("template.xlsx", MimeType.APPLICATION_XLSX.toString(),true);
     }
 
     @Override

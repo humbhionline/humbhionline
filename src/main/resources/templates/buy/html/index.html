@@ -321,7 +321,7 @@
                                 v-bind:href="'/dashboard?facility_id=' +facility.Id">{{facility.Name}}</a></div>
                         <div class="col-3 text-right"><i class="fas fa-drafting-compass"
                                 v-bind:href="'https://google.com/maps/place/'+facility.Lat +',' + facility.Lng"></i>
-                            {{Math.round(facility.Distance * 100 /100)}}
+                            {{(facility.Distance * 100 /100).toFixed(2)}}
                             Km</div>
                     </div>
                 </div>

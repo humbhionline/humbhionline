@@ -542,7 +542,7 @@
                         <div class="col">
                             <label class="small" v-bind:for="'DeliveryRadius' + i">Upto </label>
                             <input class="mx-1 w-25 form-control form-control-sm d-inline-block " v-bind:key="'DeliveryRadius' + i"
-                            v-bind:id="'DeliveryRadius' + i" placeholder="?"
+                            v-bind:id="'DeliveryRadius' + i" placeholder="?" type="number"
                             v-model="current.Facility.DeliveryRadius" />
                             <label class="small" >Kms around my facility</label>
 
@@ -554,11 +554,11 @@
                         <div class="col">
                             <span class="align-middle">Charge &#x20B9</span>
                             <input v-bind:key="'MinDeliveryCharge' + i"  class="mx-1 w-25 form-control form-control-sm d-inline-block "
-                                v-bind:id="'MinDeliveryCharge' + i" placeholder="?"
+                                v-bind:id="'MinDeliveryCharge' + i" placeholder="?" type="number"
                                 v-model="current.Facility.MinDeliveryCharge" />
                             <span class="align-middle">For first</span>
                              <input v-bind:key="'MinChargeableDistance' + i"  class="mx-1 w-25 form-control form-control-sm d-inline-block "
-                                v-bind:id="'MinChargeableDistance' + i" placeholder="?"
+                                v-bind:id="'MinChargeableDistance' + i" placeholder="?" type="number"
                                 v-model="current.Facility.MinChargeableDistance" />
                             <span class="align-middle">Kms</span>
                         </div>
@@ -570,7 +570,7 @@
                         <div class="col">
                             <span class="align-middle">And then Charge &#x20B9</span>
                             <input v-bind:key="'ChargesPerKm' + i"  class="mx-1 w-25 form-control form-control-sm d-inline-block "
-                                v-bind:id="'ChargesPerKm' + i" placeholder="?"
+                                v-bind:id="'ChargesPerKm' + i" placeholder="?" type="number"
                                 v-model="current.Facility.ChargesPerKm" />
 
                             <span class="align-middle">Per Km</span>

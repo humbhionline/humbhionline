@@ -343,7 +343,7 @@
                     let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
                     let term = search_term;
                     term = (term.length > 0 ? "( (SKU:" + term.replace(" ","* AND SKU:") + "*)" + 
-                                                 " OR ( TAG:" + term.replace(" ","* AND TAG:") + "*)" + 
+                                                 " OR ( TAGS:" + term.replace(" ","* AND TAGS:") + "*)" + 
                                                  " OR ( FACILITY:" + term.replace(" " , "* AND FACILITY:") +"*))" : "" ) ;
 
 
@@ -733,6 +733,7 @@
     <div id="header">
     </div>
     <div id="app" class="app-body">
+        <!-- Show facility banner -->
         <div class="container" v-if="search.facility_id && search.Facility.Name">
             <div id="banner-slider" class="carousel slide" data-ride="carousel">
                 <!-- Indicators -->
@@ -770,22 +771,23 @@
                     <div class="row">
                         <div class="col">
                             <!-- <a class="btn btn-link" v-bind:href="'tel:'+ search.Facility.PhoneNumber"
-                    v-if="Mobile && search.Facility.PhoneNumber">
-                    <i class="fa-phone-alt fas"></i>
-                </a> -->
+                                    v-if="Mobile && search.Facility.PhoneNumber">
+                                    <i class="fa-phone-alt fas"></i>
+                                </a> -->
                             <a v-bind:href="whatsapp_url(search.Facility)" data-action="share/whatsapp/share"
                                 class="btn btn-link px-1" v-if="search.Facility.PhoneNumber">
                                 <i class="fab fa-whatsapp"></i>
                             </a>
                         </div>
                         <div class="col d-flex justify-content-end align-items-center">
-                            <small>@ Distance of {{search.Facility.Distance}} Km</small>
+                            <small>@ Distance of {{(search.Facility.Distance * 1.0).toFixed(2)}} Km</small>
                         </div>
                     </div>
                     <!-- {{search.Facility.Lat +","+ search.Facility.Lng}} -->
                 </div>
             </div>
         </div>
+        <!-- Search field ---> 
         <div class="container">
             <div id="search-holder" class="form-row search-holder mb-sm-6 mt-2">
                 <div class="col-12">
@@ -830,6 +832,7 @@
 
                 </div>
             </div>
+            <!-- Show facility list -->
             <div class="row mt-sm-3" v-if="(search.Category === 'Facility')" >
                 <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,index) in search.nearByFacilities"
                     v-if="search.nearByFacilities.length > 0">
@@ -851,6 +854,7 @@
                     </div>
                 </div> 
             </div>
+            <!-- Show inventory list -->
             <div class="row mt-sm-3" v-if="(search.Category==='Inventory')">
                 <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,index) in search.results"
                     v-if="search.results.length > 0">
@@ -910,7 +914,7 @@
                                         <a
                                             v-bind:href="'https://google.com/maps/place/'+result.Facility.Lat +',' + result.Facility.Lng">
                                             <i class="fa fa-map-pin mr-1 text-muted"></i>
-                                            {{result.Facility.Distance}} Km
+                                            {{(result.Facility.Distance * 1.0).toFixed(2)}} Km
                                         </a>
                                     </div>
                                     <div class="col d-none d-sm-block small text-right">
