@@ -170,6 +170,36 @@ footer * {
     color: white;
 }
 
+.post-view{
+    margin-top: 5px;
+}
+
+.post-view p{
+    font-size: 14px;
+}
+
+.post-view li{
+ padding: 20px !important;
+ box-shadow: 0 0 3px rgba(0,0,0,0.5);
+ margin-bottom: 20px;
+}
+
+.post-view li li{
+    padding: 0 !important;
+    box-shadow: none;
+    margin-bottom: 0;
+}
+.post-view li h1{
+    font-size: 22px;
+}
+.post-view li h2{
+    font-size: 16px;
+}
+
+.post-view li h4{
+    font-size: 15px;
+}
+
 @media only screen and (max-width: 640px) {
     .slide-img {
         width: 70%;

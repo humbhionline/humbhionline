@@ -13,8 +13,8 @@
             props: ['items'],
             watch: {
                 items: function(items) { 
-                    console.log("asdfasd",items[0].Link);
-                    this.load(null,items[0],items[0].Link);
+                    /* console.log("asdfasd",items[0].Link);
+                    this.load(null,items[0],items[0].Link);*/
                 }
             },
             methods: {
@@ -46,7 +46,7 @@
             created: function(){
                 let self = this;
                 api().url("/posts").get().then(function(r){
-                    r.Posts.forEach((v,i)=> i === 0 ? v.isopen = true : v.isopen = false)
+                    r.Posts.forEach((v,i)=> v.isopen = false)
                    self.items = r.Posts;
                 }).then(function(){
                     self.load(null,"left","toc");
@@ -68,13 +68,19 @@
 
 <header>
     <template id="accordion">
-        <ul class="list-unstyled">
-            <li v-for="item in items" @click="openItem(item)">
-                <i :class="{'fa fa-angle-up' : item.isopen,'fa fa-angle-down':!item.isopen}"></i>
-                    {{item.Title}}
-                <div v-show="item.isopen" :id="item.Id" class="blog-description">
-                    {{item.Author}}
-                </div>  
+        <ul class="list-unstyled post-view">
+            <li v-for="item in items">
+                <h1>{{item.Title}}</h1>
+                <div v-show="!item.isopen" class="blog-small-description">
+                    {{item.Description}}                   
+                </div> 
+                <div v-show="item.isopen" :id="item.Id" class="blog-long-description">
+                </div>
+                <p class="text-right mb-0">
+                    <button class="btn btn-link p-0" @click="openItem(item)">
+                        {{item.isopen ? "Read Less <<" : "Read More >>"}}
+                    </button>
+                </p>
             </li>
         </ul>
     </template>
@@ -140,6 +146,7 @@
             <div class="col">
                 <accordion :items="items"></accordion>
             </div>
+            <!-- div class="col-lg-4"></!-->
             <!-- <htc v-bind:htc="left" class="col-3 blog-links d-none d-xl-block" id="left" ref="left"></htc>
             <div class="col-sm blog-description">
                 <htc v-bind:htc="right" id="right" ref="left"></htc>

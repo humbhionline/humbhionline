@@ -17,13 +17,13 @@
 
         let PreferredMaxDistance = Lockr.get("PreferredMaxDistance");
         if (!PreferredMaxDistance) {
-            PreferredMaxDistance = 5; 
-        }else if (PreferredMaxDistance > 20){
-            PreferredMaxDistance = 20; 
+            PreferredMaxDistance = 5;
+        } else if (PreferredMaxDistance > 20) {
+            PreferredMaxDistance = 20;
         }
         Lockr.set("PreferredMaxDistance", PreferredMaxDistance);
-        if (!Lockr.get("search.Category")){
-            Lockr.set("search.Category","Inventory"); 
+        if (!Lockr.get("search.Category")) {
+            Lockr.set("search.Category", "Inventory");
         }
 
         new Vue({
@@ -41,7 +41,7 @@
                 blank: blank,
                 search: {
                     MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
-                    Category : facility_id ? "Inventory" : Lockr.get("search.Category")  ,
+                    Category: facility_id ? "Inventory" : Lockr.get("search.Category"),
                     facility_id: facility_id,
                     order_id: order_id,
                     clone_order_id: clone_order_id,
@@ -49,7 +49,7 @@
                     Order: {},
                     term: term || "",
                     results: [],
-                    nearByFacilities :[] ,
+                    nearByFacilities: [],
                     termLengthTrigger: 1,
                     timer: undefined,
                     facilitySearchTimer: undefined,
@@ -303,21 +303,21 @@
                         clearTimeout(self.search.timer);
                         self.search.timer = undefined;
                     }
-                    if (self.search.facilitySearchTimer){
+                    if (self.search.facilitySearchTimer) {
                         clearTimeout(self.search.facilitySearchTimer);
                         self.search.facilitySearchTimer = undefined;
                     }
 
                     if (!self.isSearchTriggerable()) {
-                        self.search.facilitySearchTimer = setTimeout(function(){
-                            if (!self.search.order_id && !self.search.clone_order_id ){
-                                let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim().replace(" ","* AND NAME:");
+                        self.search.facilitySearchTimer = setTimeout(function () {
+                            if (!self.search.order_id && !self.search.clone_order_id) {
+                                let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim().replace(" ", "* AND NAME:");
                                 let term = search_term;
-                                var q = {"q":"(PUBLISHED:Y" + (term.length > 0 ? ` AND NAME:${term}*` : "" ) + " )" } ;
+                                var q = { "q": "(PUBLISHED:Y" + (term.length > 0 ? ` AND NAME:${term}*` : "") + " )" };
                                 self._findFacilities(q);
                             }
-                            self.search.facilitySearchTimer =undefined;
-                        },400);
+                            self.search.facilitySearchTimer = undefined;
+                        }, 400);
 
                         return;
                     }
@@ -326,17 +326,17 @@
                         self.search.timer = undefined;
                     }, 400);
                 },
-                _findFacilities: function(q = { "q" : "(PUBLISHED:Y)"} ){
+                _findFacilities: function (q = { "q": "(PUBLISHED:Y)" }) {
                     let self = this;
                     self.facilityWidth = "200";
-                    api().url("/network/call/facilities/search").get(q).then(function(r){
-                        self.search.nearByFacilities= r.Facilities; 
-                        self.search.nearByFacilities.sort(function(f1,f2){
+                    api().url("/network/call/facilities/search").get(q).then(function (r) {
+                        self.search.nearByFacilities = r.Facilities;
+                        self.search.nearByFacilities.sort(function (f1, f2) {
                             return f1.Distance - f2.Distance;
                         });
                         self.$forceUpdate();
                     });
-                    
+
                 },
                 _find: function () {
                     let self = this;
@@ -383,9 +383,9 @@
 
 
                         self.itemWidth = $("#item-0").width();
-                        let facilityIds  = new Set();
+                        let facilityIds = new Set();
                         self.search.results.forEach((result, i) => {
-                            facilityIds.add(result.Facility.Id); 
+                            facilityIds.add(result.Facility.Id);
                             var order = self.facilityOrders[result.Facility.Id];
                             result.OrderedQuantity = 0;
                             result.OrderedAmount = (0.00).toFixed(2);
@@ -403,20 +403,20 @@
                                 });
                             }
                         });
-                        let q  = { q: "" }; 
-                        if (facilityIds.size > 0 ){
-                            facilityIds.forEach(function(fId){
-                                if (q.q.length > 0){
+                        let q = { q: "" };
+                        if (facilityIds.size > 0) {
+                            facilityIds.forEach(function (fId) {
+                                if (q.q.length > 0) {
                                     q.q += " OR "
                                 }
                                 q.q += `ID:${fId}`
                             });
                         }
 
-                        let term = search_term.replace(" ","* AND NAME:");
+                        let term = search_term.replace(" ", "* AND NAME:");
 
-                        if (term.length >  0){
-                            q.q = q.q.length >0 ? `( ${q.q} ) OR (NAME:${term}*)` : `(NAME:${term}*)`  ;
+                        if (term.length > 0) {
+                            q.q = q.q.length > 0 ? `( ${q.q} ) OR (NAME:${term}*)` : `(NAME:${term}*)`;
                         }
                         self._findFacilities(q);
                     }).finally(function () {
@@ -715,16 +715,16 @@
                         }, 50);
                     });
                 },
-                openFacility: function(f){
+                openFacility: function (f) {
                     window.location.href = `/dashboard?facility_id=${f.Id}`
                 },
-                onSearchCategoryChange: function(){
+                onSearchCategoryChange: function () {
                     let self = this;
-                    if (!facility_id){
+                    if (!facility_id) {
                         Lockr.set("search.Category", self.search.Category);
                     }
                 }
-                
+
             }
         });
     });
@@ -792,12 +792,12 @@
             <div id="search-holder" class="form-row search-holder mb-sm-6 mt-2">
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
-                        <div class="form-check-inline align-middle " >
-                            <select v-model="search.Category" class="pt-1 pb-1" v-bind:disabled="search.facility_id && search.Facility.Name ? true : false" :on_change="onSearchCategoryChange()" >
-                                <option>Inventory</option>
-                                <option>Facility</option>
-                            </select>
-                        </div>
+                        <select v-model="search.Category" class="category-control"
+                            v-bind:disabled="search.facility_id && search.Facility.Name ? true : false"
+                            :on_change="onSearchCategoryChange()">
+                            <option>Inventory</option>
+                            <option>Facility</option>
+                        </select>
                         <input key="search" id="search" class="search-control" placeholder="Search for Items or Store"
                             v-on:input="find($event)" v-model="search.term" />
                         <i class="fa fa-search"></i>
@@ -833,7 +833,7 @@
                 </div>
             </div>
             <!-- Show facility list -->
-            <div class="row mt-sm-3" v-if="(search.Category === 'Facility')" >
+            <div class="row mt-sm-3" v-if="(search.Category === 'Facility')">
                 <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,index) in search.nearByFacilities"
                     v-if="search.nearByFacilities.length > 0">
                     <div class="item-list" v-bind:id="'facility-'+index">
@@ -845,14 +845,14 @@
                                         v-if="result.Attachments && result.Attachments.length > 0" />
                                     <div v-else
                                         class="default-img d-flex bg-light align-items-center justify-content-center"
-                                        v-bind:style="{ height: facilityWidth + 'px' }" >
+                                        v-bind:style="{ height: facilityWidth + 'px' }">
                                         <span class="font-weight-bold text-muted">{{result.Name}}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div> 
+                </div>
             </div>
             <!-- Show inventory list -->
             <div class="row mt-sm-3" v-if="(search.Category==='Inventory')">
@@ -861,7 +861,7 @@
                     <div class="item-list" v-bind:id="'item-'+index">
                         <div class="form-row">
                             <div class="col-4 col-sm-12">
-                                <div class="img-holder border rounded-sm" >
+                                <div class="img-holder border rounded-sm">
                                     <img class="img-fluid w-100 h-100"
                                         v-bind:src="'/network/call'+result.Sku.Attachments[0].AttachmentUrl"
                                         v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
@@ -892,7 +892,7 @@
                                                         v-bind:src="'/network/call' + result.Sku.Attachments[0].AttachmentUrl" />
                                                 </div>
                                             </div>
-                                            
+
                                         </div>
                                     </div>
                                 </div>

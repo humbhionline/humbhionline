@@ -982,8 +982,9 @@
                                     </label>
                                 </div>
                                 <div v-bind:class="[!selectedDataFileName ? 'col-4 text-right':'col-3']">
-                                    <input type="file" class="file-upload" id="datafile"
-                                        v-on:input="onDataFileChange($event)" accept="*/*" />
+                                    <input type="file" class="file-upload" id="datafile" 
+                                        accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                        v-on:input="onDataFileChange($event)" />
                                     <label v-if="!selectedDataFileName"
                                         v-bind:class="[!selectedDataFileName ? 'btn-outline-primary mb-0 w-100' :'']"
                                         for="datafile">
