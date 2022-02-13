@@ -296,7 +296,9 @@
                         self.search.term = e.target.value;
                     }
                     self.search.results = [];
-                    self.search.nearByFacilities = [];
+                    if (!self.search.facility_id || self.search.facility_id * 1.0 === 0){
+                        self.search.nearByFacilities =  []; //Don't Reload facilities if it the screen is loaded for a facility_id
+                    }
 
 
                     if (self.search.timer) {
@@ -329,14 +331,15 @@
                 _findFacilities: function (q = { "q": "(PUBLISHED:Y)" }) {
                     let self = this;
                     self.facilityWidth = "200";
-                    api().url("/network/call/facilities/search").get(q).then(function (r) {
-                        self.search.nearByFacilities = r.Facilities;
-                        self.search.nearByFacilities.sort(function (f1, f2) {
-                            return f1.Distance - f2.Distance;
+                    if (self.search.nearByFacilities.length == 0){
+                        api().url("/network/call/facilities/search").get(q).then(function (r) {
+                            self.search.nearByFacilities = r.Facilities;
+                            self.search.nearByFacilities.sort(function (f1, f2) {
+                                return f1.Distance - f2.Distance;
+                            });
+                            self.$forceUpdate();
                         });
-                        self.$forceUpdate();
-                    });
-
+                    }
                 },
                 _find: function () {
                     let self = this;
