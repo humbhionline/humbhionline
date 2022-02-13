@@ -23,7 +23,6 @@
                 Facility: { Name: "", City: { Name: "", State: { Name: "", Country: { "Name": "India" } } }, PinCode: { PinCode: "" }, Inventories: [] },
                 facilityBannerBeingEdited: false,
                 facilityCropperBeingEdited: false,
-                timer: -1,
                 selectedDataFileName: "",
                 current: {
                     index: -1,
@@ -38,15 +37,15 @@
                 search: {
                     term: "",
                     results: [],
+                    timer:undefined
                 },
             },
             created: function () {
                 let self = this;
                 showSpinner();
                 api().url("/facilities/show/" + id).get().then(function (response) {
-                    self.loadInventory(response.Facility).then(function () {
-                        self.showApp();
-                    });
+                    self.showApp();
+                    self.loadInventory(response.Facility);
                 }).catch(function (err) {
                     self.showApp();
                     showError(err);
@@ -869,25 +868,34 @@
                     let self = this;
                     if (e) {
                         e.preventDefault();
+                        self.search.term = e.target.value;
                     }
                     if (blank(self.search.term)) {
-                        self.search.results = self.loadInventory(self.Facility).then(function () {
-                            console.log(self.search.results);
-                        });
+                        self.loadInventory(self.Facility);
                     } else {
-                        let term = self.search.term.toLowerCase();
-                        self.loadInventory(self.Facility, { q: term }).then(function () {
-                            self.search.results = self.Facility.Inventories;
-                            console.log(self.search.results);
-                        });
+                        let term = self.search.term.toLowerCase().replace(/[^a-z0-9 ]/g, " ").trim();
+                        term = (term.length > 0 ? "( (SKU:" + term.replace(" ","* AND SKU:") + "*)" +
+                                                 " OR ( TAGS:" + term.replace(" ","* AND TAGS:") + "*) )" : "" );
+                        let q = {} ;
+                        q.q = term; 
+
+
+                        self.loadInventory(self.Facility, q)
                     }
                 },
                 loadInventory: function (f, q = {}) {
                     let self = this;
-                    return api().url("/facilities/show/" + id + "/inventories/search").get(q).then(function (invResponse) {
-                        self.fixInventoryAttributes(f, invResponse.Inventories);
-                        self.fixFacilityAttributes(f);
-                    });
+                    if (self.search.timer) {
+                        clearTimeout(self.search.timer);
+                        self.search.timer = undefined;
+                    }
+                    self.search.timer = setTimeout(function(){
+                        api().url("/facilities/show/" + id + "/inventories/search").get(q).then(function (invResponse) {
+                            self.fixInventoryAttributes(f, invResponse.Inventories);
+                            self.fixFacilityAttributes(f);
+                            self.$forceUpdate();
+                        });
+                    },400);
                 },
                 isDeliverySku: function (sku) {
                     return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
@@ -1019,8 +1027,8 @@
                             <div class="col-12">
                                 <div class="d-flex flex-row align-items-center">
                                     <input key="search" id="search" class="search-control"
-                                        placeholder="Search for Items" v-on:input="find($event)"
-                                        v-model="search.term" />
+                                        placeholder="Search for Items" 
+                                        v-model="search.term" v-on:input="find($event)"/>
                                     <i class="fa fa-search"></i>
                                 </div>
                             </div>

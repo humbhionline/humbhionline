@@ -792,7 +792,7 @@
             <div id="search-holder" class="form-row search-holder mb-sm-6 mt-2">
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
-                        <select v-model="search.Category" class="category-control"
+                        <select v-model="search.Category" class="category-control col-4"
                             v-bind:disabled="search.facility_id && search.Facility.Name ? true : false"
                             :on_change="onSearchCategoryChange()">
                             <option>Inventory</option>
