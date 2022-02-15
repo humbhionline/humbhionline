@@ -32,6 +32,7 @@
                 Mobile: isMobile(),
                 User: {},
                 sendSubscriptionToServer: sendSubscriptionToServer,
+                equalAddress: equalAddress,
                 ShipmentCount: 0,
                 OrderLineCount: 0,
                 OrderAmount: 0,
@@ -53,6 +54,7 @@
                     termLengthTrigger: 1,
                     timer: undefined,
                     facilitySearchTimer: undefined,
+                    new_items:[],
                 },
                 hideNewDelivery: true,
                 delivery: null,
@@ -337,6 +339,7 @@
                             self.search.nearByFacilities.sort(function (f1, f2) {
                                 return f1.Distance - f2.Distance;
                             });
+                            o
                             self.$forceUpdate();
                         });
                     }
@@ -383,6 +386,25 @@
                             return !self.isDeliverySku(inventory.Sku) ||
                                 ((self.search.Order.Id && self.search.Order.Id * 1.0 > 0) && inventory.DeliveryProvided == 'Y')
                         });
+                        if (self.search.Facility.Id){
+
+                            self.search.results.push(...self.search.new_items);
+                            self.search.results.push({
+                                Facility : self.search.Facility, 
+                                Sku : {
+                                    Name : "Unknown",
+                                    Item : {
+                                        Name : "Did not find what you are looking for? Click here to add.",
+                                    },
+                                    PackagingUom: {
+                                        Name: "Single",
+                                    },
+                                },
+                                Tags :"Unknown",
+                                SellingPrice : "0.0",
+                                MaxRetailPrice : "0.0"
+                            });
+                        }
 
 
                         self.itemWidth = $("#item-0").width();
@@ -419,7 +441,12 @@
                         let term = search_term.replace(" ", "* AND NAME:");
 
                         if (term.length > 0) {
-                            q.q = q.q.length > 0 ? `( ${q.q} ) OR (NAME:${term}*)` : `(NAME:${term}*)`;
+                            q.q = q.q.length > 0 ? `(( ${q.q} ) OR (NAME:${term}*))` : `(NAME:${term}*)`;
+                        }
+                        if (q.q.length > 0){
+                            q.q = `(PUBLISHED:Y AND ${q.q})`
+                        }else {
+                            q.q = "PUBLISHED:Y"
                         }
                         self._findFacilities(q);
                     }).finally(function () {
@@ -726,6 +753,28 @@
                     if (!facility_id) {
                         Lockr.set("search.Category", self.search.Category);
                     }
+                },
+                addNewItem: function(event){
+                    event && event.preventDefault();
+                    let self =this;
+                    self.search.new_items.push({
+                        IsNew: true,
+                        Facility : self.search.Facility, 
+                        Sku : {
+                            Name : "",
+                            Item : {
+                                Name : "",
+                            },
+                            PackagingUom: {
+                                Name: "Single",
+                            },
+                        },
+                        Tags :"",
+                        SellingPrice : "0.0",
+                        MaxRetailPrice : "0.0"
+                    });
+                    self.search.results.splice(self.search.results.length-1,0,self.search.new_items[self.search.new_items.length-1]);
+
                 }
 
             }
@@ -871,8 +920,11 @@
                                         data-toggle="modal" v-bind:data-target="'#sku-img-'+result.Sku.Id" />
                                     <div v-else
                                         class="default-img d-flex bg-light align-items-center justify-content-center"
-                                        v-bind:style="{ height: itemWidth + 'px' }">
-                                        <span class="font-weight-bold text-muted">{{result.Sku.Item.Name}}</span>
+                                        v-bind:style="{ height: itemWidth + 'px' }" >
+                                        <span class="font-weight-bold text-muted" v-if="!result.Id" @click="addNewItem($event)">
+                                            {{result.Sku.Item.Name}}
+                                        </span>
+                                        <span class="font-weight-bold text-muted" v-else>{{result.Sku.Item.Name}}</span>
                                     </div>
                                     <!-- Modal View Images -->
                                     <div v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
@@ -1036,7 +1088,7 @@
                     <div class="address-wrapper">
                         <div v-for="(address,index) in User.SavedAddresses"
                             @click="selectDeliveryAddress($event, address,index)" class="address-block" :class="[
-                            delivery.DraftAddress.Email == address.Email ? 'active' : '',
+                            equalAddress(delivery.DraftAddress,address) ? 'active' : '',
                           ]">
                             <h6>{{address.LongName}}</h6>
                             <div class="address-block-text">

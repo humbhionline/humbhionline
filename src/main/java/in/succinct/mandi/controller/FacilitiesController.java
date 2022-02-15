@@ -15,9 +15,11 @@ import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import com.venky.swf.sql.Select.ResultFilter;
 import com.venky.swf.views.View;
 import com.venky.swf.views.model.FileUploadView;
 import in.succinct.mandi.db.model.Facility;
+import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.CompanyUtil;
@@ -82,6 +84,25 @@ public class FacilitiesController extends LocalSearchController<Facility> {
         User user = getPath().getSessionUser().getRawRecord().getAsProxy(User.class);
         List<Facility> facilityList = new Select().from(Facility.class).where(new Expression(getReflector().getPool(),"ID", Operator.IN,user.getOperatingFacilityIds().toArray())).execute();
         return list(facilityList,true);
+    }
+
+    @Override
+    protected ResultFilter<Facility> getFilter() {
+        ResultFilter<Facility> filter = super.getFilter();
+        User user = getCurrentUser();
+        return facility -> {
+            boolean myFacility =  getCurrentUserOperatedFacilityIds().contains(facility.getId()) || ( user != null && (user.isStaff() || user.isAdmin()));
+
+            if (myFacility){
+                return filter.pass(facility);
+            }else {
+                boolean pass = facility.isPublished();
+                pass = pass && ( facility.getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0 );
+                return pass;
+            }
+
+        };
+
     }
 
     @Override

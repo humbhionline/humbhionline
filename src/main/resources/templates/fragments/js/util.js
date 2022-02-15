@@ -138,3 +138,16 @@ function copyAddress(from , to){
     to.Lat = from.Lat; 
     to.Lng = from.Lng; 
 }
+function equalAddress(from , to){
+    return ( to.LongName === from.LongName &&  
+        to.AddressLine1 === from.AddressLine1 &&  
+        to.AddressLine2 === from.AddressLine2 &&  
+        to.AddressLine3 === from.AddressLine3 &&  
+        to.AddressLine4 === from.AddressLine4 &&  
+        to.City.Name === from.City.Name &&  
+        to.PinCode.PinCode === from.PinCode.PinCode &&  
+        to.PhoneNumber === from.PhoneNumber &&  
+        to.Email === from.Email &&  
+        to.Lat === from.Lat &&  
+        to.Lng === from.Lng );
+}
