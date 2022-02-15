@@ -258,7 +258,7 @@ public class InventoriesController extends LocalSearchController<Inventory> {
             boolean myFacility =  operatingFacilityIds.contains(record.getFacilityId()) || ( user != null && (user.isStaff() || user.isAdmin()));
 
             boolean pass = facility.isPublished();
-            pass = pass && record.isPublished();
+            //pass = pass && record.isPublished(); (Show as out of stock)
             pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0
                     || record.getSku().getItem().getRawRecord().getAsProxy(Item.class).isHumBhiOnlineSubscriptionItem());
 

@@ -103,6 +103,9 @@
                             Lng: user.Lng
                         }];
                     orders.push(order);
+                    order.OrderLines.forEach(function(ol){
+                        ol.Inventory = { Sku :  ol.Inventory.Sku, Facility : ol.Inventory.Facility, InventoryHash : ol.Inventory.InventoryHash  }
+                    });
 
                 },
                 book: function (orders) {

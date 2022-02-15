@@ -358,10 +358,12 @@
                         }
                         term += "(FACILITY_ID:" + self.search.facility_id + ")"
                     }
+                    /*
                     if (term.length > 0) {
                         term = term + " AND ";
                     }
                     term += " PUBLISHED:Y ";
+                    */
 
                     var params = {};
                     params.MaxDistance = self.search.MaxDistance;
@@ -417,6 +419,7 @@
                                 if (order.CustomerPickup === 'Y') {
                                     result.DeliveryProvided = 'N';
                                 }
+
                                 order.OrderLines.forEach((orderLine, i) => {
                                     if ((orderLine.Inventory.Sku.Id === result.Sku.Id)
                                         && (orderLine.Inventory.Tags === result.Tags)
@@ -425,6 +428,12 @@
                                         result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                                     }
                                 });
+                                if (result.Published !== 'Y'){
+                                    result.OrderedAmount = 0; 
+                                    result.OrderedQuantity = 0; 
+                                    self.addToCart(null,result);
+                                    self.reloadCounts()
+                                }
                             }
                         });
                         let q = { q: "" };
@@ -498,6 +507,10 @@
                     if (event) {
                         event.preventDefault();
                     }
+                    if (result.Published !== 'Y'){
+                        result.OrderedQuantity = 0;
+                        result.OrderedAmount = 0;
+                    }
                     let self = this;
                     if (!self.facilityOrders[result.Facility.Id]) {
                         self.facilityOrders[result.Facility.Id] = {
@@ -549,6 +562,8 @@
                 },
                 buy: function (event) {
                     event && event.preventDefault();
+                    let self =this;
+                    self.reloadCounts();
                     window.location.href = ("/buy");
                 },
                 whatsapp_url: function (f) {
@@ -908,9 +923,10 @@
             </div>
             <!-- Show inventory list -->
             <div class="row mt-sm-3" v-if="(search.Category==='Inventory')">
-                <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,index) in search.results"
+                <div v-bind:class="'col-lg-3 col-sm-4 mb-0 mb-sm-4' + (result.Published === 'N' ? ' out-of-stock' : '')" v-for="(result,index) in search.results"
                     v-if="search.results.length > 0">
-                    <div class="item-list" v-bind:id="'item-'+index">
+                    <div class="item-list" v-bind:id="'item-'+index" >
+                        <span v-if="result.Published === 'N'">Out of Stock</span>
                         <div class="form-row">
                             <div class="col-4 col-sm-12">
                                 <div class="img-holder border rounded-sm">

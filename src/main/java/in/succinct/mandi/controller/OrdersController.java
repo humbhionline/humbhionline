@@ -225,6 +225,10 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
             FormatHelper<T> inventoryHelper = FormatHelper.instance(getPath().getProtocol(),inventoryElement);
             Inventory inventory  =  ModelIOFactory.getReader(Inventory.class,inventoryHelper.getFormatClass()).read(inventoryElement);
+            if (!inventory.isPublished()){
+                //Trying to make it infinite. Record in db is finite and zero.
+                throw new RuntimeException("Product " + inventory.getSku().getName() + " is no longer be available.");
+            }
             if (shipFrom == null){
                 shipFrom = inventory.getFacility().getRawRecord().getAsProxy(Facility.class);
             }
