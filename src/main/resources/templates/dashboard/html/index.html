@@ -339,7 +339,6 @@
                             self.search.nearByFacilities.sort(function (f1, f2) {
                                 return f1.Distance - f2.Distance;
                             });
-                            o
                             self.$forceUpdate();
                         });
                     }
@@ -610,9 +609,9 @@
                 cancelEditDeliveryAddress: function (ev) {
                     ev && ev.preventDefault();
                     let self = this;
+                    self.initDeliveryAddress();
                     self.delivery.beingEdited = false;
                     self.delivery.DraftAddress = {};
-                    self.initDeliveryAddress();
                 },
                 updateDeliveryLocation: function (address) {
                     let location = Lockr.get("Location");
@@ -627,24 +626,25 @@
                 saveDeliveryAddress: function (ev) {
                     ev && ev.preventDefault();
                     let self = this;
-                    self.delivery.beingEdited = false;
 
                     if (self.isAddressChanged(self.delivery.Address, self.delivery.DraftAddress)) {
                         showSpinner();
                         api().url("/delivery_addresses/locate").parameters({ "DeliveryAddress": self.delivery.DraftAddress }).post().then(function (response) {
                             Vue.set(self.delivery, "Address", response.DeliveryAddresses[0]);
+                            self.delivery.beingEdited = false;
+                            self.delivery.DraftAddress = {};
                             Lockr.set("delivery", self.delivery);
                             self.updateDeliveryLocation(self.delivery.Address);
                         }).catch(function (err) {
                             showError(err);
 
                         }).finally(function () {
-                            self.delivery.DraftAddress = {};
                             hideSpinner();
                         })
                     } else {
                         self.delivery.Address = self.delivery.DraftAddress;
                         self.delivery.DraftAddress = {};
+                        self.delivery.beingEdited = false;
                         Lockr.set("delivery", self.delivery);
                         self.updateDeliveryLocation(self.delivery.Address);
                     }
