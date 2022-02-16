@@ -210,8 +210,9 @@
                             }
                         }
                     }
-
-                    updateHeaderCount();
+                    if (typeof updateHeaderCount === 'function'){
+                        updateHeaderCount();
+                    }
                 },
                 loadOrder: function () {
                     let self = this;
@@ -397,7 +398,8 @@
                                     Item : {
                                         Name : "Did not find what you are looking for? Click here to add.",
                                     },
-                                    PackagingUom: {
+                                    PackagingUOM: {
+                                        Measures: "Packaging" ,
                                         Name: "Single",
                                     },
                                 },
@@ -772,25 +774,66 @@
                 addNewItem: function(event){
                     event && event.preventDefault();
                     let self =this;
-                    self.search.new_items.push({
+                    self.search.last_item = {
                         IsNew: true,
                         Facility : self.search.Facility, 
                         Sku : {
-                            Name : "",
                             Item : {
                                 Name : "",
                             },
-                            PackagingUom: {
+                            PackagingUOM: {
+                                Measures: "Packaging" ,
                                 Name: "Single",
                             },
                         },
+                        Published : "N",
                         Tags :"",
                         SellingPrice : "0.0",
                         MaxRetailPrice : "0.0"
+                    }
+                    Vue.set(self.search,"last_item" ,self.search.last_item);
+                    self.$forceUpdate();
+                },
+                selectNewItem: function(event,newItem){
+                    event && event.preventDefault();
+                    let self =this;
+                    if (newItem){
+                        Vue.set(self.search,"last_item" ,newItem);
+                    }else{
+                        self.addNewItem(event);
+                    }
+                },
+                cancelEditNewItem: function(event){
+                    event && event.preventDefault();
+                    let self =this;
+                    Vue.delete(self.search, 'last_item')
+                },
+                saveNewItem: function(event){
+                    event && event.preventDefault();
+                    let self = this; 
+                    let index = self.search.new_items.findIndex(function(item){
+                        inventory.Item.Name == item.Item.Name
                     });
-                    self.search.results.splice(self.search.results.length-1,0,self.search.new_items[self.search.new_items.length-1]);
+                    if (index >= 0){
+                        showError("Duplicate Product");
+                    }
+                    self.search.last_item.Published = 'Y';
 
+                    self.search.new_items.push(self.search.last_item);
+                    self.search.results.splice(self.search.results.length-1,0,self.search.last_item);
+                    Vue.delete(self.search, 'last_item')
+                },
+                removeNewItem: function(event,inventory){
+                    event && event.preventDefault();
+                    let self = this;
+                    let index = self.search.new_items.findIndex(function(item){
+                        inventory.Item.Name == item.Item.Name
+                    });
+                    if (index >= 0){
+                        self.search.new_items.splice(index,1);
+                    }
                 }
+                    
 
             }
         });
@@ -937,7 +980,10 @@
                                     <div v-else
                                         class="default-img d-flex bg-light align-items-center justify-content-center"
                                         v-bind:style="{ height: itemWidth + 'px' }" >
-                                        <span class="font-weight-bold text-muted" v-if="!result.Id" @click="addNewItem($event)">
+                                        <span class="font-weight-bold text-muted" v-if="result.IsNew" @click="selectNewItem($event,result)">
+                                            {{result.Sku.Item.Name}}
+                                        </span>
+                                        <span class="font-weight-bold text-muted" v-else-if="!result.Id" @click="selectNewItem($event,null)">
                                             {{result.Sku.Item.Name}}
                                         </span>
                                         <span class="font-weight-bold text-muted" v-else>{{result.Sku.Item.Name}}</span>
@@ -1090,6 +1136,20 @@
                 </div>
             </div>
         </div>
+        <!-- edit last item -->
+        <div class="show-update new-item" v-if="search.last_item">
+            <div class="form-row">
+                    <div class="col-12 mb-2">
+                        <input class="form-control form-control-sm" id="last_item_name" v-model="search.last_item.Sku.Item.Name"
+                            placeholder="Product Name" />
+                    </div>
+                    <div class="col-12 text-right">
+                        <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditNewItem($event)">Cancel</a>
+                        <a href="#/" class="btn btn-sm btn-primary" @click="saveNewItem($event)">Submit</a>
+                    </div>
+            </div>
+        </div>
+
         <!-- Address choosing -->
         <div class="show-update delivery-address" v-if="delivery && delivery.beingEdited">
             <div class="form-row">

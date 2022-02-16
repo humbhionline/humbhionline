@@ -673,9 +673,78 @@
                     }
                     url += '?phone=' + phoneable.PhoneNumber;
                     return url;
+                },
+                editLinePrice: function(event, ol){
+                    let self = this;
+                    self.editPrice(event,ol).then(function(order_line){
+                        api().url("/order_lines/save").parameters({"OrderLine": order_line}).post().then(function(r){
+                            let orderId = r.OrderLines[0].Order.Id;
+                            let index = self.Orders.findIndex(function(o){
+                                return o.Id === orderId;
+                            });
+                            if (index >= 0 ){
+                                api().url(`/orders/show/${orderId}`).get().then(function(r){
+                                    self.Orders.splice(index,1,r.Order);
+                                });
+                            }
+                        });
+                    }).catch(function(err){
+                        showErrorMessage(err);
+                    });
+                },
+                editPrice: function(event, ol){
+                    return new Promise(function (resolve, reject) {
+                        $.confirm({
+                            title: "Enter Unit Price",
+                            content: '' +
+                                '<form action="" class="formName">' +
+                                '<div class="form-group">' +
+                                '<label>Enter Unit Price</label>' +
+                                '<input type="text" placeholder="Unit Price" class="price form-control" required />' +
+                                '</div>' +
+                                '</form>',
+                            buttons: {
+                                formSubmit: {
+                                    text: 'Done',
+                                    btnClass: 'btn-primary',
+                                    action: function () {
+                                        var price = this.$content.find('.price').val();
+                                        if (!price){
+                                            price = 0;
+                                        }
+                                        price = price * 1; 
+
+                                        if (price > 0) {
+                                            ol.SellingPrice = price * ol.OrderedQuantity;
+                                            if (ol.MaxRetailPrice && ol.MaxRetailPrice * 1> 0){
+                                                ol.MaxRetailPrice = Math.max(ol.MaxRetailPrice, ol.SellingPrice);
+                                            }else {
+                                                ol.MaxRetailPrice = ol.SellingPrice;
+                                            }
+                                            resolve(ol);
+                                        }else {
+                                            reject("Price must be a positive value!");
+                                        }
+                                    }
+                                },
+                                cancel: function () {
+                                    reject("Price not updated!");
+                                },
+
+                            },
+                            onContentReady: function () {
+                                // bind to events
+                                var jc = this;
+                                this.$content.find('.price').val(ol.SellingPrice* 1> 0? ol.SellingPrice : "");
+                                this.$content.find('form').on('submit', function (e) {
+                                    // if the user submits the form by pressing enter in the field.
+                                    e.preventDefault();
+                                    jc.$$formSubmit.trigger('click'); // reference the button and click it
+                                });
+                            },
+                        })
+                    });
                 }
-
-
 
             }
         });
@@ -944,7 +1013,8 @@
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col">
+                                        <div class="col text-right">
+                                            <a href=#" class="fas fa-edit" @click="editLinePrice($event,ol)" v-if="sales"></a>
                                             &#x20B9; {{ ( ol.SellingPrice * 1.0 ).toFixed(2) }}
                                         </div>
                                     </div>

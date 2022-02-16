@@ -104,7 +104,15 @@
                         }];
                     orders.push(order);
                     order.OrderLines.forEach(function(ol){
-                        ol.Inventory = { Sku :  ol.Inventory.Sku, Facility : ol.Inventory.Facility, InventoryHash : ol.Inventory.InventoryHash  }
+                        let inv = ol.Inventory; 
+                        ol.Inventory = { Sku :  inv.Sku, Facility : inv.Facility }
+                        if (ol.Inventory.IsNew === true && !ol.Inventory.Id ){
+                           ol.Inventory.Infinite = 'Y' ;
+                           ol.Inventory.Quantity = 0;
+                        }else {
+                           ol.Inventory.InventoryHash = inv.InventoryHash 
+                        }
+
                     });
 
                 },
