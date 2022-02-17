@@ -216,13 +216,11 @@
                         event.preventDefault();
                     }
                     let self = this;
+                    self.current.Inventory.Sku.Name = self.current.Inventory.Sku.Item.Name + " - " + self.current.Inventory.Sku.PackagingUOM.Name ;
                     let index = self.current.index;
                     let i = self.current.Inventory;
                     let newRecord = !i.Id;
                     delete i.Quantity;
-
-
-
                     showSpinner();
                     api().url("/api/adjust").parameters({
                         AdjustmentRequest: {
@@ -234,12 +232,10 @@
                         if (!inv.Sku.Item.AssetCode) {
                             inv.Sku.Item.AssetCode = { Code: "" };
                         }
-                        if (!inv.Sku.Attachments) {
-                            inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
-                            api().url("/skus/show/" + inv.Sku.Id).get().then(function (sku_response) {
-                                inv.Sku.Attachments = sku_response.Sku.Attachments || [{ Sku: { Id: inv.Sku.Id } }];
-                            });
-                        }
+                        inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
+                        api().url("/skus/show/" + inv.Sku.Id).get().then(function (sku_response) {
+                            inv.Sku.Attachments = sku_response.Sku.Attachments || [{ Sku: { Id: inv.Sku.Id } }];
+                        });
 
                         self.search.results.splice(index, 1, inv);
                         self.updateLists(inv);
@@ -367,6 +363,7 @@
                     if (!self.isKeyTriggerable(e)) {
                         return;
                     }
+
                     new Autocomplete("items", e.target).search().then(function (response) {
                         if (!response) {
                             return
@@ -393,11 +390,13 @@
                 },
                 onAssetCodeChange: function (e) {
                     e && e.preventDefault();
+                    let self = this;
+                    self.current.Inventory.Sku.Item.AssetCode = { Code : self.current.Inventory.Sku.Item.AssetCode.Code } 
+
                     if (!this.isKeyTriggerable(e)) {
                         return;
                     }
 
-                    let self = this;
 
                     new Autocomplete("asset_codes", e.target).search().then(function (response) {
                         if (!response) {
@@ -1332,9 +1331,11 @@
                                 <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
                                     class="form-control form-control-sm" placeholder="GST/SAC Code"
                                     v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                                    :disabled="current.Inventory.Sku.Item.Id" v-on:input="onAssetCodeChange($event)"
+                                    v-on:input="onAssetCodeChange($event)"
                                     v-on:focus="removeList($event)"
                                     v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
+                                    <!-- :disabled="current.Inventory.Sku.Item.Id" -->
+
                             </div>
                             <div class="col-5">
                                 <label class="small mb-0">Tax Rate:</label>

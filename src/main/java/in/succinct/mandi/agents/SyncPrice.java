@@ -9,8 +9,9 @@ import com.venky.swf.db.Database;
 import com.venky.swf.plugins.background.core.Task;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
+import in.succinct.mandi.db.model.Order;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
-import in.succinct.plugins.ecommerce.db.model.order.Order;
+
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 
 
@@ -58,10 +59,10 @@ public class SyncPrice implements Task {
                 Inventory inventory = orderLine.getInventory().getRawRecord().getAsProxy(Inventory.class);
 
                 if (inventory != null ){
-                    if (inventory.getMaxRetailPrice() == null){
+                    if (inventory.getReflector().isVoid(inventory.getMaxRetailPrice())){
                         inventory.setMaxRetailPrice(new DoubleHolder(orderLine.getMaxRetailPrice()/orderLine.getOrderedQuantity(),2).getHeldDouble().doubleValue());
                     }
-                    if (inventory.getSellingPrice() == null) {
+                    if (inventory.getReflector().isVoid(inventory.getSellingPrice())) {
                         inventory.setSellingPrice(new DoubleHolder(orderLine.getSellingPrice() / orderLine.getOrderedQuantity(), 2).getHeldDouble().doubleValue());
                     }
                     inventory.save(); // Could propagate to sku!
@@ -112,6 +113,10 @@ public class SyncPrice implements Task {
         }
         order.setSellingPrice(order.getProductSellingPrice() + order.getShippingSellingPrice());
         order.setPrice(order.getProductPrice() + order.getShippingPrice());
+        if (order.isOnHold() && ObjectUtil.equals(order.getHoldReason(),Order.HOLD_REASON_CATALOG_INCOMPLETE)) {
+            order.setHoldReason(null);
+            order.setOnHold(false);
+        }
         order.save();
     }
     @Override

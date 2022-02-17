@@ -230,7 +230,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
                 throw new RuntimeException("Product " + inventory.getSku().getName() + " is no longer be available.");
             }else if (inventory.getReflector().isVoid(inventory.getSellingPrice())){
                 order.setOnHold(true);
-                order.setHoldReason("New item!");
+                order.setHoldReason(Order.HOLD_REASON_CATALOG_INCOMPLETE);
             }
             if (shipFrom == null){
                 shipFrom = inventory.getFacility().getRawRecord().getAsProxy(Facility.class);
@@ -424,6 +424,8 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         }
         Inventory inventory =  ModelIOFactory.getReader(Inventory.class,inventoryHelper.getFormatClass()).read(inventoryElement);
         if (inventory.getRawRecord().isNewRecord() &&  !ObjectUtil.equals(inventory.isExternal(),true)){
+            inventory.setMaxRetailPrice(inventory.getSku().getMaxRetailPrice());
+            inventory.setSellingPrice(inventory.getMaxRetailPrice());
             inventory.save();
             inventoryHelper.setAttribute("Id",String.valueOf(inventory.getId()));
         }

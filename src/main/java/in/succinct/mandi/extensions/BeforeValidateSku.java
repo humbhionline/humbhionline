@@ -39,5 +39,6 @@ public class BeforeValidateSku  extends BeforeModelValidateExtension<Sku> {
                 }
             });
         }
+        model.setPublished(true);
     }
 }

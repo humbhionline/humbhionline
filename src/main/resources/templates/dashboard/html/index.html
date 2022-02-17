@@ -59,6 +59,7 @@
                 hideNewDelivery: true,
                 delivery: null,
                 lookup: {
+                    Skus :[],
                     Cities: [],
                     PinCodes: [],
                     lookupselectionIndex: -1,
@@ -747,6 +748,7 @@
                     self.hideKeyboard().then(function () {
                         self.lookup.Cities = [];
                         self.lookup.PinCodes = [];
+                        self.lookup.Skus = [];
                         $(".lookups-list").removeClass("offsetTop");
                     });
                 },
@@ -778,6 +780,7 @@
                         IsNew: true,
                         Facility : self.search.Facility, 
                         Sku : {
+                            Name: "",
                             Item : {
                                 Name : "",
                             },
@@ -812,12 +815,15 @@
                     event && event.preventDefault();
                     let self = this; 
                     let index = self.search.new_items.findIndex(function(item){
-                        inventory.Item.Name == item.Item.Name
+                        self.search.last_item.Sku.Name == item.Sku.Name
                     });
                     if (index >= 0){
                         showError("Duplicate Product");
                     }
                     self.search.last_item.Published = 'Y';
+                    self.search.last_item.Sku.Item.Name = self.search.last_item.Sku.Name  
+                    //self.search.last_item.Sku.Item.Company = self.User.Company
+                    //self.search.last_item.Sku.Company = self.User.Company
 
                     self.search.new_items.push(self.search.last_item);
                     self.search.results.splice(self.search.results.length-1,0,self.search.last_item);
@@ -832,7 +838,37 @@
                     if (index >= 0){
                         self.search.new_items.splice(index,1);
                     }
+                },
+                onSkuChange : function(e){
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+                    let self = this;
+                    self.lookup.Skus = [];
+                    if (!self.search.last_item.Sku.Name.endsWith(" ")){
+                        new Autocomplete("skus", e.target).search().then(function (response) {
+                            if (!response) {
+                                return
+                            }
+                            self.lookup.Skus = response.Skus
+                            self.loadLookupEntries(e.target);
+                            Vue.set(self.lookup, "Skus", self.lookup.Skus);
+                        });
+                    }
+                },
+                onSkuSelect : function(e,sku){
+                    e && e.preventDefault();
+                    let self = this;
+                    self.hideKeyboard().then(function () {
+                        self.search.last_item.Sku = sku;
+                        self.search.last_item.MaxRetailPrice = sku.MaxRetailPrice;
+                        self.search.last_item.SellingPrice = sku.MaxRetailPrice;
+                        self.lookup.Skus = [];
+                    });
                 }
+
+
                     
 
             }
@@ -1140,8 +1176,8 @@
         <div class="show-update new-item" v-if="search.last_item">
             <div class="form-row">
                     <div class="col-12 mb-2">
-                        <input class="form-control form-control-sm" id="last_item_name" v-model="search.last_item.Sku.Item.Name"
-                            placeholder="Product Name" />
+                        <input class="form-control form-control-sm" id="last_item_name" v-model="search.last_item.Sku.Name"
+                            placeholder="Product Name" v-on:input="onSkuChange($event)" v-on:focus="removeList($event)" />
                     </div>
                     <div class="col-12 text-right">
                         <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditNewItem($event)">Cancel</a>
@@ -1230,7 +1266,11 @@
                     <a href="#/" class="btn btn-sm btn-primary" @click="saveDeliveryAddress($event)">Submit</a>
                 </div>
             </div>
+        </div>
+        <div v-if="(delivery && delivery.beingEdited) || search.last_item">
             <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
+                <a href="#" class="text-truncate" v-for="(sku,index) in lookup.Skus" v-if="lookup.Skus.length > 0"
+                    v-on:click="onSkuSelect($event,sku)">{{sku.Name}}</a>
                 <a href="#" class="text-truncate" v-for="(city,index) in lookup.Cities" v-if="lookup.Cities.length > 0"
                     v-on:click="onCitySelect($event,city)" v-on:keyup.enter="onCitySelect($event,city)"
                     v-on:keyup.space="onCitySelect($event,city)"
