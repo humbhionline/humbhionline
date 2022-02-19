@@ -297,6 +297,15 @@ h6 {
     box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
 }
 
+.content-sub-box {
+    background-color: white;
+    border-radius: 0 0 6px 6px;
+    padding: 15px;
+    box-shadow: var(--hbo-shadow);
+    position: relative;
+    z-index: 0;
+}
+
 @media (max-width: 640px) {
     .address-block {
         width: 50%;
