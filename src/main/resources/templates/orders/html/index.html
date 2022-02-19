@@ -699,7 +699,13 @@
                     <div class="content-box" v-on:click="showOrderDetails($event,o)">
                         <div class="form-row">
                             <div class="col-8 d-flex align-items-center">
-                                <span>
+                                <span v-if="purchases">
+                                    <p class="small text-muted mb-0">Ordered To:</p>
+                                    <p class="mb-0 font-weight-bold">
+                                         {{o.Facility.Name}}
+                                    </p>
+                                </span>
+                                <span v-if="sales">
                                     <p class="mb-0 font-weight-bold">
                                         Ordered By : {{o.CreatorUser.LongName}}
                                     </p>
