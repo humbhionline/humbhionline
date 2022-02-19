@@ -783,9 +783,7 @@
                         <div class="form-row">
                             <div class="col-8 d-flex align-items-center">
                                 <span v-if="purchases">
-                                    <p class="small text-muted mb-0">Ordered To:</p>
-                                    <p class="mb-0 font-weight-bold">
-                                         {{o.Facility.Name}}
+                                    <p class="mb-0 font-weight-bold">Ordered From: {{o.Facility.Name}}
                                     </p>
                                 </span>
                                 <span v-if="sales">
@@ -794,7 +792,7 @@
                                     </p>
                                     <p class="mb-0 text-muted">
                                         <span class="small font-weight-bold">
-                                            Store: {{o.Facility.Name}}
+                                            From : {{o.Facility.Name}}
                                             <a class="btn btn-sm btn-outline-less-primary"
                                                 v-if="Mobile && o.Facility.PhoneNumber && purchases">
                                             </a></span>
@@ -864,7 +862,7 @@
                                     </a>
                                 </p>
                                 <p class="m-0">
-                                    <small class="text-muted">For: {{o.ShipToAddress.LongName + "," +
+                                    <small class="text-muted">Delivery To: {{o.ShipToAddress.LongName + "," +
                                         o.ShipToAddress.AddressLine1}}
                                         {{(blank(o.ShipToAddress.AddressLine2)? "" : "," )}}
                                         {{o.ShipToAddress.AddressLine2}}
