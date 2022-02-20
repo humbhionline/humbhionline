@@ -1005,7 +1005,6 @@
                 <div v-bind:class="'col-lg-3 col-sm-4 mb-0 mb-sm-4' + (result.Published === 'N' ? ' out-of-stock' : '')" v-for="(result,index) in search.results"
                     v-if="search.results.length > 0">
                     <div class="item-list" v-bind:id="'item-'+index" >
-                        <span v-if="result.Published === 'N'">Out of Stock</span>
                         <div class="form-row">
                             <div class="col-4 col-sm-12">
                                 <div class="img-holder border rounded-sm">
