@@ -36,7 +36,7 @@ h6 {
 .search-control:focus {
     outline: none;
 }
-.category-control{
+.category-control {
     box-shadow: 2px 0px 5px rgba(0, 0, 0, 0.2);
     border: 0;
     border-radius: 6px;
@@ -60,6 +60,23 @@ h6 {
     border-width: 2px !important;
     overflow: hidden;
     display: inline-block;
+}
+.out-of-stock .img-holder,
+.out-of-stock .btn-group {
+    opacity: 0.5 !important;
+    pointer-events: none !important;
+}
+.out-of-stock .img-holder:before {
+    content: "Out Of Stock";
+    position: absolute;
+    z-index: 1;
+    font-size: 12px;
+    width: 85%;
+    height: 100%;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    opacity: 1;
 }
 .desk-price {
     margin-bottom: 0;
