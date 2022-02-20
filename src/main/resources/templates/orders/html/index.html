@@ -340,7 +340,7 @@
                 showOrderDetails: function (event, order) {
                     this.Orders.forEach((v, i) => {
                         if (v.Id === order.Id) {
-                            v.isOpen = true;
+                            v.isOpen = !v.isOpen;
                         } else {
                             v.isOpen = false;
                         }
@@ -845,7 +845,7 @@
                 </div>
             </div>
             <div class="row" :id="'OrderNo'+o.Id" v-if="o.isOpen">
-                <div class="col mt-sm-3">
+                <div class="col">
                     <div class="content-sub-box">
                         <div class="form-row" v-if="!o.RefOrder">
                             <div class="col">
