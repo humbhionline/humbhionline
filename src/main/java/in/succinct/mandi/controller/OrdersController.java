@@ -228,7 +228,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             if (!inventory.isPublished()){
                 //Trying to make it infinite. Record in db is finite and zero.
                 throw new RuntimeException("Product " + inventory.getSku().getName() + " is no longer be available.");
-            }else if (inventory.getReflector().isVoid(inventory.getSellingPrice())){
+            }else if (inventory.getReflector().isVoid(inventory.getSellingPrice()) && !inventory.isExternal()){
                 order.setOnHold(true);
                 order.setHoldReason(Order.HOLD_REASON_CATALOG_INCOMPLETE);
             }

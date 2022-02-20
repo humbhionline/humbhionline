@@ -106,11 +106,16 @@
                     order.OrderLines.forEach(function(ol){
                         let inv = ol.Inventory; 
                         ol.Inventory = { Sku :  inv.Sku, Facility : inv.Facility }
-                        if (ol.Inventory.IsNew === true && !ol.Inventory.Id ){
+                        if (inv.IsNew === true && ( !inv.Id || inv.Id * 1 > 0) ){
                            ol.Inventory.Infinite = 'Y' ;
                            ol.Inventory.Quantity = 0;
                         }else {
                            ol.Inventory.InventoryHash = inv.InventoryHash 
+                        }
+                        if (inv.External === 'Y' ){
+                            ol.Inventory.External = inv.External ;
+                            ol.Inventory.NetworkId = inv.NetworkId ;
+                            ol.Inventory.ExternalSkuId = inv.ExternalSkuId ;
                         }
 
                     });

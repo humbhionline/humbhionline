@@ -360,18 +360,16 @@
                         }
                         term += "(FACILITY_ID:" + self.search.facility_id + ")"
                     }
-                    /*
-                    if (term.length > 0) {
-                        term = term + " AND ";
-                    }
-                    term += " PUBLISHED:Y ";
-                    */
 
                     var params = {};
                     params.MaxDistance = self.search.MaxDistance;
 
                     if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0) {
                         params.OrderId = self.search.Order.Id;
+                        if (term.length > 0) {
+                            term = term + " AND ";
+                        }
+                        term += " PUBLISHED:Y ";
                     }
                     params.q = term;
                     showSpinner();
