@@ -157,9 +157,8 @@
 
                     showSpinner();
                     api().url("/network/call/orders/processUpi").parameters(upiresponsejsonString).headers({ "X-Signature": signature }).post().then(function (response) {
-                        if (index >= 0) {
-                            self.update_status_array(response.Order);
-                            self.Orders.splice(index, 1, response.Order);
+                        if (index >= 0){
+                            updateOrderInList(response.Order,index); 
                         }
                         showErrorMessage("Payment Status : " + r.Status);
                     }).catch(function (err) {
@@ -168,6 +167,14 @@
                         hideSpinner();
                     });
 
+                },
+                updateOrderInList: function(order,index){
+                        let self = this;
+                        order.isOpen = true;
+                        if (index >= 0) {
+                            self.update_status_array(order);
+                            self.Orders.splice(index, 1, order);
+                        }
                 },
                 isCancelled: function (order) {
                     return o.CANCELLED || o.RETURNED;
@@ -280,8 +287,7 @@
                     showSpinner();
                     self.enterWeight(order).then(function (o) {
                         api().url("/network/call/orders/pack/" + o.Id).get().then(function (response) {
-                            self.update_status_array(response.Order);
-                            self.Orders.splice(index, 1, response.Order);
+                            self.updateOrderInList(response.Order,index);
                         }).catch(function(err){
                             showError(err);
                         });
@@ -306,8 +312,7 @@
                     }
                     showSpinner();
                     api().url("/network/call/orders/ship/" + order.Id).get().then(function (response) {
-                        self.update_status_array(response.Order);
-                        self.Orders.splice(index, 1, response.Order);
+                        self.updateOrderInList(response.Order,index);
                     }).catch(function (err) {
                         showError(err);
                     }).finally(function () {
@@ -328,8 +333,7 @@
                     showSpinner();
                     loadLocation(true).then(function () {
                         api().url("/network/call/orders/deliver/" + order.Id).get().then(function (response) {
-                            self.update_status_array(response.Order);
-                            self.Orders.splice(index, 1, response.Order);
+                            self.updateOrderInList(response.Order,index);
                         }).catch(function (err) {
                             showError(err);
                         }).finally(function () {
@@ -367,8 +371,7 @@
                                 showSpinner();
                                 api().url("/network/call/orders/cancel/" + order.Id).get().then(function (response) {
                                     if (index >= 0) {
-                                        self.update_status_array(response.Order);
-                                        self.Orders.splice(index, 1, response.Order);
+                                        self.updateOrderInList(response.Order,index);
                                     }
                                 }).catch(function (err) {
                                     showError(err);
@@ -431,8 +434,7 @@
                     }
                     showSpinner();
                     api().url("/network/call/orders/initialize_payment/" + order.Id).get().then(function (response) {
-                        self.update_status_array(response.Order);
-                        self.Orders.splice(index, 1, response.Order);
+                        self.updateOrderInList(response.Order,index);
                         showErrorMessage("Payment Initialized");
                         response.Order._phref = "#";
                         if (self.Android) {
@@ -471,8 +473,7 @@
                     showSpinner();
                     api().url("/network/call/orders/reset_payment/" + order.Id).get().then(function (response) {
                         if (index >= 0) {
-                            self.update_status_array(response.Order);
-                            self.Orders.splice(index, 1, response.Order);
+                            self.updateOrderInList(response.Order,index);
                         }
                         showErrorMessage("Payment Reset");
                     }).catch(function (err) {
@@ -496,8 +497,7 @@
                     delete order._rhref;
                     showSpinner();
                     api().url("/network/call/orders/complete_payment/" + order.Id).get().then(function (response) {
-                        self.update_status_array(response.Order);
-                        self.Orders.splice(index, 1, response.Order);
+                        self.updateOrderInList(response.Order,index);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
                         showError(err);
@@ -517,8 +517,7 @@
                     delete order._rhref;
                     showSpinner();
                     api().url("/network/call/orders/initialize_refund/" + order.Id).get().then(function (response) {
-                        self.update_status_array(response.Order);
-                        self.Orders.splice(index, 1, response.Order);
+                        self.updateOrderInList(response.Order,index);
                         showErrorMessage("Refund Initialized");
                         response.Order._rhref = "#";
                         if (self.Android) {
@@ -550,8 +549,7 @@
                     delete order._rhref;
                     showSpinner();
                     api().url("/network/call/orders/reset_refund/" + order.Id).get().then(function (response) {
-                        self.update_status_array(response.Order);
-                        self.Orders.splice(index, 1, response.Order);
+                        self.updateOrderInList(response.Order,index);
                         showErrorMessage("Payment Reset");
                     }).catch(function (err) {
                         showError(err);
@@ -574,8 +572,7 @@
                     delete order._rhref;
                     showSpinner();
                     api().url("/network/call/orders/complete_refund/" + order.Id).get().then(function (response) {
-                        self.update_status_array(response.Order);
-                        self.Orders.splice(index, 1, response.Order);
+                        self.updateOrderInList(response.Order,index);
                         showErrorMessage("Verified Payment");
                     }).catch(function (err) {
                         showError(err);
@@ -699,7 +696,7 @@
                             });
                             if (index >= 0 ){
                                 api().url(`/orders/show/${orderId}`).get().then(function(r){
-                                    self.Orders.splice(index,1,r.Order);
+                                    self.updateOrderInList(r.Order,index);
                                 });
                             }
                         });
