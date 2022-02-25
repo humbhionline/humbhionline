@@ -669,7 +669,7 @@
                     return order.RefOrder && order.RefOrder.Id * 1.0 > 0;
                 },
                 isPaymentButtonEnabled: function (o) {
-                    return o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y'
+                    return o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y' && o.OnHold !== 'Y'
                 },
                 rebook: function (ev, o) {
                     ev && ev.preventDefault();
@@ -827,7 +827,7 @@
                                 </a>
                                 <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
                                     v-on:click="complete_payment($event,o)"
-                                    v-if="sales && o.AmountPendingPayment * 1.0 > 0 && o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
+                                    v-if="sales && o.OnHold !== 'Y' && o.AmountPendingPayment * 1.0 > 0 && o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
                                     Received
                                 </a>
                                 <p class="d-sm-inline-block d-none">
@@ -934,7 +934,7 @@
                                     <div class="row h-50">
                                         <div class="col-12">
                                             <p class="m-0">Payment status:</p>
-                                            <small v-if="o.AmountPendingPayment * 1.0 > 0">
+                                            <small v-if="o.AmountPendingPayment * 1.0 > 0 ||  o.AmountPaid *1.0 == 0">
                                                 {{ o.PaymentInitialized === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9;
                                                 {{(o.AmountPendingPayment *1.0).toFixed(2)}}
                                             </small>

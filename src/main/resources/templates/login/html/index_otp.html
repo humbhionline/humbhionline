@@ -149,6 +149,7 @@
                     }
                     if (self.params.SignUp.PhoneNumber) {
                         self.params.OtpRequested = "Y";
+                        showSpinner();
                         self.http.post("/sign_ups/register", self.params).then(function (response) {
                             if (response.data.SignUp) {
                                 self.params.SignUp = response.data.SignUp;
@@ -165,6 +166,8 @@
                         }).catch(function (err) {
                             showError(err);
                             self.showApp();
+                        }).finally(function(){
+                            hideSpinner();
                         });
                     }else {
                         self.showApp();

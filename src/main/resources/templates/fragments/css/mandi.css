@@ -70,13 +70,34 @@ h6 {
     content: "Out Of Stock";
     position: absolute;
     z-index: 1;
-    font-size: 12px;
+    font-size: 15px;
+    font-weight: bold;
     width: 85%;
     height: 100%;
     align-items: center;
     display: flex;
     justify-content: center;
     opacity: 1;
+    transform: rotate(-45deg);
+}
+.preview-stock .img-holder,
+.preview-stock .btn-group {
+    opacity: 0.5 !important;
+    pointer-events: none !important;
+}
+.preview-stock .img-holder:before {
+    content: "Preview";
+    position: absolute;
+    z-index: 1;
+    font-size: 20px;
+    font-weight: bold;
+    width: 85%;
+    height: 100%;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    opacity: 1;
+    transform: rotate(-45deg);
 }
 .desk-price {
     margin-bottom: 0;

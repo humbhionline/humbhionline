@@ -21,6 +21,7 @@ import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasureConversionTable;
@@ -123,7 +124,18 @@ public class FacilityImpl extends ModelImpl<Facility> {
         }
     }
 
-
+    public Double getDeliveryCharges(){
+        Facility facility = getProxy();
+        Double deliveryCharges = null ;
+        com.venky.swf.db.model.User user = Database.getInstance().getCurrentUser();
+        if (user != null){
+            User user1  = user.getRawRecord().getAsProxy(User.class);
+            if (user1.getCurrentLat() != null && user1.getCurrentLng() != null && facility.getLat() != null && facility.getLng() != null) {
+                deliveryCharges = getDeliveryCharges(new GeoCoordinate(user1.getCurrentLat(), user1.getCurrentLng()).distanceTo(new GeoCoordinate(getProxy())));
+            }
+        }
+        return deliveryCharges;
+    }
     public double getDeliveryCharges(double distance) {
         Facility facility = getProxy();
         double charges = 0;

@@ -43,6 +43,7 @@ import in.succinct.mandi.integrations.courier.CourierAggregator.CourierOrder;
 import in.succinct.mandi.integrations.courier.CourierAggregatorFactory;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.mandi.util.InternalNetwork;
+import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
@@ -246,7 +247,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
             OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement);
 
-            if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && inventory.isExternal() ){
+            if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && inventory.isExternal()){
                 CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(BecknNetwork.find(inventory.getNetworkId()));
                 CourierOrder courierOrder = courierAggregator.book(inventory,order,order.getParentOrder());
 
@@ -339,6 +340,9 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
                 line.destroy();
             }
             existingOrderLineMap.clear();
+        }
+        if (order.getShippingSellingPrice() == 0 && !order.isCustomerPickup()){
+            order.setShippingSellingPrice(OrderUtil.getDeliveryCharges(shipTo,order.getFacility()));
         }
 
         if (order.getShippingSellingPrice() > 0){

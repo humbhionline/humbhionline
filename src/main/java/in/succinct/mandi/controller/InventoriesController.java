@@ -62,7 +62,7 @@ public class InventoriesController extends LocalSearchController<Inventory> {
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map =  super.getIncludedModelFields();
-        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG","DELIVERY_PROVIDED","COD_ENABLED","DELIVERY_RADIUS","MIN_CHARGEABLE_DISTANCE","MIN_DELIVERY_CHARGE"));
+        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG", "PUBLISHED","DELIVERY_PROVIDED","COD_ENABLED","DELIVERY_RADIUS","MIN_CHARGEABLE_DISTANCE","MIN_DELIVERY_CHARGE", "DELIVERY_CHARGES"));
         {
             List<String> itemFields = ModelReflector.instance(Item.class).getUniqueFields();
             itemFields.add("ASSET_CODE_ID");
@@ -296,17 +296,16 @@ public class InventoriesController extends LocalSearchController<Inventory> {
                     }
                 }
             }else if (myFacility) {
-                return superFilter.pass(record);
+                pass = superFilter.pass(record);
+                if (pass){
+                    setDeliveryProvided(record,facility);
+                }
+                return pass;
             }else {
                 //Do not return Delivery items.
                 pass = pass && !deliverySkuIds.contains(record.getSkuId());
                 if (pass){
-                    record.setDeliveryProvided(facility.isDeliveryProvided() && facility.getDeliveryRadius() > facility.getDistance());
-                    if (record.isDeliveryProvided()){
-                        Inventory deliveryRule = facility.getDeliveryRule(false);
-                        record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
-                        record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
-                    }
+                    setDeliveryProvided(record,facility);
                 }
             }
             pass =  pass && (!record.isDeliveryProvided() || (record.getDeliveryCharges() != null && !record.getDeliveryCharges().isInfinite()));
@@ -315,6 +314,16 @@ public class InventoriesController extends LocalSearchController<Inventory> {
 
             return pass;
         };
+
+    }
+
+    protected void setDeliveryProvided(Inventory record,Facility facility){
+        record.setDeliveryProvided(facility.isDeliveryProvided() && facility.getDeliveryRadius() > facility.getDistance());
+        if (record.isDeliveryProvided()){
+            Inventory deliveryRule = facility.getDeliveryRule(false);
+            record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
+            record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
+        }
 
     }
 
