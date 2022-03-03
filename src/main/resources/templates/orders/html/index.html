@@ -813,12 +813,15 @@
                                 </span>
                             </div>
                             <div class="col text-right">
-                                <span class="font-weight-bold text-muted d-inline-block">Total</span> &#x20B9;
+                                <span v-if="o.AmountPendingPayment <= 0">
+                                    <span class="font-weight-bold text-muted d-inline-block">Total</span> &#x20B9;
                                 {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
+                                </span>
+
                                 <a v-bind:href="o._phref ? o._phref : '#'" class="btn btn-sm btn-primary mb-1 mt-1"
                                     role="button" v-if="isPaymentButtonEnabled(o) && purchases"
                                     v-on:click="initialize_payment($event,o)">
-                                    Pay
+                                    Pay &#x20B9;{{o.AmountPendingPayment}}
                                 </a>
                                 <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
                                     v-on:click="reset_payment($event,o)"
@@ -827,8 +830,8 @@
                                 </a>
                                 <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
                                     v-on:click="complete_payment($event,o)"
-                                    v-if="sales && o.OnHold !== 'Y' && o.AmountPendingPayment * 1.0 > 0 && o.AmountPaid * 1.0 < o.AmountPendingPayment * 1.0">
-                                    Received
+                                    v-if="sales && o.OnHold !== 'Y' && o.AmountPendingPayment * 1.0 > 0 ">
+                                    Received  &#x20B9;{{o.AmountPendingPayment}}
                                 </a>
                                 <p class="d-sm-inline-block d-none">
                                     <button class="btn-sm btn btn-secondary mb-1" v-on:click="cancel($event,o)"
