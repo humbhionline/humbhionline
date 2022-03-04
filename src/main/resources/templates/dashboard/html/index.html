@@ -297,6 +297,9 @@
                     let self = this;
                     if (e) {
                         e.preventDefault();
+                        if (self.search.term === e.target.value ){
+                            return;
+                        }
                         self.search.term = e.target.value;
                     }
                     self.search.results = [];
