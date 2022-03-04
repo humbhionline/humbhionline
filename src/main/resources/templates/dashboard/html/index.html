@@ -300,6 +300,7 @@
                         self.search.term = e.target.value;
                     }
                     self.search.results = [];
+                    enableSwipe();
                     if (!self.search.facility_id || self.search.facility_id * 1.0 === 0){
                         self.search.nearByFacilities =  []; //Don't Reload facilities if it the screen is loaded for a facility_id
                     }
@@ -459,6 +460,9 @@
                         }
                         self._findFacilities(q);
                     }).finally(function () {
+                        if (self.search.results.length > 0){
+                            disableSwipe();
+                        }
                         hideSpinner();
                     });
                 },

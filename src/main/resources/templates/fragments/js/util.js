@@ -151,3 +151,14 @@ function equalAddress(from , to){
         to.Lat === from.Lat &&  
         to.Lng === from.Lng );
 }
+function disableSwipe(){
+    if (typeof Android != "undefined" ){
+        Android.disableSwipe && Android.disableSwipe();
+    }
+}
+
+function enableSwipe(){
+    if (typeof Android != "undefined" ){
+        Android.enableSwipe && Android.enableSwipe();
+    }
+}
