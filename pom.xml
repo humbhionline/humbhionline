@@ -9,7 +9,7 @@
     <description>mandi</description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>2.6-SNAPSHOT</revision>
+        <revision>2.8</revision>
     </properties>
     <build>
         <plugins>
@@ -106,7 +106,7 @@
         <dependency>
             <groupId>in.succinct.beckn</groupId>
             <artifactId>sdk</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
