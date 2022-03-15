@@ -26,6 +26,9 @@ public class BeforeValidateFacility extends BeforeModelValidateExtension<Facilit
         if (model.getStateId() != null) {
             model.setCountryId(model.getState().getCountryId());
         }
+        if (ObjectUtil.isVoid(model.getCustomDomain()) || model.getRawRecord().isFieldDirty("CUSTOM_DOMAIN")){
+            model.setCustomDomainApproved(false);
+        }
 
         validateAddress(model);
         model.getInventoryList().forEach(i->{

@@ -60,10 +60,10 @@
                                 Lockr.set("SignUp",response.data.User.SignUps[0]);
                                 Lockr.set("User",response.data.User);
                                 loadLocation(true).then(function(){
-                                    if (response.data.User.Seller === 'Y' ){
+                                    if (response.data.User.Seller === 'Y'  && response.data.User.LoggedInToCustomDomain !== 'Y' ){
                                         window.location.replace("/orders?type=sales");
                                     }else {
-                                        window.location.replace("/index");
+                                        window.location.replace("/index"); //In Custom domain always show dashboard to buy
                                     }
                                 });
                             } else {

@@ -45,7 +45,7 @@ public class LocalSearchController<M extends Model> extends ModelController<M> {
     private GeoCoordinate getCurrentUserLocation() {
         User currentUser = getCurrentUser();
 
-        if (currentUser.getCurrentLat() != null){
+        if (currentUser != null && currentUser.getCurrentLat() != null){
             return new GeoCoordinate(new GeoLocation() {
                 @Override
                 public BigDecimal getLat() {

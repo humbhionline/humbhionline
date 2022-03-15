@@ -297,10 +297,9 @@
                     let self = this;
                     if (e) {
                         e.preventDefault();
-                        if (self.search.term === e.target.value ){
-                            return;
+                        if (self.search.term !== e.target.value ){
+                            self.search.term = e.target.value;
                         }
-                        self.search.term = e.target.value;
                     }
                     self.search.results = [];
                     enableSwipe();
@@ -339,7 +338,7 @@
                 _findFacilities: function (q = { "q": "(PUBLISHED:Y)" }) {
                     let self = this;
                     self.facilityWidth = "200";
-                    if (self.search.nearByFacilities.length == 0){
+                    if (self.search.nearByFacilities.length == 0 ){
                         api().url("/network/call/facilities/search").get(q).then(function (r) {
                             self.search.nearByFacilities = r.Facilities;
                             self.search.nearByFacilities.sort(function (f1, f2) {
@@ -885,7 +884,7 @@
 <div id="root" style="display:none;">
     <div id="header">
     </div>
-    <div id="app" class="app-body">
+    <div id="app" class="app-body" >
         <!-- Show facility banner -->
         <div class="container" v-if="search.facility_id && search.Facility.Name">
             <div id="banner-slider" class="carousel slide" data-ride="carousel">
@@ -977,7 +976,7 @@
                             </div>
                         </div>
                         <div class="col text-right">
-                            <a @click="editDeliveryAddress($event)" v-if="delivery && delivery.Address">
+                            <a @click="editDeliveryAddress($event)" v-if="User.Name && delivery && delivery.Address">
                                 <i class="h6 fa fa-map-marker-alt mr-1"></i>
                                 {{ delivery.Address.PinCode ? delivery.Address.PinCode.PinCode : "Where are you?" }}</a>
                         </div>

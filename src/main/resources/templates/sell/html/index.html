@@ -28,6 +28,10 @@
             },
             created: function () {
                 let self = this;
+                if ( self.User.LoggedInToCustomDomain === 'Y' ){
+                    window.location.replace("/index");
+                }
+
                 showSpinner();
                 api().url("/facilities/mine").get().then(function (response) {
                     self.fixFacilities(response.Facilities);

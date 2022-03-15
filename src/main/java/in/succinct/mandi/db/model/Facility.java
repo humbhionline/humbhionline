@@ -137,4 +137,15 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
     public void setMaxLng(BigDecimal lng);
 
 
+    @IS_NULLABLE
+    public String getCustomDomain();
+    public void setCustomDomain(String domain);
+
+    @HIDDEN
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isCustomDomainApproved();
+    public void setCustomDomainApproved(boolean customDomainApproved);
+
+    @IS_VIRTUAL
+    public void approveCustomDomain();
 }

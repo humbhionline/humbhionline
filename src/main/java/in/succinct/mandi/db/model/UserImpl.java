@@ -2,15 +2,18 @@ package in.succinct.mandi.db.model;
 
 import com.venky.core.collections.SequenceSet;
 import com.venky.core.util.ObjectUtil;
+import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.table.ModelImpl;
 import com.venky.swf.integration.api.Call;
 import com.venky.swf.plugins.collab.db.model.user.UserFacility;
 import com.venky.swf.plugins.collab.db.model.user.UserPhone;
 import com.venky.swf.pm.DataSecurityFilter;
+import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import in.succinct.mandi.util.CompanyUtil;
 import org.json.JSONObject;
 
 import java.util.HashSet;
@@ -58,5 +61,10 @@ public class UserImpl  extends ModelImpl<User> {
             operatingFacilityIds.addAll(DataSecurityFilter.getIds(facilities));
         }
         return operatingFacilityIds;
+    }
+
+    @IS_VIRTUAL
+    public Boolean isLoggedInToCustomDomain(){
+        return CompanyUtil.getFacilityForCustomDomain() != null;
     }
 }

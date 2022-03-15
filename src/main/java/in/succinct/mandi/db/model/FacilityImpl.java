@@ -252,4 +252,21 @@ public class FacilityImpl extends ModelImpl<Facility> {
 
         return users;
     }
+
+    public void approveCustomDomain(){
+        Boolean approveCustomDomain = Database.getInstance().getCurrentTransaction().getAttribute("approveCustomDomain");
+        if (approveCustomDomain == null || !approveCustomDomain){
+            return;
+        }
+        com.venky.swf.db.model.User u = Database.getInstance().getCurrentUser();
+        User user = u == null ? null : u.getRawRecord().getAsProxy(User.class);
+        if (user == null){
+            return;
+        }
+        Facility f = getProxy();
+        if (!ObjectUtil.isVoid(f.getCustomDomain())){
+            f.setCustomDomainApproved(true);
+            f.save();
+        }
+    }
 }

@@ -4,6 +4,7 @@ import com.venky.core.collections.SequenceMap;
 import com.venky.core.string.StringUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.swf.controller.annotations.RequireLogin;
+import com.venky.swf.controller.annotations.SingleRecordAction;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
@@ -46,6 +47,26 @@ import java.util.StringTokenizer;
 public class FacilitiesController extends LocalSearchController<Facility> {
     public FacilitiesController(Path path) {
         super(path);
+    }
+
+
+    @Override
+    @RequireLogin(value = false)
+    public View search() {
+        return super.search();
+    }
+
+    @RequireLogin
+    @SingleRecordAction(icon = "fa-check")
+    public View approveCustomDomain(long id){
+        Database.getInstance().getCurrentTransaction().setAttribute("approveCustomDomain",true);
+        Facility f = Database.getTable(Facility.class).get(id);
+        f.approveCustomDomain();
+        if (getReturnIntegrationAdaptor() == null){
+            return back();
+        }else {
+            return getReturnIntegrationAdaptor().createStatusResponse(getPath(),null);
+        }
     }
 
     /* Is permission controlled */
