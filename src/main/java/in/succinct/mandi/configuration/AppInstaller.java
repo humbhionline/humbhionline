@@ -8,6 +8,7 @@ import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.jdbc.ConnectionManager;
+import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
 import com.venky.swf.db.table.Table;
@@ -29,6 +30,7 @@ import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import com.venky.swf.util.SharedKeys;
 import in.succinct.beckn.BecknObject;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.agents.beckn.Cancel;
@@ -49,6 +51,7 @@ import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.extensions.AfterSaveOrderAddress;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.pdfbox.contentstream.operator.state.Save;
 import org.json.simple.JSONObject;
 
 import java.io.BufferedReader;
@@ -81,6 +84,20 @@ public class AppInstaller implements Installer {
         registerBecknKeys();
         updateFacilityMinMaxLatLng();
 
+    }
+    private <M extends Model> void fixOneTimeEncryptionMess(Class<M> modelClass){
+        for (Model m : new Select().from(modelClass).execute()){
+            try {
+                for (String f : m.getReflector().getEncryptedFields()) {
+                    m.getReflector().set(m, f, SharedKeys.getInstance().decrypt(m.getReflector().get(m, f)));
+                }
+                m.getRawRecord().markDirty("LAT");
+                m.getRawRecord().markDirty("LNG");
+                m.save(false);
+            }catch (Exception ex){
+                //
+            }
+        }
     }
     public void createSavedAddresses(){
         List<SavedAddress> addresses = new Select().from(SavedAddress.class).execute(1);
