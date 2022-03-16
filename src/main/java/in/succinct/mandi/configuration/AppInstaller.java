@@ -91,8 +91,10 @@ public class AppInstaller implements Installer {
                 for (String f : m.getReflector().getEncryptedFields()) {
                     m.getReflector().set(m, f, SharedKeys.getInstance().decrypt(m.getReflector().get(m, f)));
                 }
-                m.getRawRecord().markDirty("LAT");
-                m.getRawRecord().markDirty("LNG");
+                if (m.getReflector().getFields().contains("LAT")){
+                    m.getRawRecord().markDirty("LAT");
+                    m.getRawRecord().markDirty("LNG");
+                }
                 m.save(false);
             }catch (Exception ex){
                 //
