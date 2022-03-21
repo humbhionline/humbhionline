@@ -63,4 +63,7 @@ public interface User extends EncryptedAddress, com.venky.swf.plugins.mobilesign
 
     @CONNECTED_VIA("USER_ID")
     public List<SavedAddress> getSavedAddresses();
+
+    @IS_VIRTUAL
+    public Boolean isLoggedInToCustomDomain();
 }

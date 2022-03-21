@@ -13,8 +13,6 @@
             props: ['items'],
             watch: {
                 items: function(items) { 
-                    /* console.log("asdfasd",items[0].Link);
-                    this.load(null,items[0],items[0].Link);*/
                 }
             },
             methods: {
@@ -22,7 +20,7 @@
                     let self = this;
                     ev && ev.preventDefault();
                     if(ref.isopen){
-                        api().url(link).get().then(function(r){
+                        api().url(link.replace("/markdown/","/markdownFragment/")).get().then(function(r){
                             $("#"+ref.Id).html(r)
                         });
                     }else{
@@ -39,29 +37,15 @@
         vue = new Vue({
             el : "#root",
             data : {
-                left:"",
-                right:"",
                 items: []
             },
             created: function(){
                 let self = this;
                 api().url("/posts").get().then(function(r){
-                    r.Posts.forEach((v,i)=> v.isopen = false)
+                   r.Posts.forEach((v,i)=> v.isopen = false)
                    self.items = r.Posts;
-                }).then(function(){
-                    self.load(null,"left","toc");
-                    self.load(null,"right","whyonline");
-                });
+                })
             },
-            methods: {
-                load: function(ev,ref,link){
-                    let self = this;
-                    ev && ev.preventDefault();
-                    api().url("/blog/markdownFragment/"+link).get().then(function(r){
-                        self[ref] = r;
-                    });
-                }
-            }
         });
     });
 </script>
@@ -146,11 +130,6 @@
             <div class="col">
                 <accordion :items="items"></accordion>
             </div>
-            <!-- div class="col-lg-4"></!-->
-            <!-- <htc v-bind:htc="left" class="col-3 blog-links d-none d-xl-block" id="left" ref="left"></htc>
-            <div class="col-sm blog-description">
-                <htc v-bind:htc="right" id="right" ref="left"></htc>
-            </div> -->
         </div>
     </div>
 </div>

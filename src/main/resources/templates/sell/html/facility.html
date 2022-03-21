@@ -23,7 +23,6 @@
                 Facility: { Name: "", City: { Name: "", State: { Name: "", Country: { "Name": "India" } } }, PinCode: { PinCode: "" }, Inventories: [] },
                 facilityBannerBeingEdited: false,
                 facilityCropperBeingEdited: false,
-                timer: -1,
                 selectedDataFileName: "",
                 current: {
                     index: -1,
@@ -38,15 +37,15 @@
                 search: {
                     term: "",
                     results: [],
+                    timer:undefined
                 },
             },
             created: function () {
                 let self = this;
                 showSpinner();
                 api().url("/facilities/show/" + id).get().then(function (response) {
-                    self.loadInventory(response.Facility).then(function () {
-                        self.showApp();
-                    });
+                    self.showApp();
+                    self.loadInventory(response.Facility);
                 }).catch(function (err) {
                     self.showApp();
                     showError(err);
@@ -217,13 +216,11 @@
                         event.preventDefault();
                     }
                     let self = this;
+                    self.current.Inventory.Sku.Name = self.current.Inventory.Sku.Item.Name + " - " + self.current.Inventory.Sku.PackagingUOM.Name ;
                     let index = self.current.index;
                     let i = self.current.Inventory;
                     let newRecord = !i.Id;
                     delete i.Quantity;
-
-
-
                     showSpinner();
                     api().url("/api/adjust").parameters({
                         AdjustmentRequest: {
@@ -235,12 +232,10 @@
                         if (!inv.Sku.Item.AssetCode) {
                             inv.Sku.Item.AssetCode = { Code: "" };
                         }
-                        if (!inv.Sku.Attachments) {
-                            inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
-                            api().url("/skus/show/" + inv.Sku.Id).get().then(function (sku_response) {
-                                inv.Sku.Attachments = sku_response.Sku.Attachments || [{ Sku: { Id: inv.Sku.Id } }];
-                            });
-                        }
+                        inv.Sku.Attachments = [{ Sku: { Id: inv.Sku.Id } }];
+                        api().url("/skus/show/" + inv.Sku.Id).get().then(function (sku_response) {
+                            inv.Sku.Attachments = sku_response.Sku.Attachments || [{ Sku: { Id: inv.Sku.Id } }];
+                        });
 
                         self.search.results.splice(index, 1, inv);
                         self.updateLists(inv);
@@ -368,6 +363,7 @@
                     if (!self.isKeyTriggerable(e)) {
                         return;
                     }
+
                     new Autocomplete("items", e.target).search().then(function (response) {
                         if (!response) {
                             return
@@ -394,11 +390,13 @@
                 },
                 onAssetCodeChange: function (e) {
                     e && e.preventDefault();
+                    let self = this;
+                    self.current.Inventory.Sku.Item.AssetCode = { Code : self.current.Inventory.Sku.Item.AssetCode.Code } 
+
                     if (!this.isKeyTriggerable(e)) {
                         return;
                     }
 
-                    let self = this;
 
                     new Autocomplete("asset_codes", e.target).search().then(function (response) {
                         if (!response) {
@@ -869,25 +867,34 @@
                     let self = this;
                     if (e) {
                         e.preventDefault();
+                        self.search.term = e.target.value;
                     }
                     if (blank(self.search.term)) {
-                        self.search.results = self.loadInventory(self.Facility).then(function () {
-                            console.log(self.search.results);
-                        });
+                        self.loadInventory(self.Facility);
                     } else {
-                        let term = self.search.term.toLowerCase();
-                        self.loadInventory(self.Facility, { q: term }).then(function () {
-                            self.search.results = self.Facility.Inventories;
-                            console.log(self.search.results);
-                        });
+                        let term = self.search.term.toLowerCase().replace(/[^a-z0-9 ]/g, " ").trim();
+                        term = (term.length > 0 ? "( (SKU:" + term.replace(" ","* AND SKU:") + "*)" +
+                                                 " OR ( TAGS:" + term.replace(" ","* AND TAGS:") + "*) )" : "" );
+                        let q = {} ;
+                        q.q = term; 
+
+
+                        self.loadInventory(self.Facility, q)
                     }
                 },
                 loadInventory: function (f, q = {}) {
                     let self = this;
-                    return api().url("/facilities/show/" + id + "/inventories/search").get(q).then(function (invResponse) {
-                        self.fixInventoryAttributes(f, invResponse.Inventories);
-                        self.fixFacilityAttributes(f);
-                    });
+                    if (self.search.timer) {
+                        clearTimeout(self.search.timer);
+                        self.search.timer = undefined;
+                    }
+                    self.search.timer = setTimeout(function(){
+                        api().url("/facilities/show/" + id + "/inventories/search").get(q).then(function (invResponse) {
+                            self.fixInventoryAttributes(f, invResponse.Inventories);
+                            self.fixFacilityAttributes(f);
+                            self.$forceUpdate();
+                        });
+                    },400);
                 },
                 isDeliverySku: function (sku) {
                     return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
@@ -982,7 +989,8 @@
                                     </label>
                                 </div>
                                 <div v-bind:class="[!selectedDataFileName ? 'col-4 text-right':'col-3']">
-                                    <input type="file" class="file-upload" id="datafile" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                    <input type="file" class="file-upload" id="datafile" 
+                                        accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                         v-on:input="onDataFileChange($event)" />
                                     <label v-if="!selectedDataFileName"
                                         v-bind:class="[!selectedDataFileName ? 'btn-outline-primary mb-0 w-100' :'']"
@@ -1018,8 +1026,8 @@
                             <div class="col-12">
                                 <div class="d-flex flex-row align-items-center">
                                     <input key="search" id="search" class="search-control"
-                                        placeholder="Search for Items" v-on:input="find($event)"
-                                        v-model="search.term" />
+                                        placeholder="Search for Items" 
+                                        v-model="search.term" v-on:input="find($event)"/>
                                     <i class="fa fa-search"></i>
                                 </div>
                             </div>
@@ -1306,13 +1314,13 @@
                             v-if="!current.Inventory.ManagedBy || current.Inventory.ManagedBy.trim().length === 0">
                             <div class="col-7">
                                 <label class="small mb-0" v-bind:for="'price' + i">Selling Price</label>
-                                <input v-bind:key="'price' + i" v-bind:id="'price' + i"
+                                <input v-bind:key="'price' + i" v-bind:id="'price' + i" type="number"
                                     class="form-control form-control-sm" placeholder="&#x20B9;0"
                                     v-model="current.Inventory.SellingPrice" />
                             </div>
                             <div class="col-5">
                                 <label class="small mb-0" v-bind:for="'mrp' + i">MRP</label>
-                                <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
+                                <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm" type="number"
                                     placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" />
                             </div>
                         </div>
@@ -1323,9 +1331,11 @@
                                 <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
                                     class="form-control form-control-sm" placeholder="GST/SAC Code"
                                     v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                                    :disabled="current.Inventory.Sku.Item.Id" v-on:input="onAssetCodeChange($event)"
+                                    v-on:input="onAssetCodeChange($event)"
                                     v-on:focus="removeList($event)"
                                     v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
+                                    <!-- :disabled="current.Inventory.Sku.Item.Id" -->
+
                             </div>
                             <div class="col-5">
                                 <label class="small mb-0">Tax Rate:</label>

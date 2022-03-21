@@ -12,6 +12,7 @@ import com.venky.swf.routing.Config;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.User;
 import in.succinct.plugins.ecommerce.db.model.participation.Company;
@@ -25,6 +26,14 @@ public class CompanyUtil {
     public static Company getCompany(){
         Long id = getCompanyId();
         return Database.getTable(Company.class).get(id);
+    }
+    public static Facility getFacilityForCustomDomain(){
+        String hostName = Config.instance().getHostName();
+        List<Facility> facilityList = new Select().from(Facility.class).where(new Expression(ModelReflector.instance(Facility.class).getPool(),"CUSTOM_DOMAIN", Operator.EQ, hostName)).execute(2);
+        if (facilityList.size() == 1){
+            return facilityList.get(0);
+        }
+        return null;
     }
     public static Long getCompanyId(){
         String domainName = getFQDomainName();

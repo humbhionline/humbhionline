@@ -66,7 +66,7 @@ public class URLCacheExtension implements Extension {
     }*/
 
     Pattern[] cacheablePatterns = new Pattern[]{
-            Pattern.compile("^(.*)\\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js)$"),
+            Pattern.compile("^("+ (Config.instance().isDevelopmentEnvironment()? "/resources/scripts/node_modules" : "" )+ ".*)\\.(jpg|jpeg|png|gif|ico|ttf|eot|svg|woff|woff2|css|js|map)$"),
     };
     private boolean isCacheable(String path){
         for (Pattern p : cacheablePatterns){

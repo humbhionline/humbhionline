@@ -52,6 +52,7 @@
                         event.preventDefault();
                     }
                     var self = this;
+                    self.hideApp();
                     showSpinner();
                     self.http(false).post("/login", self.params,{ "headers" :  {"Content-Type" : "application/json" , "KeepAlive":"Y"} }).then(function (response) {
                         self.http(true).get("/users/current", {data :{} , headers: { "content-type" : "application/json" } }).then(function (response){
@@ -59,10 +60,10 @@
                                 Lockr.set("SignUp",response.data.User.SignUps[0]);
                                 Lockr.set("User",response.data.User);
                                 loadLocation(true).then(function(){
-                                    if (response.data.User.Seller === 'Y' ){
+                                    if (response.data.User.Seller === 'Y'  && response.data.User.LoggedInToCustomDomain !== 'Y' ){
                                         window.location.replace("/orders?type=sales");
                                     }else {
-                                        window.location.replace("/index");
+                                        window.location.replace("/index"); //In Custom domain always show dashboard to buy
                                     }
                                 });
                             } else {
@@ -84,13 +85,11 @@
                 },
                 signIn: function () {
                     var self = this;
-                    self.hideApp();
                     self.params.User = Lockr.get("User") || self.params.User;
                     if (!blank(self.params.User.PhoneNumber)) {
                         if (!blank(self.params.User.Password)){
                             self.login();
                         }else {
-                            self.showApp();
                             if (Lockr.get("SignUp") ){
                                 self.login_via_otp(null);
                             }else{
@@ -130,7 +129,6 @@
                 checkPhoneAndPasswordEntered: function(event){
                     let self = this;
                     if (!blank(self.params.User.PhoneNumber)){
-                        self.hideApp();
                         showSpinner();
                         api().url("/users/hasPassword").parameters(self.params.User).post().then(function(response){
                             self.phoneNumberEntered = true;
@@ -143,11 +141,10 @@
                                 self.login_via_otp(null,response.BaseUrl);
                             }else if (!launchLocally){
                                 window.location.replace(response.BaseUrl + "/login?phone_number="+self.params.User.PhoneNumber);
-                            }else {
+                            }else if (blank(self.params.User.Password)){
                                 self.showApp();
                             }
                         }).catch(function(err){
-                            self.showApp();
                             self.phoneNumberEntered =false;
                             showError(err);
                         }).finally(function(){

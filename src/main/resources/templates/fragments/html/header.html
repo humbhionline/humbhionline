@@ -11,7 +11,7 @@
             let path = window.location.pathname;
             console.log('Path', path);
             if (window.innerWidth < 640) {
-                (path === "/dashboard" ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show());
+                ( /^\/dashboard.*$/.test(path) ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show());
                 $("#pageTitleDesk").hide();
                 $("#pageTitle").show();
             } else {
@@ -107,7 +107,7 @@
                                     class="fa fa-user-circle"></i>
                                 Profile</a>
                         </li>
-                        <li class="nav-item dropdown-submenu" v-if="User.Seller === 'Y'">
+                        <li class="nav-item dropdown-submenu" v-if="User.Seller === 'Y' && User.LoggedInToCustomDomain !== 'Y'">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarSellingMenuLink"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fa fa-coins"></i>
@@ -165,11 +165,11 @@
                             <a class=" nav-link" href="/issues" onclick="hideMenu()">
                                 <i class="fa fa-comment-dots"></i> Message Support</a>
                         </li>
-                        <li class="nav-item" v-if="User.Staff === 'Y'">
+                        <li class="nav-item" v-if="User.Staff === 'Y' && User.LoggedInToCustomDomain !== 'Y' ">
                             <a class=" nav-link" href="/users/pendingKyc" onclick="hideMenu()">
                                 <i class="fa fa-user"></i> Pending Kyc</a>
                         </li>
-                        <li class="nav-item" v-if="User.Staff === 'Y'">
+                        <li class="nav-item" v-if="User.Staff === 'Y' && User.LoggedInToCustomDomain !== 'Y'">
                             <a class=" nav-link" href="/users/search" onclick="hideMenu()">
                                 <i class="fa fa-user"></i>Search Users</a>
                         </li>

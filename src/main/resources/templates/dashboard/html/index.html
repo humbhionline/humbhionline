@@ -32,6 +32,7 @@
                 Mobile: isMobile(),
                 User: {},
                 sendSubscriptionToServer: sendSubscriptionToServer,
+                equalAddress: equalAddress,
                 ShipmentCount: 0,
                 OrderLineCount: 0,
                 OrderAmount: 0,
@@ -53,10 +54,12 @@
                     termLengthTrigger: 1,
                     timer: undefined,
                     facilitySearchTimer: undefined,
+                    new_items:[],
                 },
                 hideNewDelivery: true,
                 delivery: null,
                 lookup: {
+                    Skus :[],
                     Cities: [],
                     PinCodes: [],
                     lookupselectionIndex: -1,
@@ -146,9 +149,9 @@
                             });
                         });
                     }
+                }).finally(function(){
+                    hideSpinner();
                 });
-
-                hideSpinner();
             },
             methods: {
                 initDeliveryAddress: function () {
@@ -208,8 +211,9 @@
                             }
                         }
                     }
-
-                    updateHeaderCount();
+                    if (typeof updateHeaderCount === 'function'){
+                        updateHeaderCount();
+                    }
                 },
                 loadOrder: function () {
                     let self = this;
@@ -293,10 +297,15 @@
                     let self = this;
                     if (e) {
                         e.preventDefault();
-                        self.search.term = e.target.value;
+                        if (self.search.term !== e.target.value ){
+                            self.search.term = e.target.value;
+                        }
                     }
                     self.search.results = [];
-                    self.search.nearByFacilities = [];
+                    enableSwipe();
+                    if (!self.search.facility_id || self.search.facility_id * 1.0 === 0){
+                        self.search.nearByFacilities =  []; //Don't Reload facilities if it the screen is loaded for a facility_id
+                    }
 
 
                     if (self.search.timer) {
@@ -329,22 +338,23 @@
                 _findFacilities: function (q = { "q": "(PUBLISHED:Y)" }) {
                     let self = this;
                     self.facilityWidth = "200";
-                    api().url("/network/call/facilities/search").get(q).then(function (r) {
-                        self.search.nearByFacilities = r.Facilities;
-                        self.search.nearByFacilities.sort(function (f1, f2) {
-                            return f1.Distance - f2.Distance;
+                    if (self.search.nearByFacilities.length == 0 ){
+                        api().url("/network/call/facilities/search").get(q).then(function (r) {
+                            self.search.nearByFacilities = r.Facilities;
+                            self.search.nearByFacilities.sort(function (f1, f2) {
+                                return f1.Distance - f2.Distance;
+                            });
+                            self.$forceUpdate();
                         });
-                        self.$forceUpdate();
-                    });
-
+                    }
                 },
                 _find: function () {
                     let self = this;
                     let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
                     let term = search_term;
-                    term = (term.length > 0 ? "( (SKU:" + term.replace(" ", "* AND SKU:") + "*)" +
-                        " OR ( TAG:" + term.replace(" ", "* AND TAG:") + "*)" +
-                        " OR ( FACILITY:" + term.replace(" ", "* AND FACILITY:") + "*))" : "");
+                    term = (term.length > 0 ? "( (SKU:" + term.replace(" ","* AND SKU:") + "*)" + 
+                                                 " OR ( TAGS:" + term.replace(" ","* AND TAGS:") + "*)" + 
+                                                 " OR ( FACILITY:" + term.replace(" " , "* AND FACILITY:") +"*))" : "" ) ;
 
 
                     if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
@@ -353,16 +363,16 @@
                         }
                         term += "(FACILITY_ID:" + self.search.facility_id + ")"
                     }
-                    if (term.length > 0) {
-                        term = term + " AND ";
-                    }
-                    term += " PUBLISHED:Y ";
 
                     var params = {};
                     params.MaxDistance = self.search.MaxDistance;
 
                     if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0) {
                         params.OrderId = self.search.Order.Id;
+                        if (term.length > 0) {
+                            term = term + " AND ";
+                        }
+                        term += " PUBLISHED:Y ";
                     }
                     params.q = term;
                     showSpinner();
@@ -380,6 +390,26 @@
                             return !self.isDeliverySku(inventory.Sku) ||
                                 ((self.search.Order.Id && self.search.Order.Id * 1.0 > 0) && inventory.DeliveryProvided == 'Y')
                         });
+                        if (self.search.Facility.Id){
+
+                            self.search.results.push(...self.search.new_items);
+                            self.search.results.push({
+                                Facility : self.search.Facility, 
+                                Sku : {
+                                    Name : "Unknown",
+                                    Item : {
+                                        Name : "Did not find what you are looking for? Click here to add.",
+                                    },
+                                    PackagingUOM: {
+                                        Measures: "Packaging" ,
+                                        Name: "Single",
+                                    },
+                                },
+                                Tags :"Unknown",
+                                SellingPrice : "0.0",
+                                MaxRetailPrice : "0.0"
+                            });
+                        }
 
 
                         self.itemWidth = $("#item-0").width();
@@ -393,6 +423,7 @@
                                 if (order.CustomerPickup === 'Y') {
                                     result.DeliveryProvided = 'N';
                                 }
+
                                 order.OrderLines.forEach((orderLine, i) => {
                                     if ((orderLine.Inventory.Sku.Id === result.Sku.Id)
                                         && (orderLine.Inventory.Tags === result.Tags)
@@ -401,6 +432,12 @@
                                         result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                                     }
                                 });
+                                if (result.Published !== 'Y'){
+                                    result.OrderedAmount = 0; 
+                                    result.OrderedQuantity = 0; 
+                                    self.addToCart(null,result);
+                                    self.reloadCounts()
+                                }
                             }
                         });
                         let q = { q: "" };
@@ -416,10 +453,18 @@
                         let term = search_term.replace(" ", "* AND NAME:");
 
                         if (term.length > 0) {
-                            q.q = q.q.length > 0 ? `( ${q.q} ) OR (NAME:${term}*)` : `(NAME:${term}*)`;
+                            q.q = q.q.length > 0 ? `(( ${q.q} ) OR (NAME:${term}*))` : `(NAME:${term}*)`;
+                        }
+                        if (q.q.length > 0){
+                            q.q = `(PUBLISHED:Y AND ${q.q})`
+                        }else {
+                            q.q = "PUBLISHED:Y"
                         }
                         self._findFacilities(q);
                     }).finally(function () {
+                        if (self.search.results.length > 0){
+                            disableSwipe();
+                        }
                         hideSpinner();
                     });
                 },
@@ -468,6 +513,10 @@
                 addToCart: function (event, result) {
                     if (event) {
                         event.preventDefault();
+                    }
+                    if (result.Published !== 'Y'){
+                        result.OrderedQuantity = 0;
+                        result.OrderedAmount = 0;
                     }
                     let self = this;
                     if (!self.facilityOrders[result.Facility.Id]) {
@@ -520,7 +569,9 @@
                 },
                 buy: function (event) {
                     event && event.preventDefault();
-                    window.location.href = ("/buy");
+                    let self =this;
+                    self.reloadCounts();
+                    window.location.replace("/buy");
                 },
                 whatsapp_url: function (f) {
 
@@ -580,9 +631,9 @@
                 cancelEditDeliveryAddress: function (ev) {
                     ev && ev.preventDefault();
                     let self = this;
+                    self.initDeliveryAddress();
                     self.delivery.beingEdited = false;
                     self.delivery.DraftAddress = {};
-                    self.initDeliveryAddress();
                 },
                 updateDeliveryLocation: function (address) {
                     let location = Lockr.get("Location");
@@ -597,24 +648,25 @@
                 saveDeliveryAddress: function (ev) {
                     ev && ev.preventDefault();
                     let self = this;
-                    self.delivery.beingEdited = false;
 
                     if (self.isAddressChanged(self.delivery.Address, self.delivery.DraftAddress)) {
                         showSpinner();
                         api().url("/delivery_addresses/locate").parameters({ "DeliveryAddress": self.delivery.DraftAddress }).post().then(function (response) {
                             Vue.set(self.delivery, "Address", response.DeliveryAddresses[0]);
+                            self.delivery.beingEdited = false;
+                            self.delivery.DraftAddress = {};
                             Lockr.set("delivery", self.delivery);
                             self.updateDeliveryLocation(self.delivery.Address);
                         }).catch(function (err) {
                             showError(err);
 
                         }).finally(function () {
-                            self.delivery.DraftAddress = {};
                             hideSpinner();
                         })
                     } else {
                         self.delivery.Address = self.delivery.DraftAddress;
                         self.delivery.DraftAddress = {};
+                        self.delivery.beingEdited = false;
                         Lockr.set("delivery", self.delivery);
                         self.updateDeliveryLocation(self.delivery.Address);
                     }
@@ -700,6 +752,7 @@
                     self.hideKeyboard().then(function () {
                         self.lookup.Cities = [];
                         self.lookup.PinCodes = [];
+                        self.lookup.Skus = [];
                         $(".lookups-list").removeClass("offsetTop");
                     });
                 },
@@ -723,7 +776,106 @@
                     if (!facility_id) {
                         Lockr.set("search.Category", self.search.Category);
                     }
+                },
+                addNewItem: function(event){
+                    event && event.preventDefault();
+                    let self =this;
+                    self.search.last_item = {
+                        IsNew: true,
+                        Facility : self.search.Facility, 
+                        Sku : {
+                            Name: "",
+                            Item : {
+                                Name : "",
+                            },
+                            PackagingUOM: {
+                                Measures: "Packaging" ,
+                                Name: "Single",
+                            },
+                        },
+                        Published : "N",
+                        Tags :"",
+                        SellingPrice : "0.0",
+                        MaxRetailPrice : "0.0",
+                        DeliveryCharges : self.search.Facility.DeliveryCharges,
+                        DeliveryProvided : self.search.Facility.DeliveryCharges ? 'Y' : 'N' ,
+                    }
+                    Vue.set(self.search,"last_item" ,self.search.last_item);
+                    self.$forceUpdate();
+                },
+                selectNewItem: function(event,newItem){
+                    event && event.preventDefault();
+                    let self =this;
+                    if (newItem){
+                        Vue.set(self.search,"last_item" ,newItem);
+                    }else{
+                        self.addNewItem(event);
+                    }
+                },
+                cancelEditNewItem: function(event){
+                    event && event.preventDefault();
+                    let self =this;
+                    Vue.delete(self.search, 'last_item')
+                },
+                saveNewItem: function(event){
+                    event && event.preventDefault();
+                    let self = this; 
+                    let index = self.search.new_items.findIndex(function(item){
+                        self.search.last_item.Sku.Name == item.Sku.Name
+                    });
+                    if (index >= 0){
+                        showError("Duplicate Product");
+                    }
+                    self.search.last_item.Published = 'Y';
+                    self.search.last_item.Sku.Item.Name = self.search.last_item.Sku.Name  
+                    //self.search.last_item.Sku.Item.Company = self.User.Company
+                    //self.search.last_item.Sku.Company = self.User.Company
+
+                    self.search.new_items.push(self.search.last_item);
+                    self.search.results.splice(self.search.results.length-1,0,self.search.last_item);
+                    Vue.delete(self.search, 'last_item')
+                },
+                removeNewItem: function(event,inventory){
+                    event && event.preventDefault();
+                    let self = this;
+                    let index = self.search.new_items.findIndex(function(item){
+                        inventory.Item.Name == item.Item.Name
+                    });
+                    if (index >= 0){
+                        self.search.new_items.splice(index,1);
+                    }
+                },
+                onSkuChange : function(e){
+                    e && e.preventDefault();
+                    if (!this.isKeyTriggerable(e)) {
+                        return;
+                    }
+                    let self = this;
+                    self.lookup.Skus = [];
+                    if (!self.search.last_item.Sku.Name.endsWith(" ")){
+                        new Autocomplete("skus", e.target).search().then(function (response) {
+                            if (!response) {
+                                return
+                            }
+                            self.lookup.Skus = response.Skus
+                            self.loadLookupEntries(e.target);
+                            Vue.set(self.lookup, "Skus", self.lookup.Skus);
+                        });
+                    }
+                },
+                onSkuSelect : function(e,sku){
+                    e && e.preventDefault();
+                    let self = this;
+                    self.hideKeyboard().then(function () {
+                        self.search.last_item.Sku = sku;
+                        self.search.last_item.MaxRetailPrice = sku.MaxRetailPrice;
+                        self.search.last_item.SellingPrice = sku.MaxRetailPrice;
+                        self.lookup.Skus = [];
+                    });
                 }
+
+
+                    
 
             }
         });
@@ -732,7 +884,8 @@
 <div id="root" style="display:none;">
     <div id="header">
     </div>
-    <div id="app" class="app-body">
+    <div id="app" class="app-body" >
+        <!-- Show facility banner -->
         <div class="container" v-if="search.facility_id && search.Facility.Name">
             <div id="banner-slider" class="carousel slide" data-ride="carousel">
                 <!-- Indicators -->
@@ -770,27 +923,28 @@
                     <div class="row">
                         <div class="col">
                             <!-- <a class="btn btn-link" v-bind:href="'tel:'+ search.Facility.PhoneNumber"
-                    v-if="Mobile && search.Facility.PhoneNumber">
-                    <i class="fa-phone-alt fas"></i>
-                </a> -->
+                                    v-if="Mobile && search.Facility.PhoneNumber">
+                                    <i class="fa-phone-alt fas"></i>
+                                </a> -->
                             <a v-bind:href="whatsapp_url(search.Facility)" data-action="share/whatsapp/share"
                                 class="btn btn-link px-1" v-if="search.Facility.PhoneNumber">
                                 <i class="fab fa-whatsapp"></i>
                             </a>
                         </div>
                         <div class="col d-flex justify-content-end align-items-center">
-                            <small>@ Distance of {{search.Facility.Distance}} Km</small>
+                            <small>@ Distance of {{(search.Facility.Distance * 1.0).toFixed(2)}} Km</small>
                         </div>
                     </div>
                     <!-- {{search.Facility.Lat +","+ search.Facility.Lng}} -->
                 </div>
             </div>
         </div>
+        <!-- Search field ---> 
         <div class="container">
             <div id="search-holder" class="form-row search-holder mb-sm-6 mt-2">
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
-                        <select v-model="search.Category" class="category-control"
+                        <select v-model="search.Category" class="category-control col-4"
                             v-bind:disabled="search.facility_id && search.Facility.Name ? true : false"
                             :on_change="onSearchCategoryChange()">
                             <option>Inventory</option>
@@ -822,7 +976,7 @@
                             </div>
                         </div>
                         <div class="col text-right">
-                            <a @click="editDeliveryAddress($event)" v-if="delivery && delivery.Address">
+                            <a @click="editDeliveryAddress($event)" v-if="User.Name && delivery && delivery.Address">
                                 <i class="h6 fa fa-map-marker-alt mr-1"></i>
                                 {{ delivery.Address.PinCode ? delivery.Address.PinCode.PinCode : "Where are you?" }}</a>
                         </div>
@@ -830,6 +984,7 @@
 
                 </div>
             </div>
+            <!-- Show facility list -->
             <div class="row mt-sm-3" v-if="(search.Category === 'Facility')">
                 <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,index) in search.nearByFacilities"
                     v-if="search.nearByFacilities.length > 0">
@@ -851,10 +1006,11 @@
                     </div>
                 </div>
             </div>
+            <!-- Show inventory list -->
             <div class="row mt-sm-3" v-if="(search.Category==='Inventory')">
-                <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,index) in search.results"
+                <div v-bind:class="'col-lg-3 col-sm-4 mb-0 mb-sm-4' + (result.Published === 'N' ? ' out-of-stock' : (result.Facility.Published==='N' ? ' preview-stock' :'' ))" v-for="(result,index) in search.results"
                     v-if="search.results.length > 0">
-                    <div class="item-list" v-bind:id="'item-'+index">
+                    <div class="item-list" v-bind:id="'item-'+index" >
                         <div class="form-row">
                             <div class="col-4 col-sm-12">
                                 <div class="img-holder border rounded-sm">
@@ -864,8 +1020,14 @@
                                         data-toggle="modal" v-bind:data-target="'#sku-img-'+result.Sku.Id" />
                                     <div v-else
                                         class="default-img d-flex bg-light align-items-center justify-content-center"
-                                        v-bind:style="{ height: itemWidth + 'px' }">
-                                        <span class="font-weight-bold text-muted">{{result.Sku.Item.Name}}</span>
+                                        v-bind:style="{ height: itemWidth + 'px' }" >
+                                        <span class="font-weight-bold text-muted" v-if="result.IsNew" @click="selectNewItem($event,result)">
+                                            {{result.Sku.Item.Name}}
+                                        </span>
+                                        <span class="font-weight-bold text-muted" v-else-if="!result.Id" @click="selectNewItem($event,null)">
+                                            {{result.Sku.Item.Name}}
+                                        </span>
+                                        <span class="font-weight-bold text-muted" v-else>{{result.Sku.Item.Name}}</span>
                                     </div>
                                     <!-- Modal View Images -->
                                     <div v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
@@ -910,7 +1072,7 @@
                                         <a
                                             v-bind:href="'https://google.com/maps/place/'+result.Facility.Lat +',' + result.Facility.Lng">
                                             <i class="fa fa-map-pin mr-1 text-muted"></i>
-                                            {{result.Facility.Distance}} Km
+                                            {{(result.Facility.Distance * 1.0).toFixed(2)}} Km
                                         </a>
                                     </div>
                                     <div class="col d-none d-sm-block small text-right">
@@ -1015,6 +1177,20 @@
                 </div>
             </div>
         </div>
+        <!-- edit last item -->
+        <div class="show-update new-item" v-if="search.last_item">
+            <div class="form-row">
+                    <div class="col-12 mb-2">
+                        <input class="form-control form-control-sm" id="last_item_name" v-model="search.last_item.Sku.Name"
+                            placeholder="Product Name" v-on:input="onSkuChange($event)" v-on:focus="removeList($event)" />
+                    </div>
+                    <div class="col-12 text-right">
+                        <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditNewItem($event)">Cancel</a>
+                        <a href="#/" class="btn btn-sm btn-primary" @click="saveNewItem($event)">Submit</a>
+                    </div>
+            </div>
+        </div>
+
         <!-- Address choosing -->
         <div class="show-update delivery-address" v-if="delivery && delivery.beingEdited">
             <div class="form-row">
@@ -1029,7 +1205,7 @@
                     <div class="address-wrapper">
                         <div v-for="(address,index) in User.SavedAddresses"
                             @click="selectDeliveryAddress($event, address,index)" class="address-block" :class="[
-                            delivery.DraftAddress.Email == address.Email ? 'active' : '',
+                            equalAddress(delivery.DraftAddress,address) ? 'active' : '',
                           ]">
                             <h6>{{address.LongName}}</h6>
                             <div class="address-block-text">
@@ -1095,7 +1271,11 @@
                     <a href="#/" class="btn btn-sm btn-primary" @click="saveDeliveryAddress($event)">Submit</a>
                 </div>
             </div>
+        </div>
+        <div v-if="(delivery && delivery.beingEdited) || search.last_item">
             <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
+                <a href="#" class="text-truncate" v-for="(sku,index) in lookup.Skus" v-if="lookup.Skus.length > 0"
+                    v-on:click="onSkuSelect($event,sku)">{{sku.Name}}</a>
                 <a href="#" class="text-truncate" v-for="(city,index) in lookup.Cities" v-if="lookup.Cities.length > 0"
                     v-on:click="onCitySelect($event,city)" v-on:keyup.enter="onCitySelect($event,city)"
                     v-on:keyup.space="onCitySelect($event,city)"

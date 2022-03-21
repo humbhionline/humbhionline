@@ -14,16 +14,6 @@ function urlB64ToUint8Array(base64String) {
   }
   return outputArray;
 }
-function disableSwipe(){
-    if (typeof Android != "undefined" ){
-        Android.disableSwipe && Android.disableSwipe();
-    }
-}
-function enableSwipe(){
-    if (typeof Android != "undefined" ){
-        Android.enableSwipe && Android.enableSwipe();
-    }
-}
 
 
 function sw_start(callback){
@@ -129,6 +119,8 @@ function subscribeUser(swRegistration, updateSubscriptionOnServer) {
         handlePermission(updateSubscriptionOnServer);
     });
 }
+
+
 
 /*
 $(function () {

@@ -83,7 +83,9 @@ public class Init extends BecknAsyncTask {
         order = Database.getTable(in.succinct.mandi.db.model.Order.class).newRecord();
         order.setFacilityId(facility.getId());
         order.setCompanyId(CompanyUtil.getCompanyId());
-        order.setShippingSellingPrice(OrderUtil.getDeliveryCharges(OrderUtil.getAddress(becknOrder.getFulfillment().getEnd().getLocation()),facility));
+        if (facility.isDeliveryProvided()) {
+            order.setShippingSellingPrice(OrderUtil.getDeliveryCharges(OrderUtil.getAddress(becknOrder.getFulfillment().getEnd().getLocation()), facility));
+        }
         long today = DateUtils.getStartOfDay(System.currentTimeMillis());
         if (order.getShipByDate() == null){
             order.setShipByDate(new Timestamp(DateUtils.addHours(today,24)));

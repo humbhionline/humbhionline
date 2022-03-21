@@ -35,6 +35,7 @@ import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.ServerNode;
+import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.integrations.courier.CourierAggregator;
@@ -42,9 +43,10 @@ import in.succinct.mandi.integrations.courier.CourierAggregator.CourierOrder;
 import in.succinct.mandi.integrations.courier.CourierAggregatorFactory;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.mandi.util.InternalNetwork;
+import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
-import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
+import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
@@ -61,7 +63,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -221,10 +222,17 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         Facility shipFrom = null;
         for (T orderLineElement :orderLinesElement){
             FormatHelper<T> lineHelper = FormatHelper.instance(getPath().getProtocol(),orderLineElement);
-            T inventoryElement = lineHelper.getElementAttribute("Inventory");
 
-            FormatHelper<T> inventoryHelper = FormatHelper.instance(getPath().getProtocol(),inventoryElement);
-            Inventory inventory  =  ModelIOFactory.getReader(Inventory.class,inventoryHelper.getFormatClass()).read(inventoryElement);
+            T inventoryElement = lineHelper.getElementAttribute("Inventory");
+            Inventory inventory = getInventory(inventoryElement);
+
+            if (!inventory.isPublished()){
+                //Trying to make it infinite. Record in db is finite and zero.
+                throw new RuntimeException("Product " + inventory.getSku().getName() + " is no longer be available.");
+            }else if (inventory.getReflector().isVoid(inventory.getSellingPrice()) && !inventory.isExternal()){
+                order.setOnHold(true);
+                order.setHoldReason(Order.HOLD_REASON_CATALOG_INCOMPLETE);
+            }
             if (shipFrom == null){
                 shipFrom = inventory.getFacility().getRawRecord().getAsProxy(Facility.class);
             }
@@ -232,11 +240,14 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             lineHelper.setAttribute("OrderId",StringUtil.valueOf(order.getId()));
             lineHelper.setAttribute("ShipFromId",StringUtil.valueOf(inventory.getFacilityId()));
             lineHelper.setAttribute("SkuId",StringUtil.valueOf(inventory.getSkuId()));
+            if (!inventory.getRawRecord().isNewRecord()) {
+                lineHelper.setAttribute("InventoryId", StringUtil.valueOf(inventory.getId()));
+            }
             lineHelper.removeElementAttribute("Inventory");
 
             OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement);
 
-            if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && inventory.isExternal() ){
+            if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && inventory.isExternal()){
                 CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(BecknNetwork.find(inventory.getNetworkId()));
                 CourierOrder courierOrder = courierAggregator.book(inventory,order,order.getParentOrder());
 
@@ -281,7 +292,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             if (!line.getRawRecord().isNewRecord()){
                 existingOrderLineMap.remove(line.getId());
             }
-            Sku sku = line.getSku();
+            Sku sku = line.getSku().getRawRecord().getAsProxy(Sku.class);
             Item item = sku.getItem();
             AssetCode assetCode = item.getAssetCode();
 
@@ -329,6 +340,9 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
                 line.destroy();
             }
             existingOrderLineMap.clear();
+        }
+        if (order.getShippingSellingPrice() == 0 && !order.isCustomerPickup()){
+            order.setShippingSellingPrice(OrderUtil.getDeliveryCharges(shipTo,order.getFacility()));
         }
 
         if (order.getShippingSellingPrice() > 0){
@@ -379,7 +393,48 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         return order;
     }
 
+    public <T> Inventory getInventory(T inventoryElement){
+        FormatHelper<T> inventoryHelper = FormatHelper.instance(getPath().getProtocol(),inventoryElement);
 
+        T skuElement = inventoryHelper.getElementAttribute("Sku");
+
+        FormatHelper<T> skuHelper = FormatHelper.instance(skuElement);
+        T itemElement = skuHelper.getElementAttribute("Item");
+        T uomElement = skuHelper.getElementAttribute("PackagingUOM");
+        if (uomElement != null){
+            UnitOfMeasure unitOfMeasure = ModelIOFactory.getReader(UnitOfMeasure.class,skuHelper.getFormatClass()).read(uomElement);
+            if (unitOfMeasure.getRawRecord().isNewRecord()){
+                unitOfMeasure.save();
+                FormatHelper.instance(uomElement).setAttribute("Id",String.valueOf(unitOfMeasure.getId()));
+            }
+        }
+        if (itemElement != null){
+            Item item = ModelIOFactory.getReader(Item.class,skuHelper.getFormatClass()).read(itemElement);
+            if (item.getRawRecord().isNewRecord()){
+                item.save();
+                FormatHelper.instance(itemElement).setAttribute("Id",String.valueOf(item.getId()));
+            }
+        }
+
+
+        if (skuElement != null){
+            //sku is new item. !!
+            Sku sku = ModelIOFactory.getReader(Sku.class,skuHelper.getFormatClass()).read(skuElement);
+            if (sku.getRawRecord().isNewRecord()){
+                sku.setPublished(true);
+                sku.save();
+                skuHelper.setAttribute("Id",String.valueOf(sku.getId()));
+            }
+        }
+        Inventory inventory =  ModelIOFactory.getReader(Inventory.class,inventoryHelper.getFormatClass()).read(inventoryElement);
+        if (inventory.getRawRecord().isNewRecord() &&  !ObjectUtil.equals(inventory.isExternal(),true)){
+            inventory.setMaxRetailPrice(inventory.getSku().getMaxRetailPrice());
+            inventory.setSellingPrice(inventory.getMaxRetailPrice());
+            inventory.save();
+            inventoryHelper.setAttribute("Id",String.valueOf(inventory.getId()));
+        }
+        return inventory;
+    }
 
     private Map<Long, OrderLine> getOrderLineMap(Order order) {
         Map<Long,OrderLine> map = new Cache<Long, OrderLine>(0,0) {

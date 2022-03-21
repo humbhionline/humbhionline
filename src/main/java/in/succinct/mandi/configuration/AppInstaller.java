@@ -22,7 +22,6 @@ import com.venky.swf.plugins.beckn.messaging.BppSubscriber;
 import com.venky.swf.plugins.beckn.messaging.QueueSubscriber;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.plugins.collab.db.model.CryptoKey;
-import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Company;
 import com.venky.swf.plugins.security.db.model.Role;
 import com.venky.swf.plugins.sequence.db.model.SequentialNumber;
@@ -44,16 +43,15 @@ import in.succinct.mandi.agents.beckn.Update;
 import in.succinct.mandi.agents.beckn.bap.delivery.GenericCallBackRecorder;
 import in.succinct.mandi.agents.beckn.bap.delivery.OnStatus;
 import in.succinct.mandi.controller.ServerNodesController.Sync;
-import in.succinct.mandi.db.model.EncryptedModel;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.OrderAddress;
 import in.succinct.mandi.db.model.SavedAddress;
 import in.succinct.mandi.db.model.ServerNode;
-import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.extensions.AfterSaveOrderAddress;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.pdfbox.contentstream.operator.state.Save;
 import org.json.simple.JSONObject;
 
 import java.io.BufferedReader;
@@ -77,11 +75,6 @@ public class AppInstaller implements Installer {
 
     public void install() {
         installIndexes();
-        boolean encryptionSupport = (Config.instance().getBooleanProperty("swf.encryption.support",true));
-        encryptAddress(Facility.class,encryptionSupport);
-        encryptAddress(User.class,encryptionSupport);
-        encryptAddress(OrderAddress.class,encryptionSupport);
-        encryptAddress(SavedAddress.class,encryptionSupport);
         createSavedAddresses();
         insertCompany();
         insertRole();
@@ -91,6 +84,22 @@ public class AppInstaller implements Installer {
         registerBecknKeys();
         updateFacilityMinMaxLatLng();
 
+    }
+    private <M extends Model> void fixOneTimeEncryptionMess(Class<M> modelClass){
+        for (Model m : new Select().from(modelClass).execute()){
+            try {
+                for (String f : m.getReflector().getEncryptedFields()) {
+                    m.getReflector().set(m, f, SharedKeys.getInstance().decrypt(m.getReflector().get(m, f)));
+                }
+                if (m.getReflector().getFields().contains("LAT")){
+                    m.getRawRecord().markDirty("LAT");
+                    m.getRawRecord().markDirty("LNG");
+                }
+                m.save(false);
+            }catch (Exception ex){
+                //
+            }
+        }
     }
     public void createSavedAddresses(){
         List<SavedAddress> addresses = new Select().from(SavedAddress.class).execute(1);
@@ -370,45 +379,6 @@ public class AppInstaller implements Installer {
 
     }
 
-    public <M extends Model & Address> void encryptAddress(Class<M> modelClass, boolean requiresEncryptionFinally) {
-        List<EncryptedModel> statuses = new Select().from(EncryptedModel.class).where(
-                new Expression(
-                        ModelReflector.instance(EncryptedModel.class).getPool(),
-                        "NAME", Operator.EQ, modelClass.getSimpleName())).execute();
 
-        if (statuses.isEmpty() && !requiresEncryptionFinally){
-            return;
-        }else if (!statuses.isEmpty() && requiresEncryptionFinally){
-            return;
-        }else if (requiresEncryptionFinally){
-            EncryptedModel encryptedModel = Database.getTable(EncryptedModel.class).newRecord();
-            encryptedModel.setName(modelClass.getSimpleName());
-            encryptedModel.save();
-        }else {
-            statuses.forEach(s->s.destroy());
-        }
-        if (ModelReflector.instance(modelClass).getEncryptedFields().isEmpty()){
-            return;
-        }
-
-
-        SharedKeys.getInstance().setEnableEncryption(!requiresEncryptionFinally);
-        List<M> addresses = new Select().from(modelClass).execute(modelClass);
-        SharedKeys.getInstance().setEnableEncryption(requiresEncryptionFinally);
-        reupdate(modelClass,addresses,requiresEncryptionFinally);
-    }
-
-    private <M extends Model & Address> void reupdate(Class<M> modelClass, List<M> addresses,boolean requiresEncryptionFinally) {
-        List<String> fields = ModelReflector.instance(modelClass).getEncryptedFields();
-        addresses.forEach(a -> {
-            for (String f : fields) {
-                a.getRawRecord().markDirty(f);
-            }
-            a.getRawRecord().markDirty("LAT");
-            a.getRawRecord().markDirty("LNG");
-            a.save(false); //Avoid going to update lat and lng.
-        });
-
-    }
 }
 
