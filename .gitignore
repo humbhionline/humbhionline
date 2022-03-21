@@ -9,6 +9,7 @@ tmp/pid
 overrideProperties/
 nohup.out
 database/*.db
+database/*.dmp
 database/indexes/**/*.done
 database/images/**
 database/*xlsx
