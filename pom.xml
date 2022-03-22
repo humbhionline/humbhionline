@@ -9,7 +9,7 @@
     <description>mandi</description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>2.9</revision>
+        <revision>2.10</revision>
     </properties>
     <build>
         <plugins>
@@ -91,17 +91,17 @@
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-beckn</artifactId>
-            <version>${revision}</version>
+                <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-hivemq</artifactId>
-            <version>${revision}</version>
+                <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-nats</artifactId>
-            <version>${revision}</version>
+                <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>in.succinct.beckn</groupId>

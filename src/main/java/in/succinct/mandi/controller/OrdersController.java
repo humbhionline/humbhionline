@@ -341,7 +341,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             }
             existingOrderLineMap.clear();
         }
-        if (order.getShippingSellingPrice() == 0 && !order.isCustomerPickup()){
+        if (order.getShippingSellingPrice() == 0 && !order.isCustomerPickup() && order.getRefOrderId() == null){ //Product order.
             order.setShippingSellingPrice(OrderUtil.getDeliveryCharges(shipTo,order.getFacility()));
         }
 

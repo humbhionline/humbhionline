@@ -105,7 +105,8 @@
                     orders.push(order);
                     order.OrderLines.forEach(function(ol){
                         let inv = ol.Inventory; 
-                        ol.Inventory = { Sku :  inv.Sku, Facility : inv.Facility }
+                        ol.Inventory = { Sku :  inv.Sku, Facility : inv.Facility , SellingPrice : inv.SellingPrice , MaxRetailPrice : inv.MaxRetailPrice }
+                            //Passing selling price is important for delivery for product it doesnot matter. 
                         if (inv.IsNew === true && ( !inv.Id || inv.Id * 1 > 0) ){
                            ol.Inventory.Infinite = 'Y' ;
                            ol.Inventory.Quantity = 0;
@@ -224,9 +225,7 @@
                 reduceOrderLine: function (event, f, index) {
                     let self = this;
                     let result = self.facilityOrders[f.Id].OrderLines[index];
-                    //result.OrderedQuantity -= 1;
-                    result.OrderedQuantity -= (!self.isDeliverySku(result.Inventory.Sku) ? 1.0 : Math.max(result.Inventory.ChargeableDistance * 1.0 - result.Inventory.Facility.MinChargeableDistance * 1.0, 0.001));
-
+                    result.OrderedQuantity -= 1;
                     self.onOrderLineQtyChange(event, f, index);
                 },
                 isDeliverySku: function (sku) {
@@ -249,7 +248,7 @@
                         result.OrderedQuantity = 0.0;
                     }
 
-                    result.OrderedQuantity += (!self.isDeliverySku(result.Inventory.Sku) ? 1.0 : Math.max(result.Inventory.ChargeableDistance * 1.0 - result.Inventory.Facility.MinChargeableDistance * 1.0, 0.001));
+                    result.OrderedQuantity += 1;
 
                     self.onOrderLineQtyChange(event, f, index);
                 },
@@ -447,11 +446,8 @@
                                                 v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'"></i>
                                         </a>
                                     </div>
-                                    <div class="col" v-else>
-                                        Fixed
-                                    </div>
                                     <div class="col-5 d-flex align-item-center justify-content-end"
-                                        v-if="DeliveryAmount[facility.Id]">
+                                        v-if="!isDeliveryOrder(facility.Id) && DeliveryAmount[facility.Id]">
                                         <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
                                             &#8377; {{ DeliveryAmount[facility.Id].toFixed(2) }}
                                         </del>
@@ -493,9 +489,9 @@
                         &#8377; {{totalAmount().toFixed(2)}}
                     </div>
                 </div>
-                <div class="row text-muted">
+                <div class="row text-muted" v-if="deliveryAmount() > 0" >
                     <div class="col d-flex flex-row justify-content-start">
-                        Delivery/Fixed Charges
+                        Delivery Charges
                     </div>
                     <div class="col-4 d-flex flex-row justify-content-end">
                         &#8377; {{deliveryAmount().toFixed(2)}}

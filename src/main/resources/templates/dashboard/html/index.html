@@ -198,7 +198,7 @@
                                 if (!facility) {
                                     facility = ol.Inventory.Facility;
                                 }
-                                if (!deliveryAmount && ol.Inventory.DeliveryProvided === 'Y') {
+                                if (!deliveryAmount && ol.Inventory.DeliveryProvided === 'Y' ) {
                                     deliveryAmount = ol.Inventory.DeliveryCharges
                                 }
                             });
@@ -478,7 +478,7 @@
                 reduce: function (event, index) {
                     let self = this;
                     let result = self.search.results[index];
-                    result.OrderedQuantity -= (!self.isDeliverySku(result.Sku) ? 1.0 : Math.max(result.ChargeableDistance * 1.0 - result.Facility.MinChargeableDistance * 1.0, 0.001));
+                    result.OrderedQuantity -= 1.0;
                     result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
@@ -505,7 +505,7 @@
                     if (self.isDeliverySku(result.Sku) && result.OrderedQuantity * 1.0 > 0) {
                         return;
                     }
-                    result.OrderedQuantity += (!self.isDeliverySku(result.Sku) ? 1.0 : Math.max(result.ChargeableDistance * 1.0 - result.Facility.MinChargeableDistance * 1.0, 0.00001));
+                    result.OrderedQuantity += 1.0;
                     result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
                     Vue.set(self.search.results, index, result);
                     self.addToCart(event, result);

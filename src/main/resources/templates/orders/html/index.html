@@ -1055,7 +1055,7 @@
                                 </a>
                             </div>
                         </div>
-                        <div class="form-row border-top py-2 mt-2" v-if="o.CustomerPickup === 'N'">
+                        <div class="form-row border-top py-2 mt-2" v-if="o.CustomerPickup === 'N' && o.ShippingSellingPrice && o.ShippingSellingPrice * 1.0 > 0 ">
                             <div class="col d-flex align-items-center small">
                                 Delivery Charges
                             </div>
