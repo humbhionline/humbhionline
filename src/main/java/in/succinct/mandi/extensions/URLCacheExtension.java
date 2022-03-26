@@ -2,12 +2,10 @@ package in.succinct.mandi.extensions;
 
 import com.venky.cache.Cache;
 import com.venky.core.util.ObjectHolder;
-import com.venky.core.util.ObjectUtil;
 import com.venky.extension.Extension;
 import com.venky.extension.Registry;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.Controller.CacheOperation;
-import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.path.Path;
 import com.venky.swf.path._IPath;
@@ -15,7 +13,6 @@ import com.venky.swf.routing.Config;
 import com.venky.swf.views.View;
 
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 public class URLCacheExtension implements Extension {
@@ -49,7 +46,11 @@ public class URLCacheExtension implements Extension {
 
     @Override
     public void invoke(Object... context) {
-        _IPath path = (_IPath)context[1];
+        if (((_IPath)context[1]).action().equals("reset_router")){
+            Config.instance().getLogger(getClass().getName()).warning("ignoreing cache for " + ((_IPath)context[1]).controllerPath() );
+            return;
+        }
+        Path path = (Path)context[1];
         ObjectHolder<View> holder = (ObjectHolder<View>)context[2];
 
         switch ((CacheOperation)context[0]){
@@ -80,7 +81,7 @@ public class URLCacheExtension implements Extension {
         }
         return false;
     }
-    private String getURL(_IPath path) {
+    private String getURL(Path path) {
         StringBuilder requestURL = new StringBuilder(path.getTarget()); // Need to check based on target and not request path. Or else there is an infinite loop with forwarding.
         String queryString = path.getRequest().getQueryString();
 
@@ -91,50 +92,27 @@ public class URLCacheExtension implements Extension {
         }
     }
 
-    private boolean isCacheable(_IPath path){
+    private boolean isCacheable(Path path){
         if (!path.getRequest().getMethod().equalsIgnoreCase(HttpMethod.GET.toString())){
             return false;
         }
 
         return isCacheable(getURL(path));
     }
-    public void get(_IPath path,ObjectHolder<View> holder){
+    public void get(Path path,ObjectHolder<View> holder){
         if (!isCacheable(path)){
             return;
         }
-        View result = cache.get(getURL(path)).get(getReturnProtocol(path).toString());
+        View result = cache.get(getURL(path)).get(path.getReturnProtocol().toString());
         if (result != null){
-            Config.instance().getLogger(getClass().getName()).info("{CachedUrl:"+ getURL(path) + ",  ContentType:" + getReturnProtocol(path) + "}");
+            Config.instance().getLogger(getClass().getName()).info("{CachedUrl:"+ getURL(path) + ",  ContentType:" + path.getReturnProtocol() + "}");
         }
         holder.set(result);
     }
-    public void put(_IPath path,ObjectHolder<View> holder){
+    public void put(Path path,ObjectHolder<View> holder){
         if (!isCacheable(path)){
             return;
         }
-        cache.get(getURL(path)).put(getReturnProtocol(path).toString(),holder.get());
+        cache.get(getURL(path)).put(path.getReturnProtocol().toString(),holder.get());
     }
-
-    public MimeType getReturnProtocol(_IPath path){
-        String apiprotocol = path.getRequest().getHeader("ApiProtocol"); // This is bc.
-        if (ObjectUtil.isVoid(apiprotocol)){
-            apiprotocol = path.getRequest().getHeader("accept");
-            if (ObjectUtil.equals("*/*",apiprotocol)){
-                apiprotocol = "";
-            }
-        }
-        if (ObjectUtil.isVoid(apiprotocol)){
-            return getProtocol(path);
-        }
-        return Path.getProtocol(apiprotocol);
-    }
-
-    public MimeType getProtocol(_IPath path){
-        String apiprotocol = path.getRequest().getHeader("ApiProtocol"); // This is bc.
-        if (ObjectUtil.isVoid(apiprotocol)) {
-            apiprotocol = path.getRequest().getHeader("content-type");
-        }
-        return Path.getProtocol(apiprotocol);
-    }
-
 }
