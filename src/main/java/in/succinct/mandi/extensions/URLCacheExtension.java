@@ -47,7 +47,7 @@ public class URLCacheExtension implements Extension {
     @Override
     public void invoke(Object... context) {
         if (((_IPath)context[1]).action().equals("reset_router")){
-            Config.instance().getLogger(getClass().getName()).warning("ignoreing cache for " + ((_IPath)context[1]).controllerPath() );
+            Config.instance().getLogger(getClass().getName()).warning("ignoreing cache for " + ((_IPath)context[1]).getRequest().getRequestURI());
             return;
         }
         Path path = (Path)context[1];
