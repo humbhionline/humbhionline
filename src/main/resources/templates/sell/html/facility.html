@@ -24,6 +24,7 @@
                 facilityBannerBeingEdited: false,
                 facilityCropperBeingEdited: false,
                 selectedDataFileName: "",
+                windowWidth: window.innerWidth,
                 current: {
                     index: -1,
                     Items: [],
@@ -37,7 +38,7 @@
                 search: {
                     term: "",
                     results: [],
-                    timer:undefined
+                    timer: undefined
                 },
             },
             created: function () {
@@ -83,7 +84,8 @@
                         $("#root").show();
                         if (window.innerWidth < 640) {
                             let facilityHeader = $(".facility-header").height() + 10;
-                            $(".body").css("padding-top", facilityHeader);
+                            $(".body").css("padding-top", 0);
+                            $(".body").addClass("facilities-view");
                             $("#pageTitle").html("Sales-Facilities");
                         }
                     });
@@ -216,7 +218,7 @@
                         event.preventDefault();
                     }
                     let self = this;
-                    self.current.Inventory.Sku.Name = self.current.Inventory.Sku.Item.Name + " - " + self.current.Inventory.Sku.PackagingUOM.Name ;
+                    self.current.Inventory.Sku.Name = self.current.Inventory.Sku.Item.Name + " - " + self.current.Inventory.Sku.PackagingUOM.Name;
                     let index = self.current.index;
                     let i = self.current.Inventory;
                     let newRecord = !i.Id;
@@ -391,7 +393,7 @@
                 onAssetCodeChange: function (e) {
                     e && e.preventDefault();
                     let self = this;
-                    self.current.Inventory.Sku.Item.AssetCode = { Code : self.current.Inventory.Sku.Item.AssetCode.Code } 
+                    self.current.Inventory.Sku.Item.AssetCode = { Code: self.current.Inventory.Sku.Item.AssetCode.Code }
 
                     if (!this.isKeyTriggerable(e)) {
                         return;
@@ -873,10 +875,10 @@
                         self.loadInventory(self.Facility);
                     } else {
                         let term = self.search.term.toLowerCase().replace(/[^a-z0-9 ]/g, " ").trim();
-                        term = (term.length > 0 ? "( (SKU:" + term.replace(" ","* AND SKU:") + "*)" +
-                                                 " OR ( TAGS:" + term.replace(" ","* AND TAGS:") + "*) )" : "" );
-                        let q = {} ;
-                        q.q = term; 
+                        term = (term.length > 0 ? "( (SKU:" + term.replace(" ", "* AND SKU:") + "*)" +
+                            " OR ( TAGS:" + term.replace(" ", "* AND TAGS:") + "*) )" : "");
+                        let q = {};
+                        q.q = term;
 
 
                         self.loadInventory(self.Facility, q)
@@ -888,13 +890,13 @@
                         clearTimeout(self.search.timer);
                         self.search.timer = undefined;
                     }
-                    self.search.timer = setTimeout(function(){
+                    self.search.timer = setTimeout(function () {
                         api().url("/facilities/show/" + id + "/inventories/search").get(q).then(function (invResponse) {
                             self.fixInventoryAttributes(f, invResponse.Inventories);
                             self.fixFacilityAttributes(f);
                             self.$forceUpdate();
                         });
-                    },400);
+                    }, 400);
                 },
                 isDeliverySku: function (sku) {
                     return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
@@ -929,7 +931,7 @@
                 </div>
             </div>
         </div>
-        <div class="facility-header">
+        <div class="facility-header" v-bind:class="{ 'container' : windowWidth > 640}">
             <div id="banner-slider" class="carousel slide" data-ride="carousel">
                 <!-- Indicators -->
                 <ul class="carousel-indicators">
@@ -956,7 +958,7 @@
 
             </div>
             <div class="container facility-info">
-                <div class="row">
+                <div class="form-row">
                     <div class="col-12">
                         <div class="content-box">
                             <a href="#" class="banner-edit btn btn-sm btn-outline-primary bg-white"
@@ -988,8 +990,8 @@
                                         <p class="mb-0 color-blue text-truncate">{{selectedDataFileName}}</p>
                                     </label>
                                 </div>
-                                <div v-bind:class="[!selectedDataFileName ? 'col-4 text-right':'col-3']">
-                                    <input type="file" class="file-upload" id="datafile" 
+                                <!-- <div v-bind:class="[!selectedDataFileName ? 'col-4 text-right':'col-3']">
+                                    <input type="file" class="file-upload" id="datafile"
                                         accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                         v-on:input="onDataFileChange($event)" />
                                     <label v-if="!selectedDataFileName"
@@ -1005,7 +1007,7 @@
                                         v-on:click="upload($event)">
                                         Upload
                                     </a>
-                                </div>
+                                </div> -->
                             </div>
                             <hr class="my-2" />
                             <div class="form-row mt-2">
@@ -1022,15 +1024,18 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="form-row">
-                            <div class="col-12">
-                                <div class="d-flex flex-row align-items-center">
-                                    <input key="search" id="search" class="search-control"
-                                        placeholder="Search for Items" 
-                                        v-model="search.term" v-on:input="find($event)"/>
-                                    <i class="fa fa-search"></i>
-                                </div>
-                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="sticky-top sticky-search">
+            <div class="container">
+                <div class="form-row">
+                    <div class="col-12">
+                        <div class="d-flex flex-row align-items-center">
+                            <input key="search" id="search" class="search-control" placeholder="Search for Items"
+                                v-model="search.term" v-on:input="find($event)" />
+                            <i class="fa fa-search"></i>
                         </div>
                     </div>
                 </div>
@@ -1320,8 +1325,8 @@
                             </div>
                             <div class="col-5">
                                 <label class="small mb-0" v-bind:for="'mrp' + i">MRP</label>
-                                <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm" type="number"
-                                    placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" />
+                                <input v-bind:key="'mrp' + i" v-bind:id="'mrp' + i" class="form-control form-control-sm"
+                                    type="number" placeholder="&#x20B9;0" v-model="current.Inventory.MaxRetailPrice" />
                             </div>
                         </div>
                         <div class="form-row mb-2">
@@ -1331,10 +1336,9 @@
                                 <input v-bind:key="'asset_code' + i" v-bind:id="'asset_code' + i"
                                     class="form-control form-control-sm" placeholder="GST/SAC Code"
                                     v-model="current.Inventory.Sku.Item.AssetCode.Code"
-                                    v-on:input="onAssetCodeChange($event)"
-                                    v-on:focus="removeList($event)"
+                                    v-on:input="onAssetCodeChange($event)" v-on:focus="removeList($event)"
                                     v-on:keyup.down="navigate($event,0,current.AssetCodes.length)" />
-                                    <!-- :disabled="current.Inventory.Sku.Item.Id" -->
+                                <!-- :disabled="current.Inventory.Sku.Item.Id" -->
 
                             </div>
                             <div class="col-5">
