@@ -62,7 +62,7 @@ public class InventoriesController extends LocalSearchController<Inventory> {
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>, List<String>> map =  super.getIncludedModelFields();
-        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG", "PUBLISHED","DELIVERY_PROVIDED","COD_ENABLED","DELIVERY_RADIUS","MIN_CHARGEABLE_DISTANCE","MIN_DELIVERY_CHARGE", "DELIVERY_CHARGES"));
+        map.put(Facility.class, Arrays.asList("ID","NAME","DISTANCE","LAT","LNG", "PUBLISHED","DELIVERY_PROVIDED","COD_ENABLED","DELIVERY_RADIUS","MIN_CHARGEABLE_DISTANCE","MIN_DELIVERY_CHARGE", "DELIVERY_CHARGES" ));
         {
             List<String> itemFields = ModelReflector.instance(Item.class).getUniqueFields();
             itemFields.add("ASSET_CODE_ID");

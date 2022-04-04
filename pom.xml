@@ -66,42 +66,42 @@
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-mobilesignup</artifactId>
-                <version>${revision}</version>
+                <version>[${revision},)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-calendar</artifactId>
-                <version>${revision}</version>
+            <version>[${revision},)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-wiki</artifactId>
-                <version>${revision}</version>
+            <version>[${revision},)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-datamart</artifactId>
-                <version>${revision}</version>
+            <version>[${revision},)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-slideshow</artifactId>
-                <version>${revision}</version>
+            <version>[${revision},)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-beckn</artifactId>
-                <version>${revision}</version>
+            <version>[${revision},)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-hivemq</artifactId>
-                <version>${revision}</version>
+            <version>[${revision},)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-nats</artifactId>
-                <version>${revision}</version>
+            <version>[${revision},)</version>
         </dependency>
         <dependency>
             <groupId>in.succinct.beckn</groupId>

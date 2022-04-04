@@ -1,6 +1,8 @@
 package in.succinct.mandi.db.model;
 
+import com.venky.swf.db.annotations.column.COLUMN_DEF;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
+import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
 import com.venky.swf.db.annotations.column.indexing.Index;
 
 public interface Inventory extends in.succinct.plugins.ecommerce.db.model.inventory.Inventory {

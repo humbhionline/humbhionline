@@ -4,11 +4,13 @@ import com.venky.extension.Extension;
 import com.venky.extension.Registry;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
+import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import in.succinct.mandi.db.model.Item;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.CompanyUtil;
+import in.succinct.plugins.ecommerce.agents.order.tasks.AcknowledgeOrderTask;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 
@@ -28,6 +30,8 @@ public class OnOrderLineDownloaded implements Extension {
             vendor.setBalanceOrderLineCount(vendor.getBalanceOrderLineCount() - 1);
             vendor.save();
         }
-
+        if (!orderLine.getInventory().isInfinite()){
+            TaskManager.instance().executeAsync(new AcknowledgeOrderTask(orderLine.getOrder()),false);
+        }
     }
 }

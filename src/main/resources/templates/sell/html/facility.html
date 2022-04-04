@@ -249,6 +249,33 @@
                     });
 
                 },
+                disableInventory:function(event, index){
+                    this.setInventoryEnabled(event,index,'N');
+                },
+                enableInventory:function(event, index){
+                    this.setInventoryEnabled(event,index,'Y');
+                },
+                setInventoryEnabled: function(event, index, value){
+                    if (event) {
+                        event.preventDefault();
+                    }
+
+                    let self = this;
+                    let i = self.search.results[index];
+                    i.Enabled = (value === true || value === 'Y' ) ? 'Y' : 'N';
+                    showSpinner();
+                    api().url("/api/adjust").parameters({ AdjustmentRequest: { Inventory: i , AdjustmentQuantity : 0 , Comment: "Disable Inventory" } }).post().then(function (response) {
+                        var inv = deepmerge(i, response.AdjustmentRequests[0].Inventory);
+                        if (!inv.Sku.Item.AssetCode) {
+                            inv.Sku.Item.AssetCode = { Code: "" };
+                        }
+                        self.updateLists(inv);
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+                },
                 zeroInventory: function (event, index) {
                     if (event) {
                         event.preventDefault();
@@ -1195,12 +1222,12 @@
                             <div class="col pb-sm-0">
                                 <div class="form-row mb-0">
                                     <div class="col text-right">
-                                        <a href="#/" class="btn-sm btn-outline-primary" v-if="inv.Infinite === 'Y'"
-                                            v-on:click="zeroInventory($event,i)" :disabled="current.index === i">
+                                        <a href="#/" class="btn-sm btn-outline-primary" v-if="inv.Enabled === 'Y'"
+                                            v-on:click="disableInventory($event,i)" :disabled="current.index === i">
                                             <i class="fas fa-toggle-on"></i>
                                         </a>
                                         <a href="#/" class="btn-sm btn-outline-primary"
-                                            v-on:click="infiniteInventory($event,i)" :disabled="current.index === i"
+                                            v-on:click="enableInventory($event,i)" :disabled="current.index === i"
                                             v-else>
                                             <i class="fas fa-toggle-off"></i>
                                         </a>
@@ -1345,6 +1372,47 @@
                                 <label class="small mb-0">Tax Rate:</label>
                                 <br />
                                 <label>{{current.Inventory.Sku.Item.AssetCode.GstPct}}</label>
+                            </div>
+                        </div>
+                        <div class="form-row mb-2">
+                            <div class="col-12">
+                                <label class="small mb-0" v-bind:for="'quantity' + i">Do you track inventory</label>
+                                <br/>
+                                <div class="form-check-inline align-middle mr-1">
+                                    <input class="form-check-input mb-0" type="radio" v-model="current.Inventory.Infinite"
+                                        name="'track_y' + i" id="'track_y' + i" value="N" >
+                                    <label class="form-check-label small" for="'track_y' + i">Yes</label>
+                                </div>
+                                <div class="form-check-inline align-middle mr-1">
+                                    <input class="form-check-input mb-0" type="radio" v-model="current.Inventory.Infinite"
+                                        name="'track_n'+i" id="'track_n'+i" value="Y" >
+                                    <label class="form-check-label small" for="'track_n'+i">No</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row mb-2" v-if="current.Inventory.Infinite === 'N'" >
+                            <div class="col-7" >
+                                <label class="small mb-0"> Currently Available:</label>
+                                <br/>
+                                <label>{{current.Inventory.Quantity}} </label>
+                            </div>
+                            <div class="col-5" >
+                                <label class="small mb-0"> Current Demand:</label>
+                                <br/>
+                                <label>{{current.Inventory.DemandQuantity}} </label>
+                            </div>
+                        </div>
+                        <div class="form-row mb-2" v-if="current.Inventory.Infinite === 'N'" >
+                            <div class="col-7" v-if="current.Inventory.Infinite === 'N'" >
+                                <label class="small mb-0">Net Available:</label>
+                                <br />
+                                <label>{{current.Inventory.AvailableToPromise}}</label>
+                            </div>
+                            <div class="col-5">
+                                <label class="small mb-0" for="'quantity'+i">Increment By </label>
+                                <input v-bind:key="'quantity' + i" v-bind:id="'quantity' + i"
+                                class="form-control form-control-sm mb-0" placeholder="Quantity"
+                                v-model="current.AdjustmentQuantity"/>
                             </div>
                         </div>
 
