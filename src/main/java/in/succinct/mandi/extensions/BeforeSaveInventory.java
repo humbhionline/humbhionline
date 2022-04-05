@@ -52,7 +52,7 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
         }
         List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
         boolean currentSkuIsDeliveryAsset = deliverySkuIds.contains(inventory.getSkuId());
-        if (inventory.isInfinite() || inventory.getQuantity() > 0 ){
+        if (inventory.isPublished()){
             Expression where = new Expression(inventory.getReflector().getPool(),Conjunction.AND);
             where.add(new Expression(inventory.getReflector().getPool(),"FACILITY_ID",Operator.EQ,inventory.getFacilityId()));
             if (currentSkuIsDeliveryAsset){
@@ -64,6 +64,8 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
             Expression publishedWhere = new Expression(inventory.getReflector().getPool(),Conjunction.OR);
             publishedWhere.add(new Expression(inventory.getReflector().getPool(),"INFINITE",Operator.EQ,true));
             publishedWhere.add(new Expression(inventory.getReflector().getPool(),"QUANTITY",Operator.GT,0));
+            where.add(new Expression(inventory.getReflector().getPool(),"ENABLED",Operator.EQ,true));
+
             where.add(publishedWhere);
 
             List<Inventory> inventoryList = new Select().from(Inventory.class).where(where).execute(1);

@@ -347,6 +347,7 @@ h6 {
     background-color: var(--hbo-bg);
     padding-bottom: 7px;
     margin-top: 5px;
+    z-index: 1;
 }
 
 @media (max-width: 640px) {
@@ -562,6 +563,7 @@ h6 {
         background-color: var(--hbo-bg);
         padding-bottom: 7px;
         margin-top: 5px;
+        z-index: 1;
     }
     .facility-info .content-box {
         border-radius: 8px;
