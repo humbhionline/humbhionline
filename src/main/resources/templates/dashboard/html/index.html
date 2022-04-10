@@ -1086,7 +1086,7 @@
                                             v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0"
                                             class="text-muted">
                                             {{ (isDeliverySku(result.Sku) ? "Fixed Charges" :
-                                            "Delivery") }} - &#x20B9;
+                                            "Delivery Charges") }} - &#x20B9;
                                             {{
                                             result.DeliveryCharges }}
                                         </span>
@@ -1145,14 +1145,18 @@
                                 <small class="d-inline-block d-sm-none">
                                     <del v-if="result.Facility.CodEnabled !== 'Y'">COD</del>
                                     <del v-if="result.DeliveryProvided !== 'Y'">Delivery</del>
-                                    <span v-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) &&
+                                    <span v-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) && 
+                                        result.Facility.DeliveryChargedOnActual === 'Y'"> 
+                                        Delivery - On Actual
+                                    </span>
+                                    <span v-else-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) &&
                                             ( !result.DeliveryCharges || result.DeliveryCharges * 1.0 === 0 )">
                                         Delivery - Free
                                     </span>
                                     <span
                                         v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0"
                                         class="text-muted">
-                                        {{ (isDeliverySku(result.Sku) ? "Fixed Charges" : "Delivery") }}
+                                        {{ (isDeliverySku(result.Sku) ? "Fixed Charges" : "Delivery Charges") }}
                                         - &#x20B9; {{
                                         result.DeliveryCharges }}
                                     </span>

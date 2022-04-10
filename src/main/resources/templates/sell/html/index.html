@@ -531,6 +531,15 @@
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input align-middle" type="checkbox"
+                                    v-bind:key="'DeliveryChargedOnActual' + i" v-bind:id="'DeliveryChargedOnActual' + i"
+                                    placeholder="Delivery Charged On Actual" v-model="current.Facility.DeliveryChargedOnActual"
+                                    true-value="Y" false-value="N">
+                                <label class="form-check-label align-middle"
+                                    v-bind:for="'DeliveryChargedOnActual' + i">Delivery
+                                    Charged On Actuals</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input align-middle" type="checkbox"
                                     v-bind:key="'CodEnabled' + i" v-bind:id="'CodEnabled' + i"
                                     placeholder="Cod Enabled" v-model="current.Facility.CodEnabled"
                                     true-value="Y" false-value="N">

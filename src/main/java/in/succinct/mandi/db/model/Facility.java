@@ -48,6 +48,10 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
     public boolean isDeliveryProvided();
     public void setDeliveryProvided(boolean deliveryProvided);
 
+    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
+    public boolean isDeliveryChargedOnActual();
+    public void setDeliveryChargedOnActual(boolean deliveryChargedOnActual);
+
     @COLUMN_DEF(StandardDefault.ZERO)
     public double getDeliveryRadius();
     public void setDeliveryRadius(double deliveryRadius);

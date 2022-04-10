@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Order {
-
+    public static final double GST_RATE_FOR_DELIVERY = 18.0;
     static Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>,List<String>> map = new HashMap<>();
         map.put(Order.class, ModelReflector.instance(Order.class).getVisibleFields(Arrays.asList("ID","LOCK_ID","CREATED_AT" ,"UPDATED_AT","CREATOR_USER_ID")));
@@ -75,6 +75,7 @@ public interface Order extends in.succinct.plugins.ecommerce.db.model.order.Orde
         facilityFields.add("ID");
         facilityFields.add("DELIVERY_PROVIDED");
         facilityFields.add("COD_ENABLED");
+        facilityFields.add("DELIVERY_CHARGED_ON_ACTUAL");
         facilityFields.add("CREATOR_USER_ID");
         facilityFields.add("MERCHANT_FACILITY_REFERENCE");
 

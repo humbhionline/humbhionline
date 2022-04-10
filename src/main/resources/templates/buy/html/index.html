@@ -436,7 +436,8 @@
                                             Delivery
                                         </del>
                                         <span v-else>
-                                            Delivery
+                                            Delivery 
+                                        </span>
                                         </span>
                                         <a href="#" @click="toggleCustomerPickUp($event,facility.Id)"
                                             v-if="facilityOrders[facility.Id].OrderLines && facilityOrders[facility.Id].OrderLines.length > 0 && facilityOrders[facility.Id].OrderLines[0].Inventory.DeliveryProvided === 'Y'">
@@ -446,8 +447,17 @@
                                                 v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'"></i>
                                         </a>
                                     </div>
+                                    <div class="col-6 d-flex align-item-center justify-content-end"
+                                        v-if="facility.DeliveryChargedOnActual === 'Y'">
+                                        <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
+                                            charged on actuals.
+                                        </del>
+                                        <span v-else>
+                                            charged on actuals.
+                                        </span>
+                                    </div>  
                                     <div class="col-5 d-flex align-item-center justify-content-end"
-                                        v-if="!isDeliveryOrder(facility.Id) && DeliveryAmount[facility.Id]">
+                                        v-else-if="!isDeliveryOrder(facility.Id) && DeliveryAmount[facility.Id]">
                                         <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
                                             &#8377; {{ DeliveryAmount[facility.Id].toFixed(2) }}
                                         </del>

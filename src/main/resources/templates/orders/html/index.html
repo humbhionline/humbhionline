@@ -686,9 +686,76 @@
                     url += '?phone=' + phoneable.PhoneNumber;
                     return url;
                 },
+                editDeliveryPrice: function(event, o){
+                    let self = this; 
+                    self.editActualDeliveryPrice(event,o).then(function(order){
+                        api().url("/orders/save").parameters({"Order": order}).post().then(function(r){
+                            let orderId = r.Orders[0].Id;
+                            let index = self.Orders.findIndex(function(o){
+                                return o.Id === orderId;
+                            });
+                            if (index >= 0 ){
+                                api().url(`/orders/show/${orderId}`).get().then(function(r){
+                                    self.updateOrderInList(r.Order,index);
+                                });
+                            }
+                        });
+                    }).catch(function(err){
+                        showErrorMessage(err);
+                    });
+
+                },
+                editActualDeliveryPrice: function(event,o) {
+                    let oldDeliveryCharges = o.ShippingSellingPrice; 
+                    return new Promise(function (resolve, reject) {
+                        $.confirm({
+                            title: "Actual Delivery Charges",
+                            content: '' +
+                                '<form action="" class="formName">' +
+                                '<div class="form-group">' +
+                                '<label>Enter Delivery Charges</label>' +
+                                '<input type="text" placeholder="Delivery Charges" class="price form-control" required />' +
+                                '</div>' +
+                                '</form>',
+                            buttons: {
+                                formSubmit: {
+                                    text: 'Done',
+                                    btnClass: 'btn-primary',
+                                    action: function () {
+                                        var price = this.$content.find('.price').val();
+                                        if (!price){
+                                            price = 0;
+                                        }
+                                        price = price * 1; 
+
+                                        if (price >= 0) {
+                                            o.ShippingSellingPrice = price ;
+                                            resolve(o);
+                                        }else {
+                                            reject("Price must be a positive value!");
+                                        }
+                                    }
+                                },
+                                cancel: function () {
+                                    reject("No change in price");
+                                },
+                            },
+                            onContentReady: function () {
+                                // bind to events
+                                var jc = this;
+                                this.$content.find('.price').val(o.ShippingSellingPrice* 1> 0? o.ShippingSellingPrice : "");
+                                this.$content.find('form').on('submit', function (e) {
+                                    // if the user submits the form by pressing enter in the field.
+                                    e.preventDefault();
+                                    jc.$$formSubmit.trigger('click'); // reference the button and click it
+                                });
+                            },
+                        })
+                    });
+                },
                 editLinePrice: function(event, ol){
                     let self = this;
-                    self.editPrice(event,ol).then(function(order_line){
+                    self.editUnitPrice(event,ol).then(function(order_line){
                         api().url("/order_lines/save").parameters({"OrderLine": order_line}).post().then(function(r){
                             let orderId = r.OrderLines[0].Order.Id;
                             let index = self.Orders.findIndex(function(o){
@@ -704,7 +771,7 @@
                         showErrorMessage(err);
                     });
                 },
-                editPrice: function(event, ol){
+                editUnitPrice: function(event, ol){
                     return new Promise(function (resolve, reject) {
                         $.confirm({
                             title: "Enter Unit Price",
@@ -1030,23 +1097,16 @@
                                     {{ (ol.OrderedQuantity * 1.0).toFixed(0) }}
                                 </div>
                             </div>
-                            <div class="col-4 d-flex justify-content-center align-items-center small">
-                                <div class="container">
-                                    <div class="row"
-                                        v-if="ol.RemainingCancellableQuantity * 1.0 > 0 && ol.MaxRetailPrice * 1.0 > ol.SellingPrice * 1.0 ">
-                                        <div class="col">
-                                            <strike>
-                                                &#x20B9; {{ ( ol.MaxRetailPrice * 1.0).toFixed(2) }}
-                                            </strike>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col text-right">
-                                            <a href=#" class="fas fa-edit" @click="editLinePrice($event,ol)" v-if="sales"></a>
-                                            &#x20B9; {{ ( ol.SellingPrice * 1.0 ).toFixed(2) }}
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="col-3 d-flex justify-content-end align-items-center small">
+                                <strike v-if="ol.RemainingCancellableQuantity * 1.0 > 0 && ol.MaxRetailPrice * 1.0 > ol.SellingPrice * 1.0 ">
+                                    &#x20B9; {{ ( ol.MaxRetailPrice * 1.0).toFixed(2) }}
+                                </strike>
+                                <span v-if="o.SellingPrice * 1> 0" class="mr-1" >
+                                    &#x20B9; {{ ( ol.SellingPrice * 1.0 ).toFixed(2) }}
+                                </span>
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
+                                <a href=#" class="fas fa-edit" @click="editLinePrice($event,ol)" v-if="sales"></a>
                             </div>
                             <div class="col-1 d-flex justify-content-center align-items-center">
                                 <a href="#" class="btn" v-on:click="cancel_order_line($event,ol,o)"
@@ -1055,14 +1115,19 @@
                                 </a>
                             </div>
                         </div>
-                        <div class="form-row border-top py-2 mt-2" v-if="o.CustomerPickup === 'N' && o.ShippingSellingPrice && o.ShippingSellingPrice * 1.0 > 0 ">
+                        <div class="form-row border-top py-2 mt-2" v-if="o.CustomerPickup === 'N'" >
                             <div class="col d-flex align-items-center small">
-                                Delivery Charges
+                                Delivery Charges {{( o.Facility.DeliveryChargedOnActual === 'Y' 
+                                                    && o.ShippingSellingPrice * 1 === 0) ? "- NA -" : "" }}
                             </div>
-                            <div class="col-2 d-flex justify-content-center align-items-center">
-                            </div>
-                            <div class="col-4 d-flex justify-content-center align-items-center small">
+                            <div class="col-3 d-flex justify-content-end align-items-center small">
+                                <span v-if="o.ShippingSellingPrice * 1 > 0" class="mr-1" >
                                 + &#x20B9; {{ ( o.ShippingSellingPrice *1.0).toFixed(2) }}
+                                </span>
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
+                                <a href=#" v-bind:class="'fas '+ (o.ShippingSellingPrice * 1.0 > 0 ? 'fa-edit' : 'fa-plus')" @click="editDeliveryPrice($event,o)" 
+                                        v-if="sales && o.Facility.DeliveryChargedOnActual === 'Y' "></a>
                             </div>
                             <div class="col-1 d-flex justify-content-center align-items-center">
                             </div>
