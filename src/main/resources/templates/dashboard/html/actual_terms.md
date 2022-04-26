@@ -35,12 +35,17 @@ These services are provided via the "HumBhiOnline", android mobile application o
 
 Users availing services of the platform either play the role of Buyer or Seller at a transaction level. Sellers in one transactions may be Buyers in another and vice versa. For users who would like to use the platform only to buy from sellers in their neighbourhood, would not be charged for the platform services.
 
-As a User, who would like to sell products/services on the platform, you would need to buy pre-paid humbhionline credits. These credits are sold in packs of 50, 100 etc. and are deducted as and when orders are successfully booked against you as a seller. For every item included in an order, your humbhionline credit's balance would be reduced by 1.
+As a User, who would like to sell products/services on the platform, you would need to buy pre-paid humbhionline credits. These credits are sold in packs of 50, 100 etc. and are deducted as and when orders are successfully booked against you as a seller. For each item included in an order irrespective of the  quantity and price, your humbhionline credit's balance would be reduced by 1. 
+
 
 for e.g, If you receive an order for 2 Kg Rice and 5Kg Wheat, 2 credits will be deducted from your humbhionline credit balance as there were 2 items included in the order, namely Rice and Wheat. 
 
+If for any reason, an entire item is removed/cancelled from an order, your credit balance would be increased by 1. 
+
 
 Sellers would need to keep adequate credit balance by precharging their account from time to time. Once the humbhionline credits run out, i.e becomes zero, buyers would stop finding you and your products on the platform until the account is recharged and a positive balance is maintained. 
+
+
 
 ## Registration
 In order to use the services offered by the platform, a user needs to be 18 years or over to register with the platform by providing his/her mobile phone number which will be confirmed the first time via a one-time-password (OTP) sent to the said mobile phone number.
@@ -87,4 +92,4 @@ To know more about our complete privacy policy, click [Here](/privacy)
 1. Any changes done to this document would be communicated via the application and via email if registered with the platform. Your continued usage of the platform assumes that you agree to the changes made to the document. It is your responsibility to keep a watch for the changes to this document and take action  accordingly.
 
 ## Contact us
- If you have any questions about this Agreement, the practices of the platform, or your experience with the Service, you can contact us at <a href="mailto:support@humbhionline">support@humbhionline.in</a>.
+ If you have any questions about this Agreement, the practices of the platform, or your experience with the Service, you can email us at <a href="mailto:support@humbhionline">support@humbhionline.in</a> or  call us at <a href="tel:9845114558">9845114558</a>.

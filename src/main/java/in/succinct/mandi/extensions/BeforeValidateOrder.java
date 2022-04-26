@@ -21,7 +21,8 @@ public class BeforeValidateOrder extends BeforeModelValidateExtension<Order> {
         if (!model.getRawRecord().isNewRecord() && model.getRawRecord().isFieldDirty("SHIPPING_SELLING_PRICE")) {
             //Delivery price edit support
             double shippingSellingPrice = model.getShippingSellingPrice();
-            double shippingPrice = model.getShippingSellingPrice()/(1.0 + Order.GST_RATE_FOR_DELIVERY/100.0);
+            double taxRate = ObjectUtil.isVoid(model.getFacility().getGSTIN())? 0.0 : Order.GST_RATE_FOR_DELIVERY;
+            double shippingPrice = model.getShippingSellingPrice()/(1.0 + taxRate/100.0);
             double tax = shippingSellingPrice - shippingPrice;
             model.setShippingPrice(new DoubleHolder(shippingPrice,2).getHeldDouble().doubleValue());
             model.setPrice(model.getProductPrice() + model.getShippingPrice());
