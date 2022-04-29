@@ -187,8 +187,7 @@ public class Init extends BecknAsyncTask {
         Address address = OrderUtil.getAddress(end.getLocation());
         OrderAddress orderAddress = Database.getTable(OrderAddress.class).newRecord();
         loadAddress(orderAddress,address);
-        orderAddress.setFirstName(fulfillment.getCustomer().getPerson().getName());
-        orderAddress.setLastName("");
+        OrderUtil.setName(orderAddress,fulfillment.getCustomer().getPerson().getName());
         orderAddress.setOrderId(order.getId());
         orderAddress.setAddressType(in.succinct.plugins.ecommerce.db.model.order.OrderAddress.ADDRESS_TYPE_SHIP_TO);
         orderAddress.setPhoneNumber(end.getContact().getPhone());

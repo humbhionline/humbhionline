@@ -29,10 +29,10 @@ public class MessageCallbackUtil  {
             Config.instance().getLogger(getClass().getName()).log(Level.WARNING,"Timeout Exceeded. Response thrashed!! :(");
         }
     }
-    public void initializeCallBackData(String msgId){
+    public void initializeCallBackData(String msgId,long ttl ){
         CallBackData data = messageCallback.get(msgId);
         if (data == null ) {
-            data = new CallBackData();
+            data = new CallBackData(ttl);
             messageCallback.put(msgId, data);
         }
     }
@@ -48,8 +48,11 @@ public class MessageCallbackUtil  {
     }
 
     public static class CallBackData {
+        public CallBackData(long  ttl){
+            this.timeOutMillis = System.currentTimeMillis() + ttl * 1000L;
+        }
         private final LinkedList<JSONObject> responses = new LinkedList<>();
-        long timeOutMillis = (long)Math.pow(2,14); // 8 Seconds
+        long timeOutMillis ;
         public void add(JSONObject response) {
             synchronized (this){
                 responses.add(response);
@@ -59,14 +62,16 @@ public class MessageCallbackUtil  {
 
 
         public JSONObject readNextResponse() {
+
             synchronized (this) {
-                while (responses.isEmpty() && timeOutMillis >= 256) {
+                long now = System.currentTimeMillis();
+                while (responses.isEmpty() && timeOutMillis > now) {
                     try {
-                        wait(timeOutMillis);
+                        wait(timeOutMillis -  now);
                     } catch (InterruptedException ex) {
                         //It was interrupted by some response being added.
                     }finally {
-                        timeOutMillis = timeOutMillis / 2L ;
+                        now = System.currentTimeMillis();
                     }
                 }
                 if (!responses.isEmpty()) {

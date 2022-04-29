@@ -29,6 +29,7 @@ import in.succinct.beckn.Location;
 import in.succinct.beckn.Locations;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
+import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
@@ -46,10 +47,32 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class OrderUtil {
     public  OrderUtil(){
 
+    }
+
+    public static void setName(OrderAddress orderAddress, String name) {
+        String regex = "^\\./([^/]+)/([^/]*)/([^/]*)/([^/]*)/([^/]*)/([^/]*)$";
+
+        // ./{given_name}/{honorific_prefix}/{first_name}/{middle_name}/{last_name}/{honorific_suffix}'
+
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(name);
+        if (!matcher.matches()){
+            throw new RuntimeException("Invalid Name format");
+        }
+
+        orderAddress.setLongName(name);
+        orderAddress.setFirstName(matcher.group(3));
+        orderAddress.setLastName(String.format("%s %s %s",matcher.group(4) ,matcher.group(5),matcher.group(6)).trim());
+
+    }
+    private static String getName(OrderAddress address){
+        return address.getLongName();
     }
 
     public enum OrderFormat {
@@ -131,6 +154,10 @@ public class OrderUtil {
 
         Order transport = order.getTransportOrder();
         Fulfillment fulfillment = new Fulfillment();
+        fulfillment.setCustomer(new in.succinct.beckn.User());
+        fulfillment.getCustomer().setPerson(new Person());
+        fulfillment.getCustomer().getPerson().setName(getName(shipToAddress));
+
         becknOrder.setFulfillment(fulfillment);
         fulfillment.setStart(new FulfillmentStop());
         Location startLocation = new Location();
@@ -170,6 +197,7 @@ public class OrderUtil {
                 payment.setParams(new Params());
                 payment.getParams().setTransactionId("O:"+order.getId());
                 payment.getParams().setAmount(order.getAmountPendingPayment());
+                payment.getParams().setCurrency("INR");
                 User seller = order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class);
                 if (!ObjectUtil.isVoid(seller.getVirtualPaymentAddress())) {
                     StringBuilder url = new StringBuilder();

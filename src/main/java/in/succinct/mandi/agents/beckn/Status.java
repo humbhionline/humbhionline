@@ -35,7 +35,13 @@ public class Status extends BecknAsyncTask {
         onStatus.setMessage(new Message());
         onStatus.getContext().setAction("on_status");
 
-        String orderId = request.getMessage().getOrder().getId();
+        String orderId = request.getMessage().get("order_id");
+        if  (orderId == null){
+            in.succinct.beckn.Order order = request.getMessage().getOrder();
+            if (order != null){
+                orderId = order.getId();
+            }
+        }
         Long lOrderId = Long.valueOf(BecknUtil.getLocalUniqueId(orderId, Entity.order));
 
         Order order = Database.getTable(Order.class).get(lOrderId);

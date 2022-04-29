@@ -74,7 +74,7 @@ class BecknCourierAggregator implements CourierAggregator {
         context.setMessageId(UUID.randomUUID().toString());
         context.setTransactionId(context.getMessageId());
         context.setCoreVersion("0.9.1");
-        context.setTtl(30);
+        context.setTtl(6);
         //context.setKey(BecknUtil.getSelfEncryptionKey(network).getPublicKey());
         return context;
     }
@@ -253,7 +253,7 @@ class BecknCourierAggregator implements CourierAggregator {
         JSONObject gw = getGateway();
         String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),BecknUtil.getCryptoKeyId(network,BecknUtil.LOCAL_DELIVERY));
 
-        MessageCallbackUtil.getInstance().initializeCallBackData(request.getContext().getMessageId());
+        MessageCallbackUtil.getInstance().initializeCallBackData(request.getContext().getMessageId(),request.getContext().getTtl());
         try {
             InputStream responseStream = new Call<>().url((String)gw.get("subscriber_url") +"/search").header("content-type","application/json").header("accept","application/json").
                     header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(request.getInner()).method(HttpMethod.POST).getResponseStream();
@@ -309,7 +309,7 @@ class BecknCourierAggregator implements CourierAggregator {
         String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId(network,BecknUtil.LOCAL_DELIVERY));
 
 
-        MessageCallbackUtil.getInstance().initializeCallBackData(confirmRequest.getContext().getMessageId());
+        MessageCallbackUtil.getInstance().initializeCallBackData(confirmRequest.getContext().getMessageId(),confirmRequest.getContext().getTtl());
 
         try {
             InputStream responseStream = new Call<>().url(confirmRequest.getContext().getBppUri() +"/confirm").header("content-type","application/json").header("accept","application/json").

@@ -219,6 +219,7 @@ public class InventoriesController extends LocalSearchController<Inventory> {
         sku.setItemId(item.getId());
         sku.setCompanyId(item.getCompanyId());
         sku.setPackagingUOMId(UnitOfMeasure.getMeasure(UnitOfMeasure.MEASURES_PACKAGING,"Kms").getId());
+        sku.setName(item.getName() +"-Kms");
         sku = Database.getTable(Sku.class).getRefreshed(sku);
         sku.setPublished(true);
         if (sku.getRawRecord().isNewRecord()) {
