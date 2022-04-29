@@ -52,7 +52,7 @@ public class BeforeSaveInventory extends BeforeModelSaveExtension<Inventory> {
         }
         List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
         boolean currentSkuIsDeliveryAsset = deliverySkuIds.contains(inventory.getSkuId());
-        if (inventory.isPublished()){
+        if (inventory.isEnabled()){
             Expression where = new Expression(inventory.getReflector().getPool(),Conjunction.AND);
             where.add(new Expression(inventory.getReflector().getPool(),"FACILITY_ID",Operator.EQ,inventory.getFacilityId()));
             if (currentSkuIsDeliveryAsset){

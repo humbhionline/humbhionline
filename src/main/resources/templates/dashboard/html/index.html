@@ -1139,8 +1139,7 @@
                                     <strike v-if="result.MaxRetailPrice * 1.0 > result.SellingPrice">
                                         &#x20B9; {{result.MaxRetailPrice}}
                                     </strike>
-                                    <span>&#x20B9;</span>
-                                    {{result.SellingPrice.split(".")[0]}}<span>.{{result.SellingPrice.split(".")[1]}}</span>
+                                    <span v-if="result.SellingPrice * 1.0 > 0.0">&#x20B9; {{result.SellingPrice}}</span>
                                 </h6>
                                 <small class="d-inline-block d-sm-none">
                                     <del v-if="result.Facility.CodEnabled !== 'Y'">COD</del>

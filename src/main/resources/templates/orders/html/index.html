@@ -1101,16 +1101,16 @@
                                 <strike v-if="ol.RemainingCancellableQuantity * 1.0 > 0 && ol.MaxRetailPrice * 1.0 > ol.SellingPrice * 1.0 ">
                                     &#x20B9; {{ ( ol.MaxRetailPrice * 1.0).toFixed(2) }}
                                 </strike>
-                                <span v-if="o.SellingPrice * 1> 0" class="mr-1" >
+                                <span v-if="ol.SellingPrice * 1> 0" class="mr-1" >
                                     &#x20B9; {{ ( ol.SellingPrice * 1.0 ).toFixed(2) }}
                                 </span>
                             </div>
                             <div class="col-1 d-flex justify-content-center align-items-center">
-                                <a href=#" class="fas fa-edit" @click="editLinePrice($event,ol)" v-if="sales"></a>
+                                <a href=#" class="fas fa-edit" @click="editLinePrice($event,ol)" v-if="sales && !isDeliveryOrder(o)"></a>
                             </div>
                             <div class="col-1 d-flex justify-content-center align-items-center">
                                 <a href="#" class="btn" v-on:click="cancel_order_line($event,ol,o)"
-                                    v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0">
+                                    v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0 && !isDeliveryOrder(o)">
                                     <i class=" fas fa-times"></i>
                                 </a>
                             </div>
@@ -1127,7 +1127,7 @@
                             </div>
                             <div class="col-1 d-flex justify-content-center align-items-center">
                                 <a href=#" v-bind:class="'fas '+ (o.ShippingSellingPrice * 1.0 > 0 ? 'fa-edit' : 'fa-plus')" @click="editDeliveryPrice($event,o)" 
-                                        v-if="sales && o.Facility.DeliveryChargedOnActual === 'Y' "></a>
+                                        v-if="sales && o.Facility.DeliveryChargedOnActual === 'Y' && !isDeliveryOrder(o)"></a>
                             </div>
                             <div class="col-1 d-flex justify-content-center align-items-center">
                             </div>

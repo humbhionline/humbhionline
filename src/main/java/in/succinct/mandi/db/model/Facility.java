@@ -72,7 +72,10 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
     public void setChargesPerKm(double chargesPerKm);
 
     @IS_VIRTUAL
-    public double getDeliveryCharges(double distance);
+    public double getDeliveryCharges(double distance, boolean published);
+
+    @IS_VIRTUAL
+    public double getDeliveryCharges(double distance, Inventory deliveryRule);
 
     @IS_VIRTUAL
     public Double getDeliveryCharges();

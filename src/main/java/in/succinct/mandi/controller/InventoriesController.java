@@ -288,9 +288,11 @@ public class InventoriesController extends LocalSearchController<Inventory> {
                 pass = pass && distanceToPickLocation < facility.getDeliveryRadius();
                 if (pass){
                     record.setDeliveryProvided(true);
-                    record.setMaxRetailPrice(facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation));
-                    record.setSellingPrice(record.getMaxRetailPrice());
-                    record.setDeliveryCharges(0.0);
+                    double deliveryCharges = facility.getDeliveryCharges(distanceBetweenPickUpAndDeliveryLocation,record);
+
+                    record.setMaxRetailPrice(0.0);
+                    record.setSellingPrice(0.0);
+                    record.setDeliveryCharges(deliveryCharges);
                     record.setChargeableDistance(Math.max(facility.getMinChargeableDistance(),new DoubleHolder(distanceBetweenPickUpAndDeliveryLocation,2).getHeldDouble().doubleValue()));
                     if (deliveryBoyLocation != null) {
                         facility.setDistance(new DoubleHolder(new GeoCoordinate(deliveryBoyLocation).distanceTo(new GeoCoordinate(order.getFacility())), 2).getHeldDouble().doubleValue());
@@ -324,7 +326,7 @@ public class InventoriesController extends LocalSearchController<Inventory> {
         record.setDeliveryProvided(facility.isDeliveryProvided() && facility.getDeliveryRadius() > facility.getDistance());
         if (record.isDeliveryProvided()){
             Inventory deliveryRule = facility.getDeliveryRule(false);
-            record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
+            record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance(),false),2).getHeldDouble().doubleValue());
             record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
         }
 

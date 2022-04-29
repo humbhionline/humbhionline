@@ -535,7 +535,7 @@ public class OrderUtil {
             if (facility.getDeliveryRadius() < distance){
                 throw new RuntimeException("Seller does not provide home delivery beyond " + facility.getDeliveryRadius());
             }else {
-                return facility.getDeliveryCharges(distance);
+                return facility.getDeliveryCharges(distance,false);
             }
         }
 

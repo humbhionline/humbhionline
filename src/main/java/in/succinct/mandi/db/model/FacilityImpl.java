@@ -131,30 +131,34 @@ public class FacilityImpl extends ModelImpl<Facility> {
         if (user != null){
             User user1  = user.getRawRecord().getAsProxy(User.class);
             if (user1.getCurrentLat() != null && user1.getCurrentLng() != null && facility.getLat() != null && facility.getLng() != null) {
-                deliveryCharges = getDeliveryCharges(new GeoCoordinate(user1.getCurrentLat(), user1.getCurrentLng()).distanceTo(new GeoCoordinate(getProxy())));
+                deliveryCharges = getDeliveryCharges(new GeoCoordinate(user1.getCurrentLat(), user1.getCurrentLng()).distanceTo(new GeoCoordinate(getProxy())),false);
             }
         }
         return deliveryCharges;
     }
-    public double getDeliveryCharges(double distance) {
+    public double getDeliveryCharges(double distance, boolean published) {
         Facility facility = getProxy();
         double charges = 0;
         if (facility.isDeliveryProvided()){
             charges =  facility.getMinDeliveryCharge();
-            Inventory deliveryRule = getDeliveryRule(false);
-            if (deliveryRule != null){
-                double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, deliveryRule.getSku().getPackagingUOM().getName());
-                cf = new DoubleHolder(cf,4).getHeldDouble().doubleValue();
-                if (cf == 0){
-                    throw new RuntimeException("Don't know how to convert " + deliveryRule.getSku().getPackagingUOM().getName() + " to " + UnitOfMeasure.KILOMETERS);
-                }
-                charges += ( deliveryRule.getSellingPrice() / cf ) * Math.round(Math.max(0,distance - facility.getMinChargeableDistance()));
-            }
+            Inventory deliveryRule = getDeliveryRule(published);
+            charges += getDeliveryCharges(distance,deliveryRule);
         }
         return charges;
+    }
+    public double getDeliveryCharges(double distance, Inventory deliveryRule) {
+        if (deliveryRule == null){
+            return 0.0;
+        }
+        Facility facility = getProxy();
+        double cf = UnitOfMeasureConversionTable.convert(1, UnitOfMeasure.MEASURES_PACKAGING,UnitOfMeasure.KILOMETERS, deliveryRule.getSku().getPackagingUOM().getName());
+        cf = new DoubleHolder(cf,4).getHeldDouble().doubleValue();
+        if (cf == 0){
+            throw new RuntimeException("Don't know how to convert " + deliveryRule.getSku().getPackagingUOM().getName() + " to " + UnitOfMeasure.KILOMETERS);
+        }
+        return ( deliveryRule.getSellingPrice() / cf ) * Math.round(Math.max(0,distance - facility.getMinChargeableDistance()));
 
     }
-
     public int getNumSkus(){
         if (getProxy().getRawRecord().isNewRecord() ){
             return 0;

@@ -154,7 +154,7 @@ public class Search extends BecknAsyncTask {
                         if (record.isDeliveryProvided()){
                             Inventory deliveryRule = facility.getDeliveryRule(false);
                             if (deliveryRule != null){
-                                record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance()),2).getHeldDouble().doubleValue());
+                                record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance(),false),2).getHeldDouble().doubleValue());
                             }
                             record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
                         }

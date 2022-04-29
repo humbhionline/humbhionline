@@ -30,7 +30,7 @@ public class OnOrderLineDownloaded implements Extension {
             vendor.setBalanceOrderLineCount(vendor.getBalanceOrderLineCount() - 1);
             vendor.save();
         }
-        if (!orderLine.getInventory().isInfinite()){
+        if (orderLine.getInventory() != null && !orderLine.getInventory().isInfinite()){
             TaskManager.instance().executeAsync(new AcknowledgeOrderTask(orderLine.getOrder()),false);
         }
     }

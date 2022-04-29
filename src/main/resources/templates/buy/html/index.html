@@ -379,7 +379,7 @@
                         </div>
                         <div class="col-sm-10 col-8">
                             <h6>{{ol.Inventory.Sku.Name}}</h6>
-                            <p>@
+                            <p v-if="ol.Inventory.SellingPrice *1.0 > 0 ">@
                                 <strike v-if="ol.Inventory.MaxRetailPrice * 1 > ol.Inventory.SellingPrice * 1">
                                     &#8377; {{ol.Inventory.MaxRetailPrice}}
                                 </strike>
