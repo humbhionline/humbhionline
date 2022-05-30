@@ -6,7 +6,7 @@ By using HumBhiOnline, you agree to our use of your personal information (includ
 
 Personal information subject to this Privacy Notice will be collected and retained by HumBhiOnline, with its operational office from the house of Venkatraman Mahadevan, A302 Pride Apartments Bannergatta Road, Billekahalli , Bangalore 560076 (GSTIN 29AAWPM7654G1ZV). 
 
-#Information we collect
+# Information we collect
 We collect your personal information in order to provide and continually improve our products and services.
 
 Here are a list of personal information we collect and how we use it.While some of the information is optional , your providing the same would make your experience in HumBhiOnline smoother. 

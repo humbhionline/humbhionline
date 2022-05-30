@@ -64,18 +64,23 @@
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
+            <artifactId>swf-plugin-bootstrap</artifactId>
+            <version>[1.0,)</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-mobilesignup</artifactId>
-                <version>2.11</version>
+            <version>[2.11,)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-gst</artifactId>
-            <version>2.11</version>
+            <version>[2.11,)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-calendar</artifactId>
-            <version>2.11</version>
+            <version>[2.11,)</version>
         </dependency>
         <!--
         <dependency>
@@ -87,27 +92,27 @@
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-datamart</artifactId>
-            <version>2.11</version>
+            <version>[2.11,)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-slideshow</artifactId>
-            <version>2.11</version>
+            <version>[2.11,)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-beckn</artifactId>
-            <version>2.12</version>
+            <version>[2.12,)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-hivemq</artifactId>
-            <version>2.11</version>
+            <version>[2.11,)</version>
         </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-nats</artifactId>
-            <version>2.11</version>
+            <version>[2.11,)</version>
         </dependency>
         <dependency>
             <groupId>in.succinct.beckn</groupId>
