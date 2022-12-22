@@ -73,8 +73,8 @@ public class BeforeValidateUser extends BeforeModelValidateExtension<User> {
             }
         }
         if (addressChanged){
-            model.setLat(model.getCurrentLat());
-            model.setLng(model.getCurrentLng());
+            model.setLat(currentUser.getCurrentLat());
+            model.setLng(currentUser.getCurrentLng());
         }
 
     }

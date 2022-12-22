@@ -78,7 +78,6 @@ public interface BecknNetwork  extends Model {
     public static List<BecknNetwork> all(){
         return new Select().from(BecknNetwork.class).where(
                 new Expression(ModelReflector.instance(BecknNetwork.class).getPool(), Conjunction.AND).
-                        add(new Expression(ModelReflector.instance(BecknNetwork.class).getPool(),"SUBSCRIPTION_ACTIVE", Operator.EQ,true)).
                         add(new Expression(ModelReflector.instance(BecknNetwork.class).getPool(),"DISABLED", Operator.EQ,false))
         ).orderBy("PRIORITY").execute(BecknNetwork.class);
     }

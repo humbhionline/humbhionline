@@ -57,6 +57,7 @@ public class AfterSaveFacility extends AfterModelSaveExtension<Facility> {
 
             inventory.setMaxRetailPrice(model.getChargesPerKm()*cf);
             inventory.setSellingPrice(model.getChargesPerKm()*cf);
+            inventory.setEnabled(false);
             inventory.save();
 
         }else if (inventory != null ){

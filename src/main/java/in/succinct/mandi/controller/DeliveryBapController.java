@@ -11,7 +11,7 @@ import com.venky.swf.plugins.beckn.messaging.Mq;
 import com.venky.swf.plugins.beckn.messaging.ProxySubscriberImpl;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
-import com.venky.swf.plugins.collab.db.model.CryptoKey;
+import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.routing.Config;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;

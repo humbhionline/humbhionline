@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,21 +57,36 @@ public class OrderUtil {
     }
 
     public static void setName(OrderAddress orderAddress, String name) {
+        // ./{given_name}/{honorific_prefix}/{first_name}/{middle_name}/{last_name}/{honorific_suffix}'
+        /*
         String regex = "^\\./([^/]+)/([^/]*)/([^/]*)/([^/]*)/([^/]*)/([^/]*)$";
 
-        // ./{given_name}/{honorific_prefix}/{first_name}/{middle_name}/{last_name}/{honorific_suffix}'
 
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(name);
         if (!matcher.matches()){
             throw new RuntimeException("Invalid Name format");
         }
-
+         */
         orderAddress.setLongName(name);
-        orderAddress.setFirstName(matcher.group(3));
-        orderAddress.setLastName(String.format("%s %s %s",matcher.group(4) ,matcher.group(5),matcher.group(6)).trim());
+
+        StringBuilder lastName = new StringBuilder();
+        StringTokenizer tokenizer = new StringTokenizer(name," ");
+        while (tokenizer.hasMoreTokens()){
+            if (ObjectUtil.isVoid(orderAddress.getFirstName())) {
+                orderAddress.setFirstName(tokenizer.nextToken());
+            }else {
+                if (lastName.length() > 0){
+                    lastName.append(" ");
+                }
+                lastName.append(tokenizer.nextElement());
+            }
+        }
+
+        orderAddress.setLastName(lastName.toString());
 
     }
+
     private static String getName(OrderAddress address){
         return address.getLongName();
     }
@@ -86,7 +102,7 @@ public class OrderUtil {
             becknOrder.setId(BecknUtil.getBecknId(order.getId(), Entity.order));
             becknOrder.setCreatedAt(order.getCreatedAt());
             becknOrder.setUpdatedAt(order.getUpdatedAt());
-            becknOrder.set("state",order.getFulfillmentStatus());
+            becknOrder.set("state",ObjectUtil.equals(order.getFulfillmentStatus(),Order.FULFILLMENT_STATUS_DOWNLOADED)? "INITIATED" :order.getFulfillmentStatus());
         }
         becknOrder.setProvider(new Provider());
         becknOrder.getProvider().setId(BecknUtil.getBecknId(String.valueOf(order.getFacility().getCreatorUserId()), Entity.provider));
