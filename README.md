@@ -1,4 +1,4 @@
-# HumBhiOnline Community Edition
+# HumBhiOnline (Mandi) Community Edition
 ## An open source market place software.
 
 [HumBhiOnline](https://humbhionline.in) is an open source marketplace platform tailor made for small sellers and home enterprenurs in India. It is built on top of the [Succinct Web Framework](https://github.com/venkatramanm/swf-all).
