@@ -78,7 +78,7 @@ public class BecknMessagesController extends ModelController<BecknMessage> {
     }
     public View ack(Request request){
         Acknowledgement ack = new Acknowledgement(Status.ACK);
-        return new BytesView(getPath(),new Response(request.getContext(),ack).toString().getBytes(StandardCharsets.UTF_8));
+        return new BytesView(getPath(),new Response(ack).toString().getBytes(StandardCharsets.UTF_8));
     }
 
     @RequireLogin(false)

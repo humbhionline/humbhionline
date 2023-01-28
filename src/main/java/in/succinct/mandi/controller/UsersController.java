@@ -28,7 +28,6 @@ import com.venky.swf.plugins.security.db.model.UserRole;
 import com.venky.swf.plugins.templates.db.model.alerts.Device;
 import com.venky.swf.plugins.templates.util.templates.TemplateEngine;
 import com.venky.swf.routing.Config;
-import com.venky.swf.sql.Select;
 import com.venky.swf.sql.Select.ResultFilter;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
@@ -178,6 +177,12 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         return IntegrationAdaptor.instance(User.class, FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).createResponse(getPath(),
                 user,user.getReflector().getFields(),new HashSet<>(),getIncludedModelFields());
     }
+
+    @Override
+    protected String[] getIncludedFields() {
+        return getIncludedModelFields().get(User.class).toArray(new String[]{});
+    }
+
     @Override
     protected Map<Class<? extends Model>, List<String>> getIncludedModelFields() {
         Map<Class<? extends Model>,List<String>> map = super.getIncludedModelFields();
@@ -195,6 +200,9 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         }
         if (!map.containsKey(SavedAddress.class)) {
             map.put(SavedAddress.class, ModelReflector.instance(SavedAddress.class).getVisibleFields());
+        }
+        if (!map.containsKey(User.class)) {
+            map.put(User.class, ModelReflector.instance(User.class).getVisibleFields());
         }
         return map;
     }
@@ -371,4 +379,6 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         object.put("PasswordSet",converter.toString(hasPassword));
         return object;
     }
+
+
 }

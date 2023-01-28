@@ -4,12 +4,7 @@ import com.venky.core.math.DoubleHolder;
 import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
-import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.reflection.ModelReflector;
-import com.venky.swf.integration.api.Call;
-import com.venky.swf.integration.api.HttpMethod;
-import com.venky.swf.integration.api.InputFormat;
-import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.util.BoundingBox;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
 import com.venky.swf.pm.DataSecurityFilter;
@@ -24,7 +19,6 @@ import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.Fulfillment.FulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
-import in.succinct.beckn.Image;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Intent;
 import in.succinct.beckn.Item;
@@ -47,10 +41,8 @@ import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.participation.Company;
 import org.apache.lucene.search.Query;
-import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -288,7 +280,7 @@ public class Search extends BecknAsyncTask {
 
                 Expression or = new Expression(ref.getPool(), Conjunction.OR);
                 where.add(or);
-                Location location = end == null ? null : end.getLocation();
+                Location location = end.getLocation();
                 GeoCoordinate gps = location == null ? null : location.getGps();
                 if (gps != null) {
                     Expression deliveryProvidedWhere = new Expression(ref.getPool(),Conjunction.AND);

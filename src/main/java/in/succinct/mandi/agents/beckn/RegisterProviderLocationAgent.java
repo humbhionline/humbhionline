@@ -14,6 +14,7 @@ import in.succinct.beckn.City;
 import in.succinct.beckn.Country;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Request;
+import in.succinct.beckn.Scalar;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.util.beckn.BecknUtil;
@@ -61,11 +62,14 @@ public class RegisterProviderLocationAgent extends ExtractorTask<Facility> imple
             provider_location.setGps(new GeoCoordinate(facility));
             provider_location.setCircle(circle);
             circle.setGps(provider_location.getGps());
-            if (facility.isDeliveryProvided()){
-                circle.setRadius(facility.getDeliveryRadius());
+            Scalar radius = new Scalar();
+            if (facility.isDeliveryProvided()) {
+                radius.setValue(facility.getDeliveryRadius());
             }else {
-                circle.setRadius(0.0D);
+                radius.setValue(0.0);
             }
+            radius.setUnit("Kms");
+            circle.setRadius(radius);
 
             String apiName = "/register_location";
             if (!facility.isPublished()){

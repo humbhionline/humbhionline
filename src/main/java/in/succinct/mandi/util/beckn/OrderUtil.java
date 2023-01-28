@@ -18,8 +18,10 @@ import in.succinct.beckn.Address;
 import in.succinct.beckn.Billing;
 import in.succinct.beckn.BreakUp;
 import in.succinct.beckn.BreakUp.BreakUpElement;
+import in.succinct.beckn.BreakUp.BreakUpElement.BreakUpCategory;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
+
 import in.succinct.beckn.Fulfillment.FulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
@@ -286,9 +288,9 @@ public class OrderUtil {
             quote.setTtl(15L*60L); //15 minutes.
 
             BreakUp breakUp = new BreakUp();
-            BreakUpElement element = breakUp.createElement("item","Total Product", productPrice);
+            BreakUpElement element = breakUp.createElement(BreakUpCategory.item,"Total Product", productPrice);
             breakUp.add(element);
-            BreakUpElement fulfillmentElement = breakUp.createElement("fulfillment", "Delivery Charges", fulfillmentPrice);
+            BreakUpElement fulfillmentElement = breakUp.createElement(BreakUpCategory.delivery, "Delivery Charges", fulfillmentPrice);
             breakUp.add(fulfillmentElement);
             quote.setBreakUp(breakUp);
 

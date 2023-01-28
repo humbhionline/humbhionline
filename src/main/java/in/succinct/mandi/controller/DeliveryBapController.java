@@ -45,7 +45,7 @@ public class DeliveryBapController extends Controller {
         Acknowledgement nack = new Acknowledgement(Status.NACK);
 
         return new BytesView(getPath(),
-                new Response(request.getContext(),new Acknowledgement(Status.NACK)).toString().getBytes(StandardCharsets.UTF_8),
+                new Response(new Acknowledgement(Status.NACK)).toString().getBytes(StandardCharsets.UTF_8),
                 MimeType.APPLICATION_JSON,"WWW-Authenticate","Signature realm=\""+realm+"\"",
                 "headers=\"(created) (expires) digest\""){
             @Override
@@ -56,7 +56,7 @@ public class DeliveryBapController extends Controller {
     }
     public View ack(Request request){
         Acknowledgement ack = new Acknowledgement(Status.ACK);
-        return new BytesView(getPath(),new Response(request.getContext(),ack).getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        return new BytesView(getPath(),new Response(    ack).getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
     private View act(){

@@ -36,6 +36,13 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
     public Subscriber getRetailBppSubscriber(){
         BecknNetwork network = getProxy();
         return new Subscriber() {
+            {
+                setSubscriberId(network.getRetailBppSubscriberId());
+                setSubscriberUrl(String.format("%s/%s", Config.instance().getServerBaseUrl() , network.getRetailBppUrl()));
+                setUniqueKeyId(network.getCryptoKeyId());
+                setDomain(BecknUtil.LOCAL_RETAIL);
+
+            }
             Map<String,Class<? extends BecknAsyncTask>> map = new HashMap<String,Class<? extends BecknAsyncTask>>(){{
                 put("search", Search.class);
                 put("select", Select.class);
@@ -54,25 +61,7 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
 
 
             }};
-            @Override
-            public String getSubscriberUrl() {
-                return String.format("%s%s", Config.instance().getServerBaseUrl() , network.getRetailBppUrl()); // Network URLS start with "/"
-            }
 
-            @Override
-            public String getSubscriberId() {
-                return network.getRetailBppSubscriberId();
-            }
-
-            @Override
-            public String getPubKeyId() {
-                return network.getCryptoKeyId();
-            }
-
-            @Override
-            public String getDomain() {
-                return BecknUtil.LOCAL_RETAIL;
-            }
 
             @Override
             public Mq getMq() {
@@ -95,7 +84,6 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                     public String getPort() {
                         return network.getMqPort() == null ? null : String.valueOf(network.getMqPort());
                     }
-
 
                 };
             }
@@ -126,28 +114,19 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                 //put("track", Track.class);
                 //put("update", Update.class);
             }};
-            @Override
-            public String getSubscriberUrl() {
-                return String.format("%s/%s", Config.instance().getServerBaseUrl() , network.getDeliveryBapUrl());
-            }
-
-            @Override
-            public String getSubscriberId() {
-                return network.getDeliveryBapSubscriberId();
-            }
-
-            @Override
-            public String getPubKeyId() {
-                return network.getDeliveryBapKeyId();
-            }
-
-            @Override
-            public String getDomain() {
-                return BecknUtil.LOCAL_DELIVERY;
+            {
+                setSubscriberId(network.getDeliveryBapSubscriberId());
+                setSubscriberUrl(String.format("%s/%s", Config.instance().getServerBaseUrl() , network.getDeliveryBapUrl()));
+                setUniqueKeyId(network.getDeliveryBapKeyId());
+                setDomain(BecknUtil.LOCAL_DELIVERY);
             }
 
             @Override
             public Mq getMq() {
+                if (network.isMqSupported()){
+                    return null;
+                }
+
                 return new Mq() {
 
                     @Override
@@ -164,8 +143,6 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                     public String getPort() {
                         return network.getMqPort() == null ? null : String.valueOf(network.getMqPort());
                     }
-
-
                 };
             }
 

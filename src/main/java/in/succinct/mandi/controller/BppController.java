@@ -61,7 +61,7 @@ public class BppController extends Controller {
         Acknowledgement nack = new Acknowledgement(Status.NACK);
 
         return new BytesView(getPath(),
-                new Response(null,new Acknowledgement(Status.NACK)).getInner().toString().getBytes(StandardCharsets.UTF_8),
+                new Response(new Acknowledgement(Status.NACK)).getInner().toString().getBytes(StandardCharsets.UTF_8),
                 MimeType.APPLICATION_JSON,"WWW-Authenticate","Signature realm=\""+realm+"\"",
                 "headers=\"(created) (expires) digest\""){
             @Override
@@ -72,7 +72,7 @@ public class BppController extends Controller {
     }
     public View ack(Request request){
         Acknowledgement ack = new Acknowledgement(Status.ACK);
-        return new BytesView(getPath(),new Response(null,ack).getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        return new BytesView(getPath(),new Response(ack).getInner().toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
     public String getGatewayUrl(Map<String,String> authParams){
         String url = null;

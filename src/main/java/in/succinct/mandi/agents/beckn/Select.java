@@ -13,6 +13,7 @@ import com.venky.swf.path.Path;
 import com.venky.swf.routing.Config;
 import in.succinct.beckn.BreakUp;
 import in.succinct.beckn.BreakUp.BreakUpElement;
+import in.succinct.beckn.BreakUp.BreakUpElement.BreakUpCategory;
 import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
 import in.succinct.beckn.Location;
@@ -150,7 +151,7 @@ public class Select extends BecknAsyncTask {
         quote.setTtl(15L*60L); //15 minutes.
 
         BreakUp breakUp = new BreakUp();
-        BreakUpElement element = breakUp.createElement("item","Total Product",price);
+        BreakUpElement element = breakUp.createElement(BreakUpCategory.item,"Total Product",price);
         breakUp.add(element);
         quote.setBreakUp(breakUp);
 
