@@ -21,7 +21,7 @@ import in.succinct.beckn.BreakUp.BreakUpElement;
 import in.succinct.beckn.BreakUp.BreakUpElement.BreakUpCategory;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
-
+import in.succinct.beckn.Fulfillment.FulfillmentStatus;
 import in.succinct.beckn.Fulfillment.FulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
@@ -29,14 +29,19 @@ import in.succinct.beckn.Item;
 import in.succinct.beckn.Items;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Locations;
+import in.succinct.beckn.Order.Status;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
+import in.succinct.beckn.Payment.PaymentStatus;
+import in.succinct.beckn.Payment.PaymentType;
 import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Quote;
+import in.succinct.beckn.Tags;
 import in.succinct.mandi.db.model.Facility;
+import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.OrderAddress;
 import in.succinct.mandi.db.model.User;
@@ -50,8 +55,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class OrderUtil {
     public  OrderUtil(){
@@ -121,6 +124,8 @@ public class OrderUtil {
         order.getOrderLines().forEach(ol->{
             Item item = new Item();
             item.setId(BecknUtil.getBecknId(String.valueOf(ol.getInventoryId()),Entity.item)); //Change skuId to inventoryId /select jul 7 change
+            item.setTags(getTags(ol.getInventory().getRawRecord().getAsProxy(Inventory.class)));
+
 
             Quantity quantity = new Quantity();
             quantity.set("count",(int)ol.getRemainingCancellableQuantity());
@@ -191,7 +196,7 @@ public class OrderUtil {
         if (transport != null){
             fulfillment.setType(FulfillmentType.store_pickup);
             fulfillment.setId(BecknUtil.getBecknId(transport.getId(),Entity.fulfillment));
-            fulfillment.setState(transport.getFulfillmentStatus());
+            fulfillment.setFulfillmentStatus(getFulfillmentStatus(transport));
         }else {
             if (!order.isCustomerPickup()){
                 fulfillment.setType(FulfillmentType.home_delivery);
@@ -200,18 +205,18 @@ public class OrderUtil {
             }
             fulfillment.setId(BecknUtil.getBecknId(order.getId(),Entity.fulfillment));
             if (ObjectUtil.equals(Order.FULFILLMENT_STATUS_SHIPPED,order.getFulfillmentStatus())){
-                fulfillment.setState(order.getFulfillmentStatus());
+                fulfillment.setFulfillmentStatus(FulfillmentStatus.Out_for_delivery);
             }else if (Arrays.asList(Order.FULFILLMENT_STATUS_DELIVERED,Order.FULFILLMENT_STATUS_RETURNED).contains(order.getFulfillmentStatus())){
-                fulfillment.setState(Order.FULFILLMENT_STATUS_DELIVERED);
+                fulfillment.setFulfillmentStatus(FulfillmentStatus.Order_delivered);
             }else {
-                fulfillment.setState(Order.FULFILLMENT_STATUS_DOWNLOADED);
+                fulfillment.setFulfillmentStatus(FulfillmentStatus.Pending);
             }
         }
         if (format.ordinal() >= OrderFormat.initialized.ordinal()){
             Payment payment = new Payment();
             becknOrder.setPayment(payment);
             if (order.getAmountPendingPayment() > 0){
-                payment.setStatus("NOT-PAID");
+                payment.setStatus(PaymentStatus.NOT_PAID);
                 payment.setParams(new Params());
                 payment.getParams().setTransactionId("O:"+order.getId());
                 payment.getParams().setAmount(order.getAmountPendingPayment());
@@ -239,10 +244,10 @@ public class OrderUtil {
                     }
                 }
             }else {
-                payment.setStatus("PAID");
+                payment.setStatus(PaymentStatus.PAID);
             }
 
-            payment.setType("POST-FULFILLMENT");
+            payment.setType(PaymentType.POST_FULFILLMENT);
 
             buckets.get("SHIPPING_SELLING_PRICE").increment(order.getShippingSellingPrice());
             buckets.get("SHIPPING_PRICE").increment(order.getShippingPrice());
@@ -297,6 +302,7 @@ public class OrderUtil {
         }
         return becknOrder;
     }
+
 
     public static com.venky.swf.plugins.collab.db.model.participants.admin.Address getAddress(in.succinct.beckn.Address address){
         Location location = new Location();
@@ -574,5 +580,53 @@ public class OrderUtil {
 
     }
 
+    public static Status getBecknStatus (Order order){
+        Status status = orderStatusMap.get(order.getFulfillmentStatus());
+        if (status == null){
+            status = Status.Accepted;
+        }
+        return status;
+    }
+    private static FulfillmentStatus getFulfillmentStatus(Order transport) {
+        FulfillmentStatus fulfillmentStatus = fulfillmentStatusMap.get(transport.getFulfillmentStatus());
+        if (fulfillmentStatus == null){
+            fulfillmentStatus = FulfillmentStatus.Pending;
+        }
+        return fulfillmentStatus;
+    }
+    private static final Map<String, Fulfillment.FulfillmentStatus> fulfillmentStatusMap = new HashMap<>(){{
+        put(Order.FULFILLMENT_STATUS_SHIPPED, FulfillmentStatus.Out_for_delivery);
+        put(Order.FULFILLMENT_STATUS_DELIVERED, FulfillmentStatus.Order_delivered);
+    }};
 
+    private static final Map<String, Status> orderStatusMap = new HashMap<>(){{
+        put(Order.FULFILLMENT_STATUS_DOWNLOADED, Status.Created);
+        put(Order.FULFILLMENT_STATUS_ACKNOWLEDGED, Status.Accepted);
+        put(Order.FULFILLMENT_STATUS_SHIPPED,Status.Out_for_delivery);
+        put(Order.FULFILLMENT_STATUS_DELIVERED, Status.Completed);
+        put(Order.FULFILLMENT_STATUS_CANCELLED, Status.Cancelled);
+    }};
+
+    public static Tags getTags(Inventory inventory){
+        Tags tags = new Tags();
+        String seoTags = inventory.getTags();
+        if (seoTags != null) {
+            StringTokenizer tokenizer = new StringTokenizer(seoTags, ", ");
+            while (tokenizer.hasMoreTokens()) {
+                String token = tokenizer.nextToken();
+                String[] parts = token.split("=");
+                String key;
+                String value;
+                if (parts.length == 2) {
+                    key = parts[0];
+                    value = parts[1];
+                } else {
+                    key = token;
+                    value = "Y";
+                }
+                tags.set(key, value);
+            }
+        }
+        return tags;
+    }
 }

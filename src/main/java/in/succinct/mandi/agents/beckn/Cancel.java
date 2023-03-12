@@ -1,24 +1,16 @@
 package in.succinct.mandi.agents.beckn;
 
 
-import com.fedex.ship.Measure;
 import com.venky.swf.db.Database;
-import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
-import com.venky.swf.integration.api.Call;
-import com.venky.swf.integration.api.HttpMethod;
-import com.venky.swf.integration.api.InputFormat;
-import com.venky.swf.path.Path;
-import com.venky.swf.routing.Config;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnCancel;
-import in.succinct.beckn.OnSelect;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.OrderCancellationReason;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
+import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
-import org.json.simple.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -55,12 +47,14 @@ public class Cancel extends BecknAsyncTask {
         becknOrder.setId(order_id);
         becknOrder.setCreatedAt(order.getCreatedAt());
         becknOrder.setUpdatedAt(order.getUpdatedAt());
-        becknOrder.setState(order.getFulfillmentStatus());
+        becknOrder.setState(OrderUtil.getBecknStatus(order));
 
 
         onCancel.getMessage().setOrder(becknOrder);
 
         return (onCancel);
     }
+
+
 
 }

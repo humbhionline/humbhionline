@@ -31,6 +31,7 @@ import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
 import in.succinct.beckn.Request;
+import in.succinct.beckn.Tags;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Sku;
@@ -38,6 +39,7 @@ import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
+import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.participation.Company;
 import org.apache.lucene.search.Query;
@@ -46,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 public class Search extends BecknAsyncTask {
 
@@ -54,6 +57,24 @@ public class Search extends BecknAsyncTask {
     }
     static final int MAX_LIST_RECORDS = 10;
 
+    private StringBuilder q(String name, String value){
+        StringBuilder q = new StringBuilder();
+        if (ObjectUtil.isVoid(value)){
+            return q;
+        }
+        StringTokenizer tokenizer = new StringTokenizer(value);
+        q.append("(");
+        while (tokenizer.hasMoreTokens()){
+            String token = tokenizer.nextToken();
+            q.append("(").append(name).append(":").append(token).append("*)");
+            if (tokenizer.hasMoreTokens()){
+                q.append(" OR ");
+            }
+        }
+        q.append(")");
+
+        return q;
+    }
     @Override
     public Request executeInternal() {
         Request request = getRequest();
@@ -104,7 +125,7 @@ public class Search extends BecknAsyncTask {
             if (qryString.length() > 0){
                 qryString.append(" AND ");
             }
-            qryString.append("( SKU:" ).append(itemName).append("* OR TAGS:").append(itemName).append("* )");
+            qryString.append("(").append(q("SKU", itemName)).append(" OR ").append(q("TAGS",itemName)).append(" )");
         }
         if (facilityIds != null){
             if (qryString.length() > 0){
@@ -220,6 +241,17 @@ public class Search extends BecknAsyncTask {
             item.setId(itemId);
             item.setDescriptor(new Descriptor());
             item.getDescriptor().setName(sku.getName());
+            if (ObjectUtil.isVoid(sku.getShortDescription())){
+                item.getDescriptor().setShortDesc(sku.getName());
+                item.getDescriptor().setLongDesc(sku.getName());
+            }else {
+                item.getDescriptor().setShortDesc(sku.getShortDescription());
+                item.getDescriptor().setLongDesc(sku.getShortDescription());
+            }
+            if (!ObjectUtil.isVoid(sku.getLongDescription())){
+                item.getDescriptor().setLongDesc(sku.getLongDescription());
+            }
+
             item.setPrice(price);
             item.setLocationId(locationId);
             if (DoubleUtils.compareTo(inv.getMaxRetailPrice(),inv.getSellingPrice(),2)>0){
@@ -237,6 +269,7 @@ public class Search extends BecknAsyncTask {
                 images.add(Config.instance().getServerBaseUrl() + sku.getAttachments().get(0).getAttachmentUrl());
                 item.getDescriptor().setImages(images);
             }
+            item.setTags(OrderUtil.getTags(inv));
 
             provider.getItems().add(item);
 

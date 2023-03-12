@@ -23,7 +23,7 @@
                 Facility: { Name: "", City: { Name: "", State: { Name: "", Country: { "Name": "India" } } }, PinCode: { PinCode: "" }, Inventories: [] },
                 facilityBannerBeingEdited: false,
                 facilityCropperBeingEdited: false,
-                selectedDataFileName: "",
+                selectedDataFileName: null,
                 windowWidth: window.innerWidth,
                 current: {
                     index: -1,
@@ -200,7 +200,7 @@
                         }).catch(function (err) {
                             showError(err);
                         }).finally(function () {
-                            self.selectedDataFileName = ""
+                            self.selectedDataFileName = null;
                             $("#datafile")[0].value = null;
                             hideSpinner();
                         });
@@ -1017,7 +1017,7 @@
                                         <p class="mb-0 color-blue text-truncate">{{selectedDataFileName}}</p>
                                     </label>
                                 </div>
-                                <!-- <div v-bind:class="[!selectedDataFileName ? 'col-4 text-right':'col-3']">
+                                <div v-bind:class="[!selectedDataFileName ? 'col-4 text-right':'col-3']">
                                     <input type="file" class="file-upload" id="datafile"
                                         accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                         v-on:input="onDataFileChange($event)" />
@@ -1034,7 +1034,7 @@
                                         v-on:click="upload($event)">
                                         Upload
                                     </a>
-                                </div> -->
+                                </div>
                             </div>
                             <hr class="my-2" />
                             <div class="form-row mt-2">

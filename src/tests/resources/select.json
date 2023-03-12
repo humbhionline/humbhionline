@@ -1,1 +1,1 @@
-{"context":{"transaction_id":"22d2d343-e033-4f53-b604-26ffc60803d7","action":"select" , "city": "std:080" , "bpp_id" : "mandi.succinct.in" },"message":{"order":{"items":[{"quantity":{"count":1},"id":".\/retail.kirana\/ind.blr\/276@mandi.succinct.in.item"}]}}}
+{"context":{"transaction_id":"6a688023-dc70-404b-ac3e-9ef077dd4406","action":"select" , "city": "std:080" , "bpp_id" : "mandi.succinct.in" },"message":{"order":{"items":[{"quantity":{"count":1},"id":".\/retail.kirana\/ind.blr\/17592186044654@mandi.succinct.in.item"}]}}}

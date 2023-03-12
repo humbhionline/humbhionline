@@ -26,13 +26,17 @@ import in.succinct.beckn.Quantity;
 import in.succinct.beckn.QuantitySummary;
 import in.succinct.beckn.Quote;
 import in.succinct.beckn.Request;
+import in.succinct.beckn.Tags;
+import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
-import in.succinct.plugins.ecommerce.db.model.inventory.Inventory;
+
+import in.succinct.mandi.util.beckn.OrderUtil;
 import org.json.simple.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 public class Select extends BecknAsyncTask {
 
@@ -130,6 +134,8 @@ public class Select extends BecknAsyncTask {
             price.setListedValue(inventory.getMaxRetailPrice() * quantity.getCount());
             price.setOfferedValue(inventory.getSellingPrice() * quantity.getCount());
             price.setValue(inventory.getSellingPrice() * quantity.getCount());
+
+            item.setTags(OrderUtil.getTags(inventory));
 
             outItems.add(outItem);
         }
