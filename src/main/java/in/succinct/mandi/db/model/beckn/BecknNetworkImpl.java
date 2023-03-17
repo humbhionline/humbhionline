@@ -40,6 +40,7 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                 setSubscriberId(network.getRetailBppSubscriberId());
                 setSubscriberUrl(String.format("%s/%s", Config.instance().getServerBaseUrl() , network.getRetailBppUrl()));
                 setUniqueKeyId(network.getCryptoKeyId());
+                setAlias(network.getCryptoKeyId());
                 setDomain(BecknUtil.LOCAL_RETAIL);
 
             }
@@ -118,6 +119,7 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                 setSubscriberId(network.getDeliveryBapSubscriberId());
                 setSubscriberUrl(String.format("%s/%s", Config.instance().getServerBaseUrl() , network.getDeliveryBapUrl()));
                 setUniqueKeyId(network.getDeliveryBapKeyId());
+                setAlias(network.getDeliveryBapKeyId());
                 setDomain(BecknUtil.LOCAL_DELIVERY);
             }
 

@@ -111,8 +111,13 @@ public class OrderUtil {
         }
         becknOrder.setProvider(new Provider());
         becknOrder.getProvider().setId(BecknUtil.getBecknId(String.valueOf(order.getFacility().getCreatorUserId()), Entity.provider));
+        becknOrder.getProvider().setDescriptor(new Descriptor());
+        becknOrder.getProvider().getDescriptor().setName(order.getFacility().getName());
         becknOrder.setProviderLocation(new Location());
         becknOrder.getProviderLocation().setId(BecknUtil.getBecknId(String.valueOf(order.getFacilityId()),Entity.provider_location));
+        becknOrder.getProviderLocation().setDescriptor(new Descriptor());
+        becknOrder.getProviderLocation().getDescriptor().setName(order.getFacility().getName());
+
         Items items = new Items();
         becknOrder.setItems(items);
         Cache<String, Bucket> buckets = new Cache<String, Bucket>() {

@@ -14,6 +14,7 @@ import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import in.succinct.beckn.Catalog;
+import in.succinct.beckn.Category;
 import in.succinct.beckn.Circle;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
@@ -103,6 +104,16 @@ public class Search extends BecknAsyncTask {
                 }
             }
         }
+        Category category = intent.getCategory();
+        String catagoryName = null;
+        if (category != null){
+            Descriptor descriptor = category.getDescriptor();
+            if (descriptor != null){
+                catagoryName = descriptor.getName();
+            }
+        }
+
+
         Price price = item != null ? item.getPrice() : null ;
         Fulfillment fulfillment = intent.getFulfillment();
         FulfillmentStop end = fulfillment == null ? null : fulfillment.getEnd();
@@ -118,14 +129,20 @@ public class Search extends BecknAsyncTask {
 
         LuceneIndexer indexer = LuceneIndexer.instance(Inventory.class);
         StringBuilder qryString = new StringBuilder();
-        if (providerName != null){
+        if (!ObjectUtil.isVoid(providerName)){
             qryString.append("FACILITY:").append(providerName).append("*");
         }
-        if (itemName != null){
+        if (!ObjectUtil.isVoid(itemName)){
             if (qryString.length() > 0){
                 qryString.append(" AND ");
             }
             qryString.append("(").append(q("SKU", itemName)).append(" OR ").append(q("TAGS",itemName)).append(" )");
+        }
+        if (!ObjectUtil.isVoid(catagoryName)){
+            if (qryString.length() > 0){
+                qryString.append(" AND ");
+            }
+            qryString.append("(").append(q("TAGS", catagoryName)).append(" )");
         }
         if (facilityIds != null){
             if (qryString.length() > 0){
