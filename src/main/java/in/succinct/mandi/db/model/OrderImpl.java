@@ -53,15 +53,18 @@ public class OrderImpl extends ModelImpl<Order> {
     public double getAmountPendingPayment() {
         Order order = getProxy();
         Bucket netPayment = new Bucket(0.0);
+        boolean anyThingDelivered = false;
         for (OrderLine orderLine : order.getOrderLines()) {
             double toPayQuantity = orderLine.getOrderedQuantity() - orderLine.getCancelledQuantity() - orderLine.getReturnedQuantity();
             netPayment.increment(toPayQuantity * orderLine.getSellingPrice() / orderLine.getOrderedQuantity());
+            anyThingDelivered = anyThingDelivered || orderLine.getDeliveredQuantity() > 0;
         }
-        if (!order.isCancelled()){
+        if (anyThingDelivered) {
             netPayment.increment(order.getShippingSellingPrice());
-            netPayment.decrement(order.getAmountPaid());
-            netPayment.increment(order.getAmountRefunded());
         }
+        netPayment.decrement(order.getAmountPaid());
+        netPayment.increment(order.getAmountRefunded());
+
         return netPayment.doubleValue();
     }
 
