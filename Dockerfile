@@ -2,9 +2,9 @@
 #FROM openjdk-tz-india:latest
 FROM openjdk-11-headless-tz-india:latest
 
-EXPOSE 6000 
+#EXPOSE 6000 
 # Debug port
-EXPOSE 6030
+#EXPOSE 6030
 #web port
 
 RUN mkdir /mandi mandi/target mandi/bin mandi/tmp mandi/overrideProperties

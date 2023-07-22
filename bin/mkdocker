@@ -22,6 +22,11 @@ crond -bS;
 chmod +x tmp/mandi-docker/bin/service-start
 
 
-docker build -t mandi:${tag} .
-#docker image tag mandi:$tag mandi:latest 
-docker container create --name production.${tag} mandi:${tag} 
+docker -H localhost build -t mandi:${tag} -o type=docker .
+docker -H localhost image tag mandi:$tag mandi:latest 
+
+docker -H localhost container create --name production.${tag} --net mandi --ip 172.75.0.20 -p 70000:6000 -p 70030:6030 --restart unless-stopped  mandi:latest 
+
+
+
+
