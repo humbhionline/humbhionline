@@ -48,7 +48,8 @@ public class BecknUtil {
 
     public static String getIdPrefix(){
         //return "./nic2004:52110/IND.std:080/";
-        return "./retail.kirana/ind.blr/";
+        //return "./retail.kirana/ind.blr/";
+        return "./";
     }
 
     public static String getIdSuffix(){

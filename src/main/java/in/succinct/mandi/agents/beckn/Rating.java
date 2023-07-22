@@ -19,7 +19,7 @@ public class Rating extends BecknAsyncTask {
         Message message = getRequest().getMessage();
         in.succinct.beckn.Rating rating = message.getRating();
         in.succinct.mandi.db.model.beckn.Rating persistence = Database.getTable(in.succinct.mandi.db.model.beckn.Rating.class).newRecord();
-        persistence.setRatingCategory(rating.getRatingCategory());
+        persistence.setRatingCategory(rating.getRatingCategory().name());
         persistence.setObjectId(rating.getId());
         persistence.setValue(rating.getValue());
         persistence = Database.getTable(in.succinct.mandi.db.model.beckn.Rating.class).getRefreshed(persistence);
