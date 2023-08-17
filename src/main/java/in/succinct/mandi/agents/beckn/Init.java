@@ -226,7 +226,7 @@ public class Init extends BecknAsyncTask {
     private static final double DEFAULT_GST_PCT = 18.0;
     private static final String[] LINE_FIELDS_TO_SYNC = new String[] {"PRODUCT_SELLING_PRICE","PRODUCT_PRICE","C_GST", "I_GST", "S_GST"};
 
-    private void createOrderLines(Items items, in.succinct.mandi.db.model.Order order, OrderAddress shipTo, Map<String,Bucket> buckets ) {
+    private void createOrderLines(NonUniqueItems items, in.succinct.mandi.db.model.Order order, OrderAddress shipTo, Map<String,Bucket> buckets ) {
 
         Boolean shippingWithinSameState = null;
         Facility facility = order.getFacility();
