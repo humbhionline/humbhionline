@@ -26,9 +26,9 @@ import in.succinct.beckn.Fulfillment.FulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Item;
-import in.succinct.beckn.Items;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Locations;
+import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Order.Status;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
@@ -118,7 +118,7 @@ public class OrderUtil {
         becknOrder.getProviderLocation().setDescriptor(new Descriptor());
         becknOrder.getProviderLocation().getDescriptor().setName(order.getFacility().getName());
 
-        Items items = new Items();
+        NonUniqueItems items = new NonUniqueItems();
         becknOrder.setItems(items);
         Cache<String, Bucket> buckets = new Cache<String, Bucket>() {
             @Override

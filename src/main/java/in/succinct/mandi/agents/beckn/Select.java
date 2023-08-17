@@ -20,6 +20,7 @@ import in.succinct.beckn.Location;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnSelect;
 import in.succinct.beckn.Order;
+import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
@@ -47,7 +48,7 @@ public class Select extends BecknAsyncTask {
         if (selected == null){
             return false;
         }
-        Items items = selected.getItems();
+        NonUniqueItems items = selected.getItems();
         if (items == null || items.size() == 0){
             return false;
         }
@@ -97,12 +98,12 @@ public class Select extends BecknAsyncTask {
 
          */
 
-        Items outItems = new Items();
+        NonUniqueItems outItems = new NonUniqueItems();
         outSelected.setItems(outItems);
 
         //select changes jul 7 Long facilityId = Long.valueOf(BecknUtil.getLocalUniqueId(String.valueOf(location.getId()),Entity.provider_location));
 
-        Items items = selected.getItems();
+        NonUniqueItems items = selected.getItems();
 
         Bucket itemPrice = new Bucket();
         Bucket listedPrice = new Bucket();

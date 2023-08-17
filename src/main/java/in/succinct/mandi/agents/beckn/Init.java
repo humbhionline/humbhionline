@@ -18,6 +18,7 @@ import in.succinct.beckn.Items;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnInit;
 import in.succinct.beckn.Order;
+import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Facility;
@@ -110,7 +111,7 @@ public class Init extends BecknAsyncTask {
         OrderAddress shipTo = createShipTo(order,fulfillment);
         OrderAddress billTo = createBillTo(order,billing);
 
-        Items items = becknOrder.getItems();
+        NonUniqueItems items = becknOrder.getItems();
         Cache<String,Bucket> buckets = new Cache<String, Bucket>() {
             @Override
             protected Bucket getValue(String fieldName) {

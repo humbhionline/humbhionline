@@ -25,6 +25,7 @@ import in.succinct.beckn.Offers;
 import in.succinct.beckn.OnConfirm;
 import in.succinct.beckn.OnSearch;
 import in.succinct.beckn.OnStatus;
+import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
 import in.succinct.beckn.Payment.PaymentStatus;
@@ -196,7 +197,7 @@ class BecknCourierAggregator implements CourierAggregator {
         address.setState(billToAddress.getState().getName());
         address.setCountry(billToAddress.getCountry().getName());
 
-        Items items = new Items();
+        NonUniqueItems items = new NonUniqueItems();
         Item item = new Item();
         String externalItemIdPattern = "/nic2004:55204/(.*)@(.*)\\."+Entity.item ;
         Matcher matcher = Pattern.compile(externalItemIdPattern).matcher(inventory.getExternalSkuId());
