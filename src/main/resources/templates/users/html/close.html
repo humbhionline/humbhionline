@@ -1,0 +1,115 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
+<link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'" >
+<script type="text/javascript" src="/fragments/js/util.js" defer></script>
+
+<script type="text/javascript" src="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.js"
+    defer></script>
+<link rel="preload" as="style" href="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.css"
+    onload="this.onload=null;this.rel='stylesheet'">
+
+<script type="text/javascript">
+    $(function () {
+        new Vue({
+            el: "#app",
+            data : {
+                User: Lockr.get("User"),
+                guest: Lockr.get("User") && !Lockr.get("User").Name,
+            },
+            created : function(){
+                let self = this;
+                if (!self.User){
+                    window.location.replace("/index");
+                }
+                self.showApp();
+            },
+            methods : {
+                showApp : function(){
+                    $("#header").load("/fragments/html/header",{}, function(){
+                        fixMenu();
+                        $("#pageTitle").html("Delete Account");
+                        $("#root").show();
+                    });
+                },
+                placeRequest : function(event){
+                    let self = this;
+                    $.confirm({
+                        title: "Confirmation",
+                        content: "Do you really want to close your account?",
+                        buttons: {
+                            yes: function () {
+                                self.request(event,"Y");
+                            },
+                            no: function () {
+                                self.dashboard(event);
+                            }
+                        }
+                    });
+                },
+                cancelRequest : function(event){
+                    let self = this;
+                    self.request(event,"N");
+                },
+                dashboard : function(event){
+                    let self = this;
+                    event && event.preventDefault();
+                    window.location.replace("/dashboard");
+                },
+                request : function(event,accountClosureInitiated){
+                    let self = this;
+                    event && event.preventDefault();
+                    showSpinner();
+                    api().url("/users/"+(accountClosureInitiated === 'Y' ? "requestAccountClosure" :"cancelAccountClosureRequest") ).parameters({}).post().then(function(response){
+                        self.User.AccountClosureInitiated = accountClosureInitiated;
+                        Lockr.set("User",self.User);
+                        showErrorMessage(response.message,2000).then(function(){
+                            self.dashboard();
+                        });
+                    }).catch(function(err){
+                        showError(err);
+                    }).finally(function(){
+                        hideSpinner();
+                    });
+                }
+
+            }
+        });
+    });
+</script>
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+
+        <div class="mt-4 container">
+            <div id="closing_message" v-if="User.AccountClosureInitiated !== 'Y'">
+                <h6>Closing your Humbhionline Account</h6>
+                <p>You are about to submit a request for us to permanently close your Humbhionline account and delete your data. </p>
+
+                <p v-if="User.Seller === 'Y'">If you have uploaded your own content (e.g. Store catalog , photographs,... ) you may want to download that content before closing your account.</p>
+                <p>Once your account is closed all of the products and services accessed through your account will no longer be available to you. </p>
+
+            </div>
+            <div v-else>
+                <h6> Account closure request present!</h6>
+                <p>We have your pending request to permanently close your Humbhionline account and delete your data. </p>
+                <p>If you have uploaded your own content (e.g. Store catalog , photographs,... ) you may want to download that content before your account gets closed.</p>
+                <p>Once your account is closed all of the products and services accessed through your account will no longer be available to you. </p>
+
+            </div>
+            <div class="col-12 d-flex  align-items-center d-flex justify-content-center" v-if="User.AccountClosureInitiated !== 'Y'">
+                <a href="#" class="mr-1 mb-2  btn btn-primary" @click="placeRequest($event)"><small>Request account closure</small></a>
+                <a href="#" class="ml-1 mb-2  btn btn-primary" @click="dashboard($event)"><small>Not Now</small></a>
+            </div>
+            <div class="col-12 d-flex  align-items-center d-flex justify-content-center" v-else>
+                <a href="#" class="ml-1 mb-2  btn btn-primary" @click="cancelRequest($event)"><small>Cancel my closure request</small></a>
+                <a href="#" class="ml-1 mb-2  btn btn-primary" @click="dashboard($event)"><small>Not Now</small></a>
+            </div>
+            <div class="col-12 d-flex justify-content-center text-muted" >
+                Please be advised that HumBhi Online is legally required or entitled to retain some types of data, such as order history. We do this in line with applicable laws not limited for taxes and accounting and fraud prevention.
+            </div>
+        </div>
+    </div>
+</div>

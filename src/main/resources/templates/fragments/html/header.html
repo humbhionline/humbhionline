@@ -102,10 +102,23 @@
                             <a class="nav-link" href="/dashboard" onclick="hideMenu()"><i class="fa fa-home"></i>
                                 Home</a>
                         </li>
-                        <li class="nav-item" v-if="!guest">
-                            <a class="nav-link" href="/users/html/profile" onclick="hideMenu()"><i
-                                    class="fa fa-user-circle"></i>
-                                Profile</a>
+                        <li class="nav-item dropdown-submenu" v-if="!guest">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarProfileMenuLink"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fa fa-user-circle"></i>
+                                Account</a>
+                            <ul class="dropdown-menu ml-auto mr-auto">
+                                <li class="dropdown-item">
+                                    <a class="nav-link" href="/users/html/profile" onclick="hideMenu()"><i
+                                            class="fa fa-user-circle"></i>
+                                        View</a>
+                                </li>
+                                <li class="dropdown-item " >
+                                    <a class="nav-link" href="/users/requestAccountClosure" onclick="hideMenu()"><i
+                                            class="border-top py-2 fa fa-trash"></i>
+                                        Deletion</a>
+                                </li>
+                            </ul>
                         </li>
                         <li class="nav-item dropdown-submenu" v-if="User.Seller === 'Y' && User.LoggedInToCustomDomain !== 'Y'">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarSellingMenuLink"
