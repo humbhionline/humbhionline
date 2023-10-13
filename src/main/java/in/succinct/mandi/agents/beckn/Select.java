@@ -113,7 +113,7 @@ public class Select extends BecknAsyncTask {
             price.setOfferedValue(inventory.getSellingPrice() * quantity.getCount());
             price.setValue(inventory.getSellingPrice() * quantity.getCount());
 
-            item.setTags(OrderUtil.getTags(inventory));
+            item.set("tags",OrderUtil.getTags(inventory));
 
             outItems.add(outItem);
         }

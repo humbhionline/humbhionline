@@ -39,6 +39,7 @@ import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Quote;
+import in.succinct.beckn.TagGroups;
 import in.succinct.beckn.Tags;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
@@ -129,7 +130,7 @@ public class OrderUtil {
         order.getOrderLines().forEach(ol->{
             Item item = new Item();
             item.setId(BecknUtil.getBecknId(String.valueOf(ol.getInventoryId()),Entity.item)); //Change skuId to inventoryId /select jul 7 change
-            item.setTags(getTags(ol.getInventory().getRawRecord().getAsProxy(Inventory.class)));
+            item.set("tags",getTags(ol.getInventory().getRawRecord().getAsProxy(Inventory.class)));
 
 
             Quantity quantity = new Quantity();

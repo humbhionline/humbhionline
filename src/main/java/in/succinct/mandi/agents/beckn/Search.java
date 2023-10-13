@@ -286,7 +286,7 @@ public class Search extends BecknAsyncTask {
                 images.add(Config.instance().getServerBaseUrl() + sku.getAttachments().get(0).getAttachmentUrl());
                 item.getDescriptor().setImages(images);
             }
-            item.setTags(OrderUtil.getTags(inv));
+            item.set("tags",OrderUtil.getTags(inv));
 
             provider.getItems().add(item);
 
