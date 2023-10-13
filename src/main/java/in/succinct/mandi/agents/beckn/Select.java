@@ -1,43 +1,28 @@
 package in.succinct.mandi.agents.beckn;
 
 
-import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.Bucket;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
-import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
-import com.venky.swf.integration.api.Call;
-import com.venky.swf.integration.api.HttpMethod;
-import com.venky.swf.integration.api.InputFormat;
-import com.venky.swf.path.Path;
-import com.venky.swf.routing.Config;
 import in.succinct.beckn.BreakUp;
 import in.succinct.beckn.BreakUp.BreakUpElement;
 import in.succinct.beckn.BreakUp.BreakUpElement.BreakUpCategory;
 import in.succinct.beckn.Item;
-import in.succinct.beckn.Items;
-import in.succinct.beckn.Location;
+import in.succinct.beckn.ItemQuantity;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnSelect;
 import in.succinct.beckn.Order;
 import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Price;
-import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
-import in.succinct.beckn.QuantitySummary;
 import in.succinct.beckn.Quote;
 import in.succinct.beckn.Request;
-import in.succinct.beckn.Tags;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
-
 import in.succinct.mandi.util.beckn.OrderUtil;
-import org.json.simple.JSONObject;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 public class Select extends BecknAsyncTask {
 
@@ -49,10 +34,10 @@ public class Select extends BecknAsyncTask {
             return false;
         }
         NonUniqueItems items = selected.getItems();
-        if (items == null || items.size() == 0){
+        if (items == null || items.isEmpty()){
             return false;
         }
-        Long invId = Long.valueOf(BecknUtil.getLocalUniqueId(items.get(0).getId(), Entity.item));
+        long invId = Long.parseLong(BecknUtil.getLocalUniqueId(items.get(0).getId(), Entity.item));
         if (invId > 0){
             return Database.getTable(Inventory.class).get(invId) != null;
         }
@@ -88,15 +73,7 @@ public class Select extends BecknAsyncTask {
             }
         }
 
-        /*
-        /select changes jul 7
-        Provider provider = selected.getProvider();
-        outSelected.setProvider(provider);
 
-        Location location = provider.getLocations().get(0);
-        outSelected.setProviderLocation(location);
-
-         */
 
         NonUniqueItems outItems = new NonUniqueItems();
         outSelected.setItems(outItems);
@@ -113,11 +90,11 @@ public class Select extends BecknAsyncTask {
             Item outItem = new Item();
             outItem.setId(item.getId());
 
-            Long invId = Long.valueOf(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
+            long invId = Long.parseLong(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
             Quantity quantity = item.get(Quantity.class,"quantity");
 
 
-            QuantitySummary outQuantity = new QuantitySummary();
+            ItemQuantity outQuantity = new ItemQuantity();
             outItem.set("quantity",outQuantity);
 
             outQuantity.setSelected(quantity);
