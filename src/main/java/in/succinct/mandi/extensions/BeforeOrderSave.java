@@ -111,7 +111,7 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
         context.setMessageId(UUID.randomUUID().toString());
         context.setTransactionId(model.getExternalTransactionReference());
         context.setTimestamp(new Date());
-        context.setCountry("IND");
+        context.setCountry(model.getFacility().getCountry().getIsoCode());
         context.setCity(model.getFacility().getCity().getCode());
         context.setCoreVersion("0.9.3");
         Status status = new Status(request,headers);
