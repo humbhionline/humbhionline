@@ -19,3 +19,8 @@ database/*csv
 /.gradle/
 .keystore
 doc/
+.index
+src/main/resources/templates/dashboard/gex.humbhionline.in/
+src/main/resources/templates/fragments/gex.humbhionline.in/
+src/main/resources/templates/login/gex.humbhionline.in/
+

@@ -324,6 +324,9 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             for (String priceField : LINE_FIELDS_TO_SYNC) {
                 buckets.get(priceField).increment(line.getReflector().getJdbcTypeHelper().getTypeRef(double.class).getTypeConverter().valueOf(line.getReflector().get(line,priceField)));
             }
+            if (line.getOrderedQuantity() > inventory.getAvailableToPromise()){
+                throw new RuntimeException("Not enough inventory available for " + inventory.getSku().getName() );
+            }
 
             line.save();
             Map<String, OrderLineAttribute> attrMap = line.getAttributeMap();

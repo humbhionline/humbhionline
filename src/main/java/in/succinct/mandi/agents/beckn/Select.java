@@ -100,7 +100,7 @@ public class Select extends BecknAsyncTask {
             outQuantity.setSelected(quantity);
 
             Inventory inventory = Database.getTable(Inventory.class).get(invId);
-            if (inventory == null || inventory.getRawRecord().isNewRecord()){
+            if (inventory == null || inventory.getRawRecord().isNewRecord() || inventory.getAvailableToPromise() < quantity.getCount()){
                 throw new RuntimeException("No inventory with provider.");
             }
             itemPrice.increment(inventory.getSellingPrice() * quantity.getCount());
