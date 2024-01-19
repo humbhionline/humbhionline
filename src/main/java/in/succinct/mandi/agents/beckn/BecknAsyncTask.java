@@ -6,7 +6,13 @@ import in.succinct.beckn.Request;
 import java.util.Map;
 
 public abstract class BecknAsyncTask extends BppTask {
-    public BecknAsyncTask( Request request , Map<String,String> headers){
+
+    @Override
+    public Priority getTaskPriority() {
+        return Priority.HIGH;
+    }
+
+    public BecknAsyncTask(Request request , Map<String,String> headers){
         super(request,headers);
     }
     @Override
