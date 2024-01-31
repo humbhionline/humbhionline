@@ -1,9 +1,7 @@
 package in.succinct.mandi.configuration;
 
 import com.venky.core.security.Crypt;
-import com.venky.core.string.StringUtil;
 import com.venky.core.util.ObjectUtil;
-import com.venky.digest.Encryptor;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
@@ -42,11 +40,9 @@ import in.succinct.mandi.agents.beckn.Track;
 import in.succinct.mandi.agents.beckn.Update;
 import in.succinct.mandi.agents.beckn.bap.delivery.GenericCallBackRecorder;
 import in.succinct.mandi.agents.beckn.bap.delivery.OnStatus;
-import in.succinct.mandi.controller.ServerNodesController.Sync;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.OrderAddress;
 import in.succinct.mandi.db.model.SavedAddress;
-import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.extensions.AfterSaveOrderAddress;
 import in.succinct.mandi.util.beckn.BecknUtil;
@@ -282,46 +278,8 @@ public class AppInstaller implements Installer {
 
 
         }
-        registerWithHumBhiOnlineRegistry();
     }
 
-    private void registerWithHumBhiOnlineRegistry() {
-        String hboRegistry = Config.instance().getProperty("hbo.registry.url");
-        if (ObjectUtil.isVoid(hboRegistry)){
-            return;
-        }
-
-        ServerNode node = Database.getTable(ServerNode.class).newRecord();
-        node.setBaseUrl(Config.instance().getServerBaseUrl());
-        node.setClientId(BecknUtil.getNetworkParticipantId());
-        node = Database.getTable(ServerNode.class).getRefreshed(node);
-
-        if (node.getRawRecord().isNewRecord()){
-            if (!node.isRegistry()) {
-                InputStream in = new Call<InputStream>().url(hboRegistry + "/server_nodes/next_node_id").getResponseStream();
-                String next_node_id = StringUtil.read(in);
-                node.setNodeId(Long.parseLong(next_node_id));
-            }else  {
-                node.setNodeId(1L);
-                node.setApproved(true);
-            }
-
-            node.setClientSecret(Encryptor.encrypt(node.getClientId() + "-" + System.currentTimeMillis()));
-            node.setSigningPublicKey(BecknUtil.getSelfKey(null,BecknUtil.LOCAL_RETAIL).getPublicKey());
-            node.setEncryptionPublicKey(BecknUtil.getSelfEncryptionKey(null,BecknUtil.LOCAL_RETAIL).getPublicKey());
-            node.save();
-        }else {
-            if (node.isRegistry()){
-                node.setApproved(true);
-                node.save();
-            }else {
-                TaskManager.instance().executeAsync(new Sync(), false);
-            }
-        }
-        Config.instance().setProperty("swf.node.id",String.valueOf(node.getNodeId()));
-        Database.getInstance().resetIdGeneration();
-
-    }
 
     private void generateBecknKeys() {
         String skeyNumber = SequentialNumber.get("KEYS").getCurrentNumber();

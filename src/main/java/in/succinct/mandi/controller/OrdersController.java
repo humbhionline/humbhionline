@@ -34,7 +34,6 @@ import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
-import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.Sku;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
@@ -42,7 +41,6 @@ import in.succinct.mandi.integrations.courier.CourierAggregator;
 import in.succinct.mandi.integrations.courier.CourierAggregator.CourierOrder;
 import in.succinct.mandi.integrations.courier.CourierAggregatorFactory;
 import in.succinct.mandi.util.CompanyUtil;
-import in.succinct.mandi.util.InternalNetwork;
 import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.Item;
@@ -556,64 +554,12 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
     @Override
     protected View show(in.succinct.plugins.ecommerce.db.model.order.Order record) {
-        loadCreatorUser(record);
         return super.show(record);
     }
 
     @Override
     protected <T> View list(List<in.succinct.plugins.ecommerce.db.model.order.Order> records, boolean isCompleteList, IntegrationAdaptor<in.succinct.plugins.ecommerce.db.model.order.Order, T> overrideIntegrationAdaptor) {
-        loadCreatorUsers(records);
         return super.list(records, isCompleteList, overrideIntegrationAdaptor);
     }
 
-    public void loadCreatorUser(in.succinct.plugins.ecommerce.db.model.order.Order order){
-        loadCreatorUsers(Arrays.asList(order));
-    }
-    public void loadCreatorUsers(List<in.succinct.plugins.ecommerce.db.model.order.Order> orders){
-        Set<Long> creatorUserIds = new HashSet<>();
-        orders.forEach(o->{
-            creatorUserIds.add(o.getCreatorUserId());
-        });
-
-        {
-            List<User> users = new Select().from(User.class).where(new Expression(ModelReflector.instance(User.class).getPool(), "ID", Operator.IN, creatorUserIds.toArray())).execute();
-            users.forEach(u -> creatorUserIds.remove(u.getId()));
-        }
-
-        if (creatorUserIds.isEmpty()){
-            return;
-        }
-
-        List<ServerNode> nodes = InternalNetwork.getNodes();
-        Map<String,String> headers = InternalNetwork.extractHeaders(getPath());
-        headers.remove("Cookie");// Do this search with out login! Only using app authenticat
-
-        StringBuilder q = new StringBuilder();
-        creatorUserIds.forEach(id->{
-            if (q.length() > 0){
-                q.append( " OR ");
-            }
-            q.append("_ID:").append(id);
-        });
-
-        for (ServerNode node : nodes){
-            if (node.isSelf()){
-                continue;
-            }
-
-            JSONObject input = new JSONObject();
-            input.put("q",q.toString());
-            JSONObject aResponse = (JSONObject) new Call<JSONObject>().url(node.getBaseUrl()+"/users/internal_search").input(input).
-                    inputFormat(InputFormat.FORM_FIELDS).headers(headers)
-                    .method(HttpMethod.GET).getResponseAsJson();
-            if (aResponse != null){
-                JSONArray users = (JSONArray) aResponse.get("Users");
-                for (Object jsonUser: users){
-                    InternalNetwork.loadUserToCache((JSONObject) jsonUser);
-                }
-            }
-        }
-
-
-    }
 }

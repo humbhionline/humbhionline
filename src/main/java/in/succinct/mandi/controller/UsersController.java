@@ -33,10 +33,8 @@ import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.MobileMeta;
 import in.succinct.mandi.db.model.SavedAddress;
-import in.succinct.mandi.db.model.ServerNode;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.AadharEKyc;
-import in.succinct.mandi.util.InternalNetwork;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -68,24 +66,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         }
     }
 
-    @RequireLogin(false)
-    public View internal_search(){
-        ServerNode callingNode = InternalNetwork.getRemoteServer(getPath());
-        if (callingNode == null){
-            throw new RuntimeException("Unauthorized application");
-        }
-        return super.search();
-    }
 
-    @Override
-    protected ResultFilter<com.venky.swf.db.model.User> getFilter() {
-        ServerNode remote = InternalNetwork.getRemoteServer(getPath());
-        if (remote != null) {
-            return record -> true;
-        }else {
-            return super.getFilter();
-        }
-    }
 
     @Override
     @RequireLogin
@@ -278,35 +259,11 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
         JSONObject input = (JSONObject)JSONValue.parse(StringUtil.read(getPath().getInputStream()));
         JSONObject local = _hasPassword(input);
 
-        List<ServerNode> nodes = InternalNetwork.getNodes();
         Application application = getPath().getApplication();
-        if (nodes.isEmpty() || (nodes.size() == 1 && nodes.get(0).isSelf()) || ObjectUtil.equals(local.get("PasswordSet"),"Y")){
-            return new BytesView(getPath(),local.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
-        }
-        ServerNode caller = null ;
-        ServerNode self = null;
-        for (ServerNode node: nodes){
-            if (node.isSelf()){
-                self = node;
-            }
-            if (application != null && ObjectUtil.equals(application.getAppId(),node.getClientId())){
-                caller = node;
-            }
-        }
-        if (self == null){
-            throw new AccessDeniedException("Cannot call api on this node");
-        }
-        if (caller != null) {
+        if (ObjectUtil.equals(local.get("PasswordSet"),"Y")){
             return new BytesView(getPath(),local.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
         }
 
-        Map<String,String> headers = new HashMap<>();
-        if (self != null){
-            String token = String.format("%s:%s",self.getClientId(),self.getClientSecret());
-            token = String.format("Basic %s",Base64.getEncoder().encodeToString(token.getBytes(StandardCharsets.UTF_8)));
-            headers.put("Authorization",token);
-            headers.put("Content-Type",MimeType.APPLICATION_JSON.toString());
-        }
         final TypeConverter<Boolean> booleanConverter = Database.getJdbcTypeHelper("").getTypeRef(Boolean.class).getTypeConverter();
 
         Comparator<JSONObject> comparator = (Comparator<JSONObject>) (r1, r2) -> {
@@ -330,31 +287,7 @@ public class UsersController extends com.venky.swf.plugins.collab.controller.Use
             }
         };
 
-        JSONObject best = local;
-        for (ServerNode node: nodes){
-            if (node.isSelf()){
-                continue;
-            }
-            JSONObject aResponse = new Call<JSONObject>().url(node.getBaseUrl()+"/users/hasPassword").input(local).inputFormat(InputFormat.JSON).
-                    headers(headers)
-                    .method(HttpMethod.POST).getResponseAsJson();
-            if (comparator.compare(aResponse,best) > 0){
-                best = aResponse;
-            }
-            if (ObjectUtil.equals(best.get("PasswordSet"),"Y")){
-                break;
-            }
-        }
-        if (ObjectUtil.equals(best.get("Registered"),"N")){
-            MobileMeta meta = MobileMeta.find((String)best.get("PhoneNumber"));
-            if (meta != null){
-                ServerNode node = meta.getServerNode();
-                if (node != null){
-                    best.put("BaseUrl",node.getBaseUrl());
-                }
-            }
-        }
-        return new BytesView(getPath(),best.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
+        return new BytesView(getPath(), local.toString().getBytes(StandardCharsets.UTF_8),MimeType.APPLICATION_JSON);
     }
 
     @RequireLogin(false)

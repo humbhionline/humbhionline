@@ -17,9 +17,6 @@ public interface TelecomCircle extends Model {
     public String getCode();
     public void setCode(String code);
 
-    @IS_NULLABLE
-    public Long getServerNodeId();
-    public void setServerNodeId(Long id);
-    public ServerNode getServerNode();
+
 
 }

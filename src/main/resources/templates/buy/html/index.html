@@ -124,7 +124,7 @@
                 },
                 book: function (orders) {
                     let self = this;
-                    return api().url("/network/call/orders/book").parameters({ Orders: orders }).post();
+                    return api().url("/orders/book").parameters({ Orders: orders }).post();
                 },
                 bookOrder: function (event, f) {
                     if (event) {
@@ -345,7 +345,7 @@
                         v-for="(ol,olindex) in facilityOrders[facility.Id].OrderLines">
                         <div class="col-sm-2 col-4">
                             <div class="img-box">
-                                <img v-bind:src="'/network/call' + ol.Inventory.Sku.Attachments[0].AttachmentUrl"
+                                <img v-bind:src="ol.Inventory.Sku.Attachments[0].AttachmentUrl"
                                     v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
                                     class="w-100" data-toggle="modal"
                                     v-bind:data-target="'#sku-img-'+ol.Inventory.Sku.Id" />
