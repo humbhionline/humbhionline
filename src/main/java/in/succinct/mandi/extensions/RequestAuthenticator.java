@@ -9,7 +9,6 @@ import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.model.User;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.collab.db.model.user.Phone;
-import in.succinct.mandi.util.InternalNetwork;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -41,14 +40,6 @@ public class RequestAuthenticator extends com.venky.swf.extensions.RequestAuthen
         String apiKey = path.getHeader("ApiKey");
         if (apiKey != null) {
             user = path.getUser("API_KEY", apiKey);
-        }
-        if (user == null){
-            user = InternalNetwork.getRemoteNetworkUser(path);
-            if (user != null) {
-                user.setApiKey(apiKey);
-                userObjectHolder.set(user);
-                Database.getInstance().open(user); //If I don't do this. Path will read session's user_id (which is null) and try to load it from db,
-            }
         }
 
 

@@ -9,15 +9,5 @@ public class MobileMetaImpl extends ModelImpl<MobileMeta> {
     public MobileMetaImpl(){
         super();
     }
-    public Long getServerNodeId() {
-        TelecomCircle circle = getProxy().getTelecomCircle();
-        if (circle != null){
-            return circle.getServerNodeId();
-        }
-        return null;
-    }
 
-    public void setServerNodeId(Long id){
-        //nothing.
-    }
 }

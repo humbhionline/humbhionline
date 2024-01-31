@@ -30,10 +30,6 @@ public interface MobileMeta extends Model {
     public void setTelecomCircleId(Long id);
     public TelecomCircle getTelecomCircle();
 
-    @IS_VIRTUAL
-    public Long getServerNodeId();
-    public void setServerNodeId(Long id);
-    public ServerNode getServerNode();
 
 
     public static MobileMeta find(String phoneNumber){
