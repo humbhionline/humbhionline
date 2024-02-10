@@ -166,7 +166,7 @@ public class Search extends BecknAsyncTask {
         ModelReflector<Inventory> inventoryModelReflector = ModelReflector.instance(Inventory.class);
         Expression inventoryWhere = new Expression(inventoryModelReflector.getPool(),"ID", Operator.IN,ids.toArray());
 
-        List<Inventory> inventories = new Select().from(Inventory.class).where(inventoryWhere).execute(Inventory.class,MAX_LIST_RECORDS,
+        List<Inventory> inventories = new Select().from(Inventory.class).where(inventoryWhere).execute(Inventory.class,Select.MAX_RECORDS_ALL_RECORDS,
                 record -> {
                         Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
                     boolean pass = facility.isPublished();
