@@ -613,8 +613,8 @@ public class OrderUtil {
         put(Order.FULFILLMENT_STATUS_CANCELLED, Status.Cancelled);
     }};
 
-    public static Tags getTags(Inventory inventory){
-        Tags tags = new Tags();
+    public static TagGroups getTags(Inventory inventory){
+        TagGroups tags = new TagGroups();
         String seoTags = inventory.getTags();
         if (seoTags != null) {
             StringTokenizer tokenizer = new StringTokenizer(seoTags, ", ");
@@ -630,7 +630,7 @@ public class OrderUtil {
                     key = token;
                     value = "Y";
                 }
-                tags.set(key, value);
+                tags.setTag("general_attributes",key, value);
             }
         }
         return tags;

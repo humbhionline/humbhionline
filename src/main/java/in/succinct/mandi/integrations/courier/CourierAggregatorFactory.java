@@ -1,11 +1,7 @@
 package in.succinct.mandi.integrations.courier;
 
-import com.venky.core.util.ObjectUtil;
-import com.venky.swf.sql.Select;
-import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,7 +28,7 @@ public class CourierAggregatorFactory {
 
 
     public String getBecknNetworkAggregatorKey(BecknNetwork network){
-        return String.format("beckn://%s",network.getRegistryId());
+        return String.format("beckn://%s",network.getNetworkId());
     }
 
 

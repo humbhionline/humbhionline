@@ -10,21 +10,20 @@ import com.venky.swf.routing.Config;
 import in.succinct.beckn.Context;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.Request;
-import in.succinct.mandi.agents.beckn.BecknAsyncTask;
 import in.succinct.mandi.agents.beckn.Status;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
-import in.succinct.mandi.util.beckn.BecknUtil;
+import in.succinct.mandi.db.model.beckn.BecknNetworkRole;
 import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.mandi.util.beckn.OrderUtil.OrderFormat;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
-import org.apache.commons.compress.harmony.pack200.BcBands;
 
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
@@ -85,12 +84,19 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
         }
         Map<String,OrderAttribute> attributeMap = model.getAttributeMap();
         OrderAttribute selfPlatformAttribute = attributeMap.get("self_platform_url");
+        OrderAttribute domain = attributeMap.get("domain");
         if (selfPlatformAttribute == null || selfPlatformAttribute.getValue() == null){
             return null;
         }
+        if (domain == null || domain.getValue() == null){
+            return null;
+        }
 
-        BecknNetwork network = BecknNetwork.findByRetailBppUrl(selfPlatformAttribute.getValue().substring(Config.instance().getServerBaseUrl().length()).replace("//","/"));
-        Subscriber subscriber = network.getRetailBppSubscriber();
+        BecknNetwork network = BecknNetwork.findByUrl(selfPlatformAttribute.getValue().substring(Config.instance().getServerBaseUrl().length()).replace("//","/"));
+        Subscriber subscriber = network.getBppSubscriber();
+        if (subscriber == null || subscriber.getDomains().get(domain.getValue()) == null){
+            return null;
+        }
 
         Map<String,String> headers = new HashMap<>();
         headers.put("Content-Type", MimeType.APPLICATION_JSON.toString());

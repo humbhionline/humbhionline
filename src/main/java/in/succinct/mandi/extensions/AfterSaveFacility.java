@@ -1,11 +1,8 @@
 package in.succinct.mandi.extensions;
 
 import com.venky.swf.db.Database;
-import com.venky.swf.db.extensions.AfterModelCreateExtension;
 import com.venky.swf.db.extensions.AfterModelSaveExtension;
 import com.venky.swf.plugins.background.core.TaskManager;
-import in.succinct.mandi.agents.beckn.RegisterProviderLocationAgent;
-import in.succinct.mandi.agents.beckn.RegisterProviderLocationAgent.RegisterProviderLocationTask;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Item;
@@ -13,7 +10,6 @@ import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasureConversionTable;
 import in.succinct.plugins.ecommerce.db.model.inventory.Sku;
-import in.succinct.plugins.ecommerce.db.model.participation.PreferredCarrier;
 
 public class AfterSaveFacility extends AfterModelSaveExtension<Facility> {
     static {
@@ -63,8 +59,6 @@ public class AfterSaveFacility extends AfterModelSaveExtension<Facility> {
         }else if (inventory != null ){
             inventory.destroy();
         }
-        if (model.getLat() != null  && model.getLng() != null){
-            TaskManager.instance().executeAsync(new RegisterProviderLocationTask(model),false);
-        }
+        
     }
 }

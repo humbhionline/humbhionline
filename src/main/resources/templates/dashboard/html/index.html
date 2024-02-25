@@ -11,20 +11,52 @@
     $(function () {
         var params = (new URL(window.location)).searchParams;
         var term = params.get("search");
-        var facility_id = params.get("facility_id");
-        var order_id = params.get("order_id");
-        var clone_order_id = params.get("clone_order_id");
+        var provider_id = params.get("provider_id");
+        var provider_location_id = params.get("provider_location_id");
+        
 
         let PreferredMaxDistance = Lockr.get("PreferredMaxDistance");
         if (!PreferredMaxDistance) {
             PreferredMaxDistance = 5;
         } else if (PreferredMaxDistance > 20) {
             PreferredMaxDistance = 20;
+        }else {
+            PreferredMaxDistance = 10 ;
         }
         Lockr.set("PreferredMaxDistance", PreferredMaxDistance);
-        if (!Lockr.get("search.Category")) {
-            Lockr.set("search.Category", "Inventory");
+        if (!Lockr.get("usecase.Category")) {
+            Lockr.set("usecase.Category", "Inventory");
         }
+
+        var search = {
+            context: { ttl : "PT10S" },
+            message: {
+                intent : { 
+                    descriptor: {
+                       name : term || "" 
+                    },
+                    fulfillment : {
+                        end : {
+                            location: {
+                                circle : {
+                                    radius : PreferredMaxDistance
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+            }
+        };
+        if (provider_id){
+            search.message.intent.provider = { id : provider_id } ;
+        }
+        if (provider_location_id){
+            search.message.intent.provider.locations = [{ id : provider_location_id }]; 
+        }
+
+
+
 
         new Vue({
             el: "#app",
@@ -40,26 +72,25 @@
                 itemWidth: 0,
                 facilityWidth: 0,
                 blank: blank,
-                search: {
-                    MaxDistance: Lockr.get("PreferredMaxDistance") || 10,
-                    Category: facility_id ? "Inventory" : Lockr.get("search.Category"),
-                    facility_id: facility_id,
-                    order_id: order_id,
-                    clone_order_id: clone_order_id,
-                    Facility: {},
-                    Order: {},
-                    term: term || "",
-                    results: [],
-                    nearByFacilities: [],
+                evtSource : null,
+                usecase: {
+                    Category : provider_location_id ? "Inventory" : Lockr.get("usecase.Category"),
+                    MaxDistance : PreferredMaxDistance
+                },
+                provider_location_id: provider_location_id,
+                config : {
                     termLengthTrigger: 1,
                     timer: undefined,
-                    facilitySearchTimer: undefined,
-                    new_items:[],
                 },
+                search: search,
+                on_search: {},
+                items :[] ,
+                networks: [] ,
+                provider_location : {} , // hash
+
                 hideNewDelivery: true,
                 delivery: null,
                 lookup: {
-                    Skus :[],
                     Cities: [],
                     PinCodes: [],
                     lookupselectionIndex: -1,
@@ -104,53 +135,14 @@
 
                     if (!validated) {
                         window.location.href = ("/users/html/profile");
-                    } else {
-                        self.loadFacility().then(function (f) {
-                            self.search.Facility = f;
-                            if (f.Id) {
-                                self.search.termLengthTrigger = 0;
                             }
-                            self.loadOrder().then(function (o) {
-                                if (o.Id && isOpenOrder(o)) {
-                                    self.search.Order = o;
-                                } else {
-                                    self.search.Order = {};
-                                    self.search.order_id = undefined;
-                                }
-                                if (self.search.Order.Id) {
-                                    self.search.termLengthTrigger = 0;
-                                }
-                                self.loadHistoryOrder().then(function (ho) {
-                                    if (ho.Id) {
-                                        var qtyHash = {};
-                                        var query = "(FACILITY_ID:" + ho.Facility.Id + " AND ( SKU_ID:"
-                                        ho.OrderLines.forEach((ol, i) => {
-                                            query += ol.Sku.Id + " OR SKU_ID:";
-                                            qtyHash[ol.Sku.Id] = ol.OrderedQuantity * 1.0;
-                                        });
-                                        query += "0))";
-                                        let q = { "q": query };
-                                        return api().url("/inventories/search").get(q).then(function (response) {
-                                            response.Inventories.forEach((inventory, inventoryIndex) => {
-                                                var result = {};
-                                                result = inventory;
-                                                result.OrderedQuantity = qtyHash[result.Sku.Id];
-                                                self.addToCart(null, result);
-                                            });
-                                            if (response.Inventories.length > 0) {
-                                                self.buy(null);
-                                            }
-                                        });
-                                    }
-                                }).then(function () {
-                                    self.find(null);
-                                    self.showApp();
-                                });
-                            });
-                        });
-                    }
+                }).then(function() {
+                    api().url("/beckn_networks").get().then(function (response) {
+                        self.networks= response.BecknNetworks;
+                    });
                 }).finally(function(){
-                    hideSpinner();
+                    self.find(null);
+                    self.showApp();
                 });
             },
             methods: {
@@ -167,16 +159,7 @@
                     }
                 },
                 isAddressChanged: function (from, to) {
-                    return !(to.AddressLine1 == from.AddressLine1 &&
-                        to.AddressLine2 == from.AddressLine2 &&
-                        to.AddressLine3 == from.AddressLine3 &&
-                        to.AddressLine4 == from.AddressLine4 &&
-                        to.City.Name == from.City.Name &&
-                        to.City.State.Name == from.City.State.Name &&
-                        to.City.State.Country.Name == from.City.State.Country.Name &&
-                        to.PinCode.PinCode == from.PinCode.PinCode &&
-                        to.PhoneNumber == from.PhoneNumber &&
-                        to.Email == from.Email)
+                    return !equalAddress(from,to,false); //Basic address fields not including name, lat and lng
                 },
                 reloadCounts: function () {
                     let self = this;
@@ -185,86 +168,22 @@
                     self.ShipmentCount = 0;
                     self.OrderLineCount = 0;
                     self.OrderAmount = 0;
-                    self.DeliveryAmount = 0;
 
                     for (key in obj) {
                         if (obj.hasOwnProperty(key)) {
                             self.ShipmentCount += 1;
-                            self.OrderLineCount += obj[key].OrderLines.length;
-                            var facility = null;
-                            var deliveryAmount = null; //It is only charged once per order.!!
-                            obj[key].OrderLines.forEach((ol, i) => {
-                                self.OrderAmount += ol.OrderedQuantity * ol.Inventory.SellingPrice
-                                if (!facility) {
-                                    facility = ol.Inventory.Facility;
-                                }
-                                if (!deliveryAmount && ol.Inventory.DeliveryProvided === 'Y' ) {
-                                    deliveryAmount = ol.Inventory.DeliveryCharges
-                                }
+                            self.OrderLineCount += obj[key].items.length;
+                            obj[key].items.forEach((item, i) => {
+                                self.OrderAmount += item.quantity.count * item.price.value
                             });
-                            if (obj[key].OrderLines.length === 0) {
+                            if (obj[key].items.length === 0) {
                                 delete obj[key];
-                            }
-
-                            if (deliveryAmount && (!obj[key].CustomerPickup || obj[key].CustomerPickup !== 'Y')) {
-                                self.DeliveryAmount += deliveryAmount * 1.0;
                             }
                         }
                     }
                     if (typeof updateHeaderCount === 'function'){
                         updateHeaderCount();
                     }
-                },
-                loadOrder: function () {
-                    let self = this;
-                    return new Promise(function (resolve, reject) {
-                        if (self.search.order_id && self.search.order_id * 1.0 > 0) {
-                            showSpinner();
-                            api().url("orders/show/" + self.search.order_id).get().then(function (response) {
-                                resolve(response.Order);
-                            }).catch(function (err) {
-                                reject(err);
-                            }).finally(function () {
-                                hideSpinner();
-                            });
-                        } else {
-                            resolve({});
-                        }
-                    });
-                },
-                loadHistoryOrder: function () {
-                    let self = this;
-                    return new Promise(function (resolve, reject) {
-                        if (self.search.clone_order_id && self.search.clone_order_id * 1.0 > 0) {
-                            showSpinner();
-                            api().url("orders/show/" + self.search.clone_order_id).get().then(function (response) {
-                                resolve(response.Order);
-                            }).catch(function (err) {
-                                reject(err);
-                            }).finally(function () {
-                                hideSpinner();
-                            });
-                        } else {
-                            resolve({});
-                        }
-                    });
-                },
-                loadFacility: function () {
-                    let self = this;
-                    return new Promise(function (resolve, reject) {
-                        if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
-                            showSpinner();
-                            api().url("facilities/show/" + self.search.facility_id).get().then(function (response) {
-                                resolve(response.Facility);
-                            }).catch(function (err) {
-                                reject(err);
-                            }).finally(function () {
-                                hideSpinner();
-                            });
-                        } else {
-                            resolve({});
-                        }
-                    });
                 },
                 showApp: function () {
                     let self = this;
@@ -289,270 +208,177 @@
                         return {};
                     }
                 },
-                isSearchTriggerable: function (length = this.search.termLengthTrigger) {
+                isSearchTriggerable: function (length = this.config.termLengthTrigger) {
                     let self = this;
-                    return self.search.term.length >= length;
+                    return self.search.message.intent.descriptor.name.length >= length;
                 },
                 find: function (e) {
                     let self = this;
                     if (e) {
                         e.preventDefault();
-                        if (self.search.term !== e.target.value ){
-                            self.search.term = e.target.value;
+                        if (self.search.message.intent.descriptor.name !== e.target.value ){
+                            self.search.message.intent.descriptor.name = e.target.value;
                         }
                     }
-                    self.search.results = [];
+                    self.on_search = {};
                     enableSwipe();
-                    if (!self.search.facility_id || self.search.facility_id * 1.0 === 0){
-                        self.search.nearByFacilities =  []; //Don't Reload facilities if it the screen is loaded for a facility_id
+
+                    if (self.config.timer) {
+                        clearTimeout(self.config.timer);
+                        self.config.timer = undefined;
                     }
 
-
-                    if (self.search.timer) {
-                        clearTimeout(self.search.timer);
-                        self.search.timer = undefined;
-                    }
-                    if (self.search.facilitySearchTimer) {
-                        clearTimeout(self.search.facilitySearchTimer);
-                        self.search.facilitySearchTimer = undefined;
-                    }
-
-                    if (!self.isSearchTriggerable()) {
-                        self.search.facilitySearchTimer = setTimeout(function () {
-                            if (!self.search.order_id && !self.search.clone_order_id) {
-                                let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim().replace(" ", "* AND NAME:");
-                                let term = search_term;
-                                var q = { "q": "(PUBLISHED:Y" + (term.length > 0 ? ` AND NAME:${term}*` : "") + " )" };
-                                self._findFacilities(q);
-                            }
-                            self.search.facilitySearchTimer = undefined;
-                        }, 400);
-
-                        return;
-                    }
-                    self.search.timer = setTimeout(function () {
+                    self.config.timer = setTimeout(function () {
                         self._find();
-                        self.search.timer = undefined;
+                        self.config.timer = undefined;
                     }, 400);
                 },
-                _findFacilities: function (q = { "q": "(PUBLISHED:Y)" }) {
+                digest: function(response){
                     let self = this;
-                    self.facilityWidth = "200";
-                    if (self.search.nearByFacilities.length == 0 ){
-                        api().url("/facilities/search").get(q).then(function (r) {
-                            self.search.nearByFacilities = r.Facilities;
-                            self.search.nearByFacilities.sort(function (f1, f2) {
-                                return f1.Distance - f2.Distance;
-                            });
-                            self.$forceUpdate();
-                        });
+                   context = response.context;
+                   self.on_search[context.bpp_id] = response;
+                   let headers = self.headers();
+
+                   response.message.catalog["bpp/providers"].forEach(p=>{
+                        if (!p.descriptor){
+                            p.descriptor = response.message.catalog["bpp/descriptior"];
                     }
-                },
-                _find: function () {
-                    let self = this;
-                    let search_term = self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
-                    let term = search_term;
-                    term = (term.length > 0 ? "( (SKU:" + term.replace(" ","* AND SKU:") + "*)" + 
-                                                 " OR ( TAGS:" + term.replace(" ","* AND TAGS:") + "*)" + 
-                                                 " OR ( FACILITY:" + term.replace(" " , "* AND FACILITY:") +"*))" : "" ) ;
-
-
-                    if (self.search.facility_id && self.search.facility_id * 1.0 > 0) {
-                        if (term.length > 0) {
-                            term = term + " AND ";
-                        }
-                        term += "(FACILITY_ID:" + self.search.facility_id + ")"
-                    }
-
-                    var params = {};
-                    params.MaxDistance = self.search.MaxDistance;
-
-                    if (self.search.Order.Id && self.search.Order.Id * 1.0 > 0) {
-                        params.OrderId = self.search.Order.Id;
-                        if (term.length > 0) {
-                            term = term + " AND ";
-                        }
-                        term += " PUBLISHED:Y ";
-                    }
-                    params.q = term;
-                    showSpinner();
-                    api().url("/inventories/search").get(params).then(function (response) {
-                        if (self.search.term.replace(/[^a-zA-Z0-9 ]/g, " ").trim() != search_term) {
-                            return;
-                        }
-                        if (!response) {
-                            return
-                        }
-                        self.search.results = response.Inventories.sort(function (o1, o2) {
-                            return o1.Facility.Distance - o2.Facility.Distance;
-                        });
-                        self.search.results = self.search.results.filter(function (inventory) {
-                            return !self.isDeliverySku(inventory.Sku) ||
-                                ((self.search.Order.Id && self.search.Order.Id * 1.0 > 0) && inventory.DeliveryProvided == 'Y')
-                        });
-                        if (self.search.Facility.Id){
-
-                            self.search.results.push(...self.search.new_items);
-                            self.search.results.push({
-                                Facility : self.search.Facility, 
-                                Sku : {
-                                    Name : "Unknown",
-                                    Item : {
-                                        Name : "Did not find what you are looking for? Click here to add.",
-                                    },
-                                    PackagingUOM: {
-                                        Measures: "Packaging" ,
-                                        Name: "Single",
-                                    },
-                                },
-                                Tags :"Unknown",
-                                SellingPrice : "0.0",
-                                MaxRetailPrice : "0.0"
-                            });
-                        }
-
-
-                        self.itemWidth = $("#item-0").width();
-                        let facilityIds = new Set();
-                        self.search.results.forEach((result, i) => {
-                            facilityIds.add(result.Facility.Id);
-                            var order = self.facilityOrders[result.Facility.Id];
-                            result.OrderedQuantity = 0;
-                            result.OrderedAmount = (0.00).toFixed(2);
-                            if (order) {
-                                if (order.CustomerPickup === 'Y') {
-                                    result.DeliveryProvided = 'N';
-                                }
-
-                                order.OrderLines.forEach((orderLine, i) => {
-                                    if ((orderLine.Inventory.Sku.Id === result.Sku.Id)
-                                        && (orderLine.Inventory.Tags === result.Tags)
-                                        && orderLine.Inventory.Facility.Id === result.Facility.Id) {
-                                        result.OrderedQuantity = orderLine.OrderedQuantity
-                                        result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
-                                    }
-                                });
-                                if (result.Published !== 'Y'){
-                                    result.OrderedAmount = 0; 
-                                    result.OrderedQuantity = 0; 
-                                    self.addToCart(null,result);
-                                    self.reloadCounts()
-                                }
+                        p.locations.forEach(pl=>{
+                            self.provider_location[pl.id] = pl;
+                            if (!pl.descriptor) {
+                                pl.descriptor = p.descriptor;
+                            }
+                            if (!pl.distance && pl.gps && headers.Lat){
+                                l = pl.gps.split(",");
+                                pl.distance = distance(Number.parseFloat(l[0]),Number.parseFloat(l[1]),headers.Lat,headers.Lng);
                             }
                         });
-                        let q = { q: "" };
-                        if (facilityIds.size > 0) {
-                            facilityIds.forEach(function (fId) {
-                                if (q.q.length > 0) {
-                                    q.q += " OR "
+                        p.fulfillments.forEach(f=>{
+                            let pl = self.provider_location[f.start.location.id];
+                            if (!pl.fulfillments){
+                                pl.fulfillments = [] ;
+                    }
+                            pl.fulfillments.push(f);
+                        });
+                        p.items.forEach(i=>{
+                            i.bpp_id = context.bpp_id;
+                            if (!i.quantity){
+                                i.quantity = {};
+                        }
+                            if (!i.quantity.selected){
+                                i.quantity.selected = {}
+                    }
+                            if (!i.quantity.selected.count ){
+                                i.quantity.selected.count = 0;
+                        }
+                            if (!i.quantity.selected.measure && i.quantity.available && i.quantity.available.measure){
+                                i.quantity.selected.measure = i.quantity.available.measure;
+                        }
+                        self.items.push(i);
+                        });
+                        });
+                                    },
+                _find: function () {
+                    let self = this;
+                    let search_term = self.search.message.intent.descriptor.name.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
+                    if (self.blank(search_term)){
+                        return;
+                    }
+                    let headers = self.headers();
+                    self.search.message.intent.fulfillment.end.location.gps = headers.Lat + "," +  headers.Lng;
+                    api().url("/hbo/network/search").parameters(self.search).post().then(function(requestFired){
+                        console.log("Checking messages for " + requestFired.context.message_id);
+                        if (self.evtSource){
+                            self.evtSource.close();
+                        }
+                        self.evtSource = new EventSource("/hbo/network/read_events/"+requestFired.context.message_id, {
+                            withCredentials : true
+                        });
+                        self.evtSource.onmessage = (event)=>{
+                            try {
+                                showSpinner();
+                                console.log("got " + event.data );
+                                response = JSON.parse(event.data);
+                                if (!response || response.done ||
+                                    self.search.message.intent.descriptor.name.replace(/[^a-zA-Z0-9 ]/g, " ").trim() != search_term) {
+                                    disableSwipe();
+                                    self.evtSource.close();
+                                    return;
                                 }
-                                q.q += `ID:${fId}`
-                            });
-                        }
-
-                        let term = search_term.replace(" ", "* AND NAME:");
-
-                        if (term.length > 0) {
-                            q.q = q.q.length > 0 ? `(( ${q.q} ) OR (NAME:${term}*))` : `(NAME:${term}*)`;
-                        }
-                        if (q.q.length > 0){
-                            q.q = `(PUBLISHED:Y AND ${q.q})`
-                        }else {
-                            q.q = "PUBLISHED:Y"
-                        }
-                        self._findFacilities(q);
-                    }).finally(function () {
-                        if (self.search.results.length > 0){
-                            disableSwipe();
-                        }
-                        hideSpinner();
+                                if (response.message){
+                                    self.digest(response);
+                                }
+                            } finally {
+                                hideSpinner();
+                            }
+                        };
                     });
                 },
                 onQtyChange: function (event, index) {
                     let self = this;
-                    let result = self.search.results[index];
-                    result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
-                    Vue.set(self.search.results, index, result);
+                    //EDIT
+                    let result = self.items[index];
+                    result.quantity.selected.count =  Math.max(0, result.quantity.selected.count);
+                    result.quantity.selected.measure = result.quantity.available.measure;
+                    Vue.set(self.items, index, result);
                     self.addToCart(event, result);
                 },
                 reduce: function (event, index) {
                     let self = this;
-                    let result = self.search.results[index];
-                    result.OrderedQuantity -= 1.0;
-                    result.OrderedQuantity = Math.max(0, result.OrderedQuantity);
-                    result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
-                    Vue.set(self.search.results, index, result);
+                    let result = self.items[index];
+                    result.quantity.selected.count -= 1.0;
+                    result.quantity.selected.count = Math.max(0, result.quantity.selected.count);
+                    Vue.set(self.items, index, result);
                     self.addToCart(event, result);
-                },
-                isDeliverySku: function (sku) {
-                    return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
-                },
-                isSubscriptionAllowed: function (index) {
-                    let self = this;
-                    let result = self.search.results[index];
-                    return result.Sku.Item.HumBhiOnlineSubscriptionItem != 'Y' || self.User.Verified == 'Y' || result.SellingPrice <= 50;
                 },
                 increase: function (event, index) {
-                    if (event) {
-                        event.preventDefault();
-                    }
                     let self = this;
-                    let result = self.search.results[index];
+                    let result = self.items[index];
 
-                    if (!result.OrderedQuantity) {
-                        result.OrderedQuantity = 0.0;
+                    if (!result.quantity.selected.count){
+                        result.quantity.selected.count = 0;
                     }
-                    if (self.isDeliverySku(result.Sku) && result.OrderedQuantity * 1.0 > 0) {
-                        return;
-                    }
-                    result.OrderedQuantity += 1.0;
-                    result.OrderedAmount = (result.OrderedQuantity * result.SellingPrice * 100 / 100).toFixed(2);
-                    Vue.set(self.search.results, index, result);
+                    result.quantity.selected.count += 1.0;
+                    Vue.set(self.items, index, result);
                     self.addToCart(event, result);
+                },
+                context: function(bpp_id){
+                    let self = this; 
+                    return self.on_search[bpp_id].context;
                 },
                 addToCart: function (event, result) {
                     if (event) {
                         event.preventDefault();
                     }
-                    if (result.Published !== 'Y'){
-                        result.OrderedQuantity = 0;
-                        result.OrderedAmount = 0;
-                    }
                     let self = this;
-                    if (!self.facilityOrders[result.Facility.Id]) {
-                        self.facilityOrders[result.Facility.Id] = {
-                            OrderLines: [],
-                            OrderAddresses: []
-                        };
-                        Vue.set(self.facilityOrders, result.Facility.Id, self.facilityOrders[result.Facility.Id]);
+                    let provider_location_id = result.location_ids[0];
+                    if (!self.facilityOrders[provider_location_id]) {
+                        self.facilityOrders[provider_location_id] = {
+                            context : self.context(result.bpp_id),
+                            message : {
+                                order : {
+                                    items: []
                     }
-                    var order = self.facilityOrders[result.Facility.Id];
-                    if (order) {
-                        let index = order.OrderLines.findIndex(function (ol) {
-                            return ol.Inventory.Sku.Id === result.Sku.Id &&
-                                ol.Inventory.Tags === result.Tags &&
-                                ol.Inventory.Facility.Id === result.Facility.Id;
-                        });
-                        let ol = {
-                            Inventory: result,
-                            OrderedQuantity: result.OrderedQuantity
+                            }
                         };
+                        Vue.set(self.facilityOrders, provider_location_id, self.facilityOrders[provider_location_id]);
+                    }
+                    var order = self.facilityOrders[provider_location_id].message.order;
+                    if (order) {
+                        let index = order.items.findIndex(function (ol) {
+                            return ol.id === result.id &&
+                                ol.provider_location_id === result.provider_location_id;
+                        });
                         if (index < 0) {
-                            if (ol.OrderedQuantity * 1 > 0) {
-                                order.OrderLines.push(ol);
+                            if (result.quantity.selected.count * 1 > 0) {
+                                order.items.push(result);
                             }
                         } else {
-                            if (ol.OrderedQuantity * 1 > 0) {
-                                order.OrderLines.splice(index, 1, ol);
+                            if (result.quantity.selected.count * 1 > 0) {
+                                order.items.splice(index, 1, result);
                             } else {
-                                order.OrderLines.splice(index, 1);
+                                order.items.splice(index, 1);
                             }
-                        }
-                        if (self.search.Order.Id) {
-                            order.RefOrder = { Id: self.search.Order.Id };
-                            order.CustomerPickup = 'N';
-                        } else {
-                            order.CustomerPickup = order.CustomerPickup || (ol.Inventory.DeliveryProvided === 'N' ? 'Y' : 'N');
                         }
                     }
                     if (event) {
@@ -582,7 +408,7 @@
                     } else {
                         url += 'https://web.whatsapp.com/send'
                     }
-                    url += '?phone=' + f.PhoneNumber;
+                    url += '?phone=' + f.contact.phone;
                     return url;
                 },
                 /* Delivery Address Setting code */
@@ -752,7 +578,6 @@
                     self.hideKeyboard().then(function () {
                         self.lookup.Cities = [];
                         self.lookup.PinCodes = [];
-                        self.lookup.Skus = [];
                         $(".lookups-list").removeClass("offsetTop");
                     });
                 },
@@ -769,114 +594,14 @@
                     });
                 },
                 openFacility: function (f) {
-                    window.location.href = `/dashboard?facility_id=${f.Id}`
+                    window.location.href = `/dashboard?provider_location_id=${f.Id}`
                 },
                 onSearchCategoryChange: function () {
                     let self = this;
-                    if (!facility_id) {
-                        Lockr.set("search.Category", self.search.Category);
+                    if (!provider_location_id) {
+                        Lockr.set("usecase.Category", self.usecase.Category);
                     }
                 },
-                addNewItem: function(event){
-                    event && event.preventDefault();
-                    let self =this;
-                    self.search.last_item = {
-                        IsNew: true,
-                        Facility : self.search.Facility, 
-                        Sku : {
-                            Name: "",
-                            Item : {
-                                Name : "",
-                            },
-                            PackagingUOM: {
-                                Measures: "Packaging" ,
-                                Name: "Single",
-                            },
-                        },
-                        Published : "N",
-                        Tags :"",
-                        SellingPrice : "0.0",
-                        MaxRetailPrice : "0.0",
-                        DeliveryCharges : self.search.Facility.DeliveryCharges,
-                        DeliveryProvided : self.search.Facility.DeliveryCharges ? 'Y' : 'N' ,
-                    }
-                    Vue.set(self.search,"last_item" ,self.search.last_item);
-                    self.$forceUpdate();
-                },
-                selectNewItem: function(event,newItem){
-                    event && event.preventDefault();
-                    let self =this;
-                    if (newItem){
-                        Vue.set(self.search,"last_item" ,newItem);
-                    }else{
-                        self.addNewItem(event);
-                    }
-                },
-                cancelEditNewItem: function(event){
-                    event && event.preventDefault();
-                    let self =this;
-                    Vue.delete(self.search, 'last_item')
-                },
-                saveNewItem: function(event){
-                    event && event.preventDefault();
-                    let self = this; 
-                    let index = self.search.new_items.findIndex(function(item){
-                        self.search.last_item.Sku.Name == item.Sku.Name
-                    });
-                    if (index >= 0){
-                        showError("Duplicate Product");
-                    }
-                    self.search.last_item.Published = 'Y';
-                    self.search.last_item.Sku.Item.Name = self.search.last_item.Sku.Name  
-                    //self.search.last_item.Sku.Item.Company = self.User.Company
-                    //self.search.last_item.Sku.Company = self.User.Company
-
-                    self.search.new_items.push(self.search.last_item);
-                    self.search.results.splice(self.search.results.length-1,0,self.search.last_item);
-                    Vue.delete(self.search, 'last_item')
-                },
-                removeNewItem: function(event,inventory){
-                    event && event.preventDefault();
-                    let self = this;
-                    let index = self.search.new_items.findIndex(function(item){
-                        inventory.Item.Name == item.Item.Name
-                    });
-                    if (index >= 0){
-                        self.search.new_items.splice(index,1);
-                    }
-                },
-                onSkuChange : function(e){
-                    e && e.preventDefault();
-                    if (!this.isKeyTriggerable(e)) {
-                        return;
-                    }
-                    let self = this;
-                    self.lookup.Skus = [];
-                    if (!self.search.last_item.Sku.Name.endsWith(" ")){
-                        new Autocomplete("skus", e.target).search().then(function (response) {
-                            if (!response) {
-                                return
-                            }
-                            self.lookup.Skus = response.Skus
-                            self.loadLookupEntries(e.target);
-                            Vue.set(self.lookup, "Skus", self.lookup.Skus);
-                        });
-                    }
-                },
-                onSkuSelect : function(e,sku){
-                    e && e.preventDefault();
-                    let self = this;
-                    self.hideKeyboard().then(function () {
-                        self.search.last_item.Sku = sku;
-                        self.search.last_item.MaxRetailPrice = sku.MaxRetailPrice;
-                        self.search.last_item.SellingPrice = sku.MaxRetailPrice;
-                        self.lookup.Skus = [];
-                    });
-                }
-
-
-                    
-
             }
         });
     });
@@ -886,20 +611,20 @@
     </div>
     <div id="app" class="app-body" >
         <!-- Show facility banner -->
-        <div class="container" v-if="search.facility_id && search.Facility.Name">
+        <div class="container" v-if="provider_location_id && provider_location[provider_location_id] && provider_location[provider_location_id].descriptor">
             <div id="banner-slider" class="carousel slide" data-ride="carousel">
                 <!-- Indicators -->
                 <ul class="carousel-indicators">
                     <li data-target="#banner-slider" v-bind:data-slide-to="index"
                         v-bind:class="index == 0 ? 'active' : '' "
-                        v-for="(attachment,index) in search.Facility.Attachments">
+                        v-for="(imageurl,index) in provider_location[provider_location_id].descriptor.images">
                     </li>
                 </ul>
                 <!-- The slideshow -->
                 <div class="carousel-inner">
                     <div v-bind:class="'justify-content-center carousel-item ' + (index == 0 ? 'active' : '') "
-                        v-for="(attachment,index) in search.Facility.Attachments">
-                        <img v-bind:src="attachment.AttachmentUrl"></img>
+                        v-for="(imageurl,index) in provider_location[provider_location_id].descriptor.images">
+                        <img v-bind:src="imageurl"></img>
                     </div>
                 </div>
 
@@ -913,12 +638,12 @@
             </div>
             <div class="row">
                 <div class="col-12 item-list">
-                    <h6 class="mb-0">{{search.Facility.Name}}</h6>
+                    <h6 class="mb-0">{{provider_location[provider_location_id].descriptor.name}}</h6>
                     <p class="m-0 text-muted">
-                        {{search.Facility.AddressLine1}}, {{search.Facility.AddressLine2}},
-                        {{search.Facility.City.Name}}, {{search.Facility.State.Name}}
-                        {{search.Facility.PinCode.PinCode}}, <a
-                            v-bind:href="'tel:'+ search.Facility.PhoneNumber">{{search.Facility.PhoneNumber}}</a>
+                        {{provider_location[provider_location_id].address.name}}, {{provider_location[provider_location_id].address.locality}},
+                        {{provider_location[provider_location_id].address.city}}, {{provider_location[provider_location_id].address.state}}
+                        {{provider_location[provider_location_id].address.area_code}}, <a
+                            v-bind:href="'tel:'+ provider_location[provider_location_id].fulfillments[0].start.contact.phone">{{provider_location[provider_location_id].fulfillments[0].start.contact.phone}}</a>
                     </p>
                     <div class="row">
                         <div class="col">
@@ -926,13 +651,13 @@
                                     v-if="Mobile && search.Facility.PhoneNumber">
                                     <i class="fa-phone-alt fas"></i>
                                 </a> -->
-                            <a v-bind:href="whatsapp_url(search.Facility)" data-action="share/whatsapp/share"
-                                class="btn btn-link px-1" v-if="search.Facility.PhoneNumber">
+                            <a v-bind:href="whatsapp_url(provider_location[provider_location_id].fulfillments[0].start.contact.phone)" data-action="share/whatsapp/share"
+                                class="btn btn-link px-1" v-if="provider_location[provider_location_id].fulfillments[0].start.contact.phone">
                                 <i class="fab fa-whatsapp"></i>
                             </a>
                         </div>
-                        <div class="col d-flex justify-content-end align-items-center">
-                            <small>@ Distance of {{(search.Facility.Distance * 1.0).toFixed(2)}} Km</small>
+                        <div class="col d-flex justify-content-end align-items-center" v-if="provider_location[provider_location_id].distance" >
+                            <small>@ Distance of {{(provider_location[provider_location_id].distance * 1.0).toFixed(2)}} Km</small>
                         </div>
                     </div>
                     <!-- {{search.Facility.Lat +","+ search.Facility.Lng}} -->
@@ -944,32 +669,32 @@
             <div id="search-holder" class="form-row search-holder mb-sm-6 mt-2">
                 <div class="col-12">
                     <div class="d-flex flex-row align-items-center">
-                        <select v-model="search.Category" class="category-control col-4"
-                            v-bind:disabled="search.facility_id && search.Facility.Name ? true : false"
+                        <select v-model="usecase.Category" class="category-control col-4"
+                            v-bind:disabled="provider_location_id && provider_location[provider_location_id].descriptor.name  ? true : false"
                             :on_change="onSearchCategoryChange()">
                             <option>Inventory</option>
                             <option>Facility</option>
                         </select>
                         <input key="search" id="search" class="search-control" placeholder="Search for Items or Store"
-                            v-on:input="find($event)" v-model="search.term" />
+                            v-on:input="find($event)" v-model="search.message.intent.descriptor.name" />
                         <i class="fa fa-search"></i>
                     </div>
                     <div class="form-row mt-1">
                         <div class="col-8">
                             <div class="form-check-inline align-middle mr-1">
-                                <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
+                                <input class="form-check-input mb-0" type="radio" v-model="usecase.MaxDistance"
                                     name="MaxDistance" id="distance_filter_5" value="5"
                                     @change="setPreferredDistance(5)">
                                 <label class="form-check-label small" for="distance_filter_5">0 - 5</label>
                             </div>
                             <div class="form-check-inline align-middle mr-1">
-                                <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
+                                <input class="form-check-input mb-0" type="radio" v-model="usecase.MaxDistance"
                                     name="MaxDistance" id="distance_filter_10" value="10"
                                     @change="setPreferredDistance(10)">
                                 <label class="form-check-label small" for="distance_filter_10">0 - 10</label>
                             </div>
                             <div class="form-check-inline align-middle mr-1">
-                                <input class="form-check-input mb-0" type="radio" v-model="search.MaxDistance"
+                                <input class="form-check-input mb-0" type="radio" v-model="usecase.MaxDistance"
                                     name="MaxDistance" id="distance_filter_20" value="20"
                                     @change="setPreferredDistance(20)">
                                 <label class="form-check-label small" for="distance_filter_20">>10</label>
@@ -985,20 +710,20 @@
                 </div>
             </div>
             <!-- Show facility list -->
-            <div class="row mt-sm-3" v-if="(search.Category === 'Facility')">
-                <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,index) in search.nearByFacilities"
-                    v-if="search.nearByFacilities.length > 0">
+            <div class="row mt-sm-3" v-if="(usecase.Category === 'Facility')">
+                <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,location_id,index) in provider_location"
+                    v-if="Object.keys(provider_location).length > 0">
                     <div class="item-list" v-bind:id="'facility-'+index">
                         <div class="form-row">
                             <div class="col-12">
                                 <div class="img-holder border rounded-sm" @click="openFacility(result)">
                                     <img class="img-fluid w-100 h-100"
-                                        v-bind:src="result.Attachments[0].AttachmentUrl"
-                                        v-if="result.Attachments && result.Attachments.length > 0" />
+                                        v-bind:src="result.descriptor.images[0]"
+                                        v-if="result.descriptor.images && result.descriptor.images.length > 0" />
                                     <div v-else
                                         class="default-img d-flex bg-light align-items-center justify-content-center"
                                         v-bind:style="{ height: facilityWidth + 'px' }">
-                                        <span class="font-weight-bold text-muted">{{result.Name}}</span>
+                                        <span class="font-weight-bold text-muted">{{result.descriptor.name}}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1007,37 +732,31 @@
                 </div>
             </div>
             <!-- Show inventory list -->
-            <div class="row mt-sm-3" v-if="(search.Category==='Inventory')">
-                <div v-bind:class="'col-lg-3 col-sm-4 mb-0 mb-sm-4' + (result.Published === 'N' ? ' out-of-stock' : (result.Facility.Published==='N' ? ' preview-stock' :'' ))" v-for="(result,index) in search.results"
-                    v-if="search.results.length > 0">
+            <div class="row mt-sm-3" v-if="(usecase.Category==='Inventory')">
+                <div class="col-lg-3 col-sm-4 mb-0 mb-sm-4" v-for="(result,index) in items"
+                    v-if="items.length > 0">
                     <div class="item-list" v-bind:id="'item-'+index" >
                         <div class="form-row">
                             <div class="col-4 col-sm-12">
                                 <div class="img-holder border rounded-sm">
                                     <img class="img-fluid w-100 h-100"
-                                        v-bind:src="result.Sku.Attachments[0].AttachmentUrl"
-                                        v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
-                                        data-toggle="modal" v-bind:data-target="'#sku-img-'+result.Sku.Id" />
+                                        v-bind:src="result.descriptor.images[0]"
+                                        v-if="result.descriptor.images && result.descriptor.images.length > 0"
+                                        data-toggle="modal" v-bind:data-target="'#sku-img-'+result.id" />
                                     <div v-else
                                         class="default-img d-flex bg-light align-items-center justify-content-center"
                                         v-bind:style="{ height: itemWidth + 'px' }" >
-                                        <span class="font-weight-bold text-muted" v-if="result.IsNew" @click="selectNewItem($event,result)">
-                                            {{result.Sku.Item.Name}}
-                                        </span>
-                                        <span class="font-weight-bold text-muted" v-else-if="!result.Id" @click="selectNewItem($event,null)">
-                                            {{result.Sku.Item.Name}}
-                                        </span>
-                                        <span class="font-weight-bold text-muted" v-else>{{result.Sku.Item.Name}}</span>
+                                        <span class="font-weight-bold text-muted" >{{result.descriptor.name}} </span>
                                     </div>
                                     <!-- Modal View Images -->
-                                    <div v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
-                                        class="modal fade" v-bind:id="'sku-img-'+result.Sku.Id" tabindex="-1"
+                                    <div v-if="result.descriptor.images && result.descriptor.images.length > 0"
+                                        class="modal fade" v-bind:id="'sku-img-'+result.id" tabindex="-1"
                                         aria-labelledby="exampleModalLabel" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
                                                 <div class="modal-header">
                                                     <h5 class="modal-title" id="exampleModalLabel">
-                                                        {{result.Sku.Name}}
+                                                        {{result.descriptor.name}}
                                                     </h5>
                                                     <button type="button" class="close" data-dismiss="modal"
                                                         aria-label="Close">
@@ -1046,8 +765,8 @@
                                                 </div>
                                                 <div class="modal-body">
                                                     <img class="img-fluid w-100 h-100"
-                                                        v-if="result.Sku.Attachments && result.Sku.Attachments.length > 0"
-                                                        v-bind:src="result.Sku.Attachments[0].AttachmentUrl" />
+                                                        v-if="result.descriptor.images && result.descriptor.images.length > 0"
+                                                        v-bind:src="result.descriptor.images[0]" />
                                                 </div>
                                             </div>
 
@@ -1056,110 +775,60 @@
                                 </div>
                             </div>
                             <div class="col pb-4 pb-sm-0">
-                                <h6 class="m-0 text-truncate" v-bind:title="result.Sku.Name">
-                                    {{ result.Sku.Name }}
+                                <h6 class="m-0 text-truncate" v-bind:title="result.descriptor.name">
+                                    {{ result.descriptor.name }}
                                 </h6>
                                 <span class="small text-muted">{{ result.Tags }}</span>
                                 <!-- <p class="mb-0 small">{{result.Tags}}</p> -->
-                                <p class="mb-1 small text-muted text-truncate" v-bind:title="result.Facility.Name">
+                                <p class="mb-1 small text-muted text-truncate" v-bind:title="provider_location[result.location_id].descriptor.name">
                                     By: <a
-                                        v-bind:href="'/dashboard?facility_id=' +result.Facility.Id">{{result.Facility.Name}}
-                                        <i v-bind:class="User.Verified === 'Y' ? 'fas fa-check' : '' "></i>
+                                        v-bind:href="'/dashboard?provider_location_id=' +result.location_id">{{provider_location[result.location_id].descriptor.name}}
+                                        <!-- <i v-bind:class="User.Verified === 'Y' ? 'fas fa-check' : '' "></i> Verifyable creds story-->
                                     </a>
                                 </p>
                                 <div class="form-row">
                                     <div class="col small">
                                         <a
-                                            v-bind:href="'https://google.com/maps/place/'+result.Facility.Lat +',' + result.Facility.Lng">
+                                            v-bind:href="'https://google.com/maps/place/'+provider_location[result.location_id].gps >
                                             <i class="fa fa-map-pin mr-1 text-muted"></i>
-                                            {{(result.Facility.Distance * 1.0).toFixed(2)}} Km
+                                            {{(provider_location[result.location_id].distance * 1.0).toFixed(2)}} Km
                                         </a>
-                                    </div>
-                                    <div class="col d-none d-sm-block small text-right">
-                                        <del v-if="result.Facility.CodEnabled !== 'Y'">COD</del>
-                                        <del v-if="result.DeliveryProvided !== 'Y'">Delivery</del>
-                                        <span v-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) &&
-                                                ( !result.DeliveryCharges || result.DeliveryCharges * 1.0 === 0 )">
-                                            Delivery - Free
-                                        </span>
-                                        <span
-                                            v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0"
-                                            class="text-muted">
-                                            {{ (isDeliverySku(result.Sku) ? "Fixed Charges" :
-                                            "Delivery Charges") }} - &#x20B9;
-                                            {{
-                                            result.DeliveryCharges }}
-                                        </span>
                                     </div>
                                 </div>
                                 <p class="price-box d-block d-sm-none">
-                                    <strike v-if="result.MaxRetailPrice * 1.0 > result.SellingPrice">
+                                    <strike v-if="result.price.maximum_value * 1.0 > result.price.value">
                                         &#x20B9; {{result.MaxRetailPrice}}
                                     </strike>
-                                    <span v-if="result.SellingPrice * 1.0 > 0.0">&#x20B9; {{result.SellingPrice}}</span>
+                                    <span v-if="result.price.value * 1.0 > 0.0">&#x20B9; {{result.price.value}}</span>
                                 </p>
                             </div>
                         </div>
                         <hr class="my-2 d-block d-sm-none" />
                         <div class="form-row mt-sm-3">
                             <div class="col-4 col-sm-4 order-sm-last">
-                                <div class="btn-group" role="group" aria-label="Basic example"
-                                    v-if="!isDeliverySku(result.Sku) && isSubscriptionAllowed(index)">
+                                <div class="btn-group" role="group" aria-label="Basic example">
                                     <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
                                         v-on:click="reduce($event,index)">
                                         <i class="fa fa-minus"></i>
                                     </button>
                                     <input v-bind:key="'quantity' + index" v-bind:id="'quantity' + index"
                                         class="btn btn-sm btn-outline-primary w-100 border-left-0 border-right-0 m-0"
-                                        placeholder="Quantity" v-model="result.OrderedQuantity"
+                                        placeholder="Quantity" v-model="result.quantity.selected.count"
                                         @change="onQtyChange($event,index)" />
                                     <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
                                         v-on:click="increase($event,index)">
                                         <i class="fa fa-plus"></i>
                                     </button>
                                 </div>
-                                <div class="btn-group" role="group" aria-label="Basic example"
-                                    v-else-if="!isDeliverySku(result.Sku)">
-                                    <h5><a href="/users/html/profile#kyc">Kyc Required</a></h5>
-                                </div>
-                                <div class="btn-group" role="group" aria-label="Basic example" v-else>
-                                    <a href="#" class="btn btn-sm btn-outline-primary"
-                                        v-if="(result.OrderedQuantity * 1.0 > 0)" v-on:click="reduce($event,index)">
-                                        <i class="fas fa-toggle-on"></i>
-                                    </a>
-                                    <a href="#" class="btn btn-sm btn-outline-primary"
-                                        v-if="(result.OrderedQuantity * 1.0 <= 0)" v-on:click="increase($event,index)">
-                                        <i class="fas fa-toggle-off"></i>
-                                    </a>
-                                </div>
                             </div>
                             <div
                                 class="col text-right text-sm-left d-flex align-items-center justify-content-end justify-content-sm-start">
                                 <h6 class="d-none d-sm-block desk-price">
-                                    <strike v-if="result.MaxRetailPrice * 1.0 > result.SellingPrice">
+                                    <strike v-if="result.price.maximum_value * 1.0 > result.price.value">
                                         &#x20B9; {{result.MaxRetailPrice}}
                                     </strike>
-                                    <span v-if="result.SellingPrice * 1.0 > 0.0">&#x20B9; {{result.SellingPrice}}</span>
+                                    <span v-if="result.price.value * 1.0 > 0.0">&#x20B9; {{result.price.value}}</span>
                                 </h6>
-                                <small class="d-inline-block d-sm-none">
-                                    <del v-if="result.Facility.CodEnabled !== 'Y'">COD</del>
-                                    <del v-if="result.DeliveryProvided !== 'Y'">Delivery</del>
-                                    <span v-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) && 
-                                        result.Facility.DeliveryChargedOnActual === 'Y'"> 
-                                        Delivery - On Actual
-                                    </span>
-                                    <span v-else-if="result.DeliveryProvided === 'Y' && !isDeliverySku(result.Sku) &&
-                                            ( !result.DeliveryCharges || result.DeliveryCharges * 1.0 === 0 )">
-                                        Delivery - Free
-                                    </span>
-                                    <span
-                                        v-else-if="result.DeliveryProvided === 'Y' && result.DeliveryCharges && result.DeliveryCharges * 1.0 > 0"
-                                        class="text-muted">
-                                        {{ (isDeliverySku(result.Sku) ? "Fixed Charges" : "Delivery Charges") }}
-                                        - &#x20B9; {{
-                                        result.DeliveryCharges }}
-                                    </span>
-                                </small>
                             </div>
                         </div>
                     </div>
@@ -1172,28 +841,12 @@
                 <div class="col-8">
                     <h6 class="m-0" v-if="OrderAmount * 1.0 > 0">{{OrderLineCount}} Items | &#x20B9; {{(OrderAmount *
                         1.0).toFixed(2)}}</h6>
-                    <small class="m-0 text-muted" v-if="DeliveryAmount * 1.0 > 0">Fixed/Delivery charges &#x20B9;
-                        {{(DeliveryAmount *1.0).toFixed(2)}}</small>
                 </div>
                 <div class="col d-flex align-items-center">
                     <a class="btn btn-primary btn-sm btn-block" href="#" @click="buy($event)">CHECKOUT</a>
                 </div>
             </div>
         </div>
-        <!-- edit last item -->
-        <div class="show-update new-item" v-if="search.last_item">
-            <div class="form-row">
-                    <div class="col-12 mb-2">
-                        <input class="form-control form-control-sm" id="last_item_name" v-model="search.last_item.Sku.Name"
-                            placeholder="Product Name" v-on:input="onSkuChange($event)" v-on:focus="removeList($event)" />
-                    </div>
-                    <div class="col-12 text-right">
-                        <a href="#/" class="btn btn-sm btn-light mr-2" @click="cancelEditNewItem($event)">Cancel</a>
-                        <a href="#/" class="btn btn-sm btn-primary" @click="saveNewItem($event)">Submit</a>
-                    </div>
-            </div>
-        </div>
-
         <!-- Address choosing -->
         <div class="show-update delivery-address" v-if="delivery && delivery.beingEdited">
             <div class="form-row">
@@ -1275,10 +928,8 @@
                 </div>
             </div>
         </div>
-        <div v-if="(delivery && delivery.beingEdited) || search.last_item">
+        <div v-if="(delivery && delivery.beingEdited)">
             <div id="lookupEntries" ref="lookupEntries" class="lookups-list">
-                <a href="#" class="text-truncate" v-for="(sku,index) in lookup.Skus" v-if="lookup.Skus.length > 0"
-                    v-on:click="onSkuSelect($event,sku)">{{sku.Name}}</a>
                 <a href="#" class="text-truncate" v-for="(city,index) in lookup.Cities" v-if="lookup.Cities.length > 0"
                     v-on:click="onCitySelect($event,city)" v-on:keyup.enter="onCitySelect($event,city)"
                     v-on:keyup.space="onCitySelect($event,city)"

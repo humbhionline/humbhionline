@@ -1,9 +1,12 @@
 package in.succinct.mandi.agents.beckn;
 
+import com.venky.cache.Cache;
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
+import com.venky.geo.GeoLocation;
+import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.plugins.collab.util.BoundingBox;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
@@ -13,13 +16,17 @@ import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import in.succinct.beckn.Address;
 import in.succinct.beckn.Catalog;
 import in.succinct.beckn.Category;
 import in.succinct.beckn.Circle;
+import in.succinct.beckn.Contact;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
+import in.succinct.beckn.Fulfillment.FulfillmentStatus;
 import in.succinct.beckn.Fulfillment.FulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
+import in.succinct.beckn.Fulfillments;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Intent;
 import in.succinct.beckn.Item;
@@ -32,7 +39,7 @@ import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
 import in.succinct.beckn.Request;
-import in.succinct.beckn.Tags;
+import in.succinct.beckn.Scalar;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Sku;
@@ -44,6 +51,7 @@ import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.participation.Company;
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -76,6 +84,40 @@ public class Search extends BecknAsyncTask {
 
         return q;
     }
+    public static Location createLocation(GeoLocation loc){
+        Location location = new Location();
+        location.setGps(new GeoCoordinate(loc));
+        Facility facility = null;
+        if (loc instanceof com.venky.swf.plugins.collab.db.model.participants.admin.Facility){
+            facility = ((Model)loc).getRawRecord().getAsProxy(Facility.class);
+            location.setId(BecknUtil.getBecknId(String.valueOf(facility.getId()),Entity.provider_location));
+            location.setAddress(getAddress(facility));
+            if (facility.getDeliveryRadius() > 0) {
+                location.setCircle(new Circle());
+                location.getCircle().setGps(location.getGps());
+                location.getCircle().setRadius(new Scalar());
+                location.getCircle().getRadius().setUnit("Km");
+                location.getCircle().getRadius().setValue(facility.getDeliveryRadius());
+            }
+        }
+        return location;
+    }
+
+    @NotNull
+    private static Address getAddress(Facility facility) {
+        Address address = new Address();
+        address.setState(facility.getState().getName());
+        address.setName(facility.getName());
+        address.setPinCode(facility.getPinCode().getPinCode());
+        address.setCity(facility.getCity().getCode());
+        address.setCountry(facility.getCountry().getIsoCode());
+        address.setDoor(facility.getAddressLine1());
+        address.setBuilding(facility.getAddressLine2());
+        address.setStreet(facility.getAddressLine3());
+        address.setLocality(facility.getAddressLine4());
+        return address;
+    }
+
     @Override
     public Request executeInternal() {
         Request request = getRequest();
@@ -112,6 +154,11 @@ public class Search extends BecknAsyncTask {
                 catagoryName = descriptor.getName();
             }
         }
+        String intentName = null;
+        Descriptor descriptor = intent.getDescriptor();
+        if (descriptor != null){
+            intentName = descriptor.getName();
+        }
 
 
         Price price = item != null ? item.getPrice() : null ;
@@ -129,20 +176,23 @@ public class Search extends BecknAsyncTask {
 
         LuceneIndexer indexer = LuceneIndexer.instance(Inventory.class);
         StringBuilder qryString = new StringBuilder();
-        if (!ObjectUtil.isVoid(providerName)){
-            qryString.append("FACILITY:").append(providerName).append("*");
+        if (providerName != null || intentName != null){
+            qryString.append("FACILITY:").append(providerName != null ? providerName : intentName).append("*");
         }
-        if (!ObjectUtil.isVoid(itemName)){
+
+        if (itemName != null || intentName != null){
+            String name = itemName != null ? itemName : intentName;
             if (qryString.length() > 0){
-                qryString.append(" AND ");
+                qryString.append(itemName != null ? " AND " : " OR ");
             }
-            qryString.append("(").append(q("SKU", itemName)).append(" OR ").append(q("TAGS",itemName)).append(" )");
+            qryString.append("(").append(q("SKU", name)).append(" OR ").append(q("TAGS",name)).append(" )");
         }
-        if (!ObjectUtil.isVoid(catagoryName)){
+        if (catagoryName != null || intentName != null){
+            String name = catagoryName != null ? catagoryName : intentName;
             if (qryString.length() > 0){
-                qryString.append(" AND ");
+                qryString.append(catagoryName != null ? " AND " : " OR ");
             }
-            qryString.append("(").append(q("TAGS", catagoryName)).append(" )");
+            qryString.append("(").append(q("TAGS", name)).append(" )");
         }
         if (facilityIds != null){
             if (qryString.length() > 0){
@@ -166,6 +216,8 @@ public class Search extends BecknAsyncTask {
         ModelReflector<Inventory> inventoryModelReflector = ModelReflector.instance(Inventory.class);
         Expression inventoryWhere = new Expression(inventoryModelReflector.getPool(),"ID", Operator.IN,ids.toArray());
 
+        Fulfillments fulfillments = new Fulfillments();
+
         List<Inventory> inventories = new Select().from(Inventory.class).where(inventoryWhere).execute(Inventory.class,Select.MAX_RECORDS_ALL_RECORDS,
                 record -> {
                         Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
@@ -174,6 +226,36 @@ public class Search extends BecknAsyncTask {
                     pass = pass && ( record.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class).getBalanceOrderLineCount() > 0 );
 
                     pass = pass && !deliverySkuIds.contains(record.getSkuId());
+
+                    Location storeLocation = createLocation(facility);
+                    Fulfillment storePickup = new Fulfillment();
+                    storePickup.setId(BecknUtil.getBecknId(FulfillmentType.store_pickup + ":" + facility.getId(),Entity.fulfillment));
+                    storePickup.setType(FulfillmentType.store_pickup);
+                    storePickup.setContact(new Contact());
+                    storePickup.getContact().setPhone(facility.getPhoneNumber());
+                    storePickup.setFulfillmentStatus(FulfillmentStatus.Serviceable);
+                    storePickup.setStart(new FulfillmentStop());
+                    storePickup.getStart().setLocation(storeLocation);
+                    storePickup.setEnd(new FulfillmentStop());
+                    storePickup.getEnd().setLocation(storeLocation);
+
+
+                    Fulfillment delivery = new Fulfillment();
+                    delivery.setId(BecknUtil.getBecknId(FulfillmentType.home_delivery + ":" + facility.getId(),Entity.fulfillment));
+                    delivery.setType(FulfillmentType.home_delivery);
+                    delivery.setContact(new Contact());
+                    delivery.getContact().setPhone(facility.getPhoneNumber());
+                    delivery.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
+                    delivery.setProviderName(facility.getName());
+                    delivery.setFulfillmentStatus(FulfillmentStatus.Serviceable);
+                    delivery.setStart(new FulfillmentStop());
+                    delivery.setEnd(new FulfillmentStop());
+                    delivery.getStart().setLocation(storeLocation);
+                    if (deliveryLocation != null) {
+                        delivery.getEnd().setLocation(createLocation(deliveryLocation));
+                    }
+
+
                     if (pass){
                         double facilityDistance = 0 ;
                         if (deliveryLocation != null){
@@ -187,14 +269,20 @@ public class Search extends BecknAsyncTask {
                                 record.setDeliveryCharges(new DoubleHolder(facility.getDeliveryCharges(facility.getDistance(),false),2).getHeldDouble().doubleValue());
                             }
                             record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
+                            fulfillments.add(delivery);
                         }
                     }
                     if (fulfillment != null) {
                         if (fulfillment.getType() == FulfillmentType.store_pickup){
                             pass = pass && facility.getDistance() <= maxDistance;
+                            if (pass){
+                                fulfillments.add(storePickup);
+                            }
                         }else if (fulfillment.getType() == FulfillmentType.home_delivery){
                             pass = pass && record.isDeliveryProvided() ;
                         }
+                    }else {
+                        fulfillments.add(storePickup);
                     }
                     pass = pass && (record.isDeliveryProvided() || facility.getDistance() <= maxDistance);
                     pass =  pass && (!record.isDeliveryProvided() || (record.getDeliveryCharges() != null && !record.getDeliveryCharges().isInfinite()));
@@ -202,12 +290,91 @@ public class Search extends BecknAsyncTask {
                         pass = pass && ( price.getMaximumValue() == 0.0D || price.getMaximumValue() >= record.getSellingPrice());
                         pass = pass && ( price.getMinimumValue() == 0.0D || price.getMinimumValue() <= record.getSellingPrice());
                     }
+
+
                     return pass;
                 });
-        return push_onsearch(inventories);
+        return push_onsearch(inventories,fulfillments);
     }
+    public static void updateCatalog(Catalog catalog, Inventory inv ){
+        updateCatalog(catalog,inv, new Fulfillments(),false);
+    }
+    public static void updateCatalog(Catalog catalog, Inventory inv , Fulfillments providerFulfillments, boolean matched){
+        Providers providers = catalog.getProviders();
+        if (providers == null){
+            providers = new Providers();
+            catalog.setProviders(providers);
+        }
+        String providerId = BecknUtil.getBecknId(String.valueOf(inv.getFacility().getCreatorUserId()),Entity.provider);
+        Facility facility = inv.getFacility().getRawRecord().getAsProxy(Facility.class);
+        Provider provider = providers.get(providerId);
+        if (provider == null){
+            provider = new Provider();
+            provider.setId(providerId);
+            provider.setDescriptor(new Descriptor());
+            provider.getDescriptor().setName(facility.getName());
+            provider.setLocations(new Locations());
+            provider.setItems(new Items());
+            provider.setFulfillments(providerFulfillments);
+            if ( matched ) {
+                provider.set("matched",true);
+            }
+            providers.add(provider);
+        }
+        String locationId = BecknUtil.getBecknId(String.valueOf(inv.getFacilityId()),Entity.provider_location);
+        if (provider.getLocations().get(locationId) == null){
+            provider.getLocations().add(createLocation(inv.getFacility()));
+        }
 
+        Sku sku = inv.getSku().getRawRecord().getAsProxy(Sku.class);
+
+        String itemId  = BecknUtil.getBecknId(String.valueOf(inv.getId()),Entity.item);
+        Item item = new Item();
+
+        Price price = new Price();
+        item.setId(itemId);
+        item.setDescriptor(new Descriptor());
+        item.getDescriptor().setName(sku.getName());
+        if (ObjectUtil.isVoid(sku.getShortDescription())){
+            item.getDescriptor().setShortDesc(sku.getName());
+            item.getDescriptor().setLongDesc(sku.getName());
+        }else {
+            item.getDescriptor().setShortDesc(sku.getShortDescription());
+            item.getDescriptor().setLongDesc(sku.getShortDescription());
+        }
+        if (!ObjectUtil.isVoid(sku.getLongDescription())){
+            item.getDescriptor().setLongDesc(sku.getLongDescription());
+        }
+
+        item.setPrice(price);
+        item.setLocationId(locationId);
+        if (DoubleUtils.compareTo(inv.getMaxRetailPrice(),inv.getSellingPrice(),2)>0){
+            price.setOfferedValue(inv.getSellingPrice());
+        }
+        price.setListedValue(inv.getMaxRetailPrice());
+        price.setValue(inv.getSellingPrice());
+        price.setCurrency("INR");
+        if (matched) {
+            item.setMatched(matched);
+        }
+        item.setRecommended(true);
+        if (!sku.getAttachments().isEmpty()){
+            Images images = new Images();
+            images.add(Config.instance().getServerBaseUrl() + sku.getAttachments().get(0).getAttachmentUrl());
+            item.getDescriptor().setImages(images);
+        }
+        //item.setTag("general_attributes",);
+        //item.set("tags",OrderUtil.getTags(inv));
+        item.setTags(OrderUtil.getTags(inv));
+
+        provider.getItems().add(item);
+
+
+    }
     private Request push_onsearch(List<Inventory> inventories) {
+        return push_onsearch(inventories,new Fulfillments());
+    }
+    private Request push_onsearch(List<Inventory> inventories, Fulfillments fulfillments) {
         Company company = CompanyUtil.getCompany();
         OnSearch onSearch = new OnSearch();
         onSearch.setContext(getRequest().getContext());
@@ -225,73 +392,18 @@ public class Search extends BecknAsyncTask {
 
         /* TODO:VENKY Provider Fulfillments can be filled. */
 
-
-        inventories.forEach(inv->{
-            String providerId = BecknUtil.getBecknId(String.valueOf(inv.getFacility().getCreatorUserId()),Entity.provider);
-            Facility facility = inv.getFacility().getRawRecord().getAsProxy(Facility.class);
-            Provider provider = providers.get(providerId);
-            if (provider == null){
-                provider = new Provider();
-                provider.setId(providerId);
-                provider.setDescriptor(new Descriptor());
-                provider.getDescriptor().setName(facility.getName());
-                provider.setLocations(new Locations());
-                provider.setItems(new Items());
-                if ( getRequest().getMessage().getIntent().getProvider() != null) {
-                    provider.set("matched",true);
-                }
-                providers.add(provider);
+        Cache<String,Fulfillments> fulfillmentsByProviderId = new Cache<String, Fulfillments>() {
+            @Override
+            protected Fulfillments getValue(String providerId) {
+                return new Fulfillments();
             }
-            String locationId = BecknUtil.getBecknId(String.valueOf(inv.getFacilityId()),Entity.provider_location);
-            if (provider.getLocations().get(locationId) == null){
-                Location location = new Location();
-                location.setId(locationId);
-                location.setGps(new GeoCoordinate(inv.getFacility()));
-                provider.getLocations().add(location);
-            }
-            Sku sku = inv.getSku().getRawRecord().getAsProxy(Sku.class);
+        };
+        fulfillments.forEach(f->{
+            fulfillmentsByProviderId.get(f.getProviderId()).add(f);
+        });
 
-            String itemId  = BecknUtil.getBecknId(String.valueOf(inv.getId()),Entity.item);
-            Item item = new Item();
-
-            Price price = new Price();
-            item.setId(itemId);
-            item.setDescriptor(new Descriptor());
-            item.getDescriptor().setName(sku.getName());
-            if (ObjectUtil.isVoid(sku.getShortDescription())){
-                item.getDescriptor().setShortDesc(sku.getName());
-                item.getDescriptor().setLongDesc(sku.getName());
-            }else {
-                item.getDescriptor().setShortDesc(sku.getShortDescription());
-                item.getDescriptor().setLongDesc(sku.getShortDescription());
-            }
-            if (!ObjectUtil.isVoid(sku.getLongDescription())){
-                item.getDescriptor().setLongDesc(sku.getLongDescription());
-            }
-
-            item.setPrice(price);
-            item.setLocationId(locationId);
-            if (DoubleUtils.compareTo(inv.getMaxRetailPrice(),inv.getSellingPrice(),2)>0){
-                price.setOfferedValue(inv.getSellingPrice());
-            }
-            price.setListedValue(inv.getMaxRetailPrice());
-            price.setValue(inv.getSellingPrice());
-            price.setCurrency("INR");
-            if ( getRequest().getMessage().getIntent().getItem() != null) {
-                item.set("matched",true);
-            }
-            item.setRecommended(true);
-            if (!sku.getAttachments().isEmpty()){
-                Images images = new Images();
-                images.add(Config.instance().getServerBaseUrl() + sku.getAttachments().get(0).getAttachmentUrl());
-                item.getDescriptor().setImages(images);
-            }
-            item.set("tags",OrderUtil.getTags(inv));
-
-            provider.getItems().add(item);
-
-
-
+        inventories.forEach(inv-> {
+            updateCatalog(catalog, inv, fulfillmentsByProviderId.get(BecknUtil.getBecknId(String.valueOf(inv.getFacility().getCreatorUserId()),Entity.provider)),getRequest().getMessage().getIntent().getItem() != null);
         });
 
         return(onSearch);

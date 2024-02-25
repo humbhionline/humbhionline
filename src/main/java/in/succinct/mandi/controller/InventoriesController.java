@@ -1,28 +1,20 @@
 package in.succinct.mandi.controller;
 
-import com.venky.core.collections.SequenceSet;
 import com.venky.core.math.DoubleHolder;
 import com.venky.core.math.DoubleUtils;
 import com.venky.core.util.ObjectUtil;
 import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
-import com.venky.swf.controller.ModelController;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
-import com.venky.swf.plugins.collab.util.BoundingBox;
-import com.venky.swf.pm.DataSecurityFilter;
-import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
-import com.venky.swf.sql.Operator;
-import com.venky.swf.sql.Select;
 import com.venky.swf.sql.Select.ResultFilter;
 import com.venky.swf.views.View;
 import in.succinct.beckn.Descriptor;
-import in.succinct.beckn.Image;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Provider;
 import in.succinct.mandi.db.model.Facility;
@@ -47,7 +39,6 @@ import in.succinct.plugins.ecommerce.db.model.catalog.ItemAttributeValue;
 import in.succinct.plugins.ecommerce.db.model.catalog.UnitOfMeasure;
 import in.succinct.plugins.ecommerce.db.model.order.OrderAddress;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -118,7 +109,7 @@ public class InventoriesController extends LocalSearchController<Inventory> {
                 record.setDeliveryProvided(true);
                 record.setExternal(true);
                 record.setTags(quote.getItem().getDescriptor().getName()+", "+quote.getProvider().getDescriptor().getName());
-                record.setNetworkId(network.getRegistryId());
+                record.setNetworkId(network.getNetworkId());
                 record.setMaxRetailPrice(0.0D);
                 record.setSellingPrice(0.0D);
 

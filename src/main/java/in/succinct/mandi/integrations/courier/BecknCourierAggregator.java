@@ -6,7 +6,6 @@ import com.venky.swf.integration.api.Call;
 import com.venky.swf.integration.api.HttpMethod;
 import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
-import com.venky.swf.routing.Config;
 import in.succinct.beckn.Acknowledgement.Status;
 import in.succinct.beckn.AddOns;
 import in.succinct.beckn.Billing;
@@ -18,7 +17,6 @@ import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Intent;
 import in.succinct.beckn.Item;
-import in.succinct.beckn.Items;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.Offers;
@@ -38,17 +36,19 @@ import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Quote;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
+import in.succinct.beckn.Subscriber;
 import in.succinct.mandi.db.model.BillToAddress;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
-import in.succinct.mandi.extensions.BecknPublicKeyFinder;
-import in.succinct.mandi.integrations.beckn.MessageCallbackUtil;
+import in.succinct.mandi.db.model.beckn.BecknNetworkRole;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
+import in.succinct.onet.core.adaptor.NetworkAdaptor;
+import in.succinct.onet.core.adaptor.NetworkAdaptor.Domain;
+import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import in.succinct.plugins.ecommerce.db.model.order.PersonAddress;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.io.InputStream;
@@ -61,18 +61,33 @@ import java.util.regex.Pattern;
 
 class BecknCourierAggregator implements CourierAggregator {
     private final BecknNetwork network ;
+    private Domain logistics;
     public BecknCourierAggregator(BecknNetwork network){
         this.network = network;
+        NetworkAdaptor networkAdaptor = NetworkAdaptorFactory.getInstance().getAdaptor(network.getNetworkId());
+        for (Domain d : networkAdaptor.getDomains()){
+            if (d.getName().equals("logistics")){
+                logistics = d;
+                break;
+            }
+        }
+        if (logistics == null){
+            throw new RuntimeException("Could not identify logistics domain in this network");
+        }
     }
 
     private Context makeContext(){
         Context context = new Context();
-        context.setDomain("nic2004:55204");
+        context.setDomain(logistics.getId());
         context.setCity("std:080");
         context.setCountry("IND");
+        Subscriber bap = network.getBapSubscriber();
+        if (bap.getDomains().get(logistics.getId()) == null){
+            throw  new RuntimeException("Not registered as Logistics BAP");
+        }
 
-        context.setBapId(network.getDeliveryBapSubscriberId());
-        context.setBapUri(Config.instance().getServerBaseUrl() + "/" + network.getDeliveryBapUrl());
+        context.setBapId(bap.getSubscriberId());
+        context.setBapUri(bap.getSubscriberUrl());
         context.setTimestamp(new Timestamp(System.currentTimeMillis()));
         context.setMessageId(UUID.randomUUID().toString());
         context.setTransactionId(context.getMessageId());
@@ -205,8 +220,8 @@ class BecknCourierAggregator implements CourierAggregator {
             item.setId(matcher.group(1));
             item.setQuantity(new Quantity());
             context.setBppId(matcher.group(2));
-            JSONObject bpp = getBpp(context.getBppId());
-            context.setBppUri((String)bpp.get("subscriber_url"));
+            Subscriber bpp = getBpp(context.getBppId());
+            context.setBppUri(bpp.getSubscriberUrl());
             items.add(item);
             order.setItems(items);
         }
@@ -224,56 +239,14 @@ class BecknCourierAggregator implements CourierAggregator {
         //item.setId(inventory.getExternalSkuId());
         return message;
     }
-    JSONObject gw = null;
-    @SuppressWarnings("unchecked")
-    public JSONObject getGateway(){
-        if (gw == null){
-            JSONObject input = new JSONObject();
-            input.put("type","BG");
-            input.put("domain","nic2004:55204");input.put("city","std:080");input.put("country","IND");
-            JSONArray out = BecknPublicKeyFinder.lookup(network,input);
-            if (out != null && out.size() > 0){
-                gw = (JSONObject)out.get(0);
-            }
-        }
-
-        return gw;
+    public Subscriber getGateway(){
+        return network.getNetworkAdaptor().getSearchProvider();
     }
-    public JSONObject getBpp(String bppId){
-        JSONObject input = new JSONObject();
-        input.put("subscriber_id",bppId);
-        input.put("type","BPP");
-        input.put("domain","nic2004:55204");
-        input.put("country","IND");
-        JSONArray out = BecknPublicKeyFinder.lookup(network,input);
-        if (out != null && out.size() > 0){
-            return (JSONObject) out.get(0);
-        }
-        return null;
+    public Subscriber getBpp(String bppId){
+        List<Subscriber> subscribers =  network.getNetworkAdaptor().lookup(bppId,true);
+        return subscribers.isEmpty() ? null : subscribers.get(0);
     }
 
-    private List<OnSearch> search(Request request) {
-        JSONObject gw = getGateway();
-        String authHeader = request.generateAuthorizationHeader(request.getContext().getBapId(),BecknUtil.getCryptoKeyId(network,BecknUtil.LOCAL_DELIVERY));
-
-        MessageCallbackUtil.getInstance().initializeCallBackData(request.getContext().getMessageId(),request.getContext().getTtl());
-        try {
-            InputStream responseStream = new Call<>().url((String)gw.get("subscriber_url") +"/search").header("content-type","application/json").header("accept","application/json").
-                    header("Authorization", authHeader).inputFormat(InputFormat.JSON).input(request.getInner()).method(HttpMethod.POST).getResponseStream();
-
-            Response response = new Response(StringUtil.read(responseStream));
-            List<OnSearch> onSearches = new ArrayList<>();
-            if (response.getAcknowledgement().getStatus() == Status.ACK) {
-                JSONObject aResponse;
-                while ((aResponse = MessageCallbackUtil.getInstance().getNextResponse(request.getContext().getMessageId())) != null){
-                    onSearches.add(new OnSearch(aResponse));
-                }
-            }
-            return onSearches;
-        }finally {
-            MessageCallbackUtil.getInstance().shutdownCallBacks(request.getContext().getMessageId());
-        }
-    }
 
 
     @Override
@@ -309,8 +282,8 @@ class BecknCourierAggregator implements CourierAggregator {
     public CourierOrder book(Inventory inventory, Order courierOrder , Order parentOrder) {
         Request confirmRequest = makeConfirmJson(inventory,courierOrder,parentOrder);
 
-        String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId(network,BecknUtil.LOCAL_DELIVERY));
-
+        String authHeader = confirmRequest.generateAuthorizationHeader(confirmRequest.getContext().getBapId(),BecknUtil.getCryptoKeyId(network));
+        /*TODO
 
         MessageCallbackUtil.getInstance().initializeCallBackData(confirmRequest.getContext().getMessageId(),confirmRequest.getContext().getTtl());
 
@@ -337,7 +310,7 @@ class BecknCourierAggregator implements CourierAggregator {
         }finally {
             MessageCallbackUtil.getInstance().shutdownCallBacks(confirmRequest.getContext().getMessageId());
         }
-
+        */
         throw new RuntimeException("Could not book order with partner courier. Please try later.");
     }
 
@@ -378,6 +351,10 @@ class BecknCourierAggregator implements CourierAggregator {
             }
         });
         return quotes;
+    }
+
+    private List<OnSearch> search(Request searchRequest) {
+        return new ArrayList<>();
     }
 
 }

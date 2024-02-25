@@ -4,17 +4,12 @@ import com.venky.core.security.Crypt;
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.configuration.Installer;
 import com.venky.swf.db.Database;
-import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.db.jdbc.ConnectionManager;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.BindVariable;
 import com.venky.swf.db.table.Table;
-import com.venky.swf.integration.api.Call;
-import com.venky.swf.integration.api.HttpMethod;
-import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.background.core.Task;
-import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.messaging.BapSubscriber;
 import com.venky.swf.plugins.beckn.messaging.BppSubscriber;
 import com.venky.swf.plugins.beckn.messaging.QueueSubscriber;
@@ -29,7 +24,6 @@ import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import com.venky.swf.util.SharedKeys;
-import in.succinct.beckn.BecknObject;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.agents.beckn.Cancel;
 import in.succinct.mandi.agents.beckn.Confirm;
@@ -38,28 +32,25 @@ import in.succinct.mandi.agents.beckn.Search;
 import in.succinct.mandi.agents.beckn.Status;
 import in.succinct.mandi.agents.beckn.Track;
 import in.succinct.mandi.agents.beckn.Update;
-import in.succinct.mandi.agents.beckn.bap.delivery.GenericCallBackRecorder;
 import in.succinct.mandi.agents.beckn.bap.delivery.OnStatus;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.OrderAddress;
 import in.succinct.mandi.db.model.SavedAddress;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
+import in.succinct.mandi.db.model.beckn.BecknNetworkRole;
 import in.succinct.mandi.extensions.AfterSaveOrderAddress;
 import in.succinct.mandi.util.beckn.BecknUtil;
+import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import org.apache.commons.io.FileUtils;
-import org.json.simple.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
-import java.util.Base64;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,12 +64,17 @@ public class AppInstaller implements Installer {
         createSavedAddresses();
         insertCompany();
         insertRole();
-
-        //installGuestUser();
-        generateBecknKeys();
-        registerBecknKeys();
+        //registerBecknKeys();
         updateFacilityMinMaxLatLng();
-
+        updateBecknNetwork();
+    }
+    private void updateBecknNetwork(){
+        for (BecknNetwork network : BecknNetwork.all()) {
+            if (ObjectUtil.isVoid(network.getSubscriberId())) {
+                network.setSubscriberId(Config.instance().getHostName());
+                network.save();
+            }
+        }
     }
     private <M extends Model> void fixOneTimeEncryptionMess(Class<M> modelClass){
         for (Model m : new Select().from(modelClass).execute()){
@@ -189,152 +185,26 @@ public class AppInstaller implements Installer {
 
     }
 
+    /*
     private void registerBecknKeys() {
-        Map<String,Map<String, Class<? extends Task>>> participantActions = new HashMap<String,Map<String, Class<? extends Task>>>(){{
-            // put(NetworkRole.SUBSCRIBER_TYPE_BG,Arrays.asList("search")); No need for bg.!!
-            put("nic2004:52110", new HashMap<String,Class<? extends Task>>(){{
-                put("search", Search.class);
-                put("select", in.succinct.mandi.agents.beckn.Select.class);
-                put("init", Init.class);
-                put("confirm", Confirm.class);
-                put("track", Track.class);
-                put("cancel", Cancel.class);
-                put("update", Update.class);
-                put("status", Status.class);
-            }});
-            put("nic2004:55204",new HashMap<String,Class<? extends Task>>(){{
-                put("on_search", GenericCallBackRecorder.class);
-                put("on_select", GenericCallBackRecorder.class);
-                put("on_init", GenericCallBackRecorder.class);
-                put("on_confirm", GenericCallBackRecorder.class);
-                put("on_status", OnStatus.class);
-                put("on_track", GenericCallBackRecorder.class);
-                put("on_cancel", GenericCallBackRecorder.class);
-                put("on_update", GenericCallBackRecorder.class);
-            }});
-        }};
-
         List<BecknNetwork> networks =  new Select().from(BecknNetwork.class).execute(BecknNetwork.class);
         for (BecknNetwork network : networks){
             if (network.isDisabled()){
                 continue;
             }
-            Map<String, Subscriber> subscriberMap = new HashMap<String,Subscriber>(){{
-               put(BecknUtil.LOCAL_RETAIL,network.getRetailBppSubscriber());
-               put(BecknUtil.LOCAL_DELIVERY,network.getDeliveryBapSubscriber());
-            }};
-            for (String subscriberPrefix : new String[]{ ".nic2004:55204.BAP" , ".nic2004:52110.BPP" }){
-                String[] parts = subscriberPrefix.split("\\.");
-
-                String domain  = parts[1];
-                String type = parts[2];
-
-                Subscriber subscriber = subscriberMap.get(domain);
-                CryptoKey encryptionKey = CryptoKey.find(subscriber.getPubKeyId(),CryptoKey.PURPOSE_ENCRYPTION);
-                CryptoKey key = CryptoKey.find(subscriber.getPubKeyId(),CryptoKey.PURPOSE_SIGNING);
-
-
-                String uniqueKeyId = subscriber.getPubKeyId();
-                String subscriberId = subscriber.getSubscriberId();
-                if (ObjectUtil.isVoid( subscriberId)) {
-                    continue;
-                }
-
-                if (network.isMqSupported()) {
-                    QueueSubscriber queueSubscriber = null ;
-                    if (ObjectUtil.equals(type, in.succinct.beckn.Subscriber.SUBSCRIBER_TYPE_BPP)) {
-                        queueSubscriber = new BppSubscriber(subscriber);
-                    }else {
-                        queueSubscriber = new BapSubscriber(subscriber);
-                    }
-                    queueSubscriber.registerSubscriber();
-                }
-
-                if (!network.isSubscriptionActive()) {
-                    JSONObject object = new JSONObject();
-                    object.put("subscriber_id", subscriberId);
-                    object.put("country", "IND");
-                    object.put("city", "std:080");
-                    object.put("nonce", Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
-                    object.put("unique_key_id", uniqueKeyId);
-                    object.put("signing_public_key", Request.getRawSigningKey(key.getPublicKey()));
-                    object.put("encr_public_key", Request.getRawEncryptionKey(encryptionKey.getPublicKey()));
-                    object.put("valid_from", BecknObject.TIMESTAMP_FORMAT.format(key.getUpdatedAt()));
-                    object.put("valid_until", BecknObject.TIMESTAMP_FORMAT.format(
-                            new Date(key.getUpdatedAt().getTime() + (long) (10L * 365.25D * 24L * 60L * 60L * 1000L)))); //10 years
-
-                    Request request = new Request(object);
-
-                    TaskManager.instance().executeAsync((Task) () -> {
-
-                        JSONObject response = new Call<JSONObject>().url(network.getRegistryUrl() + "/subscribe").method(HttpMethod.POST).input(object).inputFormat(InputFormat.JSON).
-                                header("Content-Type", MimeType.APPLICATION_JSON.toString()).
-                                header("Accept", MimeType.APPLICATION_JSON.toString()).
-                                header("Authorization", request.generateAuthorizationHeader(subscriberId, uniqueKeyId)).
-                                getResponseAsJson();
-                    }, false);
+            if (!network.isSubscriptionActive()) {
+                Subscriber bppSubscriber = network.getBppSubscriber();
+                Subscriber bapSubscriber = network.getBapSubscriber();
+                NetworkAdaptorFactory.getInstance().getAdaptor(network.getNetworkId()).subscribe(network.getBppSubscriber());
+                NetworkAdaptorFactory.getInstance().getAdaptor(network.getNetworkId()).subscribe(network.getBapSubscriber());
+                if (network.isMqSupported()){
+                    new BppSubscriber(bppSubscriber).registerSubscriber();
+                    new BapSubscriber(bapSubscriber).registerSubscriber();
                 }
             }
-
-
         }
     }
-
-
-    private void generateBecknKeys() {
-        String skeyNumber = SequentialNumber.get("KEYS").getCurrentNumber();
-        if (Long.parseLong(skeyNumber) == 0){
-            skeyNumber = SequentialNumber.get("KEYS").next();
-        }
-        long keyNumber = Long.parseLong(skeyNumber);
-
-        CryptoKey key = CryptoKey.find(BecknUtil.getCryptoKeyId(null),CryptoKey.PURPOSE_SIGNING);
-        if (key.getRawRecord().isNewRecord()) {
-            key.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-            key.setCreatedAt(key.getUpdatedAt());
-        }
-        boolean keyExpired = key.getUpdatedAt().getTime() + (long)(10L * 365.25D * 24L * 60L * 60L * 1000L) <= System.currentTimeMillis();
-        if ( key.getRawRecord().isNewRecord() || keyExpired){
-            KeyPair pair = Crypt.getInstance().generateKeyPair(Request.SIGNATURE_ALGO,Request.SIGNATURE_ALGO_KEY_LENGTH);
-            key.setAlgorithm(Request.SIGNATURE_ALGO);
-            key.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
-            key.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
-            key.save();
-        }
-
-        CryptoKey encryptionKey =  CryptoKey.find(BecknUtil.getCryptoKeyId(null),CryptoKey.PURPOSE_ENCRYPTION);
-        if (encryptionKey.getRawRecord().isNewRecord()) {
-            encryptionKey.setUpdatedAt(key.getUpdatedAt());
-            encryptionKey.setCreatedAt(key.getUpdatedAt());
-        }
-        if (encryptionKey.getRawRecord().isNewRecord() || keyExpired){
-            KeyPair pair = Crypt.getInstance().generateKeyPair(Request.ENCRYPTION_ALGO,Request.ENCRYPTION_ALGO_KEY_LENGTH);
-            encryptionKey.setAlgorithm(Request.ENCRYPTION_ALGO);
-            encryptionKey.setPrivateKey(Crypt.getInstance().getBase64Encoded(pair.getPrivate()));
-            encryptionKey.setPublicKey(Crypt.getInstance().getBase64Encoded(pair.getPublic()));
-            encryptionKey.save();
-        }
-
-    }
-
-    private void installGuestUser() {
-        Table<com.venky.swf.db.model.User> USER = Database.getTable(com.venky.swf.db.model.User.class);
-
-        Select q = new Select().from(com.venky.swf.db.model.User.class);
-        ModelReflector<com.venky.swf.db.model.User> ref = ModelReflector.instance(com.venky.swf.db.model.User.class);
-        String nameColumn = ref.getColumnDescriptor("name").getName();
-
-        //This Encryption is the symmetic encryption using sharedkeys
-        List<com.venky.swf.db.model.User> users = q.where(new Expression(ref.getPool(),nameColumn,Operator.EQ,new BindVariable(ref.getPool(),"guest"))).execute(com.venky.swf.db.model.User.class,false);
-
-        if (users.isEmpty()){
-            com.venky.swf.db.model.User u = USER.newRecord();
-            u.setName("guest");
-            u.setLongName("Guest");
-            u.save();
-        }
-
-    }
+    */
 
 
 }

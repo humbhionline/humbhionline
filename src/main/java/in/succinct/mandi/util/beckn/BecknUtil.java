@@ -1,59 +1,28 @@
 package in.succinct.mandi.util.beckn;
 
 import com.venky.core.util.ObjectUtil;
-import com.venky.swf.db.model.CryptoKey;
-import com.venky.swf.plugins.sequence.db.model.SequentialNumber;
 import com.venky.swf.routing.Config;
-import in.succinct.beckn.Subscriber;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class BecknUtil {
-    public static String getNetworkParticipantId(){
-        return Config.instance().getHostName();
-    }
-    public static String getSubscriberId(String domain, String type , String registryId){
-        BecknNetwork network = BecknNetwork.find(registryId);
-        return getSubscriberId(domain,type,network);
-    }
-    public static String getSubscriberId(String domain, String type , BecknNetwork network){
-        if (network != null) {
-            if (ObjectUtil.equals(type, Subscriber.SUBSCRIBER_TYPE_BAP)) {
-                return network.getDeliveryBapSubscriberId();
-            } else if (ObjectUtil.equals(type, Subscriber.SUBSCRIBER_TYPE_BPP)) {
-                return network.getRetailBppSubscriberId();
-            }
-        }
-        return String.format("%s.%s.%s",getNetworkParticipantId(),domain,type);
-    }
-    public static String LOCAL_RETAIL = "nic2004:52110";
-    public static String LOCAL_DELIVERY = "nic2004:55204";
 
     public static String getCryptoKeyId(BecknNetwork network){
-        return getCryptoKeyId(network,LOCAL_RETAIL);
-    }
-    public static String getCryptoKeyId(BecknNetwork network,String domain){
         if (network != null){
-            if (domain.equals(LOCAL_RETAIL)) {
-                return network.getCryptoKeyId();
-            }else {
-                return network.getDeliveryBapKeyId();
-            }
+            return network.getCryptoKeyId();
         }else {
-            return BecknUtil.getNetworkParticipantId() + ".k" + BecknUtil.getCurrentKeyNumber();
+            return String.format("%s.%s",Config.instance().getHostName(),"k0");
         }
     }
 
     public static String getIdPrefix(){
-        //return "./nic2004:52110/IND.std:080/";
-        //return "./retail.kirana/ind.blr/";
         return "./";
     }
 
     public static String getIdSuffix(){
-        return getNetworkParticipantId();
+        return Config.instance().getHostName();
     }
     public enum Entity {
         fulfillment,
@@ -97,25 +66,5 @@ public class BecknUtil {
         return builder.toString();
     }
 
-
-    public static CryptoKey getSelfEncryptionKey(BecknNetwork network,String domain){
-        CryptoKey encryptionKey = CryptoKey.find(getCryptoKeyId(network),CryptoKey.PURPOSE_ENCRYPTION);
-        if (encryptionKey.getRawRecord().isNewRecord()){
-            return null;
-        }
-        return encryptionKey;
-    }
-    public static CryptoKey getSelfKey(BecknNetwork network,String domain){
-        CryptoKey key = CryptoKey.find(getCryptoKeyId(network) ,CryptoKey.PURPOSE_SIGNING);
-        if (key.getRawRecord().isNewRecord()){
-            return null;
-        }
-        return key;
-    }
-
-    public static long  getCurrentKeyNumber(){
-        String sKeyNumber =  SequentialNumber.get("KEYS").getCurrentNumber();
-        return Long.parseLong(sKeyNumber);
-    }
 
 }

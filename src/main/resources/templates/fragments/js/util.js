@@ -139,17 +139,23 @@ function copyAddress(from , to){
     to.Lng = from.Lng; 
 }
 function equalAddress(from , to){
-    return ( to.LongName === from.LongName &&  
+    return equalAddress(from,to, true);
+}
+function equalAddress(from , to, complete){
+    return ( 
         to.AddressLine1 === from.AddressLine1 &&  
         to.AddressLine2 === from.AddressLine2 &&  
         to.AddressLine3 === from.AddressLine3 &&  
         to.AddressLine4 === from.AddressLine4 &&  
         to.City.Name === from.City.Name &&  
+        to.City.State.Name === from.City.State.Name &&  
+        to.City.State.Country.Name === from.City.State.Country.Name &&  
         to.PinCode.PinCode === from.PinCode.PinCode &&  
         to.PhoneNumber === from.PhoneNumber &&  
-        to.Email === from.Email &&  
+        to.Email === from.Email && ( !complete || ( 
+        to.LongName === from.LongName &&  
         to.Lat === from.Lat &&  
-        to.Lng === from.Lng );
+        to.Lng === from.Lng )) );
 }
 function disableSwipe(){
     if (typeof Android != "undefined" ){
@@ -161,4 +167,18 @@ function enableSwipe(){
     if (typeof Android != "undefined" ){
         Android.enableSwipe && Android.enableSwipe();
     }
+}
+function distance(lat1,lon1,lat2,lon2) {
+    var R = 6371; // Radius of the earth in km
+    var dLat = deg2rad(lat2-lat1);  // deg2rad below
+    var dLon = deg2rad(lon2-lon1); 
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2) ; 
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    var d = R * c; // Distance in km
+    return d;
+}
+function deg2rad(deg) {
+    return deg * (Math.PI/180);
 }

@@ -1,10 +1,14 @@
 package in.succinct.mandi.db.model.beckn;
 
+import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.COLUMN_DEF;
+import com.venky.swf.db.annotations.column.COLUMN_NAME;
+import com.venky.swf.db.annotations.column.IS_NULLABLE;
 import com.venky.swf.db.annotations.column.IS_VIRTUAL;
 import com.venky.swf.db.annotations.column.UNIQUE_KEY;
 import com.venky.swf.db.annotations.column.defaulting.StandardDefault;
+import com.venky.swf.db.annotations.model.HAS_DESCRIPTION_FIELD;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
@@ -12,68 +16,53 @@ import com.venky.swf.sql.Conjunction;
 import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
+import in.succinct.onet.core.adaptor.NetworkAdaptor;
 
 import java.util.List;
 
+@HAS_DESCRIPTION_FIELD("NETWORK_ID")
 public interface BecknNetwork  extends Model {
-    @COLUMN_DEF(StandardDefault.BOOLEAN_TRUE)
-    public boolean isSubscriptionActive();
-    public void setSubscriptionActive(boolean active);
 
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     public boolean isDisabled();
     public void setDisabled(boolean disabled);
 
     @UNIQUE_KEY
-    public String getRegistryId();
-    public void setRegistryId(String id);
+    @COLUMN_NAME("REGISTRY_ID")
+    public String getNetworkId();
+    public void setNetworkId(String id);
 
+    @IS_VIRTUAL
     public String getRegistryUrl();
-    public void setRegistryUrl(String registryUrl);
 
-    @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
-    public boolean isProviderLocationRegistrySupported();
-    public void setProviderLocationRegistrySupported(boolean providerLocationRegistrySupported);
+    @IS_NULLABLE
+    public String getSubscriberId();
+    public void setSubscriberId(String subscriberId);
 
-    public String getRetailBppSubscriberId();
-    public void setRetailBppSubscriberId(String subscriberId);
-
-    @UNIQUE_KEY("BPP")
-    public String getRetailBppUrl();
-    public void setRetailBppUrl(String url);
-
-
-    public String getDeliveryBapSubscriberId();
-    public void setDeliveryBapSubscriberId(String subscriberId);
-
-    @UNIQUE_KEY("BAP")
-    public String getDeliveryBapUrl();
-    public void setDeliveryBapUrl(String url);
 
     public String getCryptoKeyId();
     public void setCryptoKeyId(String cryptoKeyId);
 
-    public String getDeliveryBapKeyId();
-    public void setDeliveryBapKeyId(String deliveryBapKeyId);
-    
+
     public Integer getPriority();
     public void setPriority(Integer priority);
 
-    public  static BecknNetwork find(String registryId){
+    public  static BecknNetwork find(String networkId){
         BecknNetwork network = Database.getTable(BecknNetwork.class).newRecord();
-        network.setRegistryId(registryId);
+        network.setNetworkId(networkId);
         return Database.getTable(BecknNetwork.class).find(network,false);
     }
 
-    public static BecknNetwork findByRetailBppUrl(String bppUrl){
-        BecknNetwork network = Database.getTable(BecknNetwork.class).newRecord();
-        network.setRetailBppUrl(bppUrl);
-        return Database.getTable(BecknNetwork.class).find(network,false);
-    }
-    public static BecknNetwork findByDeliveryBapUrl(String bapUrl){
-        BecknNetwork network = Database.getTable(BecknNetwork.class).newRecord();
-        network.setDeliveryBapUrl(bapUrl);
-        return Database.getTable(BecknNetwork.class).find(network,false);
+    public static BecknNetwork findByUrl(String bppUrl){
+        String[] parts = bppUrl.split("/");
+        String networkId = null ;
+        for (String part : parts) {
+            if (!ObjectUtil.isVoid(part)) {
+                networkId = part;
+                break;
+            }
+        }
+        return find(networkId);
     }
     public static List<BecknNetwork> all(){
         return new Select().from(BecknNetwork.class).where(
@@ -95,9 +84,22 @@ public interface BecknNetwork  extends Model {
     public String getMqProvider();
     public void setMqProvider(String mqProvider);
 
-    @IS_VIRTUAL
-    Subscriber getRetailBppSubscriber();
+
+    public List<BecknNetworkRole> getBecknNetworkRoles();
 
     @IS_VIRTUAL
-    Subscriber getDeliveryBapSubscriber();
+    public NetworkAdaptor getNetworkAdaptor();
+
+
+
+
+
+    @IS_VIRTUAL
+    Subscriber getBppSubscriber();
+
+    @IS_VIRTUAL
+    Subscriber getBapSubscriber();
+
+
+    public void subscribe();
 }

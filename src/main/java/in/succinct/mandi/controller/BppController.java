@@ -1,11 +1,9 @@
 package in.succinct.mandi.controller;
 
-import com.venky.core.security.Crypt;
 import com.venky.core.string.StringUtil;
 import com.venky.swf.controller.Controller;
 import com.venky.swf.controller.annotations.RequireLogin;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
-import com.venky.swf.db.model.CryptoKey;
 import com.venky.swf.path.Path;
 import com.venky.swf.plugins.background.core.TaskManager;
 import com.venky.swf.plugins.beckn.messaging.Mq;
@@ -13,6 +11,7 @@ import com.venky.swf.plugins.beckn.messaging.ProxySubscriberImpl;
 import com.venky.swf.routing.Config;
 import com.venky.swf.views.BytesView;
 import com.venky.swf.views.View;
+import in.succinct.bap.shell.network.Network;
 import in.succinct.beckn.Acknowledgement;
 import in.succinct.beckn.Acknowledgement.Status;
 import in.succinct.beckn.Request;
@@ -22,22 +21,17 @@ import in.succinct.mandi.agents.beckn.BecknAsyncTask;
 import in.succinct.mandi.agents.beckn.BecknExtnAttributes;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 import in.succinct.mandi.extensions.BecknPublicKeyFinder;
-import in.succinct.mandi.util.beckn.BecknUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
-import javax.crypto.KeyAgreement;
-import javax.crypto.SecretKey;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-public class BppController extends Controller {
+public class BppController extends Controller implements in.succinct.bap.shell.controller.proxies.BppController {
     public BppController(Path path) {
         super(path);
     }
@@ -113,23 +107,25 @@ public class BppController extends Controller {
             }else {
                 task = clazzTask.getConstructor(Request.class,Map.class).newInstance(request,headers);
             }
-            task.setSubscriber(new ProxySubscriberImpl(network.getRetailBppSubscriber()){
+            task.setSubscriber(new ProxySubscriberImpl(network.getBppSubscriber()){
                 @Override
                 public Mq getMq() {
                     return null;
                 }
             });
+
+            task.setNetwork(network);
             return task;
         }catch(Exception ex){
             throw new RuntimeException(ex);
         }
     }
-    private View act(){
+    public View act(){
         try {
-            BecknNetwork network = BecknNetwork.findByRetailBppUrl(getPath().controllerPath());
-            com.venky.swf.plugins.beckn.messaging.Subscriber subscriber =network.getRetailBppSubscriber();
-            Class<? extends BecknAsyncTask> clazzTask = subscriber.getTaskClass(getPath().action());
+            BecknNetwork network = BecknNetwork.findByUrl(getPath().controllerPath());
             Request request = new Request(StringUtil.read(getPath().getInputStream()));
+            com.venky.swf.plugins.beckn.messaging.Subscriber subscriber =network.getBppSubscriber();
+            Class<? extends BecknAsyncTask> clazzTask = subscriber.getTaskClass(getPath().action());
             request.getContext().setBppId(subscriber.getSubscriberId());
             request.getContext().setBppUri(subscriber.getSubscriberUrl());
             request.getContext().setAction(getPath().action());
@@ -149,120 +145,28 @@ public class BppController extends Controller {
 
 
 
-    @RequireLogin(false)
-    public View search() {
-        return act();
-    }
-    @RequireLogin(false)
-    public View select(){
-        return act();
-    }
-    @RequireLogin(false)
-    public View cancel(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View init(){
-        return act();
-    }
-    @RequireLogin(false)
-    public View confirm(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View status(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View update(){
-        return act();
-    }
-
-
-    @RequireLogin(false)
-    public View track(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View rating(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View support(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View get_cancellation_reasons(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View get_return_reasons(){
-        return act();
-    }
-
-    @RequireLogin(false)
-    public View get_rating_categories(){
-        return act();
-    }
-    @RequireLogin(false)
-    public View get_feedback_categories(){
-        return act();
-    }
-
     @RequireLogin(value = false)
     public View on_subscribe() throws Exception{
         String payload = StringUtil.read(getPath().getInputStream());
         JSONObject object = (JSONObject) JSONValue.parse(payload);
 
 
-        BecknNetwork network = BecknNetwork.findByRetailBppUrl(getPath().controllerPath());
+        BecknNetwork network = BecknNetwork.findByUrl(getPath().controllerPath());
         if (network == null){
             throw new RuntimeException("Could  not identify network from path");
         }
+        Subscriber registry = network.getNetworkAdaptor().getRegistry();
 
-        JSONObject lookupJSON = new JSONObject();
-        lookupJSON.put("subscriber_id",network.getRegistryId());
-        lookupJSON.put("domain",BecknUtil.LOCAL_RETAIL);
-        lookupJSON.put("type", Subscriber.SUBSCRIBER_TYPE_LOCAL_REGISTRY);
-        JSONArray array = BecknPublicKeyFinder.lookup(lookupJSON);
-        String signingPublicKey = null;
-        String encrPublicKey = null;
-        if (array.size() == 1){
-            JSONObject registrySubscription = ((JSONObject)array.get(0));
-            signingPublicKey = (String)registrySubscription.get("signing_public_key");
-            encrPublicKey = (String)registrySubscription.get("encr_public_key");
-        }
-        if (signingPublicKey == null || encrPublicKey == null){
-            throw new RuntimeException("Cannot verify Signature, Could not find registry keys for " + lookupJSON);
+        if (registry == null){
+            throw new RuntimeException("Cannot verify Signature, Could not find registry keys for " + network.getNetworkId());
         }
 
-
-        if (!Request.verifySignature(getPath().getHeader("Signature"), payload, signingPublicKey)){
+        if (!Request.verifySignature(getPath().getHeader("Signature"), payload, registry.getSigningPublicKey())){
             throw new RuntimeException("Cannot verify Signature");
         }
-        com.venky.swf.plugins.beckn.messaging.Subscriber bpp = network.getRetailBppSubscriber();
-
-
-        PrivateKey privateKey = Crypt.getInstance().getPrivateKey(Request.ENCRYPTION_ALGO,
-                CryptoKey.find(bpp.getPubKeyId(),CryptoKey.PURPOSE_ENCRYPTION).getPrivateKey());
-
-        PublicKey registryPublicKey = Request.getEncryptionPublicKey(encrPublicKey);
-
-        KeyAgreement agreement = KeyAgreement.getInstance(Request.ENCRYPTION_ALGO);
-        agreement.init(privateKey);
-        agreement.doPhase(registryPublicKey,true);
-
-        SecretKey key = agreement.generateSecret("TlsPremasterSecret");
 
         JSONObject output = new JSONObject();
-        output.put("answer", Crypt.getInstance().decrypt((String)object.get("challenge"),"AES",key));
+        output.put("answer", Network.getInstance().solveChallenge(network.getNetworkAdaptor(),network.getBppSubscriber(),(String)object.get("challenge")));
 
         return new BytesView(getPath(),output.toString().getBytes(),MimeType.APPLICATION_JSON);
     }

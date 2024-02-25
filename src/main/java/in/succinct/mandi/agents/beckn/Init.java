@@ -102,7 +102,7 @@ public class Init extends BecknAsyncTask {
         map.get("external_platform_id").setValue(context.getBapId());
         map.get("self_platform_url").setValue(context.getBppUri());
         map.get("self_platform_id").setValue(context.getBppId());
-
+        map.get("domain").setValue(context.getDomain());
 
         order.saveAttributeMap(map);
 
