@@ -79,6 +79,14 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         }
     }
 
+    public View purchases(){
+        return html("purchases");
+    }
+
+    public View sales(){
+        return html("sales");
+    }
+
     public View blankJsons(){
         JSONObject orders = new JSONObject();
         orders.put("Orders",new JSONArray());

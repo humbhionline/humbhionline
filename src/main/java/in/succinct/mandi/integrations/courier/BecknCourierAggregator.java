@@ -243,7 +243,10 @@ class BecknCourierAggregator implements CourierAggregator {
         return network.getNetworkAdaptor().getSearchProvider();
     }
     public Subscriber getBpp(String bppId){
-        List<Subscriber> subscribers =  network.getNetworkAdaptor().lookup(bppId,true);
+        List<Subscriber> subscribers =  network.getNetworkAdaptor().lookup(new Subscriber(){{
+            setSubscriberId(bppId);
+            setType(Subscriber.SUBSCRIBER_TYPE_BPP);
+        }},true);
         return subscribers.isEmpty() ? null : subscribers.get(0);
     }
 

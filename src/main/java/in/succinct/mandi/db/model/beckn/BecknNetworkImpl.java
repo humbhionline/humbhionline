@@ -9,6 +9,7 @@ import com.venky.swf.plugins.beckn.messaging.Mq;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
 import com.venky.swf.routing.Config;
+import in.succinct.beckn.Organization;
 import in.succinct.beckn.Subscriber.Domains;
 import in.succinct.mandi.agents.beckn.Cancel;
 import in.succinct.mandi.agents.beckn.CancellationReason;
@@ -24,9 +25,11 @@ import in.succinct.mandi.agents.beckn.Status;
 import in.succinct.mandi.agents.beckn.Support;
 import in.succinct.mandi.agents.beckn.Track;
 import in.succinct.mandi.agents.beckn.Update;
+import in.succinct.mandi.util.CompanyUtil;
 import in.succinct.onet.core.adaptor.NetworkAdaptor;
 import in.succinct.onet.core.adaptor.NetworkAdaptor.Domain;
 import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
+import in.succinct.plugins.ecommerce.db.model.participation.Company;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -80,6 +83,11 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                 setValidTo(new Date(signKey.getUpdatedAt().getTime() + (long) (10L * 365.25D * 24L * 60L * 60L * 1000L)));
                 setCity(adaptor.getWildCard());
                 setCountry(adaptor.getCountry());
+                Organization organization = new Organization();
+                Company mandi = CompanyUtil.getCompany();
+                organization.setName(mandi.getName());
+                organization.setDateOfIncorporation(mandi.getDateOfIncorporation());
+                setOrganization(organization);
                 adaptor.getSubscriptionJson(this); // Actually creates the crypto keys entries
             }
 
@@ -181,6 +189,12 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                 setValidTo(new Date(signKey.getUpdatedAt().getTime() + (long) (10L * 365.25D * 24L * 60L * 60L * 1000L)));
                 setCity(adaptor.getWildCard());
                 setCountry(adaptor.getCountry());
+                Organization organization = new Organization();
+                Company mandi = CompanyUtil.getCompany();
+                organization.setName(mandi.getName());
+                organization.setDateOfIncorporation(mandi.getDateOfIncorporation());
+                setOrganization(organization);
+
                 adaptor.getSubscriptionJson(this);
             }
 

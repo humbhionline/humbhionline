@@ -12,12 +12,15 @@
             data: {
                 User: Lockr.get("User"),
                 guest: Lockr.get("User") && !Lockr.get("User").Name,
-                OrderAmount: {},
-                DeliveryAmount: {},
+                totals : {
+                },
                 facilityOrders: Lockr.get("facilityOrders") || {},
                 facilities: [],
                 logout: logout,
-                delivery : {}
+                delivery : {},
+                config : {
+                    selected_network : null,
+                }
             },
             created: function () {
                 let self = this;
@@ -31,6 +34,7 @@
                 }
                 Lockr.rm("signup-triggered");
                 self.loadFacilities();
+                self.config.selected_network = Lockr.get("selected_network");
                 if (self.facilities.length > 0) {
                     self.showApp();
                 } else {
@@ -44,9 +48,32 @@
                     self.facilities = [];
                     for (key in self.facilityOrders) {
                         if (self.facilityOrders.hasOwnProperty(key)) {
-                            var order = self.facilityOrders[key];
-                            order.CustomerPickup = order.CustomerPickup || (!isDeliveryOrder(key) && order.OrderLines[0].Inventory.DeliveryProvided === 'N' ? 'Y' : 'N');
-                            self.facilities.push(order.OrderLines[0].Inventory.Facility);
+                            var on_select = self.facilityOrders[key].transaction.on_select;
+                            var select = self.facilityOrders[key].transaction.select;
+                            self.facilityOrders[key].transaction.confirm = {... self.facilityOrders[key].transaction.on_init };
+                            var confirm = self.facilityOrders[key].transaction.confirm ;
+                            confirm.context.action = "confirm" ;
+                            delete confirm.context.message_id
+
+                            
+
+                            var location =  on_select.message.order.provider.locations[0];
+                            var origItemMap = {};
+                            var origLocationMap = {};
+
+                            select.message.order.items.forEach(function(i){
+                                origItemMap[i.id] = i;
+                            });
+                            select.message.order.provider.locations.forEach(function(l){
+                                origLocationMap[l.id] = l ;
+                            });
+
+                            on_select.message.order.items.forEach(function(i){
+                                i.descriptor = origItemMap[i.id].descriptor;
+                            });
+
+                            //order.fulfillment.type = order.fufillment.type || (!isDeliveryOrder(key) && order.items[0].Inventory.DeliveryProvided === 'N' ? 'Y' : 'N');
+                            self.facilities.push(origLocationMap[location.id]);
                         }
                     }
                 },
@@ -68,89 +95,37 @@
                 addOrderToBook: function (f, orders) {
                     let self = this;
                     let address = self.delivery.Address;
+
                     let user = self.User;
-                    var order = self.facilityOrders[f.Id];
-                    order.Facility = { Id: f.Id };
-
-
-                    order.ShippingSellingPrice = order.CustomerPickup === 'Y' ? 0 : (self.DeliveryAmount[f.Id] ? self.DeliveryAmount[f.Id] * 1.0 : 0.0);
-
-                    order.OrderAddresses = [
-                        {
-                            AddressType: "ST",
-                            LongName: address.LongName,
-                            AddressLine1: address.AddressLine1,
-                            AddressLine2: address.AddressLine2,
-                            AddressLine3: address.AddressLine3,
-                            AddressLine4: address.AddressLine4,
-                            City: address.City,
-                            PinCode: address.PinCode,
-                            PhoneNumber: address.PhoneNumber,
-                            Lat: address.Lat,
-                            Lng: address.Lng
-                        },
-                        {
-                            AddressType: "BT",
-                            LongName: user.LongName,
-                            AddressLine1: user.AddressLine1,
-                            AddressLine2: user.AddressLine2,
-                            AddressLine3: user.AddressLine3,
-                            AddressLine4: user.AddressLine4,
-                            City: user.City,
-                            PinCode: user.PinCode,
-                            PhoneNumber: user.PhoneNumber,
-                            Lat: user.Lat,
-                            Lng: user.Lng
-                        }];
-                    orders.push(order);
-                    order.OrderLines.forEach(function(ol){
-                        let inv = ol.Inventory; 
-                        ol.Inventory = { Sku :  inv.Sku, Facility : inv.Facility , SellingPrice : inv.SellingPrice , MaxRetailPrice : inv.MaxRetailPrice }
-                            //Passing selling price is important for delivery for product it doesnot matter. 
-                        if (inv.IsNew === true && ( !inv.Id || inv.Id * 1 > 0) ){
-                           ol.Inventory.Infinite = 'Y' ;
-                           ol.Inventory.Quantity = 0;
-                        }else {
-                           ol.Inventory.InventoryHash = inv.InventoryHash 
-                        }
-                        if (inv.External === 'Y' ){
-                            ol.Inventory.External = inv.External ;
-                            ol.Inventory.NetworkId = inv.NetworkId ;
-                            ol.Inventory.ExternalSkuId = inv.ExternalSkuId ;
-                        }
-
-                    });
-
+                    var confirm = self.facilityOrders[f.id].transaction.confirm;
+                    delete confirm.context.message_id
+                    orders.push(confirm);
                 },
                 book: function (orders) {
                     let self = this;
-                    return api().url("/orders/book").parameters({ Orders: orders }).post();
-                },
-                bookOrder: function (event, f) {
-                    if (event) {
-                        event.preventDefault();
-                    }
-                    let self = this;
-                    var Orders = [];
-                    self.addOrderToBook(f, Orders);
+                    var promises = [];
+                    orders.forEach(function(o){
+                        promises.push(api().headers({"X-CallBackToBeSynchronized":"Y"}).url("/" + self.config.selected_network + "/network/confirm").parameters( o ).post());
+                    });
                     showSpinner();
-                    self.book(Orders).then(function (response) {
-                        delete self.facilityOrders[f.Id];
-                        if (self.facilityOrders.length == 0) {
-                            Lockr.rm("facilityOrders");
-                        }
-                        let index = self.facilities.findIndex(function (facility) {
-                            return facility.Id === f.Id
+                    Promise.all(promises).then(function (responses) {
+
+                        responses.forEach((r,i) =>{
+                            var o = r[0].message.order;
+                            let index = self.facilities.findIndex(function(f){
+                                return f.id == o.provider.locations[0].id
+                            });
+                            self.facilities.splice(index,1);
+                            delete self.facilityOrders[o.provider.locations[0].id];
                         });
-                        if (index >= 0) {
-                            self.facilities.splice(index, 1);
-                        }
                         Lockr.set("facilityOrders", self.facilityOrders);
-                        showErrorMessage("Order " + response.Orders[0].Id + " Booked Successfully!").then(function () {
+
+
+                        showErrorMessage("Order " + responses.map(r => r[0].message.order.id) + " Booked Successfully!").then(function () {
                             if (self.facilities.length > 0) {
                                 window.location.reload();
                             } else {
-                                window.location.replace("/orders?type=purchases");
+                                window.location.replace("/orders/purchases");
                             }
                         });
                     }).catch(function (err) {
@@ -158,12 +133,22 @@
                     }).finally(function () {
                         hideSpinner();
                     });
+
+                },
+                bookOrder: function (event, f) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    var orders = [];
+                    self.addOrderToBook(f, orders);
+                    self.book(orders);
                 },
                 bookOrders: function (event) {
                     if (event) {
                         event.preventDefault();
                     }
-                    var Orders = [];
+                    var orders = [];
                     let self = this;
                     if (self.guest) {
                         Lockr.set("signup-triggered", true);
@@ -172,146 +157,124 @@
                     }
 
                     self.facilities.forEach((f, i) => {
-                        self.addOrderToBook(f, Orders);
+                        self.addOrderToBook(f, orders);
                     });
-                    showSpinner();
-                    self.book(Orders).then(function (response) {
-                        response.Orders.forEach((o,i) =>{
-                            let index = self.facilities.findIndex(function(f){
-                                return f.Id == o.Facility.Id;
-                            });
-                            self.facilities.splice(index,1);
-                            delete self.facilityOrders[o.Facility.Id];
-                        });
-                        Lockr.set("facilityOrders", self.facilityOrders);
-
-
-                        showErrorMessage("Order " + response.Orders.map(o => o.Id) + " Booked Successfully!").then(function () {
-                            window.location.replace("/orders?type=purchases");
-                        });
-                    }).catch(function (err) {
-                        showError(err);
-                    }).finally(function () {
-                        hideSpinner();
-                    });
+                    self.book(orders)
 
                 },
-                onOrderLineQtyChange: function (event, f, index) {
+                onOrderLineQtyChange: function (event, provider_location, index) {
                     if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let result = self.facilityOrders[f.Id].OrderLines[index];
+                    let transaction = self.facilityOrders[provider_location.id].transaction;
+                    let order = transaction.confirm.message.order;
+                    let result = order.items[index];
+
+
                     var mayNeedToReload = false;
-                    if (result.OrderedQuantity <= 0) {
-                        let order = self.facilityOrders[f.Id];
+                    if (result.quantity.count <= 0) {
                         mayNeedToReload = true;
-                        order.OrderLines.splice(index, 1);
-                        if (order.OrderLines.length === 0) {
-                            delete self.facilityOrders[f.Id];
-                        }
-                    }
-                    Lockr.set("facilityOrders", self.facilityOrders);
-                    if (mayNeedToReload) {
-                        self.loadFacilities();
-                        if (self.facilities.length === 0) {
+                        order.items.splice(index, 1);
+                        if (order.items.length === 0) {
+                            delete self.facilityOrders[provider_location.id];
+                            Lockr.set("facilityOrders", self.facilityOrders);
+
+                            transaction = undefined;
                             window.location.reload();
-                            console.log("Line After Reload");
                         }
                     }
-                    self.reloadCounts();
-                    self.$forceUpdate();
+
+                    if (transaction){
+                        let select = transaction.select; 
+                        delete select.context.message_id
+                        select.message.order.items = order.items ;
+
+                        showSpinner();
+                        api().headers({"X-CallBackToBeSynchronized":"Y"}).url("/" + self.config.selected_network + "/network/select").parameters( select ).
+                                        post().then(function(on_select){
+                            transaction.on_select = on_select[0]; 
+
+                            let init = transaction.init; 
+                            delete init.context.message_id;
+                            init.message.order.quote = transaction.on_select.message.order.quote ;
+                            init.message.order.items = transaction.on_select.message.order.items ; 
+
+                            api().headers({"X-CallBackToBeSynchronized":"Y"}).url("/" + self.config.selected_network + "/network/init").parameters( init ).
+                                            post().then(function(on_init){
+                                transaction.on_init = on_init[0] ; 
+                                transaction.confirm.message.order = transaction.on_init.message.order; 
+                                Lockr.set("facilityOrders", self.facilityOrders);
+                                if (mayNeedToReload) {
+                                    self.loadFacilities();
+                                }
+                                self.reloadCounts();
+                                self.$forceUpdate();
+                                hideSpinner();
+                            });
+                        })
+                    }
                 },
-                reduceOrderLine: function (event, f, index) {
+                reduceOrderLine: function (event, provider_location, index) {
                     let self = this;
-                    let result = self.facilityOrders[f.Id].OrderLines[index];
-                    result.OrderedQuantity -= 1;
-                    self.onOrderLineQtyChange(event, f, index);
+                    let result = self.facilityOrders[provider_location.id].transaction.confirm.message.order.items[index];
+                    result.quantity.count -= 1;
+                    self.onOrderLineQtyChange(event, provider_location, index);
                 },
-                isDeliverySku: function (sku) {
-                    let self = this;
-                    return sku.Item.AssetCode && sku.Item.AssetCode.Code.startsWith("99681");
-                },
-                increaseOrderLine: function (event, f, index) {
+                increaseOrderLine: function (event, provider_location, index) {
                     if (event) {
                         event.preventDefault();
                     }
 
                     let self = this;
 
-                    let result = self.facilityOrders[f.Id].OrderLines[index];
-                    if (self.isDeliverySku(result.Inventory.Sku) && result.OrderedQuantity * 1.0 > 0) {
-                        return;
+                    let result = self.facilityOrders[provider_location.id].transaction.confirm.message.order.items[index];
+
+                    if (!result.quantity.count) {
+                        result.quantity.count = 0.0;
                     }
 
-                    if (!result.OrderedQuantity) {
-                        result.OrderedQuantity = 0.0;
-                    }
+                    result.quantity.count += 1;
 
-                    result.OrderedQuantity += 1;
-
-                    self.onOrderLineQtyChange(event, f, index);
+                    self.onOrderLineQtyChange(event, provider_location, index);
                 },
                 reloadCounts: function () {
                     let self = this;
 
                     var obj = self.facilityOrders;
-                    self.OrderAmount = {};
-                    self.DeliveryAmount = {};
+                    self.totals = {};
                     for (key in obj) {
                         if (obj.hasOwnProperty(key)) {
-                            self.OrderAmount[key] = 0;
-                            obj[key].OrderLines.forEach((ol, i) => {
-                                self.OrderAmount[key] += ol.OrderedQuantity * ol.Inventory.SellingPrice;
-                                self.DeliveryAmount[key] = self.DeliveryAmount[key] || ((ol.Inventory.DeliveryProvided === 'Y' &&
-                                    ol.Inventory.DeliveryCharges) ?
-                                    ol.Inventory.DeliveryCharges * 1.0 : 0.0);
-                                //Delivery Amount is for the order and not for each line.
-                            });
+                            var order = obj[key].transaction.confirm.message.order;
+                            self.totals[key] =  [] ;
 
-                            if (obj[key].OrderLines.length === 0) {
+                            order.quote.breakup.forEach((element,index)=>{
+                                self.totals[key].push( element );
+                            });
+                            self.totals[key].push( {"title" : "Total" , "price" : order.quote.price});
+                                
+
+                            if (order.items.length === 0) {
                                 delete obj[key];
-                                delete self.OrderAmount[key];
+                                delete self.totals[key];
                             }
                         }
                     }
                     updateHeaderCount();
-                    Vue.set(self, "OrderAmount", self.OrderAmount);
-                    Vue.set(self, "DeliveryAmount", self.DeliveryAmount);
+                    Vue.set(self, "totals", self.totals);
                 },
                 totalAmount: function () {
                     let self = this;
                     var total = 0.0;
-                    for (key in self.OrderAmount) {
-                        total += self.OrderAmount[key];
-                    }
-                    return total;
-                },
-                deliveryAmount: function () {
-                    let self = this;
-                    var total = 0.0;
-                    for (key in self.DeliveryAmount) {
-                        if (self.facilityOrders[key].CustomerPickup !== 'Y') {
-                            total += self.DeliveryAmount[key];
+                    var obj = self.facilityOrders
+                    for (key in self.facilityOrders) {
+                        if (obj.hasOwnProperty(key)){
+                            var order = obj[key].transaction.confirm.message.order;
+                            total += order.quote.price.value
                         }
                     }
                     return total;
-
-                },
-                isDeliveryOrder: function (fId) {
-                    let self = this;
-                    let order = self.facilityOrders[fId];
-                    return order.RefOrder && order.RefOrder.Id * 1.0 > 0;
-                },
-                toggleCustomerPickUp: function (e, fId) {
-                    let self = this;
-                    e && e.preventDefault();
-                    let order = self.facilityOrders[fId];
-                    order.CustomerPickup = (order.CustomerPickup === 'Y' || order.OrderLines[0].Inventory.DeliveryProvided === 'N') ? 'N' : 'Y';
-                    Lockr.set("facilityOrders", self.facilityOrders);
-                    self.$forceUpdate();
-                },
-
+                }
             }
         });
     });
@@ -333,36 +296,36 @@
                 <div class="content-box">
                     <div class="form-row">
                         <div class="col">By: <a
-                                v-bind:href="'/dashboard?facility_id=' +facility.Id">{{facility.Name}}</a></div>
+                                v-bind:href="'/dashboard?provider_location_id=' +facility.id">{{facility.descriptor.name}}</a></div>
                         <div class="col-3 text-right"><i class="fas fa-drafting-compass"
-                                v-bind:href="'https://google.com/maps/place/'+facility.Lat +',' + facility.Lng"></i>
-                            {{(facility.Distance * 100 /100).toFixed(2)}}
+                                v-bind:href="'https://google.com/maps/place/'+facility.gps"></i>
+                            {{(facility.distance * 100 /100).toFixed(2)}}
                             Km</div>
                     </div>
                 </div>
                 <div class="content-sub-box" style="z-index: inherit;">
                     <div class="form-row mb-2 border-bottom py-2"
-                        v-for="(ol,olindex) in facilityOrders[facility.Id].OrderLines">
+                        v-for="(ol,olindex) in facilityOrders[facility.id].transaction.confirm.message.order.items">
                         <div class="col-sm-2 col-4">
                             <div class="img-box">
-                                <img v-bind:src="ol.Inventory.Sku.Attachments[0].AttachmentUrl"
-                                    v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
+                                <img v-bind:src="ol.descriptor.images[0]"
+                                    v-if="ol.descriptor.images && ol.descriptor.images.length > 0"
                                     class="w-100" data-toggle="modal"
-                                    v-bind:data-target="'#sku-img-'+ol.Inventory.Sku.Id" />
+                                    v-bind:data-target="'#sku-img-'+ol.id" />
                                 <div v-else
                                     class="default-img d-flex bg-light align-items-center justify-content-center border p-1 rounded-sm">
                                     <span
-                                        class="font-weight-bold text-muted small">{{ol.Inventory.Sku.Item.Name}}</span>
+                                        class="font-weight-bold text-muted small">{{ol.descriptor.name}}</span>
                                 </div>
                             </div>
                             <!-- Modal View Images-->
-                            <div v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
-                                class="modal fade" v-bind:id="'sku-img-'+ol.Inventory.Sku.Id" tabindex="-1"
+                            <div v-if="ol.descriptor.images  && ol.descriptor.images.length > 0"
+                                class="modal fade" v-bind:id="'sku-img-'+ol.id" tabindex="-1"
                                 aria-labelledby="exampleModalLabel" aria-hidden="true">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title" id="exampleModalLabel">{{ol.Inventory.Sku.Name}}
+                                            <h5 class="modal-title" id="exampleModalLabel">{{ol.descriptor.name}}
                                             </h5>
                                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                                 <span aria-hidden="true">&times;</span>
@@ -370,25 +333,24 @@
                                         </div>
                                         <div class="modal-body">
                                             <img class="img-fluid w-100 h-100"
-                                                v-if="ol.Inventory.Sku.Attachments && ol.Inventory.Sku.Attachments.length > 0"
-                                                v-bind:src="ol.Inventory.Sku.Attachments[0].AttachmentUrl" />
+                                                v-if="ol.descriptor.images  && ol.descriptor.images.length > 0"
+                                                v-bind:src="ol.descriptor.images[0]" />
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-sm-10 col-8">
-                            <h6>{{ol.Inventory.Sku.Name}}</h6>
-                            <p v-if="ol.Inventory.SellingPrice *1.0 > 0 ">@
-                                <strike v-if="ol.Inventory.MaxRetailPrice * 1 > ol.Inventory.SellingPrice * 1">
-                                    &#8377; {{ol.Inventory.MaxRetailPrice}}
+                            <h6>{{ol.descriptor.name}}</h6>
+                            <p v-if="ol.price.value *1.0 > 0 ">@
+                                <strike v-if="ol.price.maximum_value * 1 > ol.price.value * 1">
+                                    &#8377; {{ol.price.maximum_value}}
                                 </strike>
-                                &#8377; {{ol.Inventory.SellingPrice}}
+                                &#8377; {{ol.price.value}}
                             </p>
                             <div class="row">
                                 <div class="col-8">
-                                    <div class="btn-group" role="group" aria-label="Basic example"
-                                        v-if="!isDeliverySku(ol.Inventory.Sku)">
+                                    <div class="btn-group" role="group" aria-label="Basic example" >
                                         <button type="button" class="btn btn-sm btn-outline-primary border-right-0 m-0"
                                             v-on:click="reduceOrderLine($event,facility,olindex)">
                                             <i class="fa fa-minus"></i>
@@ -396,24 +358,12 @@
                                         <input v-bind:key="'quantity-' + facility.Id +'-'+ index"
                                             v-bind:id="'quantity-' + facility.Id +'-'+ index"
                                             class="btn btn-sm btn-outline-primary w-100 border-left-0 border-right-0 m-0"
-                                            placeholder="0" v-model="ol.OrderedQuantity"
+                                            placeholder="0" v-model="ol.quantity.count"
                                             @change="onOrderLineQtyChange($event,facility,olindex)" />
                                         <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
                                             v-on:click="increaseOrderLine($event,facility,olindex)">
                                             <i class="fa fa-plus"></i>
                                         </button>
-                                    </div>
-                                    <div class="btn-group" role="group" aria-label="Basic example" v-else>
-                                        <a href="#" class="btn btn-sm btn-outline-primary"
-                                            v-if="(ol.OrderedQuantity * 1.0 > 0)"
-                                            v-on:click="reduceOrderLine($event,facility,olindex)">
-                                            <i class="fas fa-toggle-on"></i>
-                                        </a>
-                                        <a href="#" class="btn btn-sm btn-outline-primary"
-                                            v-if="(ol.OrderedQuantity * 1.0 <= 0)"
-                                            v-on:click="increaseOrderLine($event,facility,olindex)">
-                                            <i class="fas fa-toggle-off"></i>
-                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -422,66 +372,21 @@
                     <div class="form-row">
                         <div class="col d-flex align-items-center small">
                             <div class="w-100">
-                                <div class="row">
+                                <div class="row" v-for="(breakup,breakup_index) in totals[facility.id]">
                                     <div class="col">
-                                        Order
+                                        {{breakup.title}}
                                     </div>
-                                    <div class="col-5 text-right" v-if="OrderAmount[facility.Id]">
-                                        &#8377; {{ OrderAmount[facility.Id].toFixed(2) }}
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col" v-if="!isDeliveryOrder(facility.Id)">
-                                        <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
-                                            Delivery
-                                        </del>
-                                        <span v-else>
-                                            Delivery 
-                                        </span>
-                                        </span>
-                                        <a href="#" @click="toggleCustomerPickUp($event,facility.Id)"
-                                            v-if="facilityOrders[facility.Id].OrderLines && facilityOrders[facility.Id].OrderLines.length > 0 && facilityOrders[facility.Id].OrderLines[0].Inventory.DeliveryProvided === 'Y'">
-                                            <i class="fas fa-times"
-                                                v-if="facilityOrders[facility.Id].CustomerPickup == 'N'"></i>
-                                            <i class="fas fa-plus"
-                                                v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'"></i>
-                                        </a>
-                                    </div>
-                                    <div class="col-6 d-flex align-item-center justify-content-end"
-                                        v-if="facility.DeliveryChargedOnActual === 'Y'">
-                                        <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
-                                            charged on actuals.
-                                        </del>
-                                        <span v-else>
-                                            charged on actuals.
-                                        </span>
-                                    </div>  
-                                    <div class="col-5 d-flex align-item-center justify-content-end"
-                                        v-else-if="!isDeliveryOrder(facility.Id) && DeliveryAmount[facility.Id]">
-                                        <del v-if="facilityOrders[facility.Id].CustomerPickup == 'Y'">
-                                            &#8377; {{ DeliveryAmount[facility.Id].toFixed(2) }}
-                                        </del>
-                                        <span v-else>
-                                            &#8377; {{ DeliveryAmount[facility.Id].toFixed(2) }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col">
-                                        Total
-                                    </div>
-                                    <div class="col-5 text-right">
-                                        &#8377; {{ (( facilityOrders[facility.Id].CustomerPickup == 'Y' ? 0 :
-                                        DeliveryAmount[facility.Id] ) + OrderAmount[facility.Id] ).toFixed(2) }}
+                                    <div class="col-5 text-right" >
+                                        &#8377; {{ breakup.price.value }}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <!-- <div class="col-5 text-right d-flex align-items-center justify-content-end">
+                        <div class="col-5 text-right d-flex align-items-center justify-content-end">
                             <button class="btn btn-sm btn-primary"
                                 v-on:click="guest? logout($event) : bookOrder($event,facility)">Place
                                 Order</button>
-                        </div> -->
+                        </div> 
                     </div>
                 </div>
             </div>
@@ -492,27 +397,11 @@
                     </div>
                 </div>
                 <div class="row text-muted">
-                    <div class="col d-flex flex-row justify-content-start">
-                        Order Charges
-                    </div>
-                    <div class="col-4 d-flex flex-row justify-content-end">
-                        &#8377; {{totalAmount().toFixed(2)}}
-                    </div>
-                </div>
-                <div class="row text-muted" v-if="deliveryAmount() > 0" >
-                    <div class="col d-flex flex-row justify-content-start">
-                        Delivery Charges
-                    </div>
-                    <div class="col-4 d-flex flex-row justify-content-end">
-                        &#8377; {{deliveryAmount().toFixed(2)}}
-                    </div>
-                </div>
-                <div class="row text-muted">
                     <div class="col font-weight-bold">
                         To Pay
                     </div>
                     <div class="col-4 text-right">
-                        &#8377; {{(deliveryAmount() + totalAmount()).toFixed(2)}}
+                        &#8377; {{ Number(totalAmount()).toFixed(2) }}
                     </div>
                 </div>
             </div>

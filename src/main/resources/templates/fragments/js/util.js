@@ -182,3 +182,10 @@ function distance(lat1,lon1,lat2,lon2) {
 function deg2rad(deg) {
     return deg * (Math.PI/180);
 }
+function networks(){
+    return api().url("/beckn_networks").get().then(function (response) {
+        return response.BecknNetworks.filter(bn=>{return bn.Disabled == 'N' }).map (function (bn) {
+            return bn.NetworkId;
+        });
+    });
+}

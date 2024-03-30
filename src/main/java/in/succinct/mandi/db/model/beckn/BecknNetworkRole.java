@@ -7,6 +7,7 @@ import com.venky.swf.db.model.Model;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
 
 public interface BecknNetworkRole extends Model {
+    @IS_NULLABLE(false)
     public Long getBecknNetworkId();
     public void setBecknNetworkId(Long id);
     public BecknNetwork getBecknNetwork();

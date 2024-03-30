@@ -1,0 +1,1093 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.js"
+    defer></script>
+<script type="text/javascript" src="/fragments/js/util.js" defer></script>
+<link rel="preload" as="style" href="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.css"
+    onload="this.onload=null;this.rel='stylesheet'">
+</link>
+<link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'">
+<script type="text/javascript">
+    var hboViewModel = null;
+    function onUpiResponse(jsonresponse) {
+        console.log("UPI Response got from webview: " + jsonresponse);
+        if (hboViewModel) {
+            let signature = Android ? Android.sign("/orders/processUpi", jsonresponse) : "Manual";
+            hboViewModel.onUpiResponse(jsonresponse, signature);
+        }
+    }
+
+    $(function () {
+        //$("#header").load("/fragments/html/header");
+        var params = (new URL(window.location)).searchParams;
+        var history = params.get("history");
+        history = history && (history === "Y");
+
+
+        hboViewModel = new Vue({
+            el: "#app",
+            data: {
+                Android: typeof Android == "undefined" ? undefined : Android,
+                Mobile: isMobile(),
+                User: Lockr.get("User"),
+                Orders: [],
+                blank: blank,
+                orderInitiatedForPayment: {},
+                orderInitiatedForReturn: {},
+            },
+
+            created: function () {
+                let self = this;
+                showSpinner();
+                api().url("/facilities/mine").get().then(function (response) {
+                    self.loadOrders(response.Facilities);
+                }).catch(function (err) {
+                    self.showApp();
+                    showError(err);
+                }).finally(function () {
+                    hideSpinner();
+                });
+            },
+            methods: {
+                loadOrders: function (facilities) {
+                    let self = this;
+                    var query = null;
+                    let facility_ids = facilities.map(function (f) {
+                        return f.Id;
+                    });
+                    query = facility_ids.length === 0 ? null : "FACILITY_ID:(" + facility_ids.join(" OR ") + ")";
+                    query += (!history ? " AND OPEN:Y " : " AND OPEN:N ");
+                    self.Orders = [];
+                    if (!query) {
+                        self.showApp();
+                    } else {
+                        showSpinner();
+                        api().url("/orders/search").get({ q: query }).then(function (response) {
+                            response.Orders.forEach((o, i) => {
+                                if (o.Facility.DeliveryRadius * 1 < o.Facility.Distance * 1) {
+                                    o.Facility.DeliveryProvided = 'N';
+                                }
+                                self.loadOrder(o, -1); // sending -1 avoid findIndex int the Orders Array.
+                            });
+                            self.showApp();
+                        }).catch(function (err) {
+                            self.showApp();
+                            showError(err);
+                        }).finally(function () {
+                            hideSpinner();
+                        });
+                    }
+
+                },
+                loadOrder: function (o, indexHint) {
+                    let self = this;
+                    self.update_status_array(o);
+                    let index = indexHint || self.Orders.findIndex(ino => ino.Id === o.Id);
+                    if (index >= 0) {
+                        self.Orders.splice(index, 1, o);
+                    } else {
+                        o.isOpen = false;
+                        self.Orders.push(o);
+                    }
+                    if (!self.Android) {
+                        o._phref = "#";
+                        o._rhref = "#";
+                        if (navigator.userAgent.match(/Android/i)) {
+                            if (o.Facility.CreatorUser.VirtualPaymentAddress) {
+                                o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
+                                    '&pn=' + o.Facility.CreatorUser.NameAsInBankAccount +
+                                    '&tr=O:' + o.Id +
+                                    '&tn=HumBhiOnline Txn ' + o.Id +
+                                    '&am=' + o.AmountPendingPayment +
+                                    '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
+                            }
+                            if (o.CreatorUser.VirtualPaymentAddress) {
+                                o._rhref = ('upi://pay?pa=' + o.CreatorUser.VirtualPaymentAddress +
+                                    '&pn=' + o.CreatorUser.NameAsInBankAccount +
+                                    '&tr=R:' + o.Id +
+                                    '&tn=Return for HumBhiOnline Txn ' + o.Id +
+                                    '&am=' + o.AmountToRefund +
+                                    '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
+                            }
+                        }
+                    }
+                },
+                onUpiResponse: function (upiresponsejsonString, signature) {
+                    let self = this;
+                    console.log(upiresponsejsonString);
+                    let r = JSON.parse(upiresponsejsonString)
+
+                    if (!r.txnRef) {
+                        showErrorMessage("Transaction Cancelled");
+                        if (self.orderInitiatedForPayment.Id) {
+                            self.reset_payment(null, self.orderInitiatedForPayment)
+                        } else if (self.orderInitiatedForReturn.Id) {
+                            self.reset_refund(null, self.orderInitiatedForReturn);
+                        }
+                        return;
+                    }
+                    var orderInfo = r.txnRef.split(":");
+                    var orderId = orderInfo[1];
+
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === orderId;
+                    });
+
+                    showSpinner();
+                    api().url("/orders/processUpi").parameters(upiresponsejsonString).headers({ "X-Signature": signature }).post().then(function (response) {
+                        if (index >= 0){
+                            updateOrderInList(response.Order,index); 
+                        }
+                        showErrorMessage("Payment Status : " + r.Status);
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+
+                },
+                updateOrderInList: function(order,index){
+                    let self = this;
+                    order.isOpen = true;
+                    if (index >= 0) {
+                        self.update_status_array(order);
+                        self.Orders.splice(index, 1, order);
+                    }
+                },
+                isCancelled: function (order) {
+                    return o.CANCELLED || o.RETURNED;
+                },
+                isPacked: function (order) {
+                    return o.PACKED;
+                },
+                isShipped: function (order) {
+                    return o.SHIPPED;
+                },
+                isDelivered: function (order) {
+                    return o.DELIVERED;
+                },
+                isAcknowledged: function (order) {
+                    return o.ACKNOWLEDGED;
+                },
+                update_status_array: function (o) {
+                    let self = this;
+                    if (!o.OrderStatuses) {
+                        o.OrderStatuses = [];
+                    }
+
+
+                    o.OrderStatuses.forEach((os, j) => {
+                        if (os.FulfillmentStatus === 'CANCELLED' || os.FulfillmentStatus === 'RETURNED') {
+                            o.CANCELLED = true;
+                        } else if (os.FulfillmentStatus === "DELIVERED") {
+                            o.DELIVERED = true;
+                        } else if (os.FulfillmentStatus === "SHIPPED") {
+                            o.SHIPPED = true;
+                        } else if (os.FulfillmentStatus === "PACKED") {
+                            o.PACKED = true;
+                        } else if (os.FulfillmentStatus !== 'DOWNLOADED') {
+                            o.ACKNOWLEDGED = true;
+                        }
+                    });
+
+                },
+                showApp: function () {
+                    // Manage Orders
+                    $("#header").load("/fragments/html/header", {}, function () {
+                        fixMenu();
+                        $("#pageTitle").html("Manage Orders");
+                        $("#root").show();
+                    });
+                },
+                enterWeight: function (o) {
+                    return new Promise(function (resolve, reject) {
+                        $.confirm({
+                            title: (o.Weight && o.Weight * 1.0 > 0 ? "Confirm Weight" : "Enter Weight"),
+                            content: '' +
+                                '<form action="" class="formName">' +
+                                '<div class="form-group">' +
+                                '<label>Weight in Kgs</label>' +
+                                '<input type="text" placeholder="Order Weight in Kgs" class="weight form-control" required />' +
+                                '</div>' +
+                                '</form>',
+                            buttons: {
+                                formSubmit: {
+                                    text: 'Done',
+                                    btnClass: 'btn-primary',
+                                    action: function () {
+                                        var weight = this.$content.find('.weight').val();
+                                        if (!weight){
+                                            weight = 0;
+                                        }
+                                        weight = weight * 1; 
+
+                                        if (weight >= 0) {
+                                            api().url("/orders/save/"+o.Id).parameters({ Order: { Id: o.Id, Weight: weight, WeightUom: { Name: "Kgs", Measures: "Weight" } } }).post().then(function (response) {
+                                                resolve(response.Orders[0]);
+                                            }).catch(function(err){
+                                                showError(err);
+                                                reject("Pack failed!");
+                                            });
+                                        }else {
+                                            reject("Weight must be a positive value!");
+                                        }
+                                    }
+                                },
+                                cancel: function () {
+                                    reject("Weight not updated!");
+                                },
+
+                            },
+                            onContentReady: function () {
+                                // bind to events
+                                var jc = this;
+                                this.$content.find('.weight').val(o.Weight);
+                                this.$content.find('form').on('submit', function (e) {
+                                    // if the user submits the form by pressing enter in the field.
+                                    e.preventDefault();
+                                    jc.$$formSubmit.trigger('click'); // reference the button and click it
+                                });
+                            },
+                        })
+                    });
+                },
+                pack: function (event, order) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    showSpinner();
+                    self.enterWeight(order).then(function (o) {
+                        api().url("/orders/pack/" + o.Id).get().then(function (response) {
+                            self.updateOrderInList(response.Order,index);
+                        }).catch(function(err){
+                            showError(err);
+                        });
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+
+
+                },
+                ship: function (event, order) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    showSpinner();
+                    api().url("/orders/ship/" + order.Id).get().then(function (response) {
+                        self.updateOrderInList(response.Order,index);
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+                },
+                deliver: function (event, order) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    showSpinner();
+                    loadLocation(true).then(function () {
+                        api().url("/orders/deliver/" + order.Id).get().then(function (response) {
+                            self.updateOrderInList(response.Order,index);
+                        }).catch(function (err) {
+                            showError(err);
+                        }).finally(function () {
+                            hideSpinner();
+                        });
+                    })
+                },
+                showOrderDetails: function (event, order) {
+                    this.Orders.forEach((v, i) => {
+                        if (v.Id === order.Id) {
+                            v.isOpen = !v.isOpen;
+                        } else {
+                            v.isOpen = false;
+                        }
+                        console.log("Orders ==", v.Id, order.Id);
+                    })
+                },
+                cancel: function (event, order) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = self.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+
+                    $.confirm({
+                        title: "Confirmation",
+                        content: "Do you really want to cancel order " + order.Id,
+                        buttons: {
+                            yes: function () {
+                                showSpinner();
+                                api().url("/orders/cancel/" + order.Id).get().then(function (response) {
+                                    if (index >= 0) {
+                                        self.updateOrderInList(response.Order,index);
+                                    }
+                                }).catch(function (err) {
+                                    showError(err);
+                                }).finally(function () {
+                                    hideSpinner();
+                                });;
+                            },
+                            no: function () {
+
+                            }
+                        }
+                    });
+                },
+                cancel_order_line: function (event, order_line, order) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    order_lines = order.OrderLines;
+
+                    let self = this;
+                    let index = order_lines.findIndex(function (ol) {
+                        return ol.Id === order_line.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+
+                    $.confirm({
+                        title: "Confirmation",
+                        content: "Do you really want to cancel order line for " + order_line.Sku.Name + "?",
+                        buttons: {
+                            confirm: function () {
+                                showSpinner();
+                                api().url("/order_lines/cancel/" + order_line.Id).get().then(function (response) {
+                                    api().url("/orders/show/" + order.Id).get().then(function (response) {
+                                        //Refresh the order Status.
+                                        self.loadOrder(response.Order);
+                                    });
+                                }).catch(function (err) {
+                                    showError(err);
+                                }).finally(function () {
+                                    hideSpinner();
+                                });;
+                            },
+                            cancel: function () {
+
+                            }
+                        }
+                    });
+
+                },
+
+                initialize_payment: function (event, order) {
+                    let self = this;
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    showSpinner();
+                    api().url("/orders/initialize_payment/" + order.Id).get().then(function (response) {
+                        self.updateOrderInList(response.Order,index);
+                        showErrorMessage("Payment Initialized");
+                        response.Order._phref = "#";
+                        if (self.Android) {
+                            self.orderInitiatedForPayment = response.Order;
+                            self.Android.payWithUpi(order.Facility.CreatorUser.VirtualPaymentAddress, order.Facility.CreatorUser.NameAsInBankAccount, "O:" + order.Id, order.AmountPendingPayment * 1.0, 'HumBhiOnline Txn ' + order.Id);
+                        } else if (navigator.userAgent.match(/Android/i)) {
+                            let o = response.Order
+                            o._phref = ('upi://pay?pa=' + o.Facility.CreatorUser.VirtualPaymentAddress +
+                                '&pn=' + o.Facility.CreatorUser.NameAsInBankAccount +
+                                '&tr=O:' + o.Id +
+                                '&tn=HumBhiOnline Txn ' + o.Id +
+                                '&am=' + o.AmountPendingPayment +
+                                '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
+                        }
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+
+                    return true;
+                },
+                reset_payment: function (event, order) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    delete order._phref;
+                    delete order._rhref;
+                    showSpinner();
+                    api().url("/orders/reset_payment/" + order.Id).get().then(function (response) {
+                        if (index >= 0) {
+                            self.updateOrderInList(response.Order,index);
+                        }
+                        showErrorMessage("Payment Reset");
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+                },
+                complete_payment: function (event, order) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    delete order._phref;
+                    delete order._rhref;
+                    showSpinner();
+                    api().url("/orders/complete_payment/" + order.Id).get().then(function (response) {
+                        self.updateOrderInList(response.Order,index);
+                        showErrorMessage("Verified Payment");
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+                },
+                initialize_refund: function (event, order) {
+                    let self = this;
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    delete order._phref;
+                    delete order._rhref;
+                    showSpinner();
+                    api().url("/orders/initialize_refund/" + order.Id).get().then(function (response) {
+                        self.updateOrderInList(response.Order,index);
+                        showErrorMessage("Refund Initialized");
+                        response.Order._rhref = "#";
+                        if (self.Android) {
+                            // v-bind:href=
+                            self.orderInitiatedForReturn = response.Order;
+                            self.Android.payWithUpi(order.CreatorUser.VirtualPaymentAddress, order.CreatorUser.NameAsInBankAccount, "R:" + order.Id, order.AmountToRefund * 1.0, 'Return for HumBhiOnline Txn ' + order.Id);
+                        } else if (navigator.userAgent.match(/Android/i)) {
+                            response.Order._rhref = ('upi://pay?pa=' + order.CreatorUser.VirtualPaymentAddress + '&pn=' + order.CreatorUser.NameAsInBankAccount + '&tr=R:' + order.Id + '&tn=Return for HumBhiOnline Txn ' + order.Id + '&am=' + order.AmountToRefund + '&cu=INR&mode=04&orgId=000000&sign=').replace(/ /g, '%20');
+                        }
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+                    return true;
+                },
+                reset_refund: function (event, order) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    delete order._phref;
+                    delete order._rhref;
+                    showSpinner();
+                    api().url("/orders/reset_refund/" + order.Id).get().then(function (response) {
+                        self.updateOrderInList(response.Order,index);
+                        showErrorMessage("Payment Reset");
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });;
+                },
+                complete_refund: function (event, order) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = this.Orders.findIndex(function (o) {
+                        return o.Id === order.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    delete order._phref;
+                    delete order._rhref;
+                    showSpinner();
+                    api().url("/orders/complete_refund/" + order.Id).get().then(function (response) {
+                        self.updateOrderInList(response.Order,index);
+                        showErrorMessage("Verified Payment");
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+                },
+                print: function (event, o) {
+                    let self = this;
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    showSpinner();
+                    api().url("/orders/print/" + o.Id).get().then(function (response) {
+                        if (response.OrderPrints.length === 0) {
+                            showErrorMessage("Invoice being generated. Check back in a while.")
+                        } else {
+                            let url = "/order_prints/view/" + response.OrderPrints[0].Id;
+                            window.location.href = url;
+                        }
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+
+                },
+                plan: function (event, o) {
+                    let self = this;
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    $.confirm({
+                        title: (o.Weight && o.Weight * 1.0 > 0 ? "Confirm Weight" : "Enter Weight"),
+                        content: '' +
+                            '<form action="" class="formName">' +
+                            '<div class="form-group">' +
+                            '<label>Weight in Kgs</label>' +
+                            '<input type="text" placeholder="Order Weight in Kgs" class="weight form-control" required />' +
+                            '</div>' +
+                            '</form>',
+                        buttons: {
+                            formSubmit: {
+                                text: 'Done',
+                                btnClass: 'btn-primary',
+                                action: function () {
+                                    var weight = this.$content.find('.weight').val();
+                                    if (weight && weight * 1 > 0) {
+                                        api().url("/orders/save/" + o.Id).parameters({ Order: { Id: o.Id, Weight: weight, WeightUom: { Name: "Kgs", Measures: "Weight" } } }).post().then(function (response) {
+                                            window.location.href = ("/orders/delivery_plan/" + o.Id);
+                                        });
+                                    }else{
+                                        showError("Cannot plan with out entering weight");
+                                    }
+                                }
+                            },
+                            cancel: function () {
+
+                            },
+
+                        },
+                        onContentReady: function () {
+                            // bind to events
+                            var jc = this;
+                            this.$content.find('.weight').val(o.Weight);
+                            this.$content.find('form').on('submit', function (e) {
+                                // if the user submits the form by pressing enter in the field.
+                                e.preventDefault();
+                                jc.$$formSubmit.trigger('click'); // reference the button and click it
+                            });
+                        },
+                    })
+                },
+                planningRequired: function (o) {
+                    let non_subscription_line = o.OrderLines.find(function (o1) {
+                        return o1.Sku.Item.HumBhiOnlineSubscriptionItem !== 'Y';
+                    });
+                    if (!non_subscription_line) {
+                        return false;
+                    }
+                    if (o.RefOrder) {
+                        return false; //A Delivery Order
+                    } else {
+                        return o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y';
+                    } 
+                },
+                isDeliveryOrder: function (order) {
+                    return order.RefOrder && order.RefOrder.Id * 1.0 > 0;
+                },
+                isPaymentButtonEnabled: function (o) {
+                    return o.Facility.CreatorUser.VirtualPaymentAddress && o.AmountPendingPayment * 1.0 > 0 && o.PaymentInitialized !== 'Y' && o.OnHold !== 'Y'
+                },
+                rebook: function (ev, o) {
+                    ev && ev.preventDefault();
+                    window.location.replace('/dashboard/index?facility_id=' + o.Facility.Id + "&clone_order_id=" + o.Id);
+                },
+                whatsapp_url: function (phoneable) {
+                    var url = "";
+                    let self = this;
+                    if (isMobile()) {
+                        url += 'whatsapp://send';
+                    } else {
+                        url += 'https://web.whatsapp.com/send'
+                    }
+                    url += '?phone=' + phoneable.PhoneNumber;
+                    return url;
+                },
+                editDeliveryPrice: function(event, o){
+                    let self = this; 
+                    self.editActualDeliveryPrice(event,o).then(function(order){
+                        api().url("/orders/save").parameters({"Order": order}).post().then(function(r){
+                            let orderId = r.Orders[0].Id;
+                            let index = self.Orders.findIndex(function(o){
+                                return o.Id === orderId;
+                            });
+                            if (index >= 0 ){
+                                api().url(`/orders/show/${orderId}`).get().then(function(r){
+                                    self.updateOrderInList(r.Order,index);
+                                });
+                            }
+                        });
+                    }).catch(function(err){
+                        showErrorMessage(err);
+                    });
+
+                },
+                editActualDeliveryPrice: function(event,o) {
+                    let oldDeliveryCharges = o.ShippingSellingPrice; 
+                    return new Promise(function (resolve, reject) {
+                        $.confirm({
+                            title: "Actual Delivery Charges",
+                            content: '' +
+                                '<form action="" class="formName">' +
+                                '<div class="form-group">' +
+                                '<label>Enter Delivery Charges</label>' +
+                                '<input type="text" placeholder="Delivery Charges" class="price form-control" required />' +
+                                '</div>' +
+                                '</form>',
+                            buttons: {
+                                formSubmit: {
+                                    text: 'Done',
+                                    btnClass: 'btn-primary',
+                                    action: function () {
+                                        var price = this.$content.find('.price').val();
+                                        if (!price){
+                                            price = 0;
+                                        }
+                                        price = price * 1; 
+
+                                        if (price >= 0) {
+                                            o.ShippingSellingPrice = price ;
+                                            resolve(o);
+                                        }else {
+                                            reject("Price must be a positive value!");
+                                        }
+                                    }
+                                },
+                                cancel: function () {
+                                    reject("No change in price");
+                                },
+                            },
+                            onContentReady: function () {
+                                // bind to events
+                                var jc = this;
+                                this.$content.find('.price').val(o.ShippingSellingPrice* 1> 0? o.ShippingSellingPrice : "");
+                                this.$content.find('form').on('submit', function (e) {
+                                    // if the user submits the form by pressing enter in the field.
+                                    e.preventDefault();
+                                    jc.$$formSubmit.trigger('click'); // reference the button and click it
+                                });
+                            },
+                        })
+                    });
+                },
+                editLinePrice: function(event, ol){
+                    let self = this;
+                    self.editUnitPrice(event,ol).then(function(order_line){
+                        api().url("/order_lines/save").parameters({"OrderLine": order_line}).post().then(function(r){
+                            let orderId = r.OrderLines[0].Order.Id;
+                            let index = self.Orders.findIndex(function(o){
+                                return o.Id === orderId;
+                            });
+                            if (index >= 0 ){
+                                api().url(`/orders/show/${orderId}`).get().then(function(r){
+                                    self.updateOrderInList(r.Order,index);
+                                });
+                            }
+                        });
+                    }).catch(function(err){
+                        showErrorMessage(err);
+                    });
+                },
+                editUnitPrice: function(event, ol){
+                    return new Promise(function (resolve, reject) {
+                        $.confirm({
+                            title: "Enter Unit Price",
+                            content: '' +
+                                '<form action="" class="formName">' +
+                                '<div class="form-group">' +
+                                '<label>Enter Unit Price</label>' +
+                                '<input type="text" placeholder="Unit Price" class="price form-control" required />' +
+                                '</div>' +
+                                '</form>',
+                            buttons: {
+                                formSubmit: {
+                                    text: 'Done',
+                                    btnClass: 'btn-primary',
+                                    action: function () {
+                                        var price = this.$content.find('.price').val();
+                                        if (!price){
+                                            price = 0;
+                                        }
+                                        price = price * 1; 
+
+                                        if (price > 0) {
+                                            ol.SellingPrice = price * ol.OrderedQuantity;
+                                            if (ol.MaxRetailPrice && ol.MaxRetailPrice * 1> 0){
+                                                ol.MaxRetailPrice = Math.max(ol.MaxRetailPrice, ol.SellingPrice);
+                                            }else {
+                                                ol.MaxRetailPrice = ol.SellingPrice;
+                                            }
+                                            resolve(ol);
+                                        }else {
+                                            reject("Price must be a positive value!");
+                                        }
+                                    }
+                                },
+                                cancel: function () {
+                                    reject("Price not updated!");
+                                },
+
+                            },
+                            onContentReady: function () {
+                                // bind to events
+                                var jc = this;
+                                this.$content.find('.price').val(ol.SellingPrice* 1> 0? ol.SellingPrice : "");
+                                this.$content.find('form').on('submit', function (e) {
+                                    // if the user submits the form by pressing enter in the field.
+                                    e.preventDefault();
+                                    jc.$$formSubmit.trigger('click'); // reference the button and click it
+                                });
+                            },
+                        })
+                    });
+                }
+
+            }
+        });
+    });
+</script>
+
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+        <h6 v-if="Orders.length === 0" class="text-center">No Orders</h6>
+        <div v-bind:key="'Order-' + o.Id" v-bind:id="'Order-' + o.Id" class="my-4 container position-relative"
+            v-for="(o,i) in Orders">
+            <button class="btn-order-cancel d-flex  align-content-center justify-content-center d-sm-none"
+                v-on:click="cancel($event,o)" v-if="!o.CANCELLED">
+                <i class="mt-1 fas fa-times"></i>
+            </button>
+            <div class="row">
+                <div class="col">
+                    <div class="content-box" v-on:click="showOrderDetails($event,o)">
+                        <div class="form-row">
+                            <div class="col-8 d-flex align-items-center">
+                                <p class="mb-0 font-weight-bold">
+                                    Ordered By : {{o.CreatorUser.LongName}}
+                                </p>
+                                <p class="mb-0 text-muted">
+                                    <span class="small font-weight-bold">
+                                        From : {{o.Facility.Name}}
+                                    </span>
+                                    <small class="text-muted d-none">
+                                        {{o.Facility.AddressLine1}}
+                                        {{(blank(o.Facility.AddressLine2)? "" : "," )}} {{o.Facility.AddressLine2}}
+                                        {{(blank(o.Facility.AddressLine3)? "" : "," )}} {{o.Facility.AddressLine3}}
+                                        {{(blank(o.Facility.AddressLine4)? "" : "," )}} {{o.Facility.AddressLine4}}
+                                        , {{o.Facility.City.Name}}-{{o.Facility.State.Name}},
+                                        {{o.Facility.PinCode.PinCode}}
+                                        <br>
+                                        <span v-if="o.Facility.PhoneNumber"><i class="fa-phone-alt fas"></i> : <a
+                                                v-bind:href="'tel:'+ o.Facility.PhoneNumber">{{o.Facility.PhoneNumber}}</a></span>
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="col text-right">
+                                <span v-if="o.AmountPendingPayment <= 0">
+                                    <span class="font-weight-bold text-muted d-inline-block">Total</span> &#x20B9;
+                                {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
+                                </span>
+
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="reset_payment($event,o)"
+                                    v-if="o.AmountPendingPayment *1.0 > 0.0 && o.PaymentInitialized === 'Y' ">
+                                    Reset
+                                </a>
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="complete_payment($event,o)"
+                                    v-if="o.OnHold !== 'Y' && o.AmountPendingPayment * 1.0 > 0 ">
+                                    Received  &#x20B9;{{o.AmountPendingPayment}}
+                                </a>
+                                <p class="d-sm-inline-block d-none">
+                                    <button class="btn-sm btn btn-primary mb-1" v-on:click="cancel($event,o)"
+                                        v-if="!o.CANCELLED">
+                                        cancel order
+                                    </button>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row" :id="'OrderNo'+o.Id" v-if="o.isOpen">
+                <div class="col">
+                    <div class="content-sub-box">
+                        <div class="form-row" v-if="!o.RefOrder">
+                            <div class="col">
+                                <p class="mb-0 font-weight-bold">{{o.CreatorUser.LongName}}
+                                    <a class="btn btn-sm btn-outline-less-primary"
+                                        v-bind:href="'tel:'+ o.CreatorUser.PhoneNumber"
+                                        v-if="Mobile && o.CreatorUser.PhoneNumber">
+                                        <i class="fa-phone-alt fas"></i>
+                                    </a>
+                                    <a v-bind:href="whatsapp_url(o.CreatorUser)" data-action="share/whatsapp/share"
+                                        class="btn btn-sm btn-outline-less-primary"
+                                        v-if="o.CreatorUser.PhoneNumber">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                </p>
+                                <p class="m-0">
+                                    <small class="text-muted">Delivery To: {{o.ShipToAddress.LongName + "," +
+                                        o.ShipToAddress.AddressLine1}}
+                                        {{(blank(o.ShipToAddress.AddressLine2)? "" : "," )}}
+                                        {{o.ShipToAddress.AddressLine2}}
+                                        {{(blank(o.ShipToAddress.AddressLine3)? "" : "," )}}
+                                        {{o.ShipToAddress.AddressLine3}}
+                                        {{(blank(o.ShipToAddress.AddressLine4)? "" : "," )}}
+                                        {{o.ShipToAddress.AddressLine4}}
+                                        , {{o.ShipToAddress.City.Name}}-{{o.ShipToAddress.State.Name}},
+                                        {{o.ShipToAddress.PinCode.PinCode}}</small>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="form-row" v-if="o.RefOrder">
+                            <div class="col">
+                                <p class="mb-0 font-weight-bold">From</p>
+                                <p class="mb-0">
+                                    <small class="text-muted">{{o.RefOrder.Facility.Name}},
+                                        {{o.RefOrder.Facility.AddressLine1}}
+                                        {{(blank(o.RefOrder.Facility.AddressLine2)? "" : "," )}}
+                                        {{o.RefOrder.Facility.AddressLine2}}
+                                        {{(blank(o.RefOrder.Facility.AddressLine3)? "" : "," )}}
+                                        {{o.RefOrder.Facility.AddressLine3}}
+                                        {{(blank(o.RefOrder.Facility.AddressLine4)? "" : "," )}}
+                                        {{o.RefOrder.Facility.AddressLine4}}
+                                        , {{o.RefOrder.Facility.City.Name}}-{{o.RefOrder.Facility.State.Name}},
+                                        {{o.RefOrder.Facility.PinCode.PinCode}}
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="form-row" v-if="o.RefOrder">
+                            <div class="col">
+                                <p class="mb-0 font-weight-bold">To</p>
+                                <p class="m-0">
+                                    <small class="text-muted">{{o.RefOrder.ShipToAddress.LongName}},
+                                        {{o.RefOrder.ShipToAddress.AddressLine1}}
+                                        {{(blank(o.RefOrder.ShipToAddress.AddressLine2)? "" : "," )}}
+                                        {{o.RefOrder.ShipToAddress.AddressLine2}}
+                                        {{(blank(o.RefOrder.ShipToAddress.AddressLine3)? "" : "," )}}
+                                        {{o.RefOrder.ShipToAddress.AddressLine3}}
+                                        {{(blank(o.RefOrder.ShipToAddress.AddressLine4)? "" : "," )}}
+                                        {{o.RefOrder.ShipToAddress.AddressLine4}}
+                                        ,
+                                        {{o.RefOrder.ShipToAddress.City.Name}}-{{o.RefOrder.ShipToAddress.State.Name}},
+                                        {{o.RefOrder.ShipToAddress.PinCode.PinCode}}</small>
+                                </p>
+                            </div>
+                        </div>
+
+                        <hr class="my-2" />
+                        <div class="form-row">
+                            <div class="col">
+                                <p class="d-block mb-1">Order : {{o.Id }} {{ ( isDeliveryOrder(o) ? "/(" + o.RefOrder.Id
+                                    + ")" : "" ) }}
+                                </p>
+                                <p class="m-0">{{ (o.Facility.CodEnabled !== 'Y' && o.AmountPendingPayment * 1.0 > 0 ) ?
+                                    'AWAITING PAYMENT' : o.FulfillmentStatus}}
+                                    <a class="fas fa-print btn" href="#" @click="print($event,o)"
+                                        v-if="o.FulfillmentStatus !== 'DOWNLOADED' && o.FulfillmentStatus !== 'CANCELLED' && o.FulfillmentStatus !== 'RETURNED'">
+                                    </a>
+                                    <!-- If a seller provides delivery, then he owns the transportation responsibility -->
+                                    <a href="#/" class="btn btn-sm btn-outline-primary" role="button"
+                                        v-on:click="plan($event,o)" v-if="planningRequired(o) &&
+                                        o.PACKED  && !o.CANCELLED && !o.SHIPPED && !o.DELIVERED ">
+                                        Plan Courier?
+                                    </a>
+                                </p>
+                            </div>
+                            <div class="col text-right">
+                                <div class="h-100">
+                                    <div class="row h-50">
+                                        <div class="col-12">
+                                            <p class="m-0">Payment status:</p>
+                                            <small v-if="o.AmountPendingPayment * 1.0 > 0 ||  o.AmountPaid *1.0 == 0">
+                                                {{ o.PaymentInitialized === 'Y' ? 'Being Paid' : 'Unpaid' }} : &#x20B9;
+                                                {{(o.AmountPendingPayment *1.0).toFixed(2)}}
+                                            </small>
+                                            <small v-else-if="o.AmountToRefund * 1.0 > 0">
+                                                To Refund : &#x20B9; {{(o.AmountToRefund * 1.0).toFixed(2) }}
+                                            </small>
+                                            <small v-else>
+                                                Settled
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="row h-50">
+                                        <div class="col-12 d-flex align-items-end justify-content-end">
+                                            <p class="m-0" v-if="!o.CANCELLED && o.RefOrder">
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="ship($event,o)"
+                                                    v-if="!o.SHIPPED && !o.DELIVERED">
+                                                    Pickup
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="deliver($event,o)" v-else-if="!o.DELIVERED &&
+                                                    ( o.Facility.CodEnabled === 'Y' || !isPaymentButtonEnabled(o) ) ">
+                                                    Deliver
+                                                </a>
+                                            </p>
+                                            <p class="m-0" v-else-if="!o.RefOrder">
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="pack($event,o)" v-if="!o.CANCELLED && !o.PACKED && !o.SHIPPED && !o.DELIVERED">
+                                                    Pack
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary" role="button"
+                                                    v-on:click="ship($event,o)" v-else-if="!o.CANCELLED && !o.SHIPPED && !o.DELIVERED &&
+                                                    o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y' ">
+                                                    Ship
+                                                </a>
+                                                <a href="#/" class="btn btn-sm btn-primary w-100" role="button"
+                                                    v-on:click="deliver($event,o)"
+                                                    v-else-if="!o.CANCELLED && !o.DELIVERED
+                                                    && o.DeliveryPlanned !== 'Y' && o.Facility.DeliveryProvided === 'Y'">
+                                                    Deliver
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col text-right">
+                                <a v-bind:href="o._rhref ? o._rhref : '#'" class="btn btn-sm btn-primary mb-1"
+                                    role="button"
+                                    v-if="o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized !== 'Y' && o.CreatorUser.VirtualPaymentAddress"
+                                    v-on:click="initialize_refund($event,o)">
+                                    Refund
+                                </a>
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="reset_refund($event,o)"
+                                    v-if="o.AmountToRefund *1.0 > 0.0 && o.RefundInitialized === 'Y'">
+                                    Reset
+                                </a>
+                            </div>
+                        </div>
+                        <div class="form-row border-top py-2 mt-2" v-for="(ol,i) in o.OrderLines"
+                            v-bind:style="(ol.RemainingCancellableQuantity *1.0 == 0) ? 'text-decoration:line-through' : ''">
+                            <div class="col d-flex align-items-center">
+                                {{ ol.Sku.Name}}
+                            </div>
+                            <div class="col-2 d-flex justify-content-center align-items-center">
+                                <div class="btn btn-outline-primary btn-sm w-75">
+                                    {{ (ol.OrderedQuantity * 1.0).toFixed(0) }}
+                                </div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-end align-items-center small">
+                                <strike v-if="ol.RemainingCancellableQuantity * 1.0 > 0 && ol.MaxRetailPrice * 1.0 > ol.SellingPrice * 1.0 ">
+                                    &#x20B9; {{ ( ol.MaxRetailPrice * 1.0).toFixed(2) }}
+                                </strike>
+                                <span v-if="ol.SellingPrice * 1> 0" class="mr-1" >
+                                    &#x20B9; {{ ( ol.SellingPrice * 1.0 ).toFixed(2) }}
+                                </span>
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
+                                <a href=#" class="fas fa-edit" @click="editLinePrice($event,ol)" v-if="!isDeliveryOrder(o)"></a>
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
+                                <a href="#" class="btn" v-on:click="cancel_order_line($event,ol,o)"
+                                    v-if="ol.OrderedQuantity * 1.0 - ol.CancelledQuantity * 1.0 - ol.ReturnedQuantity *1.0 > 0 && !isDeliveryOrder(o)">
+                                    <i class=" fas fa-times"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="form-row border-top py-2 mt-2" v-if="o.CustomerPickup === 'N'" >
+                            <div class="col d-flex align-items-center small">
+                                Delivery Charges {{( o.Facility.DeliveryChargedOnActual === 'Y' 
+                                                    && o.ShippingSellingPrice * 1 === 0) ? "- NA -" : "" }}
+                            </div>
+                            <div class="col-3 d-flex justify-content-end align-items-center small">
+                                <span v-if="o.ShippingSellingPrice * 1 > 0" class="mr-1" >
+                                + &#x20B9; {{ ( o.ShippingSellingPrice *1.0).toFixed(2) }}
+                                </span>
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
+                                <a href=#" v-bind:class="'fas '+ (o.ShippingSellingPrice * 1.0 > 0 ? 'fa-edit' : 'fa-plus')" @click="editDeliveryPrice($event,o)" 
+                                        v-if="o.Facility.DeliveryChargedOnActual === 'Y' && !isDeliveryOrder(o)"></a>
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- <div class="row p-1 m-1 border-dark border-top">
+                <div class="col-5">
+                    Total
+                </div>
+                <div class="col-1 d-flex justify-content-end">
+
+                </div>
+                <div class="col-4 d-flex justify-content-end">
+                    &#x20B9; {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
+                </div>
+                <div class="col-1">
+
+                </div>
+            </div> -->
+        </div>
+
+
+    </div>
+</div>

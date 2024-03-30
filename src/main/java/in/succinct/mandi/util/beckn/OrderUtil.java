@@ -17,12 +17,13 @@ import com.venky.swf.routing.Config;
 import in.succinct.beckn.Address;
 import in.succinct.beckn.Billing;
 import in.succinct.beckn.BreakUp;
-import in.succinct.beckn.BreakUp.BreakUpElement;
 import in.succinct.beckn.BreakUp.BreakUpElement.BreakUpCategory;
+import in.succinct.beckn.Contact;
 import in.succinct.beckn.Descriptor;
+import in.succinct.beckn.Document;
+import in.succinct.beckn.Documents;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.Fulfillment.FulfillmentStatus;
-import in.succinct.beckn.Fulfillment.FulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Item;
@@ -31,16 +32,12 @@ import in.succinct.beckn.Locations;
 import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Order.Status;
 import in.succinct.beckn.Payment;
-import in.succinct.beckn.Payment.Params;
-import in.succinct.beckn.Payment.PaymentStatus;
-import in.succinct.beckn.Payment.PaymentType;
 import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Quote;
 import in.succinct.beckn.TagGroups;
-import in.succinct.beckn.Tags;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
@@ -48,9 +45,9 @@ import in.succinct.mandi.db.model.OrderAddress;
 import in.succinct.mandi.db.model.User;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -108,7 +105,28 @@ public class OrderUtil {
             becknOrder.setId(BecknUtil.getBecknId(order.getId(), Entity.order));
             becknOrder.setCreatedAt(order.getCreatedAt());
             becknOrder.setUpdatedAt(order.getUpdatedAt());
-            becknOrder.set("state",ObjectUtil.equals(order.getFulfillmentStatus(),Order.FULFILLMENT_STATUS_DOWNLOADED)? "INITIATED" :order.getFulfillmentStatus());
+            switch (order.getFulfillmentStatus()){
+                case Order.FULFILLMENT_STATUS_DOWNLOADED:
+                    becknOrder.setState(Status.Created);
+                    break;
+                case Order.FULFILLMENT_STATUS_ACKNOWLEDGED:
+                    becknOrder.setState(Status.Accepted);
+                    break;
+                case Order.FULFILLMENT_STATUS_PACKED:
+                case Order.FULFILLMENT_STATUS_MANIFESTED:
+                    becknOrder.setState(Status.In_progress);
+                    break;
+                case Order.FULFILLMENT_STATUS_SHIPPED:
+                    becknOrder.setState(Status.Out_for_delivery);
+                    break;
+                case Order.FULFILLMENT_STATUS_DELIVERED:
+                    becknOrder.setState(Status.Completed);
+                    break;
+                case Order.FULFILLMENT_STATUS_CANCELLED:
+                case Order.FULFILLMENT_STATUS_RETURNED:
+                    becknOrder.setState(Status.Cancelled);
+                    break;
+            }
         }
         becknOrder.setProvider(new Provider());
         becknOrder.getProvider().setId(BecknUtil.getBecknId(String.valueOf(order.getFacility().getCreatorUserId()), Entity.provider));
@@ -118,7 +136,17 @@ public class OrderUtil {
         becknOrder.getProviderLocation().setId(BecknUtil.getBecknId(String.valueOf(order.getFacilityId()),Entity.provider_location));
         becknOrder.getProviderLocation().setDescriptor(new Descriptor());
         becknOrder.getProviderLocation().getDescriptor().setName(order.getFacility().getName());
-
+        becknOrder.getProvider().setLocations(new Locations());
+        becknOrder.getProvider().getLocations().add(new Location(){{
+            setId(BecknUtil.getBecknId(String.valueOf(order.getFacilityId()),Entity.provider_location));
+        }});
+        becknOrder.setDocuments(new Documents());
+        order.getOrderPrints().forEach(op-> {
+                Document document = new Document();
+                document.setLabel(op.getImageContentName());
+                document.setUrl(Config.instance().getServerBaseUrl()+"/order_prints/view/"+op.getId());
+                becknOrder.getDocuments().add(document);
+        });
         NonUniqueItems items = new NonUniqueItems();
         becknOrder.setItems(items);
         Cache<String, Bucket> buckets = new Cache<String, Bucket>() {
@@ -134,8 +162,8 @@ public class OrderUtil {
 
 
             Quantity quantity = new Quantity();
-            quantity.set("count",(int)ol.getRemainingCancellableQuantity());
-            item.set("quantity",quantity);
+            quantity.setCount((int)ol.getRemainingCancellableQuantity());
+            item.setQuantity(quantity);
 
             item.setDescriptor(new Descriptor());
             item.getDescriptor().setName(ol.getSku().getName());
@@ -160,100 +188,96 @@ public class OrderUtil {
             buckets.get("IGST").increment(ol.getIGst());
         });
 
-        Billing billing = new Billing();
-        becknOrder.setBilling(billing);
 
-        Address address = new Address();
-        billing.setAddress(address);
+
         OrderAddress billToAddress = order.getAddresses().stream().filter(a-> ObjectUtil.equals(a.getAddressType(), OrderAddress.ADDRESS_TYPE_BILL_TO)).findFirst().get().getRawRecord().getAsProxy(OrderAddress.class);
+        becknOrder.setBilling(new Billing(){{
+            setAddress(OrderUtil.getAddress(billToAddress));
+            setName(billToAddress.getFirstName() + " " + StringUtil.valueOf(billToAddress.getLastName()));
+            setEmail(billToAddress.getEmail());
+            setPhone(billToAddress.getPhoneNumber());
+        }});
+
+
         OrderAddress shipToAddress = order.getAddresses().stream().filter(a-> ObjectUtil.equals(a.getAddressType(), OrderAddress.ADDRESS_TYPE_SHIP_TO)).findFirst().get().getRawRecord().getAsProxy(OrderAddress.class);
 
-        billing.setName(billToAddress.getFirstName() + " " + StringUtil.valueOf(billToAddress.getLastName()));
-        billing.setEmail(billToAddress.getEmail());
-        billing.setPhone(billToAddress.getPhoneNumber());
-
-        address.setPinCode(billToAddress.getPinCode().getPinCode());
-        address.setDoor(billToAddress.getAddressLine1());
-        address.setBuilding(billToAddress.getAddressLine2());
-        address.setStreet(billToAddress.getAddressLine3());
-        address.setLocality(billToAddress.getAddressLine4());
-        address.setCity(billToAddress.getCity().getName());
-        address.setState(billToAddress.getState().getName());
-        address.setCountry(billToAddress.getCountry().getName());
-
         Order transport = order.getTransportOrder();
-        Fulfillment fulfillment = new Fulfillment();
-        fulfillment.setCustomer(new in.succinct.beckn.User());
-        fulfillment.getCustomer().setPerson(new Person());
-        fulfillment.getCustomer().getPerson().setName(getName(shipToAddress));
-
-        becknOrder.setFulfillment(fulfillment);
-        fulfillment.setStart(new FulfillmentStop());
-        Location startLocation = new Location();
-        fulfillment.getStart().setLocation(startLocation);
-        startLocation.setGps(new GeoCoordinate(order.getFacility()));
-
-        fulfillment.setEnd(new FulfillmentStop());
-        Location endLocation = new Location();
-        fulfillment.setTracking(false);
-
-        fulfillment.getEnd().setLocation(endLocation);
-        endLocation.setGps(new GeoCoordinate(shipToAddress));
-        if (transport != null){
-            fulfillment.setType(FulfillmentType.store_pickup);
-            fulfillment.setId(BecknUtil.getBecknId(transport.getId(),Entity.fulfillment));
-            fulfillment.setFulfillmentStatus(getFulfillmentStatus(transport));
-        }else {
-            if (!order.isCustomerPickup()){
-                fulfillment.setType(FulfillmentType.home_delivery);
+        becknOrder.setFulfillment(new Fulfillment(){{
+            setCustomer(new in.succinct.beckn.User(){{
+                setPerson(new Person(){{
+                    setName(OrderUtil.getName(shipToAddress));
+                }});
+            }});
+            setStart(new FulfillmentStop(){{
+                setLocation(new Location(){{
+                    setGps(new GeoCoordinate(order.getFacility()));
+                    setId(becknOrder.getProviderLocation().getId());
+                }});
+                setContact(new Contact(){{
+                    setPhone(order.getFacility().getPhoneNumber());
+                    setEmail(order.getFacility().getEmail());
+                }});
+            }});
+            setEnd(new FulfillmentStop(){{
+                Location endLocation = new Location();
+                endLocation.setGps(new GeoCoordinate(shipToAddress));
+                endLocation.setAddress(getAddress(shipToAddress));
+                setLocation(endLocation);
+                setContact(new Contact(){{
+                    setPhone(shipToAddress.getPhoneNumber());
+                    setEmail(shipToAddress.getEmail());
+                }});
+                setPerson(new Person(){{
+                    setName(OrderUtil.getName(shipToAddress));
+                }});
+            }});
+            setTracking(false);
+            if (transport != null){
+                setType(FulfillmentType.store_pickup);
+                setId(BecknUtil.getBecknId(transport.getId(),Entity.fulfillment));
+                setFulfillmentStatus(OrderUtil.getFulfillmentStatus(transport));
             }else {
-                fulfillment.setType(FulfillmentType.store_pickup);
-            }
-            fulfillment.setId(BecknUtil.getBecknId(order.getId(),Entity.fulfillment));
-            if (ObjectUtil.equals(Order.FULFILLMENT_STATUS_SHIPPED,order.getFulfillmentStatus())){
-                fulfillment.setFulfillmentStatus(FulfillmentStatus.Out_for_delivery);
-            }else if (Arrays.asList(Order.FULFILLMENT_STATUS_DELIVERED,Order.FULFILLMENT_STATUS_RETURNED).contains(order.getFulfillmentStatus())){
-                fulfillment.setFulfillmentStatus(FulfillmentStatus.Order_delivered);
-            }else {
-                fulfillment.setFulfillmentStatus(FulfillmentStatus.Pending);
-            }
-        }
-        if (format.ordinal() >= OrderFormat.initialized.ordinal()){
-            Payment payment = new Payment();
-            becknOrder.setPayment(payment);
-            if (order.getAmountPendingPayment() > 0){
-                payment.setStatus(PaymentStatus.NOT_PAID);
-                payment.setParams(new Params());
-                payment.getParams().setTransactionId("O:"+order.getId());
-                payment.getParams().setAmount(order.getAmountPendingPayment());
-                payment.getParams().setCurrency("INR");
-                User seller = order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class);
-                if (!ObjectUtil.isVoid(seller.getVirtualPaymentAddress())) {
-                    StringBuilder url = new StringBuilder();
-                    url.append("upi://pay");
-                    StringBuilder uriComponent = new StringBuilder();
-
-                    uriComponent.append("?pa=");
-                    uriComponent.append(seller.getVirtualPaymentAddress());
-                    uriComponent.append("&pn=").append(seller.getNameAsInBankAccount());
-                    //uriComponent.append("&tr=O:").append(order.getId());
-                    uriComponent.append("&tr=$transaction_id");
-                    uriComponent.append("&tn=HumBhiOnline Txn ").append(order.getId());
-                    //uriComponent.append("&am=").append(order.getAmountPendingPayment());
-                    uriComponent.append("&am=$amount");
-                    uriComponent.append("&cu=INR&mode=04&orgId=000000&sign=");
-                    url.append(uriComponent);
-                    try {
-                        payment.setUri(URLEncoder.encode(url.toString(),"UTF-8"));
-                    } catch (UnsupportedEncodingException e) {
-                        payment.setUri(url.toString().replaceAll(" ","%20"));
-                    }
+                if (!order.isCustomerPickup()){
+                    setType(FulfillmentType.home_delivery);
+                }else {
+                    setType(FulfillmentType.store_pickup);
                 }
-            }else {
-                payment.setStatus(PaymentStatus.PAID);
+                setId(BecknUtil.getBecknId(order.getId(),Entity.fulfillment));
+                if (ObjectUtil.equals(Order.FULFILLMENT_STATUS_SHIPPED,order.getFulfillmentStatus())){
+                    setFulfillmentStatus(FulfillmentStatus.Out_for_delivery);
+                }else if (Arrays.asList(Order.FULFILLMENT_STATUS_DELIVERED,Order.FULFILLMENT_STATUS_RETURNED).contains(order.getFulfillmentStatus())){
+                    setFulfillmentStatus(FulfillmentStatus.Order_delivered);
+                }else {
+                    setFulfillmentStatus(FulfillmentStatus.Pending);
+                }
             }
+        }});
 
-            payment.setType(PaymentType.POST_FULFILLMENT);
+
+
+        if (format.ordinal() >= OrderFormat.initialized.ordinal()){
+            becknOrder.setPayment(new Payment(){{
+                if (order.getAmountPendingPayment() > 0){
+                    setStatus(PaymentStatus.NOT_PAID);
+                    setParams(new Params(){{
+                        setTransactionId(order.getExternalTransactionReference());
+                        setAmount(order.getAmountPendingPayment());
+                        setCurrency("INR");
+                    }});
+                    User seller = order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class);
+                    if (!ObjectUtil.isVoid(seller.getVirtualPaymentAddress())) {
+                        StringBuilder url = new StringBuilder();
+                        url.append("upi://pay").append("?pa=").append(seller.getVirtualPaymentAddress()).append("&pn=").append(seller.getNameAsInBankAccount()).append(
+                                "&tr=$transaction_id").append("&tn=HumBhiOnline Txn ").append(order.getId()).append(
+                                "&am=$amount").append("&cu=INR&mode=04&orgId=000000&sign=");
+
+                        setUri(URLEncoder.encode(url.toString(), StandardCharsets.UTF_8));
+                    }
+                }else {
+                    setStatus(PaymentStatus.PAID);
+                }
+                setType(PaymentType.POST_FULFILLMENT);
+            }});
 
             buckets.get("SHIPPING_SELLING_PRICE").increment(order.getShippingSellingPrice());
             buckets.get("SHIPPING_PRICE").increment(order.getShippingPrice());
@@ -269,42 +293,36 @@ public class OrderUtil {
                 buckets.get("IGST").increment(shippingTax);
             }
 
-            Quote quote = new Quote();
-            becknOrder.setQuote(quote);
+            becknOrder.setQuote(new Quote(){{
+                setPrice(new Price(){{
+                    setListedValue(buckets.get("MRP").doubleValue() + order.getShippingSellingPrice());
+                    setOfferedValue(order.getProductSellingPrice() + order.getShippingSellingPrice());
+                    setValue(getOfferedValue());
+                    setCurrency("INR");
 
-            Price price = new Price();
-            price.setListedValue(buckets.get("MRP").doubleValue() + buckets.get("SHIPPING_SELLING_PRICE").doubleValue());
-            price.setValue(price.getListedValue());
-            price.setCurrency("INR");
-            quote.setPrice(price);
+                    if (DoubleUtils.compareTo(getListedValue() , getOfferedValue())>0) {
+                        setOfferedValue(null);
+                    }
+                }});
 
-            Price productPrice = new Price();
-            productPrice.setListedValue(buckets.get("MRP").doubleValue());
-            productPrice.setValue(price.getListedValue());
-            productPrice.setCurrency("INR");
-
-            Price fulfillmentPrice = new Price();
-            fulfillmentPrice.setListedValue(order.getShippingSellingPrice());
-            fulfillmentPrice.setValue(fulfillmentPrice.getListedValue());
-            fulfillmentPrice.setCurrency("INR");
-
-            if (DoubleUtils.compareTo(buckets.get("MRP").doubleValue() ,order.getProductSellingPrice(), 2)>0){
-                price.setOfferedValue(order.getProductSellingPrice() + order.getShippingSellingPrice());
-                price.setValue(price.getOfferedValue());
-                productPrice.setOfferedValue(order.getSellingPrice());
-                productPrice.setValue(price.getOfferedValue());
-            }
-
-
-            quote.setTtl(15L*60L); //15 minutes.
-
-            BreakUp breakUp = new BreakUp();
-            BreakUpElement element = breakUp.createElement(BreakUpCategory.item,"Total Product", productPrice);
-            breakUp.add(element);
-            BreakUpElement fulfillmentElement = breakUp.createElement(BreakUpCategory.delivery, "Delivery Charges", fulfillmentPrice);
-            breakUp.add(fulfillmentElement);
-            quote.setBreakUp(breakUp);
-
+                setTtl(15L*60L); //15 minutes.
+                setBreakUp(new BreakUp(){{
+                    add(createElement(BreakUpCategory.item,"Total Product", new Price() {{
+                        setListedValue(buckets.get("MRP").doubleValue());
+                        setOfferedValue(order.getProductSellingPrice());
+                        setValue(getOfferedValue());
+                        setCurrency("INR");
+                        if (DoubleUtils.compareTo(getListedValue(),getOfferedValue()) > 0){
+                            setOfferedValue(null);
+                        }
+                    }}));
+                    add(createElement(BreakUpCategory.delivery, "Delivery Charges", new Price(){{
+                        setListedValue(order.getShippingSellingPrice());
+                        setValue(getListedValue());
+                        setCurrency("INR");
+                    }}));
+                }});
+            }});
         }
         return becknOrder;
     }
@@ -315,6 +333,24 @@ public class OrderUtil {
         location.setAddress(address);
         return getAddress(location);
     }
+
+    public static Address getAddress(com.venky.swf.plugins.collab.db.model.participants.admin.Address localAddress){
+        Address address = new Address();
+        address.setState(localAddress.getState().getName());
+        if (localAddress instanceof OrderAddress) {
+            address.setName(((OrderAddress)localAddress).getLongName());
+        }else if (localAddress instanceof Facility){
+            address.setName(((Facility)localAddress).getName());
+        }
+        address.setPinCode(localAddress.getPinCode().getPinCode());
+        address.setCity(localAddress.getCity().getCode());
+        address.setCountry(localAddress.getCountry().getIsoCode());
+        address.setDoor(localAddress.getAddressLine1());
+        address.setBuilding(localAddress.getAddressLine2());
+        address.setStreet(localAddress.getAddressLine3());
+        address.setLocality(localAddress.getAddressLine4());
+        return address;
+    }
     public static com.venky.swf.plugins.collab.db.model.participants.admin.Address getAddress(final Location location){
 
         return new com.venky.swf.plugins.collab.db.model.participants.admin.Address() {
@@ -323,10 +359,7 @@ public class OrderUtil {
             @Override
             public String getAddressLine1() {
                 StringBuilder line1 = new StringBuilder();
-                if (!ObjectUtil.isVoid(address.getName())){
-                    line1.append(address.getName());
-                }
-                if (!ObjectUtil.isVoid(address.getDoor())){
+               if (!ObjectUtil.isVoid(address.getDoor())){
                     if (line1.length() > 0){
                         line1.append(" ");
                     }
@@ -401,13 +434,7 @@ public class OrderUtil {
             @Override
             public City getCity() {
                 if (city == null) {
-                    city = City.findByCode(address.getCity());
-                    if (city == null){
-                        city = Database.getTable(City.class).newRecord();
-                        city.setCode(address.getCity());
-                        city.setStateId(getStateId());
-                        city.save();
-                    }
+                    city = City.findByStateAndName(getStateId(),address.getCity(),true);
                 }
                 return city;
             }
@@ -445,7 +472,7 @@ public class OrderUtil {
             @Override
             public Country getCountry() {
                 if (country == null){
-                    country = Country.findByISO(address.getCountry());
+                    country = Country.findByName(address.getCountry());
                 }
                 return country;
             }

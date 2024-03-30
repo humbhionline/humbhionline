@@ -61,7 +61,7 @@
                                 Lockr.set("User",response.data.User);
                                 loadLocation(true).then(function(){
                                     if (response.data.User.Seller === 'Y'  && response.data.User.LoggedInToCustomDomain !== 'Y' ){
-                                        window.location.replace("/orders?type=sales");
+                                        window.location.replace("/orders/sales");
                                     }else {
                                         window.location.replace("/index"); //In Custom domain always show dashboard to buy
                                     }

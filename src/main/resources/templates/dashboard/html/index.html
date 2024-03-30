@@ -29,7 +29,7 @@
         }
 
         var search = {
-            context: { ttl : "PT10S" },
+            context: { ttl : "PT20S" },
             message: {
                 intent : { 
                     descriptor: {
@@ -39,7 +39,7 @@
                         end : {
                             location: {
                                 circle : {
-                                    radius : PreferredMaxDistance
+                                    radius : { value : PreferredMaxDistance , unit : "Km"}
                                 }
                             }
                         }
@@ -81,12 +81,14 @@
                 config : {
                     termLengthTrigger: 1,
                     timer: undefined,
+                    selected_network : undefined,
                 },
                 search: search,
                 on_search: {},
+                all_items :[] ,
                 items :[] ,
-                networks: [] ,
                 provider_location : {} , // hash
+                networks: [] ,
 
                 hideNewDelivery: true,
                 delivery: null,
@@ -137,15 +139,30 @@
                         window.location.href = ("/users/html/profile");
                             }
                 }).then(function() {
-                    api().url("/beckn_networks").get().then(function (response) {
-                        self.networks= response.BecknNetworks;
+                    networks().then(function(response){
+                        self.networks = response;
+                        self.config.selected_network = self.networks[0] ;
+                        Lockr.set("selected_network",self.config.selected_network);
                     });
+                    /*
+                    api().url("/beckn_networks").get().then(function (response) {
+                        self.networks= response.BecknNetworks.filter(bn=>{
+                            return bn.Disabled == 'N' ;
+                        });
+                    }); */
                 }).finally(function(){
                     self.find(null);
                     self.showApp();
                 });
             },
             methods: {
+                initSearch : function(){
+                    let self = this;
+                    self.all_items.splice(0);
+                    self.items.splice(0);
+                    Vue.set(self,"on_search",{});
+                    Vue.set(self,"provider_location",{});
+                },
                 initDeliveryAddress: function () {
                     let self = this;
                     self.delivery = Lockr.get("delivery");
@@ -172,12 +189,21 @@
                     for (key in obj) {
                         if (obj.hasOwnProperty(key)) {
                             self.ShipmentCount += 1;
-                            self.OrderLineCount += obj[key].items.length;
-                            obj[key].items.forEach((item, i) => {
-                                self.OrderAmount += item.quantity.count * item.price.value
-                            });
-                            if (obj[key].items.length === 0) {
+                            var order = obj[key].transaction.select.message.order;
+                            var on_select_order = obj[key].transaction.on_select ? obj[key].transaction.on_select.message.order : null ;
+
+                            self.OrderLineCount += order.items.length;
+
+                            if (on_select_order){
+                                self.OrderAmount += on_select_order.quote.price.value;
+                            }else {
+                                order.items.forEach((item, i) => {
+                                    self.OrderAmount += item.quantity.count * item.price.value
+                                });
+                            }
+                            if (order.items.length === 0) {
                                 delete obj[key];
+                                self.clearFilterItems(key);
                             }
                         }
                     }
@@ -220,7 +246,6 @@
                             self.search.message.intent.descriptor.name = e.target.value;
                         }
                     }
-                    self.on_search = {};
                     enableSwipe();
 
                     if (self.config.timer) {
@@ -242,7 +267,7 @@
                    response.message.catalog["bpp/providers"].forEach(p=>{
                         if (!p.descriptor){
                             p.descriptor = response.message.catalog["bpp/descriptior"];
-                    }
+                        }
                         p.locations.forEach(pl=>{
                             self.provider_location[pl.id] = pl;
                             if (!pl.descriptor) {
@@ -252,65 +277,82 @@
                                 l = pl.gps.split(",");
                                 pl.distance = distance(Number.parseFloat(l[0]),Number.parseFloat(l[1]),headers.Lat,headers.Lng);
                             }
+                            pl.provider_id = p.id;
                         });
                         p.fulfillments.forEach(f=>{
                             let pl = self.provider_location[f.start.location.id];
                             if (!pl.fulfillments){
                                 pl.fulfillments = [] ;
-                    }
+                            }
                             pl.fulfillments.push(f);
                         });
                         p.items.forEach(i=>{
                             i.bpp_id = context.bpp_id;
+                            i.provider_id = p.id;
                             if (!i.quantity){
                                 i.quantity = {};
-                        }
-                            if (!i.quantity.selected){
-                                i.quantity.selected = {}
-                    }
-                            if (!i.quantity.selected.count ){
-                                i.quantity.selected.count = 0;
-                        }
-                            if (!i.quantity.selected.measure && i.quantity.available && i.quantity.available.measure){
-                                i.quantity.selected.measure = i.quantity.available.measure;
-                        }
-                        self.items.push(i);
+                            }
+                            if (!i.quantity){
+                                i.quantity = {}
+                            }
+                            if (!i.quantity.count ){
+                                i.quantity.count = 0;
+                                var cart_info = self.facilityOrders[i.location_id];
+                                if (cart_info){
+                                    var cart_item = cart_info.transaction.select.message.order.items.find(function(_i){
+                                        return _i.id =i.id
+                                    });
+                                    i.quantity.count = cart_item.quantity.count;
+                                }
+                            }
+                            if (!i.quantity.measure && i.quantity.available && i.quantity.available.measure){
+                                    i.quantity.measure = i.quantity.available.measure;
+                            }
+                            self.all_items.push(i);
+                            self.items.push(i);
                         });
-                        });
-                                    },
+                    });
+                },
+                current_search_term : function(){
+                    return search.message.intent.descriptor.name.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
+                },
                 _find: function () {
                     let self = this;
-                    let search_term = self.search.message.intent.descriptor.name.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
+                    let search_term = self.current_search_term();
                     if (self.blank(search_term)){
                         return;
                     }
+                    self.initSearch();
                     let headers = self.headers();
                     self.search.message.intent.fulfillment.end.location.gps = headers.Lat + "," +  headers.Lng;
-                    api().url("/hbo/network/search").parameters(self.search).post().then(function(requestFired){
+                    self.search.message.intent.fulfillment.end.location.circle.gps = headers.Lat + "," +  headers.Lng;
+                    self.search.context.city = self.delivery.Address.City.Code ;
+                    showSpinner();
+                    api().url("/" + self.config.selected_network+ "/network/search").parameters(self.search).post().then(function(requestFired){
                         console.log("Checking messages for " + requestFired.context.message_id);
                         if (self.evtSource){
                             self.evtSource.close();
                         }
-                        self.evtSource = new EventSource("/hbo/network/read_events/"+requestFired.context.message_id, {
+                        self.evtSource = new EventSource("/" + self.config.selected_network + "/network/read_events/"+requestFired.context.message_id, {
                             withCredentials : true
                         });
                         self.evtSource.onmessage = (event)=>{
-                            try {
                                 showSpinner();
                                 console.log("got " + event.data );
                                 response = JSON.parse(event.data);
-                                if (!response || response.done ||
-                                    self.search.message.intent.descriptor.name.replace(/[^a-zA-Z0-9 ]/g, " ").trim() != search_term) {
+                                let possibly_changed_search_term = self.current_search_term();
+                                if (!response || response.done || possibly_changed_search_term != search_term) {
+                                    if (possibly_changed_search_term != search_term ) {
+                                        self.initSearch();
+                                    }
                                     disableSwipe();
                                     self.evtSource.close();
+                                    hideSpinner();
                                     return;
                                 }
                                 if (response.message){
                                     self.digest(response);
                                 }
-                            } finally {
-                                hideSpinner();
-                            }
                         };
                     });
                 },
@@ -318,16 +360,16 @@
                     let self = this;
                     //EDIT
                     let result = self.items[index];
-                    result.quantity.selected.count =  Math.max(0, result.quantity.selected.count);
-                    result.quantity.selected.measure = result.quantity.available.measure;
+                    result.quantity.count =  Math.max(0, result.quantity.count);
+                    result.quantity.measure = result.quantity.available.measure;
                     Vue.set(self.items, index, result);
                     self.addToCart(event, result);
                 },
                 reduce: function (event, index) {
                     let self = this;
                     let result = self.items[index];
-                    result.quantity.selected.count -= 1.0;
-                    result.quantity.selected.count = Math.max(0, result.quantity.selected.count);
+                    result.quantity.count -= 1.0;
+                    result.quantity.count = Math.max(0, result.quantity.count);
                     Vue.set(self.items, index, result);
                     self.addToCart(event, result);
                 },
@@ -335,10 +377,10 @@
                     let self = this;
                     let result = self.items[index];
 
-                    if (!result.quantity.selected.count){
-                        result.quantity.selected.count = 0;
+                    if (!result.quantity.count){
+                        result.quantity.count = 0;
                     }
-                    result.quantity.selected.count += 1.0;
+                    result.quantity.count += 1.0;
                     Vue.set(self.items, index, result);
                     self.addToCart(event, result);
                 },
@@ -346,45 +388,125 @@
                     let self = this; 
                     return self.on_search[bpp_id].context;
                 },
+                provider: function (item){
+                    let self = this;
+
+                    return self.on_search[item.bpp_id].message.catalog["bpp/providers"].find(function(p) {
+                       return p.id == item.provider_id; 
+                    });
+                },
+                get_provider_location : function(item){ //Unused
+                    let self = this;
+                    var provider = self.provider(item);
+                    let provider_location_id = item.location_id || item.location_ids[0];
+                    return provider.locations.find(function(l){
+                        return f.id == provider_location_id
+                    });
+                },
+                fulfillment : function(item){
+                    let self = this;
+                    var provider = self.provider(item);
+                    provider.fulfillments.find(function(f){
+                        return f.id == item.fulfillment_id
+                    });
+                },
+                filterItems :function(coexisting_item){
+                    let self = this;
+                    let provider_location_id = coexisting_item.location_id || coexisting_item.location_ids[0];
+                    let fulfillment_id = coexisting_item.fulfillment_id;
+
+                    self.items = this.all_items.filter(function(i){
+                        return ((i.location_id || i.location_ids[0]) == provider_location_id) && fulfillment_id == i.fulfillment_id ;
+                    });
+                    Vue.set(self,"items",self.items);
+                },
+                clearFilterItems: function(provider_location_id){
+                    this.items = this.all_items;
+                },
                 addToCart: function (event, result) {
                     if (event) {
                         event.preventDefault();
                     }
                     let self = this;
-                    let provider_location_id = result.location_ids[0];
+                    let provider_location_id = result.location_id || result.location_ids[0];
                     if (!self.facilityOrders[provider_location_id]) {
                         self.facilityOrders[provider_location_id] = {
-                            context : self.context(result.bpp_id),
-                            message : {
-                                order : {
-                                    items: []
-                    }
+                            transaction : {
+                                select : {
+                                    context : self.context(result.bpp_id),
+                                    message : {
+                                        order : {
+                                            items : []
+                                        }
+                                    }
+                                },
                             }
                         };
+                        self.filterItems(result);
                         Vue.set(self.facilityOrders, provider_location_id, self.facilityOrders[provider_location_id]);
                     }
-                    var order = self.facilityOrders[provider_location_id].message.order;
-                    if (order) {
-                        let index = order.items.findIndex(function (ol) {
-                            return ol.id === result.id &&
-                                ol.provider_location_id === result.provider_location_id;
+
+                    var transaction = self.facilityOrders[provider_location_id].transaction;
+                    var select = transaction.select;
+                    select.context.action = "select" ;
+                    delete select.context.message_id;
+
+                    var order = select.message.order;
+                    if (!order.provider){
+                        var provider = self.provider(result); 
+                        order.provider = { 
+                            "id" : provider.id ,
+                            locations : []   
+                        } 
+
+                        var provider_location = provider.locations.find(function(l) {
+                            return l.id=provider_location_id;
                         });
-                        if (index < 0) {
-                            if (result.quantity.selected.count * 1 > 0) {
-                                order.items.push(result);
-                            }
-                        } else {
-                            if (result.quantity.selected.count * 1 > 0) {
-                                order.items.splice(index, 1, result);
-                            } else {
-                                order.items.splice(index, 1);
-                            }
+                        order.provider.locations.push(provider_location);
+
+                        var fulfillment = provider.fulfillments.find(function(f){
+                            return f.id == result.fulfillment_id;
+                        });
+
+                        order.fulfillment = { ...fulfillment} ;
+                        order.fulfillment.end = self.search.message.intent.fulfillment.end;
+                        order.provider.payments =  provider.payments;
+                    }else {
+                        if (order.fulfillment.id != result.fulfillment_id){
+                            result.quantity.count = 0;
+                            showErrorMessage("Can't mix items that are " + order.fulfillment.type + " and " + fulfillment(item).type);
                         }
                     }
-                    if (event) {
-                        self.reloadCounts();
+
+                    let index = order.items.findIndex(function (ol) {
+                        return ol.id === result.id 
+                    });
+                    if (index < 0) {
+                        if (result.quantity.count * 1 > 0) {
+                            order.items.push(result);
+                        }
+                    } else {
+                        if (result.quantity.count * 1 > 0) {
+                            order.items.splice(index, 1, result);
+                        } else {
+                            order.items.splice(index, 1);
+                        }
                     }
-                    Lockr.set("facilityOrders", self.facilityOrders);
+
+                    showSpinner()
+                    api().url("/" + self.config.selected_network + "/network/select").headers({"X-CallBackToBeSynchronized":"Y"}).parameters(select).post().then(function(on_select){
+                        transaction.on_select = on_select[0];
+                        transaction.init = transaction.on_select;
+
+                        transaction.init.context.action = "init";
+                        delete transaction.init.context.message_id
+                        if (event) {
+                            self.reloadCounts();
+                        }
+                        Lockr.set("facilityOrders", self.facilityOrders);
+                    }).finally(function(){
+                        hideSpinner()
+                    });
                 },
                 setPreferredDistance: function (distance) {
                     let oldValue = Lockr.get("PreferredMaxDistance");
@@ -396,11 +518,85 @@
                 buy: function (event) {
                     event && event.preventDefault();
                     let self =this;
-                    self.reloadCounts();
-                    window.location.replace("/buy");
+                    let address = self.delivery.Address;
+                    if (!address.AddressLine1 ||!address.City ){
+                        self.editDeliveryAddress(event);
+                        return;
+                    }
+
+                    let obj= self.facilityOrders;
+                    for (key in obj){
+                        var inits = [] ;
+                        if (obj.hasOwnProperty(key)) {
+                            var init = obj[key].transaction.init;
+                            var order = init.message.order ;
+                            var user  = self.User; 
+                            if (!order.fulfillment){
+                                order.fulfillment = obj[key].transaction.select.message.order.fulfillment;
+                            }
+                            order.fulfillment.end = { "location" : {  
+                                                                    gps : address.Lat + "," + address.Lng,
+                                                                    address : {
+                                                                        name : address.LongName,
+                                                                        building : address.AddressLine1 ,
+                                                                        street : address.AddressLine2, 
+                                                                        locality : ( address.AddressLine3 ? address.AddressLine3 : "" )  + ( address.AddressLine4 ? "," + address.AddressLine4 : "" ) ,
+                                                                        city : address.City.Name,
+                                                                        state : address.City.State.Name,
+                                                                        area_code : address.PinCode.PinCode,
+                                                                        country : address.City.State.Country.Name
+                                                                    },
+                                                               },
+                                                        person : {
+                                                            name : address.LongName
+                                                        },
+                                                        contact : { 
+                                                            phone : address.PhoneNumber
+                                                        }
+                                                   } ;
+                            order.billing = { 
+                                                address : {
+                                                        name : user.LongName,
+                                                        building : user.AddressLine1 ,
+                                                        street : user.AddressLine2, 
+                                                        locality : ( user.AddressLine3 ? user.AddressLine3 : "" )  + ( user.AddressLine4 ? "," + user.AddressLine4 : "" ) ,
+                                                        city : user.City.Name,
+                                                        state : user.City.State.Name,
+                                                        area_code : user.PinCode.PinCode,
+                                                        country : user.City.State.Country.Name
+                                                      },
+                                                email  : user.Email,
+                                                phone  : user.PhoneNumber,
+                                                name   : user.LongName 
+                                             };
+                            order.fulfillment.customer = { contact : { phone : user.PhoneNumber} , person: { name : user.LongName } } ;
+                            inits.push(api().url("/"+self.config.selected_network + "/network/init").headers({"X-CallBackToBeSynchronized":"Y"}).parameters(init).post().then(function(on_init){
+                                obj[key].transaction.on_init = on_init[0];
+                                return on_init[0];
+                            }).catch(function(err){
+                                showError(err);
+                            }));
+                        }
+
+                        showSpinner();
+                        Promise.all(inits).then(function(values){
+                            Lockr.set("facilityOrders",self.facilityOrders);
+                            self.reloadCounts();
+                            var hasError = false;
+                            values.forEach(function(v){
+                                if (v.error){
+                                    hasError = true;
+                                }
+                            });
+                            if (!hasError){
+                                window.location.replace("/buy");
+                            }
+                        }).finally(function(){
+                            hideSpinner();
+                        });
+                    }
                 },
                 whatsapp_url: function (f) {
-
                     var url = "";
                     let self = this;
                     if (isMobile()) {
@@ -789,7 +985,7 @@
                                 <div class="form-row">
                                     <div class="col small">
                                         <a
-                                            v-bind:href="'https://google.com/maps/place/'+provider_location[result.location_id].gps >
+                                            v-bind:href="'https://google.com/maps/place/'+provider_location[result.location_id].gps" >
                                             <i class="fa fa-map-pin mr-1 text-muted"></i>
                                             {{(provider_location[result.location_id].distance * 1.0).toFixed(2)}} Km
                                         </a>
@@ -813,7 +1009,7 @@
                                     </button>
                                     <input v-bind:key="'quantity' + index" v-bind:id="'quantity' + index"
                                         class="btn btn-sm btn-outline-primary w-100 border-left-0 border-right-0 m-0"
-                                        placeholder="Quantity" v-model="result.quantity.selected.count"
+                                        placeholder="Quantity" v-model="result.quantity.count"
                                         @change="onQtyChange($event,index)" />
                                     <button type="button" class="btn btn-sm btn-outline-primary border-left-0"
                                         v-on:click="increase($event,index)">

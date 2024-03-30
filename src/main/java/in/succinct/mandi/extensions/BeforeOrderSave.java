@@ -94,7 +94,7 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
 
         BecknNetwork network = BecknNetwork.findByUrl(selfPlatformAttribute.getValue().substring(Config.instance().getServerBaseUrl().length()).replace("//","/"));
         Subscriber subscriber = network.getBppSubscriber();
-        if (subscriber == null || subscriber.getDomains().get(domain.getValue()) == null){
+        if (subscriber == null || !subscriber.getDomains().getInner().contains(domain.getValue())){
             return null;
         }
 
@@ -119,10 +119,12 @@ public class BeforeOrderSave extends BeforeModelSaveExtension<Order> {
         context.setTimestamp(new Date());
         context.setCountry(model.getFacility().getCountry().getIsoCode());
         context.setCity(model.getFacility().getCity().getCode());
-        context.setCoreVersion("0.9.3");
+        context.setCoreVersion(network.getNetworkAdaptor().getCoreVersion());
+        context.setDomain(domain.getValue());
         Status status = new Status(request,headers);
         status.setSubscriber(subscriber);
         status.registerSignatureHeaders("Authorization");
+        status.setNetwork(network);
         return status;
     }
     private boolean isBeingPaid(Order model){

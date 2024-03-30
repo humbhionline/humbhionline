@@ -56,12 +56,12 @@ public class OrderImpl extends ModelImpl<Order> {
         boolean anyThingDelivered = false;
         for (OrderLine orderLine : order.getOrderLines()) {
             double toPayQuantity = orderLine.getOrderedQuantity() - orderLine.getCancelledQuantity() - orderLine.getReturnedQuantity();
-            netPayment.increment(toPayQuantity * orderLine.getSellingPrice() / orderLine.getOrderedQuantity());
+            netPayment.increment(toPayQuantity == 0 ? 0 : toPayQuantity * orderLine.getSellingPrice() / orderLine.getOrderedQuantity());
             anyThingDelivered = anyThingDelivered || orderLine.getDeliveredQuantity() > 0;
         }
-        if (anyThingDelivered) {
+        //if (anyThingDelivered) {
             netPayment.increment(order.getShippingSellingPrice());
-        }
+        //}
         netPayment.decrement(order.getAmountPaid());
         netPayment.increment(order.getAmountRefunded());
 

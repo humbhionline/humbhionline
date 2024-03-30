@@ -17,6 +17,7 @@ import com.venky.swf.sql.Expression;
 import com.venky.swf.sql.Operator;
 import com.venky.swf.sql.Select;
 import in.succinct.beckn.Address;
+import in.succinct.beckn.BecknStrings;
 import in.succinct.beckn.Catalog;
 import in.succinct.beckn.Category;
 import in.succinct.beckn.Circle;
@@ -99,11 +100,12 @@ public class Search extends BecknAsyncTask {
                 location.getCircle().getRadius().setUnit("Km");
                 location.getCircle().getRadius().setValue(facility.getDeliveryRadius());
             }
+            location.setDescriptor(new Descriptor());
+            location.getDescriptor().setName(facility.getName());
         }
         return location;
     }
 
-    @NotNull
     private static Address getAddress(Facility facility) {
         Address address = new Address();
         address.setState(facility.getState().getName());
@@ -255,7 +257,7 @@ public class Search extends BecknAsyncTask {
                         delivery.getEnd().setLocation(createLocation(deliveryLocation));
                     }
 
-
+                    BecknStrings fulfillment_ids = new BecknStrings();
                     if (pass){
                         double facilityDistance = 0 ;
                         if (deliveryLocation != null){
@@ -270,19 +272,23 @@ public class Search extends BecknAsyncTask {
                             }
                             record.setChargeableDistance(new DoubleHolder(facility.getDistance(),2).getHeldDouble().doubleValue());
                             fulfillments.add(delivery);
+                            fulfillment_ids.add(delivery.getId());
                         }
                     }
                     if (fulfillment != null) {
                         if (fulfillment.getType() == FulfillmentType.store_pickup){
+                            fulfillment_ids.clear();
                             pass = pass && facility.getDistance() <= maxDistance;
                             if (pass){
                                 fulfillments.add(storePickup);
+                                fulfillment_ids.add(storePickup.getId());
                             }
                         }else if (fulfillment.getType() == FulfillmentType.home_delivery){
                             pass = pass && record.isDeliveryProvided() ;
                         }
                     }else {
                         fulfillments.add(storePickup);
+                        fulfillment_ids.add(storePickup.getId());
                     }
                     pass = pass && (record.isDeliveryProvided() || facility.getDistance() <= maxDistance);
                     pass =  pass && (!record.isDeliveryProvided() || (record.getDeliveryCharges() != null && !record.getDeliveryCharges().isInfinite()));
@@ -290,7 +296,11 @@ public class Search extends BecknAsyncTask {
                         pass = pass && ( price.getMaximumValue() == 0.0D || price.getMaximumValue() >= record.getSellingPrice());
                         pass = pass && ( price.getMinimumValue() == 0.0D || price.getMinimumValue() <= record.getSellingPrice());
                     }
+                    pass = pass && !fulfillment_ids.isEmpty();
 
+                    if (pass){
+                        record.setTxnProperty("fulfillment_ids",fulfillment_ids);
+                    }
 
                     return pass;
                 });
@@ -367,7 +377,12 @@ public class Search extends BecknAsyncTask {
         //item.set("tags",OrderUtil.getTags(inv));
         item.setTags(OrderUtil.getTags(inv));
 
-        provider.getItems().add(item);
+        BecknStrings fulfillment_ids =  inv.getTxnProperty("fulfillment_ids");
+        for (String id : fulfillment_ids) {
+            Item fitem = new Item(item.toString());
+            fitem.setFulfillmentId(id);
+            provider.getItems().add(fitem);
+        }
 
 
     }
@@ -382,7 +397,7 @@ public class Search extends BecknAsyncTask {
         onSearch.getContext().setAction("on_search");
 
         Catalog catalog = new Catalog();
-        catalog.setId(BecknUtil.getBecknId("",null));
+        //catalog.setId(BecknUtil.getBecknId("",null));
         catalog.setDescriptor(new Descriptor());
         catalog.getDescriptor().setName(company.getName());
 
@@ -415,7 +430,7 @@ public class Search extends BecknAsyncTask {
         if (end != null && end.getLocation().getGps() != null){
             Circle circle = end.getLocation().getCircle();
             if (circle != null){
-                radius = circle.getDouble("radius");
+                radius = circle.getRadius().getValue();
             }
             if (radius == 0){
                 radius = 50.0;

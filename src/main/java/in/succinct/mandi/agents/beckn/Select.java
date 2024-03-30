@@ -9,11 +9,14 @@ import in.succinct.beckn.BreakUp.BreakUpElement;
 import in.succinct.beckn.BreakUp.BreakUpElement.BreakUpCategory;
 import in.succinct.beckn.Item;
 import in.succinct.beckn.ItemQuantity;
+import in.succinct.beckn.Location;
+import in.succinct.beckn.Locations;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnSelect;
 import in.succinct.beckn.Order;
 import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Price;
+import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Quote;
 import in.succinct.beckn.Request;
@@ -65,7 +68,7 @@ public class Select extends BecknAsyncTask {
         if (order != null){
             if (order.isOnHold() && ObjectUtil.equals(order.getFulfillmentStatus(), in.succinct.mandi.db.model.Order.FULFILLMENT_STATUS_DOWNLOADED)){
                 order.setOnHold(false);
-                order.setExternalTransactionReference("");
+                order.setExternalTransactionReference(null);
                 order.save();
                 order.cancel("Cart Dropped");
             }else {
@@ -93,16 +96,33 @@ public class Select extends BecknAsyncTask {
             long invId = Long.parseLong(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
             Quantity quantity = item.get(Quantity.class,"quantity");
 
-
-            ItemQuantity outQuantity = new ItemQuantity();
-            outItem.set("quantity",outQuantity);
-
-            outQuantity.setSelected(quantity);
+            outItem.setQuantity(quantity);
 
             Inventory inventory = Database.getTable(Inventory.class).get(invId);
             if (inventory == null || inventory.getRawRecord().isNewRecord() || inventory.getAvailableToPromise() < quantity.getCount()){
                 throw new RuntimeException("No inventory with provider.");
             }
+            String providerId = BecknUtil.getBecknId(String.valueOf(inventory.getFacility().getCreatorUserId()),Entity.provider);
+            String locationId = BecknUtil.getBecknId(String.valueOf(inventory.getFacilityId()), Entity.provider_location);
+            if (outSelected.getProvider() == null) {
+                outSelected.setProvider(new Provider());
+            }
+            if (outSelected.getProvider().getId() == null){
+                outSelected.getProvider().setId(providerId);
+            }else if (!ObjectUtil.equals(outSelected.getProvider().getId(),providerId)){
+                throw new RuntimeException("Providers cannot be mixed in an order");
+            }
+            if (outSelected.getProvider().getLocations() == null) {
+                outSelected.getProvider().setLocations(new Locations());
+            }
+            if (outSelected.getProvider().getLocations().isEmpty()) {
+                outSelected.getProvider().getLocations().add(new Location() {{
+                    setId(locationId);
+                }});
+            }else if (ObjectUtil.equals(outSelected.getProvider().getLocations().get(0).getId(),locationId)){
+                throw new RuntimeException("Cannot mix orders for multiple provider locations");
+            }
+
             itemPrice.increment(inventory.getSellingPrice() * quantity.getCount());
             listedPrice.increment(inventory.getMaxRetailPrice() * quantity.getCount());
 

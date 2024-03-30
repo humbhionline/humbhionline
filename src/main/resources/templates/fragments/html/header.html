@@ -29,6 +29,7 @@
         hboHeaderModel && hboHeaderModel.$forceUpdate();
     }
 
+
     function makeHeaderVue(hide) {
         return new Vue({
             el: "#header",
@@ -45,7 +46,7 @@
                     for (key in obj) {
                         if (obj.hasOwnProperty(key)) {
                             size++;
-                            numLines += obj[key].OrderLines.length;
+                            numLines += obj[key].transaction.select.message.order.items.length;
                         }
                     }
                     if (size > 0 && numLines > 0) {
@@ -133,13 +134,13 @@
                                     </a>
                                 </li>
                                 <li class="dropdown-item">
-                                    <a class="nav-link" href="/orders?type=sales" onclick="hideMenu()">
+                                    <a class="nav-link" href="/orders/sales" onclick="hideMenu()">
                                         <i class="fa fa-list"></i>
                                         Current Orders
                                     </a>
                                 </li>
                                 <li class="dropdown-item">
-                                    <a class="nav-link" href="/orders?type=sales&history=Y" onclick="hideMenu()">
+                                    <a class="nav-link" href="/orders/sales?history=Y" onclick="hideMenu()">
                                         <i class="fa fa-list"></i>
                                         History
                                     </a>
@@ -154,13 +155,13 @@
                                 Purchases</a>
                             <ul class="dropdown-menu ml-auto mr-auto">
                                 <li class="dropdown-item">
-                                    <a class="nav-link" href="/orders?type=purchases" onclick="hideMenu()">
+                                    <a class="nav-link" href="/orders/purchases" onclick="hideMenu()">
                                         <i class="fa fa-list"></i>
                                         Current Orders
                                     </a>
                                 </li>
                                 <li class="dropdown-item">
-                                    <a class="nav-link" href="/orders?type=purchases&history=Y" onclick="hideMenu()">
+                                    <a class="nav-link" href="/orders/purchases?history=Y" onclick="hideMenu()">
                                         <i class="fa fa-list"></i>
                                         History
                                     </a>
@@ -168,12 +169,6 @@
                             </ul>
                         </li>
 
-                        <!--
-                    <li class="nav-item">
-                        <a class="nav-link" href="/orders?type=purchases" onclick="hideMenu()">
-                            <i class="fa fa-list"></i> Purchases</a>
-                    </li>
-                    -->
                         <li class="nav-item" v-if="!guest">
                             <a class=" nav-link" href="/issues" onclick="hideMenu()">
                                 <i class="fa fa-comment-dots"></i> Message Support</a>

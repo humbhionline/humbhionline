@@ -1,0 +1,352 @@
+<script type="text/javascript" src="/resources/scripts/node_modules/lockr/lockr.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/axios/dist/axios.min.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/swf/js/entity_helper.js" defer></script>
+<script type="text/javascript" src="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.js"
+    defer></script>
+<script type="text/javascript" src="/fragments/js/util.js" defer></script>
+<link rel="preload" as="style" href="/resources/scripts/node_modules/jquery-confirm/dist/jquery-confirm.min.css"
+    onload="this.onload=null;this.rel='stylesheet'">
+</link>
+<link rel="preload" as="style" href="/fragments/css/mandi.css" onload="this.onload=null;this.rel='stylesheet'">
+<script type="text/javascript">
+    $(function () {
+        var params = (new URL(window.location)).searchParams;
+        new Vue({
+            el: "#app",
+            data: {
+                Android: typeof Android == "undefined" ? undefined : Android,
+                Mobile: isMobile(),
+                User: Lockr.get("User"),
+                BecknTransactions: [],
+                blank: blank,
+                txnInitiatedForPayment: {},
+            },
+
+            created: function () {
+                let self = this;
+                self.loadOrders();
+            },
+            methods: {
+                loadOrders: function (facilities) {
+                    let self = this;
+                    var query = "BUYER_ID:" + self.User.Id;
+
+                    self.BecknTransactions = [];
+                    showSpinner();
+                    api().url("/beckn_transactions/search").get({ q: query }).then(function (response) {
+                        response.BecknTransactions.forEach((bt, i) => {
+                            self.loadOrder(bt, -1); // sending -1 avoid findIndex int the Orders Array.
+                        });
+                        self.showApp();
+                    }).catch(function (err) {
+                        self.showApp();
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+                },
+                loadOrder: function (bt, indexHint) {
+                    let self = this;
+                    let index = indexHint || self.BecknTransactions.findIndex(inbt => inbt.Id === bt.Id);
+                    if (index >= 0) {
+                        self.BecknTransactions.splice(index, 1, bt);
+                    } else {
+                        self.BecknTransactions.push(bt);
+                    }
+                    let o = JSON.parse(bt.OrderJson);
+                    bt.order = o ;
+                    if (o.payment.uri) {
+                        self.sanitizePayment(o.payment);
+                    }
+                },
+                sanitizePayment: function (p){
+                  var uri = p.uri;  
+                  for(var prop in p.params) {
+                    uri = url.replace(new RegExp('\\$'+prop+'(&|$)','g'),p.params[prop]+"$1")
+                  }
+                  p.uri = uri.replace(' ','%20');
+                },
+                updateOrderInList: function(bt,index){
+                    let self = this;
+                    bt.isOpen = true;
+                    if (index >= 0) {
+                        self.update_status_array(bt);
+                        self.BecknTransactions.splice(index, 1, bt);
+                    }
+                },
+                update_status_array: function (bt) {
+                    let self = this;
+                    if (!bt.BecknActions) {
+                        bt.BecknActions = [];
+                    }
+
+
+                    bt.BecknActions.forEach((ba, j) => {
+                        let o = JSON.parse(ba.response).message.order;
+                        let os = o.fulfillment.state.descriptor.code ; 
+
+                        if (os === 'Cancelled' || os === 'Return_Approved') {
+                            bt.CANCELLED = true;
+                        } else if (os === "Order_Delivered") {
+                            bt.DELIVERED = true;
+                        } else if (os === "Out_for_delivery" || os === "Order_picked_up" ) {
+                            bt.SHIPPED = true;
+                        } else if (os === "Packed") {
+                            bt.PACKED = true;
+                        } else if (o.state !== 'Pending') {
+                            bt.ACKNOWLEDGED = true;
+                        }
+                    });
+
+                },
+                showApp: function () {
+                    // Manage Orders
+                    $("#header").load("/fragments/html/header", {}, function () {
+                        fixMenu();
+                        $("#pageTitle").html("Manage Orders");
+                        $("#root").show();
+                    });
+                },
+                showOrderDetails: function (event, bt) {
+                    this.BecknTransactions.forEach((v, i) => {
+                        if (v.Id === bt.Id) {
+                            v.isOpen = !v.isOpen;
+                        } else {
+                            v.isOpen = false;
+                        }
+                        Vue.set(this.BecknTransactions,i, v);
+                    });
+                },
+                cancel: function (event, bt) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = self.BecknTransactions.findIndex(function (b) {
+                        return b.Id === bt.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    let last_response = JSON.parse(bt.BecknActions[0].response);
+
+                    let payload = {
+                        context : last_response.context ,
+                        message : {
+                            order_id : bt.order.id
+                        }
+                    }
+
+                    $.confirm({
+                        title: "Confirmation",
+                        content: "Do you really want to cancel order " + bt.order.id,
+                        buttons: {
+                            yes: function () {
+                                showSpinner();
+                                api().url("/network/cancel/").parameters(payload).post().then(function (response) {
+                                    if (index >= 0) {
+                                        self.updateOrderInList(response[0].message.order,index);
+                                    }
+                                }).catch(function (err) {
+                                    showError(err);
+                                }).finally(function () {
+                                    hideSpinner();
+                                });;
+                            },
+                            no: function () {
+
+                            }
+                        }
+                    });
+                },
+                initialize_payment: function (event, transaction) {
+                    let self = this;
+                    let index = this.BecknTransactions.findIndex(function (t) {
+                        return transaction.Id === t.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    self.txnInitiatedForPayment = transaction;
+                    window.location.href= transaction.order.payment.uri
+                },
+                isPaymentButtonEnabled: function (transaction) {
+                    return transaction.order.payment.uri && transaction.order.payment.status == 'NOT-PAID' ;
+                },
+                whatsapp_url: function (contact) {
+                    var url = "";
+                    let self = this;
+                    if (isMobile()) {
+                        url += 'whatsapp://send';
+                    } else {
+                        url += 'https://web.whatsapp.com/send'
+                    }
+                    url += '?phone=' + contact.phone;
+                    return url;
+                },
+                address: function (stop){
+                    var address = "" ; 
+                    address += (blank(stop.location.address.door)? "" : (blank(address)? "" : ",") + stop.location.address.door); 
+                    address += (blank(stop.location.address.building)? "" :(blank(address)? "" : ",")  + stop.location.address.building); 
+                    address += (blank(stop.location.address.street)? "" : (blank(address)? "" : ",") + stop.location.address.street); 
+                    address += (blank(stop.location.address.locality)? "" : (blank(address)? "" : ",") + stop.location.address.locality); 
+                    address += (blank(stop.location.address.city)? "" : (blank(address)? "" : ",") + stop.location.address.city); 
+                    address += (blank(stop.location.address.state)? "" : (blank(address)? "" : ",")+ stop.location.address.state); 
+                    address += (blank(stop.location.address.country)? "" : (blank(address)? "" : ",") + stop.location.address.country); 
+                    address += (blank(stop.location.address.area_code)? "" : (blank(address)? "" : ",") + stop.location.address.area_code); 
+                    return address;
+                }
+            }
+        });
+    });
+</script>
+
+<div id="root" style="display:none;">
+    <div id="header">
+    </div>
+    <div id="app" class="app-body">
+        <h6 v-if="BecknTransactions.length === 0" class="text-center">No Orders</h6>
+        <div v-bind:key="'Order-' + bt.Id" v-bind:id="'Order-' + bt.Id" class="my-4 container position-relative"
+            v-for="(bt,i) in BecknTransactions">
+
+            <button class="btn-order-cancel d-flex  align-content-center justify-content-center d-sm-none"
+                v-on:click="cancel($event,bt)" v-if="!bt.CANCELLED">
+                <i class="mt-1 fas fa-times"></i>
+            </button>
+            <div class="row">
+                <div class="col">
+                    <div class="content-box" v-on:click="showOrderDetails($event,bt)">
+                        <div class="form-row">
+                            <div class="col-8 d-flex align-items-center">
+                                <span class="mb-0 font-weight-bold">Ordered From: {{bt.order.provider.locations[0].descriptor.name}}
+                                        <p class="small text-muted ">
+                                                {{address(bt.order.fulfillment.start)}}
+                                        </p>
+                                        <a class="btn-link btn py-0 px-2" v-bind:href="'tel:'+ bt.order.fulfillment.start.contact.phone" 
+                                            v-if="bt.order.fulfillment.start.contact">
+                                            <i class="fa-phone-alt fas"></i> {{bt.order.fulfillment.start.contact.phone}}
+                                        </a>
+                                        <a v-bind:href="whatsapp_url(bt.order.fulfillment.start.contact)" data-action="share/whatsapp/share" target="_blank"
+                                            class="btn-link btn py-0 px-2" v-if="bt.order.fulfillment.start.contact">
+                                            <i class="fa-whatsapp fab"></i> {{bt.order.fulfillment.start.contact.phone}}
+                                        </a>
+                                </span>
+                            </div>
+                            <div class="col text-right">
+                                <a class="btn btn-sm btn-primary mb-1 mt-1" v-bind:href="bt.order.payment.uri ? bt.order.payment.uri : '#'"
+                                    role="button" v-if="isPaymentButtonEnabled(bt)"
+                                    v-on:click="initialize_payment($event,bt)">
+                                    Pay &#x20B9;{{bt.order.payment.amount.toFixed(2)}}
+                                </a>
+                                <p class="d-sm-inline-block d-none">
+                                    <button class="btn-sm btn btn-primary mb-1" v-on:click="cancel($event,o)"
+                                        v-if="!bt.CANCELLED">
+                                        Cancel 
+                                    </button>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row" :id="'OrderNo'+bt.Id" v-if="bt.isOpen">
+                <div class="col">
+                    <div class="content-sub-box">
+                        <div class="form-row" >
+                            <div class="col">
+                                <p class="mb-0 font-weight-bold">Delivery To: {{bt.order.fulfillment.end.person.name}}
+                                </p>
+                                <p class="m-0">
+                                    <small class="text-muted">{{address(bt.order.fulfillment.end) }}</small>
+                                </p>
+                            </div>
+                            <div class="col" v-for="(d,i) in bt.order.documents">
+                                <a class="fas fa-print btn" v-bind:href="d.url">
+                                    {{d.label}}
+                                </a>
+                            </div>
+                        </div>
+                        <!-- Order Details --> 
+                        <div class="form-row">
+                            <div class="col">
+                                <p class="d-block mb-1">Order : {{bt.order.id }} </p>
+                                <p class="m-0">{{ bt.order.state != "In-progress" ? bt.order.state : 
+                                                                                    bt.order.fulfillment.state.descriptor.code }} </p>
+                            </div>
+                            <div class="col text-right">
+                                <div class="h-100">
+                                    <div class="row h-50">
+                                        <div class="col-12">
+                                            <p class="m-0">Payment status:</p>
+                                            <small>{{bt.order.payment.status}}</small>
+                                        </div>
+                                    </div>
+                                    <!--
+                                    <div class="row h-50">
+                                        <div class="col-12 d-flex align-items-end justify-content-end">
+                                            <p class="m-0" >
+                                                <a href="#" class="btn btn-sm btn-primary w-100" role="button"
+                                                    v-on:click="rebook($event,bt)"
+                                                    v-if="bt.DELIVERED">
+                                                    Rebook
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row border-top py-2 mt-2" v-for="(ol,i) in bt.order.items"
+                            v-bind:style="(ol.quantity.count *1.0 == 0) ? 'text-decoration:line-through' : ''">
+                            <div class="col d-flex align-items-center">
+                                <span>
+                                {{ ol.descriptor.name }}
+                                </span>
+                            </div>
+                            <div class="col-2 d-flex justify-content-center align-items-center">
+                                <div class="btn btn-outline-primary btn-sm w-75">
+                                    {{ (ol.quantity.count * 1.0).toFixed(0) }}
+                                </div>
+                            </div>
+                            <div class="col-3 d-flex justify-content-end align-items-center small">
+                                <strike v-if="ol.quantity.count * 1.0 > 0 && ol.price.maximum_value * 1.0 > ol.price.value * 1.0 ">
+                                    &#x20B9; {{ ( ol.price.maximum_value * 1.0).toFixed(2) }}
+                                </strike>
+                                <span v-if="ol.price.value * 1> 0" class="mr-1" >
+                                    &#x20B9; {{ ( ol.price.value * 1.0 * ol.quantity.count * 1.0).toFixed(2) }}
+                                </span>
+                            </div>
+                        </div>
+                        <hr class="m-0"/>
+                        <div class="form-row py-1 mt-1" v-for="(ql,i) in bt.order.quote.breakup">
+                            <div class="col d-flex justify-content-end align-items-center small">
+                            </div>
+                            <div class="col-3 d-flex justify-content-end align-items-center small">
+                                <span>
+                                    {{ql.title}}:  
+                                </span>
+                                <span class="ml-2 mr-1">
+                                    &#x20B9;  {{ (ql.price.value * 1.0 ).toFixed(2) }} 
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-row py-2 mt-2" >
+                            <div class="col d-flex justify-content-end align-items-center small">
+                            </div>
+                            <div class="col-3 border-top d-flex justify-content-end align-items-center small">
+                                <span>
+                                    Total:  
+                                </span>
+                                <span class="ml-2 mr-1">
+                                    &#x20B9;  {{ (bt.order.quote.price.value * 1.0 ).toFixed(2) }} 
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
