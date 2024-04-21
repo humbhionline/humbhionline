@@ -182,6 +182,7 @@ public class Search extends BecknAsyncTask {
             qryString.append("FACILITY:").append(providerName != null ? providerName : intentName).append("*");
         }
 
+
         if (itemName != null || intentName != null){
             String name = itemName != null ? itemName : intentName;
             if (qryString.length() > 0){
@@ -198,7 +199,8 @@ public class Search extends BecknAsyncTask {
         }
         if (facilityIds != null){
             if (qryString.length() > 0){
-                qryString.append(" AND ");
+                qryString.insert(0,"(");
+                qryString.append(") AND ");
             }
             qryString.append("(");
             for (Iterator<Long> i = facilityIds.iterator(); i.hasNext() ;){
@@ -208,6 +210,7 @@ public class Search extends BecknAsyncTask {
                 }
             }
             qryString.append(")");
+
         }
         if (qryString.length() == 0){
             return push_onsearch(new ArrayList<>());
@@ -235,6 +238,8 @@ public class Search extends BecknAsyncTask {
                     storePickup.setType(FulfillmentType.store_pickup);
                     storePickup.setContact(new Contact());
                     storePickup.getContact().setPhone(facility.getPhoneNumber());
+                    storePickup.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
+                    storePickup.setProviderName(facility.getName());
                     storePickup.setFulfillmentStatus(FulfillmentStatus.Serviceable);
                     storePickup.setStart(new FulfillmentStop());
                     storePickup.getStart().setLocation(storeLocation);
@@ -276,15 +281,17 @@ public class Search extends BecknAsyncTask {
                         }
                     }
                     if (fulfillment != null) {
-                        if (fulfillment.getType() == FulfillmentType.store_pickup){
-                            fulfillment_ids.clear();
+                        if (fulfillment.getType() == FulfillmentType.home_delivery){
+                            pass = pass && record.isDeliveryProvided() ;
+                        }else {
+                            if (fulfillment.getType() == FulfillmentType.store_pickup) {
+                                fulfillment_ids.clear();
+                            }
                             pass = pass && facility.getDistance() <= maxDistance;
                             if (pass){
                                 fulfillments.add(storePickup);
                                 fulfillment_ids.add(storePickup.getId());
                             }
-                        }else if (fulfillment.getType() == FulfillmentType.home_delivery){
-                            pass = pass && record.isDeliveryProvided() ;
                         }
                     }else {
                         fulfillments.add(storePickup);
@@ -308,6 +315,40 @@ public class Search extends BecknAsyncTask {
     }
     public static void updateCatalog(Catalog catalog, Inventory inv ){
         updateCatalog(catalog,inv, new Fulfillments(),false);
+    }
+    private Request push_onsearch(List<Inventory> inventories, Fulfillments fulfillments) {
+        Company company = CompanyUtil.getCompany();
+        OnSearch onSearch = new OnSearch();
+        onSearch.setContext(getRequest().getContext());
+        onSearch.setMessage(new Message());
+        onSearch.getContext().setAction("on_search");
+
+        Catalog catalog = new Catalog();
+        //catalog.setId(BecknUtil.getBecknId("",null));
+        catalog.setDescriptor(new Descriptor());
+        catalog.getDescriptor().setName(company.getName());
+
+        Providers providers = new Providers();
+        catalog.setProviders(providers);
+        onSearch.getMessage().setCatalog(catalog);
+
+        /* TODO:VENKY Provider Fulfillments can be filled. */
+
+        Cache<String,Fulfillments> fulfillmentsByProviderId = new Cache<String, Fulfillments>() {
+            @Override
+            protected Fulfillments getValue(String providerId) {
+                return new Fulfillments();
+            }
+        };
+        fulfillments.forEach(f->{
+            fulfillmentsByProviderId.get(f.getProviderId()).add(f);
+        });
+
+        inventories.forEach(inv-> {
+            updateCatalog(catalog, inv, fulfillmentsByProviderId.get(BecknUtil.getBecknId(String.valueOf(inv.getFacility().getCreatorUserId()),Entity.provider)),getRequest().getMessage().getIntent().getItem() != null);
+        });
+
+        return(onSearch);
     }
     public static void updateCatalog(Catalog catalog, Inventory inv , Fulfillments providerFulfillments, boolean matched){
         Providers providers = catalog.getProviders();
@@ -388,40 +429,6 @@ public class Search extends BecknAsyncTask {
     }
     private Request push_onsearch(List<Inventory> inventories) {
         return push_onsearch(inventories,new Fulfillments());
-    }
-    private Request push_onsearch(List<Inventory> inventories, Fulfillments fulfillments) {
-        Company company = CompanyUtil.getCompany();
-        OnSearch onSearch = new OnSearch();
-        onSearch.setContext(getRequest().getContext());
-        onSearch.setMessage(new Message());
-        onSearch.getContext().setAction("on_search");
-
-        Catalog catalog = new Catalog();
-        //catalog.setId(BecknUtil.getBecknId("",null));
-        catalog.setDescriptor(new Descriptor());
-        catalog.getDescriptor().setName(company.getName());
-
-        Providers providers = new Providers();
-        catalog.setProviders(providers);
-        onSearch.getMessage().setCatalog(catalog);
-
-        /* TODO:VENKY Provider Fulfillments can be filled. */
-
-        Cache<String,Fulfillments> fulfillmentsByProviderId = new Cache<String, Fulfillments>() {
-            @Override
-            protected Fulfillments getValue(String providerId) {
-                return new Fulfillments();
-            }
-        };
-        fulfillments.forEach(f->{
-            fulfillmentsByProviderId.get(f.getProviderId()).add(f);
-        });
-
-        inventories.forEach(inv-> {
-            updateCatalog(catalog, inv, fulfillmentsByProviderId.get(BecknUtil.getBecknId(String.valueOf(inv.getFacility().getCreatorUserId()),Entity.provider)),getRequest().getMessage().getIntent().getItem() != null);
-        });
-
-        return(onSearch);
     }
 
 

@@ -119,7 +119,7 @@ public class Select extends BecknAsyncTask {
                 outSelected.getProvider().getLocations().add(new Location() {{
                     setId(locationId);
                 }});
-            }else if (ObjectUtil.equals(outSelected.getProvider().getLocations().get(0).getId(),locationId)){
+            }else if (!ObjectUtil.equals(outSelected.getProvider().getLocations().get(0).getId(),locationId)){
                 throw new RuntimeException("Cannot mix orders for multiple provider locations");
             }
 

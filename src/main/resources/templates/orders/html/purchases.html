@@ -12,6 +12,9 @@
 <script type="text/javascript">
     $(function () {
         var params = (new URL(window.location)).searchParams;
+        var history = params.get("history");
+        history = history && (history === "Y");
+
         new Vue({
             el: "#app",
             data: {
@@ -20,7 +23,11 @@
                 User: Lockr.get("User"),
                 BecknTransactions: [],
                 blank: blank,
+                btoa : btoa,
                 txnInitiatedForPayment: {},
+                config : {
+                    selected_network : Lockr.get("selected_network")
+                }
             },
 
             created: function () {
@@ -31,10 +38,14 @@
                 loadOrders: function (facilities) {
                     let self = this;
                     var query = "BUYER_ID:" + self.User.Id;
+                    query += (!history ? " AND OPEN:Y " : " AND OPEN:N ");
 
                     self.BecknTransactions = [];
                     showSpinner();
-                    api().url("/beckn_transactions/search").get({ q: query }).then(function (response) {
+                    var gq= btoa(JSON.stringify({"BecknAction" : ["Id","Request","Response"] }))
+                   
+
+                    api().url("/beckn_transactions/search").headers({ "IncludedModelFields" : gq } ).get({ q: query }).then(function (response) {
                         response.BecknTransactions.forEach((bt, i) => {
                             self.loadOrder(bt, -1); // sending -1 avoid findIndex int the Orders Array.
                         });
@@ -42,38 +53,36 @@
                     }).catch(function (err) {
                         self.showApp();
                         showError(err);
+                        console.log(err);
                     }).finally(function () {
                         hideSpinner();
                     });
                 },
                 loadOrder: function (bt, indexHint) {
                     let self = this;
-                    let index = indexHint || self.BecknTransactions.findIndex(inbt => inbt.Id === bt.Id);
-                    if (index >= 0) {
-                        self.BecknTransactions.splice(index, 1, bt);
-                    } else {
-                        self.BecknTransactions.push(bt);
-                    }
+                    self.update_status_array(bt);
                     let o = JSON.parse(bt.OrderJson);
                     bt.order = o ;
                     if (o.payment.uri) {
                         self.sanitizePayment(o.payment);
                     }
+                    if (!o.fulfillment.end.person){
+                        o.fulfillment.end.person = o.fulfillment.customer.person ;
+                    }
+                    let index = indexHint || self.BecknTransactions.findIndex(inbt => inbt.Id === bt.Id);
+
+                    if (index >= 0) {
+                        self.BecknTransactions.splice(index, 1, bt);
+                    } else {
+                        self.BecknTransactions.push(bt);
+                    }
                 },
                 sanitizePayment: function (p){
                   var uri = p.uri;  
                   for(var prop in p.params) {
-                    uri = url.replace(new RegExp('\\$'+prop+'(&|$)','g'),p.params[prop]+"$1")
+                    uri = uri.replace(new RegExp('\\$'+prop+'(&|$)','g'),p.params[prop]+"$1")
                   }
                   p.uri = uri.replace(' ','%20');
-                },
-                updateOrderInList: function(bt,index){
-                    let self = this;
-                    bt.isOpen = true;
-                    if (index >= 0) {
-                        self.update_status_array(bt);
-                        self.BecknTransactions.splice(index, 1, bt);
-                    }
                 },
                 update_status_array: function (bt) {
                     let self = this;
@@ -83,20 +92,30 @@
 
 
                     bt.BecknActions.forEach((ba, j) => {
-                        let o = JSON.parse(ba.response).message.order;
-                        let os = o.fulfillment.state.descriptor.code ; 
-
-                        if (os === 'Cancelled' || os === 'Return_Approved') {
+                        if (!ba.Response){
+                            return;
+                        }
+                        let response =JSON.parse(ba.Response);
+                        let o = response && response.message && response.message.order ; 
+                        if (!o) return;
+                        if (o.state === 'Cancelled'){ 
                             bt.CANCELLED = true;
-                        } else if (os === "Order_Delivered") {
-                            bt.DELIVERED = true;
-                        } else if (os === "Out_for_delivery" || os === "Order_picked_up" ) {
-                            bt.SHIPPED = true;
-                        } else if (os === "Packed") {
-                            bt.PACKED = true;
                         } else if (o.state !== 'Pending') {
                             bt.ACKNOWLEDGED = true;
                         }
+
+                        let os = o.fulfillment && o.fulfillment.state && o.fulfillment.state.descriptor.code ; 
+                        if (!os) return;
+
+                        if (os === 'Cancelled' || os === 'Return-Approved') {
+                            bt.CANCELLED = true;
+                        } else if (os === "Order-delivered") {
+                            bt.DELIVERED = true;
+                        } else if (os === "Out-for-delivery" || os === "Order-picked-up" ) {
+                            bt.SHIPPED = true;
+                        } else if (os === "Packed") {
+                            bt.PACKED = true;
+                        } 
                     });
 
                 },
@@ -129,14 +148,16 @@
                     if (index < 0) {
                         return;
                     }
-                    let last_response = JSON.parse(bt.BecknActions[0].response);
+                    let last_response = self.last_response(bt);
 
                     let payload = {
-                        context : last_response.context ,
+                        context : JSON.parse(JSON.stringify(last_response.context)) ,
                         message : {
-                            order_id : bt.order.id
+                            order_id : bt.order.id,
+                            cancellation_reason_id : "12" 
                         }
                     }
+                    payload.context.action = "cancel";
 
                     $.confirm({
                         title: "Confirmation",
@@ -144,10 +165,12 @@
                         buttons: {
                             yes: function () {
                                 showSpinner();
-                                api().url("/network/cancel/").parameters(payload).post().then(function (response) {
+                                api().url(self.config.selected_network+ "/network/cancel").headers({"X-CallBackToBeSynchronized":"Y"}).parameters(payload).post().then(function (response) {
                                     if (index >= 0) {
-                                        self.updateOrderInList(response[0].message.order,index);
+                                        bt.order.state = response[0].message.order.state
                                     }
+                                    showErrorMessage("Transaction Cancelled");
+
                                 }).catch(function (err) {
                                     showError(err);
                                 }).finally(function () {
@@ -171,8 +194,57 @@
                     self.txnInitiatedForPayment = transaction;
                     window.location.href= transaction.order.payment.uri
                 },
+                last_response : function(transaction){
+                    let success_actions = transaction.BecknActions.filter(ba=> {
+                        let response = JSON.parse(ba.Response);
+                        if (response.message && response.message.order){
+                            return true; 
+                        };
+                        return false;
+                    });
+                    return JSON.parse(success_actions[success_actions.length -1].Response);
+                },
+                complete_refund: function(event,transaction){
+                    if (event){
+                        event.preventDefault();
+                    }
+                    let self = this;
+                    let index = this.BecknTransactions.findIndex(function (t) {
+                        return transaction.Id === t.Id;
+                    });
+                    if (index < 0) {
+                        return;
+                    }
+                    let last_response = self.last_response(transaction);
+
+                    let payload = {
+                        context : JSON.parse(JSON.stringify(last_response.context)) ,
+                        message : {
+                            update_target : "payment" ,
+                            order : {
+                                id : transaction.order.id,
+                                payment : { 
+                                    status: "PAID"
+                                }
+                            }
+                        }
+                    }
+                    payload.context.action = "update";
+
+                    api().url(self.config.selected_network+ "/network/update").headers({"X-CallBackToBeSynchronized":"Y"}).parameters(payload).post().then(function (response) {
+                        if (index >= 0) {
+                            transaction.order.payment.status = response[0].message.order.payment.status;
+                        }
+                    }).catch(function (err) {
+                        showError(err);
+                    }).finally(function () {
+                        hideSpinner();
+                    });
+
+                    
+                },
                 isPaymentButtonEnabled: function (transaction) {
-                    return transaction.order.payment.uri && transaction.order.payment.status == 'NOT-PAID' ;
+                    return transaction.order.payment.uri && ( transaction.order.payment.amount * 1.0 > 0.0) && transaction.order.payment.status != 'PAID' ;
                 },
                 whatsapp_url: function (contact) {
                     var url = "";
@@ -240,7 +312,7 @@
                                     Pay &#x20B9;{{bt.order.payment.amount.toFixed(2)}}
                                 </a>
                                 <p class="d-sm-inline-block d-none">
-                                    <button class="btn-sm btn btn-primary mb-1" v-on:click="cancel($event,o)"
+                                    <button class="btn-sm btn btn-primary mb-1" v-on:click="cancel($event,bt)"
                                         v-if="!bt.CANCELLED">
                                         Cancel 
                                     </button>
@@ -279,7 +351,7 @@
                                     <div class="row h-50">
                                         <div class="col-12">
                                             <p class="m-0">Payment status:</p>
-                                            <small>{{bt.order.payment.status}}</small>
+                                            <small>{{bt.order.payment.status == "PAID" ? "Settled" : (bt.order.payment.params.amount < 0 ? "Refund-Pending" : "Unpaid" ) }}</small>
                                         </div>
                                     </div>
                                     <!--
@@ -296,6 +368,15 @@
                                     </div>
                                     -->
                                 </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="col text-right">
+                                <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
+                                    v-on:click="complete_refund($event,bt)"
+                                    v-if="bt.order.payment.status == 'NOT-PAID' && ( bt.order.payment.params.amount * 1.0 < 0 ) && bt.CANCELLED">
+                                    Received &#x20B9; {{bt.order.payment.params.amount * -1 }}
+                                </a>
                             </div>
                         </div>
                         <div class="form-row border-top py-2 mt-2" v-for="(ol,i) in bt.order.items"

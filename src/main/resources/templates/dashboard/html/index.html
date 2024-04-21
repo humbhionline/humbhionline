@@ -29,7 +29,7 @@
         }
 
         var search = {
-            context: { ttl : "PT20S" },
+            context: { ttl : "PT60S" },
             message: {
                 intent : { 
                     descriptor: {
@@ -195,7 +195,7 @@
                             self.OrderLineCount += order.items.length;
 
                             if (on_select_order){
-                                self.OrderAmount += on_select_order.quote.price.value;
+                                self.OrderAmount += on_select_order.quote.price.value * 1.0;
                             }else {
                                 order.items.forEach((item, i) => {
                                     self.OrderAmount += item.quantity.count * item.price.value
@@ -280,11 +280,13 @@
                             pl.provider_id = p.id;
                         });
                         p.fulfillments.forEach(f=>{
-                            let pl = self.provider_location[f.start.location.id];
-                            if (!pl.fulfillments){
-                                pl.fulfillments = [] ;
+                            if (f.start && f.start.location && f.start.location.id){
+                                let pl = self.provider_location[f.start.location.id];
+                                if (!pl.fulfillments){
+                                    pl.fulfillments = [] ;
+                                }
+                                pl.fulfillments.push(f);
                             }
-                            pl.fulfillments.push(f);
                         });
                         p.items.forEach(i=>{
                             i.bpp_id = context.bpp_id;
@@ -292,17 +294,16 @@
                             if (!i.quantity){
                                 i.quantity = {};
                             }
-                            if (!i.quantity){
-                                i.quantity = {}
-                            }
                             if (!i.quantity.count ){
                                 i.quantity.count = 0;
                                 var cart_info = self.facilityOrders[i.location_id];
                                 if (cart_info){
                                     var cart_item = cart_info.transaction.select.message.order.items.find(function(_i){
-                                        return _i.id =i.id
+                                        return _i.id == i.id
                                     });
-                                    i.quantity.count = cart_item.quantity.count;
+                                    if (cart_item){
+                                        i.quantity.count = cart_item.quantity.count;
+                                    }
                                 }
                             }
                             if (!i.quantity.measure && i.quantity.available && i.quantity.available.measure){
@@ -327,6 +328,13 @@
                     self.search.message.intent.fulfillment.end.location.gps = headers.Lat + "," +  headers.Lng;
                     self.search.message.intent.fulfillment.end.location.circle.gps = headers.Lat + "," +  headers.Lng;
                     self.search.context.city = self.delivery.Address.City.Code ;
+
+                    let obj= self.facilityOrders;
+                    let locations=Object.keys(obj);
+
+                    if (locations > 0){
+                        self.search.message.intent.provider.id = obj[locations[0]].transaction.on_select.message.order.provider.id ;
+                    }
                     showSpinner();
                     api().url("/" + self.config.selected_network+ "/network/search").parameters(self.search).post().then(function(requestFired){
                         console.log("Checking messages for " + requestFired.context.message_id);
@@ -386,7 +394,7 @@
                 },
                 context: function(bpp_id){
                     let self = this; 
-                    return self.on_search[bpp_id].context;
+                    return JSON.parse(JSON.stringify(self.on_search[bpp_id].context));
                 },
                 provider: function (item){
                     let self = this;
@@ -406,7 +414,7 @@
                 fulfillment : function(item){
                     let self = this;
                     var provider = self.provider(item);
-                    provider.fulfillments.find(function(f){
+                    return provider.fulfillments.find(function(f){
                         return f.id == item.fulfillment_id
                     });
                 },
@@ -428,6 +436,9 @@
                         event.preventDefault();
                     }
                     let self = this;
+                    if (self.evtSource){
+                        self.evtSource.close();
+                    }
                     let provider_location_id = result.location_id || result.location_ids[0];
                     if (!self.facilityOrders[provider_location_id]) {
                         self.facilityOrders[provider_location_id] = {
@@ -450,6 +461,8 @@
                     var select = transaction.select;
                     select.context.action = "select" ;
                     delete select.context.message_id;
+                    delete select.context.transaction_id;
+                    // Every Bpp must work of different transaction_id so that orders can be tracked correctly.
 
                     var order = select.message.order;
                     if (!order.provider){
@@ -474,7 +487,7 @@
                     }else {
                         if (order.fulfillment.id != result.fulfillment_id){
                             result.quantity.count = 0;
-                            showErrorMessage("Can't mix items that are " + order.fulfillment.type + " and " + fulfillment(item).type);
+                            showErrorMessage("Can't mix items that are " + order.fulfillment.type + " and " + self.fulfillment(item).type);
                         }
                     }
 
@@ -493,17 +506,34 @@
                         }
                     }
 
-                    showSpinner()
-                    api().url("/" + self.config.selected_network + "/network/select").headers({"X-CallBackToBeSynchronized":"Y"}).parameters(select).post().then(function(on_select){
-                        transaction.on_select = on_select[0];
-                        transaction.init = transaction.on_select;
-
-                        transaction.init.context.action = "init";
-                        delete transaction.init.context.message_id
-                        if (event) {
+                    if (order.items.length == 0){
+                        if (event){
                             self.reloadCounts();
                         }
                         Lockr.set("facilityOrders", self.facilityOrders);
+                        return;
+                    }
+
+                    showSpinner()
+                    api().url("/" + self.config.selected_network + "/network/select").headers({"X-CallBackToBeSynchronized":"Y",
+                                                                                "X-SearchTransactionId": self.on_search[result.bpp_id].context.transaction_id}).
+                                                                                parameters(select).post().then(function(on_select){
+                        let error = on_select[0].message.error;
+                        let order = on_select[0].message.order;
+
+                        if (order){
+                            transaction.on_select = on_select[0];
+                            transaction.init = JSON.parse(JSON.stringify(transaction.on_select));
+
+                            transaction.init.context.action = "init";
+                            delete transaction.init.context.message_id
+                            if (event) {
+                                self.reloadCounts();
+                            }
+                            Lockr.set("facilityOrders", self.facilityOrders);
+                        }else if (error){
+                            showError(error.message);
+                        }
                     }).finally(function(){
                         hideSpinner()
                     });
@@ -525,8 +555,8 @@
                     }
 
                     let obj= self.facilityOrders;
+                    var inits = [] ;
                     for (key in obj){
-                        var inits = [] ;
                         if (obj.hasOwnProperty(key)) {
                             var init = obj[key].transaction.init;
                             var order = init.message.order ;
@@ -571,30 +601,38 @@
                                              };
                             order.fulfillment.customer = { contact : { phone : user.PhoneNumber} , person: { name : user.LongName } } ;
                             inits.push(api().url("/"+self.config.selected_network + "/network/init").headers({"X-CallBackToBeSynchronized":"Y"}).parameters(init).post().then(function(on_init){
-                                obj[key].transaction.on_init = on_init[0];
-                                return on_init[0];
+                                let error = on_init[0].message.error; 
+                                let order = on_init[0].message.order; 
+                                if (error){
+                                    showError(error.message);
+                                }else if (order){
+                                    let update_key = order.provider.locations[0].id ;
+                                    self.facilityOrders[update_key].transaction.on_init = on_init[0];
+                                    Vue.set(self.facilityOrders,update_key,self.facilityOrders[update_key]);
+                                    return on_init[0];
+                                }
                             }).catch(function(err){
                                 showError(err);
                             }));
                         }
-
-                        showSpinner();
-                        Promise.all(inits).then(function(values){
-                            Lockr.set("facilityOrders",self.facilityOrders);
-                            self.reloadCounts();
-                            var hasError = false;
-                            values.forEach(function(v){
-                                if (v.error){
-                                    hasError = true;
-                                }
-                            });
-                            if (!hasError){
-                                window.location.replace("/buy");
-                            }
-                        }).finally(function(){
-                            hideSpinner();
-                        });
                     }
+
+                    showSpinner();
+                    Promise.all(inits).then(function(values){
+                        Lockr.set("facilityOrders",self.facilityOrders);
+                        self.reloadCounts();
+                        var hasError = false;
+                        values.forEach(function(v){
+                            if (v.error){
+                                hasError = true;
+                            }
+                        });
+                        if (!hasError){
+                            window.location.replace("/buy");
+                        }
+                    }).finally(function(){
+                        hideSpinner();
+                    });
                 },
                 whatsapp_url: function (f) {
                     var url = "";
@@ -959,6 +997,7 @@
                                                         <span aria-hidden="true">&times;</span>
                                                     </button>
                                                 </div>
+                                                <!-- TODO Display Tags -->
                                                 <div class="modal-body">
                                                     <img class="img-fluid w-100 h-100"
                                                         v-if="result.descriptor.images && result.descriptor.images.length > 0"
@@ -989,6 +1028,7 @@
                                             <i class="fa fa-map-pin mr-1 text-muted"></i>
                                             {{(provider_location[result.location_id].distance * 1.0).toFixed(2)}} Km
                                         </a>
+                                        <span> {{ fulfillment(result).type }}</span> 
                                     </div>
                                 </div>
                                 <p class="price-box d-block d-sm-none">

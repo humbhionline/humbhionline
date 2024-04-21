@@ -1,18 +1,18 @@
 package in.succinct.mandi.agents.beckn;
 
 
+import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
+import in.succinct.beckn.CancellationReasons.CancellationReasonCode;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnCancel;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Order;
-import in.succinct.mandi.db.model.OrderCancellationReason;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class Cancel extends BecknAsyncTask {
@@ -30,18 +30,22 @@ public class Cancel extends BecknAsyncTask {
         onCancel.getContext().setAction("on_cancel");
 
         String order_id = request.getMessage().get("order_id");
+        long lOrderId = Long.parseLong(BecknUtil.getLocalUniqueId(order_id, Entity.order));
+
         String cancel_reason_id = request.getMessage().get("cancellation_reason_id");
-
-
-        Long lOrderId = Long.valueOf(BecknUtil.getLocalUniqueId(order_id, Entity.order));
-        Long lCancelReasonId = Long.valueOf(BecknUtil.getLocalUniqueId(cancel_reason_id,Entity.cancellation_reason));
 
         Order order = Database.getTable(Order.class).get(lOrderId);
         if (order == null){
             return onCancel;
         }
-        OrderCancellationReason cancellationReason = Database.getTable(OrderCancellationReason.class).get(lCancelReasonId);
-        order.cancel(cancellationReason.getReason(), OrderLine.CANCELLATION_INITIATOR_USER);
+
+        CancellationReasonCode cancellationReasonCode = null;
+        if (!ObjectUtil.isVoid(cancel_reason_id)){
+            cancellationReasonCode = CancellationReasonCode.convertor.valueOf(cancel_reason_id);
+        }
+
+        order.cancel(cancellationReasonCode == null ? null : cancellationReasonCode.name(), OrderLine.CANCELLATION_INITIATOR_USER);
+
 
         in.succinct.beckn.Order becknOrder = new in.succinct.beckn.Order();
         becknOrder.setId(order_id);

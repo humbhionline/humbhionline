@@ -17,7 +17,7 @@ import org.json.simple.JSONObject;
 import java.sql.Date;
 import java.util.List;
 
-public interface User extends EncryptedAddress, com.venky.swf.plugins.mobilesignup.db.model.User {
+public interface User extends EncryptedAddress, in.succinct.plugins.ecommerce.db.model.participation.User {
     @COLUMN_DEF(StandardDefault.BOOLEAN_FALSE)
     @Index
     public boolean isVerified();

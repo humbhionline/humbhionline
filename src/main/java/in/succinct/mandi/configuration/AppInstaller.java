@@ -60,6 +60,7 @@ import java.util.logging.Level;
 public class AppInstaller implements Installer {
 
     public void install() {
+        Database.getInstance().resetIdGeneration();
         installIndexes();
         createSavedAddresses();
         insertCompany();

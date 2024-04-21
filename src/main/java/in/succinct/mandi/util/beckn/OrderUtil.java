@@ -169,9 +169,10 @@ public class OrderUtil {
             item.getDescriptor().setName(ol.getSku().getName());
             Price price = new Price();
             item.setPrice(price);
-            price.setValue(ol.getSellingPrice());
-            price.setOfferedValue(ol.getSellingPrice());
-            price.setListedValue(ol.getMaxRetailPrice());
+            price.setValue(ol.getRemainingCancellableQuantity() * ol.getSellingPrice()/ol.getOrderedQuantity());
+            price.setOfferedValue(price.getValue());
+            price.setListedValue(ol.getRemainingCancellableQuantity() * ol.getMaxRetailPrice()/ol.getOrderedQuantity());
+
             price.setCurrency("INR");
             if (!ol.getSku().getAttachments().isEmpty()){
                 Images images = new Images();
@@ -180,12 +181,12 @@ public class OrderUtil {
             }
 
             items.add(item);
-            buckets.get("MRP").increment(ol.getMaxRetailPrice());
-            buckets.get("PRODUCT_SELLING_PRICE").increment(ol.getProductSellingPrice());
-            buckets.get("PRODUCT_PRICE").increment(ol.getProductPrice());
-            buckets.get("CGST").increment(ol.getCGst());
-            buckets.get("SGST").increment(ol.getSGst());
-            buckets.get("IGST").increment(ol.getIGst());
+            buckets.get("MRP").increment(ol.getRemainingCancellableQuantity() * ol.getMaxRetailPrice()/ol.getOrderedQuantity());
+            buckets.get("PRODUCT_SELLING_PRICE").increment(ol.getRemainingCancellableQuantity() * ol.getProductSellingPrice()/ol.getOrderedQuantity());
+            buckets.get("PRODUCT_PRICE").increment(ol.getRemainingCancellableQuantity() * ol.getProductPrice()/ol.getOrderedQuantity());
+            buckets.get("CGST").increment(ol.getRemainingCancellableQuantity() * ol.getCGst()/ol.getOrderedQuantity());
+            buckets.get("SGST").increment(ol.getRemainingCancellableQuantity() * ol.getSGst()/ol.getOrderedQuantity());
+            buckets.get("IGST").increment(ol.getRemainingCancellableQuantity() * ol.getIGst()/ol.getOrderedQuantity());
         });
 
 
@@ -257,13 +258,13 @@ public class OrderUtil {
 
         if (format.ordinal() >= OrderFormat.initialized.ordinal()){
             becknOrder.setPayment(new Payment(){{
+                setParams(new Params(){{
+                    setTransactionId(order.getExternalTransactionReference());
+                    setAmount(order.getAmountPendingPayment());
+                    setCurrency("INR");
+                }});
                 if (order.getAmountPendingPayment() > 0){
                     setStatus(PaymentStatus.NOT_PAID);
-                    setParams(new Params(){{
-                        setTransactionId(order.getExternalTransactionReference());
-                        setAmount(order.getAmountPendingPayment());
-                        setCurrency("INR");
-                    }});
                     User seller = order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class);
                     if (!ObjectUtil.isVoid(seller.getVirtualPaymentAddress())) {
                         StringBuilder url = new StringBuilder();
@@ -273,30 +274,35 @@ public class OrderUtil {
 
                         setUri(URLEncoder.encode(url.toString(), StandardCharsets.UTF_8));
                     }
+                }else if (order.getAmountToRefund() > 0){
+                    setStatus(PaymentStatus.NOT_PAID);
                 }else {
                     setStatus(PaymentStatus.PAID);
                 }
+
                 setType(PaymentType.POST_FULFILLMENT);
             }});
 
-            buckets.get("SHIPPING_SELLING_PRICE").increment(order.getShippingSellingPrice());
-            buckets.get("SHIPPING_PRICE").increment(order.getShippingPrice());
-            double shippingTax= order.getShippingSellingPrice() - order.getShippingPrice();
-            boolean shippingWithinSameState = ObjectUtil.equals(order.getFacility().getStateId(),shipToAddress.getStateId());
-            if (shippingWithinSameState){
-                buckets.get("CGST").increment(shippingTax/2.0);
-                buckets.get("SGST").increment(shippingTax/2.0);
-                buckets.get("IGST").increment(0);
-            }else {
-                buckets.get("CGST").increment(0);
-                buckets.get("SGST").increment(0);
-                buckets.get("IGST").increment(shippingTax);
+            if (order.getAmountPaid() + order.getAmountPendingPayment() - order.getAmountRefunded() > 0) {
+                buckets.get("SHIPPING_SELLING_PRICE").increment(order.getShippingSellingPrice());
+                buckets.get("SHIPPING_PRICE").increment(order.getShippingPrice());
+                double shippingTax= order.getShippingSellingPrice() - order.getShippingPrice();
+                boolean shippingWithinSameState = ObjectUtil.equals(order.getFacility().getStateId(),shipToAddress.getStateId());
+                if (shippingWithinSameState){
+                    buckets.get("CGST").increment(shippingTax/2.0);
+                    buckets.get("SGST").increment(shippingTax/2.0);
+                    buckets.get("IGST").increment(0);
+                }else {
+                    buckets.get("CGST").increment(0);
+                    buckets.get("SGST").increment(0);
+                    buckets.get("IGST").increment(shippingTax);
+                }
             }
 
             becknOrder.setQuote(new Quote(){{
                 setPrice(new Price(){{
-                    setListedValue(buckets.get("MRP").doubleValue() + order.getShippingSellingPrice());
-                    setOfferedValue(order.getProductSellingPrice() + order.getShippingSellingPrice());
+                    setListedValue(buckets.get("MRP").doubleValue() + buckets.get("SHIPPING_SELLING_PRICE").doubleValue());
+                    setOfferedValue(buckets.get("PRODUCT_SELLING_PRICE").doubleValue()+ buckets.get("SHIPPING_SELLING_PRICE").doubleValue());
                     setValue(getOfferedValue());
                     setCurrency("INR");
 
@@ -309,7 +315,7 @@ public class OrderUtil {
                 setBreakUp(new BreakUp(){{
                     add(createElement(BreakUpCategory.item,"Total Product", new Price() {{
                         setListedValue(buckets.get("MRP").doubleValue());
-                        setOfferedValue(order.getProductSellingPrice());
+                        setOfferedValue(buckets.get("PRODUCT_SELLING_PRICE").doubleValue());
                         setValue(getOfferedValue());
                         setCurrency("INR");
                         if (DoubleUtils.compareTo(getListedValue(),getOfferedValue()) > 0){
@@ -317,7 +323,7 @@ public class OrderUtil {
                         }
                     }}));
                     add(createElement(BreakUpCategory.delivery, "Delivery Charges", new Price(){{
-                        setListedValue(order.getShippingSellingPrice());
+                        setListedValue(buckets.get("SHIPPING_SELLING_PRICE").doubleValue());
                         setValue(getListedValue());
                         setCurrency("INR");
                     }}));

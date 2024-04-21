@@ -1,16 +1,11 @@
 package in.succinct.mandi.agents.beckn;
 
-import com.venky.swf.sql.Select;
-import in.succinct.beckn.CancellationReasons;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Option;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.ReturnReasons;
-import in.succinct.mandi.db.model.OrderCancellationReason;
-import in.succinct.mandi.util.beckn.BecknUtil;
-import in.succinct.mandi.util.beckn.BecknUtil.Entity;
+import in.succinct.beckn.ReturnReasons.ReturnReasonCode;
 
-import java.util.List;
 import java.util.Map;
 
 public class ReturnReason extends BecknAsyncTask {
@@ -25,21 +20,17 @@ public class ReturnReason extends BecknAsyncTask {
         callback.getContext().setAction("cancellation_reasons");
 
         ReturnReasons options = new ReturnReasons();
-
-        List<OrderCancellationReason> reasons = new Select().from(OrderCancellationReason.class).execute();
-        reasons.forEach(r->{
-            if (r.isUsableAfterDelivery()){
-                Option option = new Option();
-                option.setId(BecknUtil.getBecknId(String.valueOf(r.getId()),
-                        Entity.return_reason));
-                Descriptor descriptor = new Descriptor();
-                option.setDescriptor(descriptor);
-                descriptor.setName(r.getReason());
-                descriptor.setCode(String.valueOf(r.getId()));
-                options.add(option);
-            }
-        });
         callback.setReturnReasons(options);
+
+
+        for (ReturnReasonCode returnReasonCode : ReturnReasonCode.values()) {
+            Option option = new Option();
+            option.setId(ReturnReasonCode.convertor.toString(returnReasonCode));
+            option.setDescriptor(new Descriptor());
+            option.getDescriptor().setCode(ReturnReasonCode.convertor.toString(returnReasonCode));
+            option.getDescriptor().setName(returnReasonCode.name());
+            options.add(option);
+        }
 
         return callback;
     }

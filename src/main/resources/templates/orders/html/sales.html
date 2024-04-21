@@ -843,7 +843,7 @@
                             <div class="col text-right">
                                 <span v-if="o.AmountPendingPayment <= 0">
                                     <span class="font-weight-bold text-muted d-inline-block">Total</span> &#x20B9;
-                                {{ (o.AmountPendingPayment * 1.0 + o.AmountPaid * 1.0).toFixed(2) }}
+                                {{ ( o.AmountPendingPayment * 1.0 + o.AmountPaid - o.AmountRefunded * 1.0).toFixed(2) }}
                                 </span>
 
                                 <a href="#/" class="btn btn-sm btn-primary mb-1" role="button"
@@ -1051,7 +1051,8 @@
                                 </a>
                             </div>
                         </div>
-                        <div class="form-row border-top py-2 mt-2" v-if="o.CustomerPickup === 'N'" >
+                        <div class="form-row border-top py-2 mt-2" v-if="o.CustomerPickup === 'N'" 
+                            v-bind:style="(o.AmountPaid * 1.0  + o.AmountPendingPayment * 1.0 - o.AmountRefunded *1.0 == 0) ? 'text-decoration:line-through' : ''">
                             <div class="col d-flex align-items-center small">
                                 Delivery Charges {{( o.Facility.DeliveryChargedOnActual === 'Y' 
                                                     && o.ShippingSellingPrice * 1 === 0) ? "- NA -" : "" }}

@@ -8,7 +8,6 @@ import com.venky.swf.db.model.SWFHttpResponse;
 import com.venky.swf.integration.FormatHelper;
 import com.venky.swf.integration.IntegrationAdaptor;
 import com.venky.swf.path.Path;
-import com.venky.swf.plugins.beckn.messaging.BppSubscriber;
 import com.venky.swf.views.View;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
 
@@ -19,9 +18,18 @@ public class BecknNetworksController extends ModelController<BecknNetwork> {
     }
 
     @SingleRecordAction(icon = "fas fa-plug")
-    public View subscribe(long id){
+    public View subscribe(long id) {
         BecknNetwork network = Database.getTable(BecknNetwork.class).get(id);
         network.subscribe();
-        return IntegrationAdaptor.instance(SWFHttpResponse.class, FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).createStatusResponse(getPath(),null);
+        return IntegrationAdaptor.instance(SWFHttpResponse.class, FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).createStatusResponse(getPath(), null);
+    }
+
+    @SingleRecordAction(icon = "fas fa-database")
+    public View push_catalog(long id) {
+        BecknNetwork network = Database.getTable(BecknNetwork.class).get(id);
+        network.publish_catalog();
+        return IntegrationAdaptor.instance(SWFHttpResponse.class,
+                        FormatHelper.getFormatClass(MimeType.APPLICATION_JSON)).
+                createStatusResponse(getPath(), null);
     }
 }

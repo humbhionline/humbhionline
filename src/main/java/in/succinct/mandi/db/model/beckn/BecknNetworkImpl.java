@@ -2,6 +2,8 @@ package in.succinct.mandi.db.model.beckn;
 
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.model.CryptoKey;
+import com.venky.swf.db.model.application.Event;
+import com.venky.swf.db.model.application.EventImpl;
 import com.venky.swf.db.table.ModelImpl;
 import com.venky.swf.plugins.beckn.messaging.BapSubscriber;
 import com.venky.swf.plugins.beckn.messaging.BppSubscriber;
@@ -251,5 +253,10 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
             new BppSubscriber(bppSubscriber).registerSubscriber();
             new BapSubscriber(bapSubscriber).registerSubscriber();
         }
+    }
+
+    public void publish_catalog(){
+        BecknNetwork proxy = getProxy();
+        //Event.find("catalog_ingest").raise()
     }
 }

@@ -50,7 +50,7 @@
                         if (self.facilityOrders.hasOwnProperty(key)) {
                             var on_select = self.facilityOrders[key].transaction.on_select;
                             var select = self.facilityOrders[key].transaction.select;
-                            self.facilityOrders[key].transaction.confirm = {... self.facilityOrders[key].transaction.on_init };
+                            self.facilityOrders[key].transaction.confirm = JSON.parse(JSON.stringify(self.facilityOrders[key].transaction.on_init)) ;
                             var confirm = self.facilityOrders[key].transaction.confirm ;
                             confirm.context.action = "confirm" ;
                             delete confirm.context.message_id
@@ -69,6 +69,9 @@
                             });
 
                             on_select.message.order.items.forEach(function(i){
+                                i.descriptor = origItemMap[i.id].descriptor;
+                            });
+                            confirm.message.order.items.forEach(function(i){
                                 i.descriptor = origItemMap[i.id].descriptor;
                             });
 
@@ -112,16 +115,18 @@
 
                         responses.forEach((r,i) =>{
                             var o = r[0].message.order;
-                            let index = self.facilities.findIndex(function(f){
-                                return f.id == o.provider.locations[0].id
-                            });
-                            self.facilities.splice(index,1);
-                            delete self.facilityOrders[o.provider.locations[0].id];
+                            if (o){
+                                let index = self.facilities.findIndex(function(f){
+                                    return f.id == o.provider.locations[0].id
+                                });
+                                self.facilities.splice(index,1);
+                                delete self.facilityOrders[o.provider.locations[0].id];
+                            }
                         });
                         Lockr.set("facilityOrders", self.facilityOrders);
 
 
-                        showErrorMessage("Order " + responses.map(r => r[0].message.order.id) + " Booked Successfully!").then(function () {
+                        showErrorMessage("Order " + responses.filter(r=> r[0].message.order).map(r => r[0].message.order.id) + " Booked Successfully!").then(function () {
                             if (self.facilities.length > 0) {
                                 window.location.reload();
                             } else {
@@ -270,7 +275,7 @@
                     for (key in self.facilityOrders) {
                         if (obj.hasOwnProperty(key)){
                             var order = obj[key].transaction.confirm.message.order;
-                            total += order.quote.price.value
+                            total += (order.quote.price.value * 1.0)
                         }
                     }
                     return total;

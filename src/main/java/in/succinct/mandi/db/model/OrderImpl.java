@@ -55,13 +55,14 @@ public class OrderImpl extends ModelImpl<Order> {
         Bucket netPayment = new Bucket(0.0);
         boolean anyThingDelivered = false;
         for (OrderLine orderLine : order.getOrderLines()) {
-            double toPayQuantity = orderLine.getOrderedQuantity() - orderLine.getCancelledQuantity() - orderLine.getReturnedQuantity();
+            double toPayQuantity = orderLine.getRemainingCancellableQuantity();
+            //orderLine.getOrderedQuantity() - orderLine.getCancelledQuantity() - orderLine.getReturnedQuantity();
             netPayment.increment(toPayQuantity == 0 ? 0 : toPayQuantity * orderLine.getSellingPrice() / orderLine.getOrderedQuantity());
             anyThingDelivered = anyThingDelivered || orderLine.getDeliveredQuantity() > 0;
         }
-        //if (anyThingDelivered) {
+        if (netPayment.value() > 0 || anyThingDelivered) {
             netPayment.increment(order.getShippingSellingPrice());
-        //}
+        }
         netPayment.decrement(order.getAmountPaid());
         netPayment.increment(order.getAmountRefunded());
 

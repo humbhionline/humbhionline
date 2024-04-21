@@ -5,6 +5,8 @@ package in.succinct.mandi.agents.beckn;
 import com.venky.swf.db.Database;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.Order;
+import in.succinct.beckn.Payment;
+import in.succinct.beckn.Payment.PaymentStatus;
 import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Inventory;
@@ -27,6 +29,7 @@ public class Update extends Init {
     public Request executeInternal() {
         Request on_update = new Request();
         on_update.setContext(getRequest().getContext());
+        on_update.getContext().setAction("on_update");
         on_update.setMessage(new Message());
         String targets = getRequest().getMessage().get("update_target");
         Order becknOrder = getRequest().getMessage().getOrder();
@@ -40,6 +43,9 @@ public class Update extends Init {
                     break;
                 case "fulfillment":
                     createShipTo(order, becknOrder.getFulfillment());
+                    break;
+                case "payment":
+                    update_payment(order,becknOrder.getPayment());
                     break;
                 case "items":
                     //
@@ -80,5 +86,18 @@ public class Update extends Init {
 
         on_update.getMessage().setOrder(OrderUtil.toBeckn(order, OrderFormat.order));
         return on_update;
+    }
+
+    private void update_payment(in.succinct.mandi.db.model.Order order, Payment payment) {
+        if (PaymentStatus.PAID == payment.getStatus()) {
+            if (order.getAmountToRefund() > 0) {
+                order.completeRefund(true);
+            }/*
+            else {
+                //only if payment is confirmable by BAP! other wise Seller will verify and mark paid.
+                order.completePayment(true);
+            }
+            */
+        }
     }
 }

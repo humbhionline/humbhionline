@@ -102,4 +102,6 @@ public interface BecknNetwork  extends Model {
 
 
     public void subscribe();
+
+    void publish_catalog();
 }
