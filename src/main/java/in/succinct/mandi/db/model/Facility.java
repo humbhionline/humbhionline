@@ -69,7 +69,7 @@ public interface Facility extends EncryptedAddress , in.succinct.plugins.ecommer
 
     @COLUMN_DEF(StandardDefault.ZERO)
     public double getChargesPerKm();
-    public void setChargesPerKm(double chargesPerKm);
+        public void setChargesPerKm(double chargesPerKm);
 
     @IS_VIRTUAL
     public double getDeliveryCharges(double distance, boolean published);

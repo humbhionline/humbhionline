@@ -13,7 +13,7 @@ public class SavedAddressParticipantExtension extends ParticipantExtension<Saved
         registerExtension(new SavedAddressParticipantExtension());
     }
     @Override
-    protected List<Long> getAllowedFieldValues(User user, SavedAddress partiallyFilledModel, String fieldName) {
+    public List<Long> getAllowedFieldValues(User user, SavedAddress partiallyFilledModel, String fieldName) {
         if (ObjectUtil.equals(fieldName,"USER_ID")){
             return Arrays.asList(user.getId());
         }

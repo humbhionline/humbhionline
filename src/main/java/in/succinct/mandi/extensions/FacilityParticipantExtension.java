@@ -25,7 +25,7 @@ public class FacilityParticipantExtension extends ParticipantExtension<Facility>
         registerExtension(new FacilityParticipantExtension());
     }
     @Override
-    protected List<Long> getAllowedFieldValues(com.venky.swf.db.model.User fuser, Facility partiallyFilledModel, String fieldName) {
+    public List<Long> getAllowedFieldValues(com.venky.swf.db.model.User fuser, Facility partiallyFilledModel, String fieldName) {
         User user = fuser.getRawRecord().getAsProxy(User.class);
         if (user.isStaff()){
             return null;

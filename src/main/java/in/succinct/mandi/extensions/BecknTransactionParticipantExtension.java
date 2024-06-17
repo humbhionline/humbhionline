@@ -13,7 +13,7 @@ public class BecknTransactionParticipantExtension extends ParticipantExtension<B
         registerExtension(new BecknTransactionParticipantExtension());
     }
     @Override
-    protected List<Long> getAllowedFieldValues(User user, BecknTransaction partiallyFilledModel, String fieldName) {
+    public List<Long> getAllowedFieldValues(User user, BecknTransaction partiallyFilledModel, String fieldName) {
         if (fieldName.equals("BUYER_ID")){
             in.succinct.mandi.db.model.User u  = user.getRawRecord().getAsProxy(in.succinct.mandi.db.model.User.class);
             if (u.isStaff()){

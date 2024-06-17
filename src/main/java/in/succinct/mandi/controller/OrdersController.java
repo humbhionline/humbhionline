@@ -170,7 +170,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
     }
     public <T> boolean isFacilityInCurrentShard(FormatHelper<T> helper){
         T facilityElement = helper.getElementAttribute("Facility");
-        Facility facility = ModelIOFactory.getReader(Facility.class,helper.getFormatClass()).read(facilityElement);
+        Facility facility = ModelIOFactory.getReader(Facility.class,helper.getFormatClass()).read(facilityElement,false);
         return facility != null && !facility.getRawRecord().isNewRecord();
     }
     public <T> Order bookOrder(FormatHelper<T> helper){
@@ -182,7 +182,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
 
         //T rootElem  = rootHelper.getRoot();
-        Order order = ModelIOFactory.getReader(Order.class,helper.getFormatClass()).read(helper.getRoot());
+        Order order = ModelIOFactory.getReader(Order.class,helper.getFormatClass()).read(helper.getRoot(),false);
         Timestamp today = new Timestamp(DateUtils.getStartOfDay(System.currentTimeMillis()));
         if (order.getShipByDate() == null){
             order.setShipByDate(new Timestamp(DateUtils.addHours(today.getTime(),1*24)));
@@ -203,7 +203,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         for (T orderAddressElement :orderAddressesElement){
             FormatHelper<T> addressHelper = FormatHelper.instance(getPath().getProtocol(),orderAddressElement);
             addressHelper.setAttribute("OrderId",StringUtil.valueOf(order.getId()));
-            OrderAddress address =  ModelIOFactory.getReader(OrderAddress.class,addressHelper.getFormatClass()).read(orderAddressElement);
+            OrderAddress address =  ModelIOFactory.getReader(OrderAddress.class,addressHelper.getFormatClass()).read(orderAddressElement,false);
             address.save();
             if (ObjectUtil.equals(address.getAddressType(),OrderAddress.ADDRESS_TYPE_SHIP_TO)){
                 shipTo = address;
@@ -253,7 +253,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
             }
             lineHelper.removeElementAttribute("Inventory");
 
-            OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement);
+            OrderLine line =  ModelIOFactory.getReader(OrderLine.class,lineHelper.getFormatClass()).read(orderLineElement,false);
 
             if (AssetCode.getDeliverySkuIds().contains(line.getSkuId()) && inventory.isExternal()){
                 CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(BecknNetwork.find(inventory.getNetworkId()));
@@ -413,14 +413,14 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         T itemElement = skuHelper.getElementAttribute("Item");
         T uomElement = skuHelper.getElementAttribute("PackagingUOM");
         if (uomElement != null){
-            UnitOfMeasure unitOfMeasure = ModelIOFactory.getReader(UnitOfMeasure.class,skuHelper.getFormatClass()).read(uomElement);
+            UnitOfMeasure unitOfMeasure = ModelIOFactory.getReader(UnitOfMeasure.class,skuHelper.getFormatClass()).read(uomElement,false);
             if (unitOfMeasure.getRawRecord().isNewRecord()){
                 unitOfMeasure.save();
                 FormatHelper.instance(uomElement).setAttribute("Id",String.valueOf(unitOfMeasure.getId()));
             }
         }
         if (itemElement != null){
-            Item item = ModelIOFactory.getReader(Item.class,skuHelper.getFormatClass()).read(itemElement);
+            Item item = ModelIOFactory.getReader(Item.class,skuHelper.getFormatClass()).read(itemElement,false);
             if (item.getRawRecord().isNewRecord()){
                 item.save();
                 FormatHelper.instance(itemElement).setAttribute("Id",String.valueOf(item.getId()));
@@ -430,14 +430,14 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
 
         if (skuElement != null){
             //sku is new item. !!
-            Sku sku = ModelIOFactory.getReader(Sku.class,skuHelper.getFormatClass()).read(skuElement);
+            Sku sku = ModelIOFactory.getReader(Sku.class,skuHelper.getFormatClass()).read(skuElement,false);
             if (sku.getRawRecord().isNewRecord()){
                 sku.setPublished(true);
                 sku.save();
                 skuHelper.setAttribute("Id",String.valueOf(sku.getId()));
             }
         }
-        Inventory inventory =  ModelIOFactory.getReader(Inventory.class,inventoryHelper.getFormatClass()).read(inventoryElement);
+        Inventory inventory =  ModelIOFactory.getReader(Inventory.class,inventoryHelper.getFormatClass()).read(inventoryElement,false);
         if (inventory.getRawRecord().isNewRecord() &&  !ObjectUtil.equals(inventory.isExternal(),true)){
             inventory.setMaxRetailPrice(inventory.getSku().getMaxRetailPrice());
             inventory.setSellingPrice(inventory.getMaxRetailPrice());
