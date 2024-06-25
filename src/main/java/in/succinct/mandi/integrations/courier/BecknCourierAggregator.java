@@ -2,11 +2,7 @@ package in.succinct.mandi.integrations.courier;
 
 import com.venky.core.string.StringUtil;
 import com.venky.geo.GeoCoordinate;
-import com.venky.swf.integration.api.Call;
-import com.venky.swf.integration.api.HttpMethod;
-import com.venky.swf.integration.api.InputFormat;
 import com.venky.swf.plugins.collab.db.model.participants.admin.Address;
-import in.succinct.beckn.Acknowledgement.Status;
 import in.succinct.beckn.AddOns;
 import in.succinct.beckn.Billing;
 import in.succinct.beckn.Category;
@@ -20,7 +16,6 @@ import in.succinct.beckn.Item;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.Offers;
-import in.succinct.beckn.OnConfirm;
 import in.succinct.beckn.OnSearch;
 import in.succinct.beckn.OnStatus;
 import in.succinct.beckn.Order.NonUniqueItems;
@@ -35,23 +30,21 @@ import in.succinct.beckn.Providers;
 import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Quote;
 import in.succinct.beckn.Request;
-import in.succinct.beckn.Response;
 import in.succinct.beckn.Subscriber;
 import in.succinct.mandi.db.model.BillToAddress;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.beckn.BecknNetwork;
-import in.succinct.mandi.db.model.beckn.BecknNetworkRole;
 import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import in.succinct.onet.core.adaptor.NetworkAdaptor;
 import in.succinct.onet.core.adaptor.NetworkAdaptor.Domain;
 import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import in.succinct.plugins.ecommerce.db.model.order.PersonAddress;
+import org.jetbrains.annotations.NotNull;
 import org.json.simple.JSONObject;
 
-import java.io.InputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,17 +95,8 @@ class BecknCourierAggregator implements CourierAggregator {
 
         stop.setLocation(location);
 
-        in.succinct.beckn.Address address1 = new in.succinct.beckn.Address();
-        location.setAddress(address1);
+        location.setAddress(getAddress(address));
 
-        address1.setPinCode(address.getPinCode().getPinCode());
-        address1.setDoor(address.getAddressLine1());
-        address1.setBuilding(address.getAddressLine2());
-        address1.setStreet(address.getAddressLine3());
-        address1.setLocality(address.getAddressLine4());
-        address1.setCity(address.getCity().getCode());
-        address1.setState(address.getState().getCode());
-        address1.setCountry(address.getCountry().getIsoCode());
         location.setGps(new GeoCoordinate(address.getLat(),address.getLng()));
         stop.setContact(new Contact());
         stop.setPerson(new Person());
@@ -126,6 +110,21 @@ class BecknCourierAggregator implements CourierAggregator {
 
         return stop;
     }
+
+    @NotNull
+    private static in.succinct.beckn.Address getAddress(Address address) {
+        in.succinct.beckn.Address address1 = new in.succinct.beckn.Address();
+        address1.setPinCode(address.getPinCode().getPinCode());
+        address1.setDoor(address.getAddressLine1());
+        address1.setBuilding(address.getAddressLine2());
+        address1.setStreet(address.getAddressLine3());
+        address1.setLocality(address.getAddressLine4());
+        address1.setCity(address.getCity().getCode());
+        address1.setState(address.getState().getCode());
+        address1.setCountry(address.getCountry().getIsoCode());
+        return address1;
+    }
+
     private Message makeSearchMessage(Order retailOrder){
         return makeSearchMessage(retailOrder.getFacility(),retailOrder.getShipToAddress(),retailOrder.getOrderLines().get(0).getInventory().getRawRecord().getAsProxy(Inventory.class));
     }
@@ -187,9 +186,6 @@ class BecknCourierAggregator implements CourierAggregator {
         order.setFulfillment(fulfillment);
 
         Billing billing = new Billing();
-        in.succinct.beckn.Address address = new in.succinct.beckn.Address();
-        BillToAddress billToAddress = parentOrder.getBillToAddress();
-        billing.setAddress(address);
 
         order.setBilling(billing);
         order.setQuote(new Quote());
@@ -198,19 +194,14 @@ class BecknCourierAggregator implements CourierAggregator {
 
 
         //TOODO FILL
+        BillToAddress billToAddress = parentOrder.getBillToAddress();
         billing.setName(billToAddress.getFirstName() + " " + StringUtil.valueOf(billToAddress.getLastName()));
         billing.setEmail(billToAddress.getEmail());
         billing.setPhone(billToAddress.getPhoneNumber());
 
 
-        address.setPinCode(billToAddress.getPinCode().getPinCode());
-        address.setDoor(billToAddress.getAddressLine1());
-        address.setBuilding(billToAddress.getAddressLine2());
-        address.setStreet(billToAddress.getAddressLine3());
-        address.setLocality(billToAddress.getAddressLine4());
-        address.setCity(billToAddress.getCity().getName());
-        address.setState(billToAddress.getState().getName());
-        address.setCountry(billToAddress.getCountry().getName());
+        in.succinct.beckn.Address address = getAddress(billToAddress);
+        billing.setAddress(address.flatten());
 
         NonUniqueItems items = new NonUniqueItems();
         Item item = new Item();
@@ -239,6 +230,21 @@ class BecknCourierAggregator implements CourierAggregator {
         //item.setId(inventory.getExternalSkuId());
         return message;
     }
+
+    @NotNull
+    private static in.succinct.beckn.Address getAddress(BillToAddress billToAddress) {
+        in.succinct.beckn.Address address = new in.succinct.beckn.Address();
+        address.setPinCode(billToAddress.getPinCode().getPinCode());
+        address.setDoor(billToAddress.getAddressLine1());
+        address.setBuilding(billToAddress.getAddressLine2());
+        address.setStreet(billToAddress.getAddressLine3());
+        address.setLocality(billToAddress.getAddressLine4());
+        address.setCity(billToAddress.getCity().getName());
+        address.setState(billToAddress.getState().getName());
+        address.setCountry(billToAddress.getCountry().getName());
+        return address;
+    }
+
     public Subscriber getGateway(){
         return network.getNetworkAdaptor().getSearchProvider();
     }

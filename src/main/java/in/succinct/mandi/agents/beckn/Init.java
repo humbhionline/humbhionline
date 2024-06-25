@@ -14,7 +14,6 @@ import in.succinct.beckn.Context;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Item;
-import in.succinct.beckn.Items;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnInit;
 import in.succinct.beckn.Order;
@@ -164,7 +163,7 @@ public class Init extends BecknAsyncTask {
     }
 
     protected OrderAddress createBillTo(in.succinct.mandi.db.model.Order order, Billing billing) {
-        Address address = OrderUtil.getAddress(billing.getAddress());
+        Address address = OrderUtil.getAddress(billing.getAddress(),null);
         OrderAddress orderAddress = Database.getTable(OrderAddress.class).newRecord();
         loadAddress(orderAddress,address);
         if (billing.getName() != null) {

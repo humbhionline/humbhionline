@@ -193,7 +193,7 @@ public class OrderUtil {
 
         OrderAddress billToAddress = order.getAddresses().stream().filter(a-> ObjectUtil.equals(a.getAddressType(), OrderAddress.ADDRESS_TYPE_BILL_TO)).findFirst().get().getRawRecord().getAsProxy(OrderAddress.class);
         becknOrder.setBilling(new Billing(){{
-            setAddress(OrderUtil.getAddress(billToAddress));
+            setAddress(OrderUtil.getAddress(billToAddress).flatten());
             setName(billToAddress.getFirstName() + " " + StringUtil.valueOf(billToAddress.getLastName()));
             setEmail(billToAddress.getEmail());
             setPhone(billToAddress.getPhoneNumber());
@@ -222,6 +222,19 @@ public class OrderUtil {
             setEnd(new FulfillmentStop(){{
                 Location endLocation = new Location();
                 endLocation.setGps(new GeoCoordinate(shipToAddress));
+                endLocation.setCountry(new in.succinct.beckn.Country(){{
+                    setCode(shipToAddress.getCountry().getCode());
+                    setName(shipToAddress.getCountry().getName());
+                }});
+                endLocation.setState(new in.succinct.beckn.State(){{
+                    setCode(shipToAddress.getState().getCode());
+                    setName(shipToAddress.getState().getName());
+                }});
+                endLocation.setPinCode(shipToAddress.getPinCode().getPinCode());
+                endLocation.setCity(new in.succinct.beckn.City(){{
+                    setCode(shipToAddress.getCity().getCode());
+                    setName(shipToAddress.getCity().getName());
+                }});
                 endLocation.setAddress(getAddress(shipToAddress));
                 setLocation(endLocation);
                 setContact(new Contact(){{
@@ -334,11 +347,6 @@ public class OrderUtil {
     }
 
 
-    public static com.venky.swf.plugins.collab.db.model.participants.admin.Address getAddress(in.succinct.beckn.Address address){
-        Location location = new Location();
-        location.setAddress(address);
-        return getAddress(location);
-    }
 
     public static Address getAddress(com.venky.swf.plugins.collab.db.model.participants.admin.Address localAddress){
         Address address = new Address();
@@ -359,25 +367,28 @@ public class OrderUtil {
     }
     public static com.venky.swf.plugins.collab.db.model.participants.admin.Address getAddress(final Location location){
 
+        com.venky.swf.plugins.collab.db.model.participants.admin.Address address =  getAddress(location.getAddress(),location);
+
+        return address;
+    }
+    public static com.venky.swf.plugins.collab.db.model.participants.admin.Address getAddress(final Address address , Location location){
+
         return new com.venky.swf.plugins.collab.db.model.participants.admin.Address() {
+
             //Location location = stop.getLocation();
-            final in.succinct.beckn.Address address = location.getAddress();
             @Override
             public String getAddressLine1() {
-                StringBuilder line1 = new StringBuilder();
-               if (!ObjectUtil.isVoid(address.getDoor())){
-                    if (line1.length() > 0){
-                        line1.append(" ");
-                    }
-                    line1.append(address.getDoor());
+                StringBuilder line = new StringBuilder();
+                if (!ObjectUtil.isVoid(address.getDoor())){
+                    line.append(address.getDoor());
                 }
                 if (!ObjectUtil.isVoid(address.getBuilding())){
-                    if (line1.length() > 0){
-                        line1.append(" ");
+                    if (line.length() > 0){
+                        line.append(" ");
                     }
-                    line1.append(address.getBuilding());
+                    line.append(address.getBuilding());
                 }
-                return line1.toString();
+                return line.toString();
             }
 
             @Override
@@ -396,6 +407,12 @@ public class OrderUtil {
                         line.append(" ");
                     }
                     line.append(address.getLocality());
+                }
+                if (!ObjectUtil.isVoid(address.getWard())){
+                    if (line.length() > 0){
+                        line.append(" ");
+                    }
+                    line.append(address.getWard());
                 }
                 return line.toString();
             }
@@ -535,6 +552,9 @@ public class OrderUtil {
             BigDecimal lng = null ;
             public void loadGps(){
                 if (lat != null && lng != null){
+                    return;
+                }
+                if (location == null){
                     return;
                 }
                 GeoCoordinate gps = location.getGps();
