@@ -221,7 +221,7 @@ public class InventoriesController extends LocalSearchController<Inventory> {
 
             Images images = descriptor == null ? null: descriptor.getImages();
             if (images != null && images.size() > 0){
-                String url = images.get(0);
+                String url = images.get(0).getUrl();
 
                 Attachment attachment = Database.getTable(Attachment.class).newRecord();
                 attachment.setSkuId(sku.getId());

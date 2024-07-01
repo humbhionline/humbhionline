@@ -2,8 +2,6 @@ package in.succinct.mandi.db.model.beckn;
 
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.model.CryptoKey;
-import com.venky.swf.db.model.application.Event;
-import com.venky.swf.db.model.application.EventImpl;
 import com.venky.swf.db.table.ModelImpl;
 import com.venky.swf.plugins.beckn.messaging.BapSubscriber;
 import com.venky.swf.plugins.beckn.messaging.BppSubscriber;
@@ -16,7 +14,6 @@ import in.succinct.beckn.Subscriber.Domains;
 import in.succinct.mandi.agents.beckn.Cancel;
 import in.succinct.mandi.agents.beckn.CancellationReason;
 import in.succinct.mandi.agents.beckn.Confirm;
-import in.succinct.mandi.agents.beckn.FeedbackCategory;
 import in.succinct.mandi.agents.beckn.Init;
 import in.succinct.mandi.agents.beckn.Rating;
 import in.succinct.mandi.agents.beckn.RatingCategory;
@@ -105,7 +102,6 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                     put("rating", Rating.class);
                     put("support", Support.class);
                     put("get_rating_categories", RatingCategory.class);
-                    put("get_feedback_categories", FeedbackCategory.class);
                     put("get_cancellation_reasons", CancellationReason.class);
                     put("get_return_reasons", ReturnReason.class);
                 }};

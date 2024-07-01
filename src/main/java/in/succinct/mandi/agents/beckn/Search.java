@@ -25,7 +25,7 @@ import in.succinct.beckn.Contact;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.Fulfillment.FulfillmentStatus;
-import in.succinct.beckn.Fulfillment.FulfillmentType;
+import in.succinct.beckn.Fulfillment.RetailFulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Fulfillments;
 import in.succinct.beckn.Images;
@@ -52,7 +52,6 @@ import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.attributes.AssetCode;
 import in.succinct.plugins.ecommerce.db.model.participation.Company;
 import org.apache.lucene.search.Query;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -234,8 +233,8 @@ public class Search extends BecknAsyncTask {
 
                     Location storeLocation = createLocation(facility);
                     Fulfillment storePickup = new Fulfillment();
-                    storePickup.setId(BecknUtil.getBecknId(FulfillmentType.store_pickup + ":" + facility.getId(),Entity.fulfillment));
-                    storePickup.setType(FulfillmentType.store_pickup);
+                    storePickup.setId(BecknUtil.getBecknId(RetailFulfillmentType.store_pickup + ":" + facility.getId(),Entity.fulfillment));
+                    storePickup.setType(RetailFulfillmentType.store_pickup.toString());
                     storePickup.setContact(new Contact());
                     storePickup.getContact().setPhone(facility.getPhoneNumber());
                     storePickup.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
@@ -248,8 +247,8 @@ public class Search extends BecknAsyncTask {
 
 
                     Fulfillment delivery = new Fulfillment();
-                    delivery.setId(BecknUtil.getBecknId(FulfillmentType.home_delivery + ":" + facility.getId(),Entity.fulfillment));
-                    delivery.setType(FulfillmentType.home_delivery);
+                    delivery.setId(BecknUtil.getBecknId(RetailFulfillmentType.home_delivery + ":" + facility.getId(),Entity.fulfillment));
+                    delivery.setType(RetailFulfillmentType.home_delivery.toString());
                     delivery.setContact(new Contact());
                     delivery.getContact().setPhone(facility.getPhoneNumber());
                     delivery.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
@@ -281,10 +280,10 @@ public class Search extends BecknAsyncTask {
                         }
                     }
                     if (fulfillment != null) {
-                        if (fulfillment.getType() == FulfillmentType.home_delivery){
+                        if (ObjectUtil.equals(fulfillment.getType(),RetailFulfillmentType.home_delivery.toString())){
                             pass = pass && record.isDeliveryProvided() ;
                         }else {
-                            if (fulfillment.getType() == FulfillmentType.store_pickup) {
+                            if (ObjectUtil.equals(fulfillment.getType(),RetailFulfillmentType.store_pickup.toString())) {
                                 fulfillment_ids.clear();
                             }
                             pass = pass && facility.getDistance() <= maxDistance;

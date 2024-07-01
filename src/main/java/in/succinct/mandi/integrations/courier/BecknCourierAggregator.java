@@ -22,7 +22,7 @@ import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
 import in.succinct.beckn.Payment.PaymentStatus;
-import in.succinct.beckn.Payment.PaymentType;
+import in.succinct.beckn.PaymentType;
 import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;

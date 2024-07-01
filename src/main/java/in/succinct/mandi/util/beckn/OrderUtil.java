@@ -32,6 +32,7 @@ import in.succinct.beckn.Locations;
 import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Order.Status;
 import in.succinct.beckn.Payment;
+import in.succinct.beckn.PaymentType;
 import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
@@ -247,14 +248,14 @@ public class OrderUtil {
             }});
             setTracking(false);
             if (transport != null){
-                setType(FulfillmentType.store_pickup);
+                setType(RetailFulfillmentType.store_pickup.toString());
                 setId(BecknUtil.getBecknId(transport.getId(),Entity.fulfillment));
                 setFulfillmentStatus(OrderUtil.getFulfillmentStatus(transport));
             }else {
                 if (!order.isCustomerPickup()){
-                    setType(FulfillmentType.home_delivery);
+                    setType(RetailFulfillmentType.home_delivery.toString());
                 }else {
-                    setType(FulfillmentType.store_pickup);
+                    setType(RetailFulfillmentType.store_pickup.toString());
                 }
                 setId(BecknUtil.getBecknId(order.getId(),Entity.fulfillment));
                 if (ObjectUtil.equals(Order.FULFILLMENT_STATUS_SHIPPED,order.getFulfillmentStatus())){
