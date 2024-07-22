@@ -11,7 +11,7 @@
             let path = window.location.pathname;
             console.log('Path', path);
             if (window.innerWidth < 640) {
-                ( /^\/dashboard.*$/.test(path) ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show());
+                ( /^\/dashboard.*$/.test(path) || /^\/$/.test(path) || /^\/index$/.test(path) ? $("#appmenu").show() & $("#backbutton").hide() : $("#appmenu").hide() & $("#backbutton").show());
                 $("#pageTitleDesk").hide();
                 $("#pageTitle").show();
             } else {
@@ -57,7 +57,7 @@
                 },
                 back: function () {
                     if (window.history.length === 1) {
-                        window.location.replace("/index");
+                        window.location.replace("/");
                     } else {
                         window.history.back();
                     }
@@ -102,24 +102,6 @@
                         <li class="nav-item" v-if="!guest">
                             <a class="nav-link" href="/dashboard" onclick="hideMenu()"><i class="fa fa-home"></i>
                                 Home</a>
-                        </li>
-                        <li class="nav-item dropdown-submenu" v-if="!guest">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarProfileMenuLink"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fa fa-user-circle"></i>
-                                Account</a>
-                            <ul class="dropdown-menu ml-auto mr-auto">
-                                <li class="dropdown-item">
-                                    <a class="nav-link" href="/users/html/profile" onclick="hideMenu()"><i
-                                            class="fa fa-user-circle"></i>
-                                        View</a>
-                                </li>
-                                <li class="dropdown-item " >
-                                    <a class="nav-link" href="/users/requestAccountClosure" onclick="hideMenu()"><i
-                                            class="border-top py-2 fa fa-trash"></i>
-                                        Deletion</a>
-                                </li>
-                            </ul>
                         </li>
                         <li class="nav-item dropdown-submenu" v-if="User.Seller === 'Y' && User.LoggedInToCustomDomain !== 'Y'">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarSellingMenuLink"
@@ -207,11 +189,33 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class=" nav-link" onclick="logout(event)" href="#" onclick="hideMenu()" v-if="!guest">
-                                <i class="fa fa-power-off"></i> Logout</a>
-                            <a class=" nav-link" onclick="logout(event)" href="#" onclick="hideMenu()" v-else>
-                                <i class="fa fa-user"></i> Login/SignUp</a>
+                        <li class="nav-item dropdown-submenu" v-if="!guest">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarProfileMenuLink"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fa fa-user-circle"></i>
+                                Account</a>
+                            <ul class="dropdown-menu ml-auto mr-auto">
+                                <li class="dropdown-item">
+                                    <a class="nav-link" href="/users/html/profile" onclick="hideMenu()"><i
+                                            class="fa fa-user-circle"></i>
+                                        Profile</a>
+                                </li>
+                                <li class="dropdown-item">
+                                    <a class=" nav-link" onclick="logout(event)" href="#" onclick="hideMenu()" v-if="!guest">
+                                        <i class="fa fa-power-off"></i> Logout</a>
+                                    <a class=" nav-link" onclick="logout(event)" href="#" onclick="hideMenu()" v-else>
+                                        <i class="fa fa-user"></i> Login/SignUp</a>
+                                </li>
+                                <li>
+                                   <div style="height: 100px"></div>
+                                   <div class="border-bottom border-dark" ></div>
+                                </li>
+                                <li class="dropdown-item " >
+                                    <a class="nav-link" href="/users/requestAccountClosure" onclick="hideMenu()" style="color: red" ><i
+                                            class="border-top py-2 fa fa-trash "></i>
+                                        Close/Delete</a>
+                                </li>
+                            </ul>
                         </li>
 
                     </ul>

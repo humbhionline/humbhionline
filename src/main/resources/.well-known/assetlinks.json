@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.humbhionline",
+      "sha256_cert_fingerprints": [
+        "75:59:84:9D:E9:EF:C0:B3:E0:17:12:6B:D6:6E:11:2D:E6:61:5B:A7:13:5F:18:41:B4:29:2B:D9:DA:17:64:73"
+      ]
+    }
+  }
+]
