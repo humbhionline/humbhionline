@@ -15,6 +15,7 @@ database/indexes/**/*.done
 database/images/**
 database/*xlsx
 database/*csv
+database/*.save
 
 /.gradle/
 .keystore

@@ -354,6 +354,9 @@ h6 {
     .address-block {
         width: 50%;
     }
+    .nav-item i {
+        display: inline-block;
+    }
     .address-block-text {
         height: 30px;
         overflow: hidden;
