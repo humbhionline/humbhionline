@@ -1,0 +1,37 @@
+
+<script type="text/javascript" src="/resources/scripts/node_modules/vue/dist/vue.js" ></script>
+<link rel="stylesheet" href="/fragments/css/mandi.css" >
+
+<script type="text/javascript">
+    $(function () {
+        $("#closure").load("/privacy/markdownFragment/close_account",function(){
+            $("#root").show();
+        });
+    });
+</script>
+<style>
+    body,
+    .body {
+        padding: 0px;
+    }
+    table {
+        border-style : dashed; 
+    }
+    tr,th {
+        border-style : dashed; 
+    }
+    td {
+        border-style : dashed; 
+    }
+</style>
+<div id="root" style="display:none">
+    <div id="header"> </div>
+    <div id="app" class="app-body terms-block">
+        <div class="container">
+            <div id="closure"> </div>
+            <div class="col-12 d-flex justify-content-center" >
+                <a href="#" class="mb-2 btn btn-primary" onclick="window.history.back(); return true">Close</a>
+            </div>
+        </div>
+    </div>
+</div>

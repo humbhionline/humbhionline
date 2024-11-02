@@ -18,7 +18,8 @@ import in.succinct.beckn.Category;
 import in.succinct.beckn.Circle;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
-import in.succinct.beckn.Fulfillment.FulfillmentType;
+
+import in.succinct.beckn.Fulfillment.RetailFulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Intent;
@@ -190,9 +191,9 @@ public class Search extends BecknAsyncTask {
                         }
                     }
                     if (fulfillment != null) {
-                        if (fulfillment.getType() == FulfillmentType.store_pickup){
+                        if (RetailFulfillmentType.valueOf(fulfillment.getType()) == RetailFulfillmentType.store_pickup){
                             pass = pass && facility.getDistance() <= maxDistance;
-                        }else if (fulfillment.getType() == FulfillmentType.home_delivery){
+                        }else if (RetailFulfillmentType.valueOf(fulfillment.getType()) == RetailFulfillmentType.home_delivery){
                             pass = pass && record.isDeliveryProvided() ;
                         }
                     }

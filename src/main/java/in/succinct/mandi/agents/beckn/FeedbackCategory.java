@@ -1,6 +1,5 @@
 package in.succinct.mandi.agents.beckn;
 
-import in.succinct.beckn.FeedbackCategories;
 import in.succinct.beckn.RatingCategories;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
@@ -17,8 +16,8 @@ public class FeedbackCategory extends BecknAsyncTask {
         Request callback = new Request();
         callback.setContext(getRequest().getContext());
         callback.getContext().setAction("feedback_categories");
-        FeedbackCategories feedbackCategories = new FeedbackCategories();
-        callback.setFeedbackCategories(feedbackCategories);
+        //FeedbackCategories feedbackCategories = new FeedbackCategories();
+        //callback.setFeedbackCategories(feedbackCategories);
 
         return callback;
     }

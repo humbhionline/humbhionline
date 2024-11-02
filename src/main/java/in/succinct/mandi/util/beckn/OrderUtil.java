@@ -22,7 +22,8 @@ import in.succinct.beckn.BreakUp.BreakUpElement.BreakUpCategory;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.Fulfillment.FulfillmentStatus;
-import in.succinct.beckn.Fulfillment.FulfillmentType;
+
+import in.succinct.beckn.Fulfillment.RetailFulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Item;
@@ -33,7 +34,8 @@ import in.succinct.beckn.Order.Status;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
 import in.succinct.beckn.Payment.PaymentStatus;
-import in.succinct.beckn.Payment.PaymentType;
+
+import in.succinct.beckn.PaymentType;
 import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
@@ -200,14 +202,14 @@ public class OrderUtil {
         fulfillment.getEnd().setLocation(endLocation);
         endLocation.setGps(new GeoCoordinate(shipToAddress));
         if (transport != null){
-            fulfillment.setType(FulfillmentType.store_pickup);
+            fulfillment.setType(RetailFulfillmentType.store_pickup.toString());
             fulfillment.setId(BecknUtil.getBecknId(transport.getId(),Entity.fulfillment));
             fulfillment.setFulfillmentStatus(getFulfillmentStatus(transport));
         }else {
             if (!order.isCustomerPickup()){
-                fulfillment.setType(FulfillmentType.home_delivery);
+                fulfillment.setType(RetailFulfillmentType.home_delivery.toString());
             }else {
-                fulfillment.setType(FulfillmentType.store_pickup);
+                fulfillment.setType(RetailFulfillmentType.store_pickup.toString());
             }
             fulfillment.setId(BecknUtil.getBecknId(order.getId(),Entity.fulfillment));
             if (ObjectUtil.equals(Order.FULFILLMENT_STATUS_SHIPPED,order.getFulfillmentStatus())){

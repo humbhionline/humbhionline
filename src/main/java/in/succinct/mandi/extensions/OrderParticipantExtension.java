@@ -16,7 +16,7 @@ public class OrderParticipantExtension extends CompanySpecificParticipantExtensi
         registerExtension(new OrderParticipantExtension());
     }
     @Override
-    protected List<Long> getAllowedFieldValues(User user, Order partiallyFilledModel, String fieldName) {
+    public List<Long> getAllowedFieldValues(User user, Order partiallyFilledModel, String fieldName) {
         if (ObjectUtil.equals("FACILITY_ID",fieldName)){
             if (user.getRawRecord().getAsProxy(in.succinct.mandi.db.model.User.class).isStaff()){
                 if (partiallyFilledModel.getFacilityId() > 0){
