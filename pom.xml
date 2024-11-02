@@ -77,6 +77,7 @@
             <artifactId>swf-plugin-calendar</artifactId>
             <version>[2.11,)</version>
         </dependency>
+
         <!--
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
@@ -84,6 +85,11 @@
             <version>2.10</version>
         </dependency>
         -->
+        <dependency>
+            <groupId>com.github.venkatramanm.swf-all</groupId>
+            <artifactId>swf-plugin-ecommerce</artifactId>
+            <version>2.12-SNAPSHOT</version>
+        </dependency>
         <dependency>
             <groupId>com.github.venkatramanm.swf-all</groupId>
             <artifactId>swf-plugin-datamart</artifactId>
