@@ -28,13 +28,7 @@ public class UserImpl  extends ModelImpl<User> {
         super(user);
     }
 
-    public boolean isPasswordSet() {
-        return !ObjectUtil.isVoid(getProxy().getPassword());
-    }
 
-    public void setPasswordSet(boolean set){
-        //Do nothing.
-    }
 
     List<Long> operatingFacilityIds = null;
     public List<Long> getOperatingFacilityIds() {
