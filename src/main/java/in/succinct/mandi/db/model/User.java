@@ -41,9 +41,6 @@ public interface User extends EncryptedAddress, com.venky.swf.plugins.mobilesign
     public boolean isBalanceBelowThresholdAlertSent();
     public void setBalanceBelowThresholdAlertSent(boolean balanceBelowThresholdAlertSent);
 
-    @IS_VIRTUAL
-    public boolean isPasswordSet();
-    public void setPasswordSet(boolean passwordSet);
 
     @COLUMN_DEF(StandardDefault.NULL)
     @Index
