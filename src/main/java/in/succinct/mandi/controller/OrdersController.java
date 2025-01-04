@@ -147,7 +147,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
         if (getIntegrationAdaptor() == null) {
             throw new RuntimeException("Can be called only as an xml or json api.");
         }
-        FormatHelper<T> rootHelper = FormatHelper.instance(getPath().getProtocol(), request.getInputStream());
+        FormatHelper<T> rootHelper = FormatHelper.instance(getPath().getProtocol(), getPath().getInputStream());
         //Orders
         List<T> ordersElement = rootHelper.getArrayElements("Orders");
         List<Order> orders = new ArrayList<>();
