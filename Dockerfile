@@ -1,6 +1,10 @@
 # Alpine Linux with OpenJDK JRE
 #FROM openjdk-tz-india:latest
-FROM openjdk-11-headless-tz-india:latest
+FROM alpine/java:22-jdk
+RUN apk add -U tzdata
+RUN ln -s /usr/share/zoneinfo/Asia/Kolkata  /etc/localtime 
+RUN echo "Asia/Kolkata" > /etc/timezone
+
 
 #EXPOSE 6000 
 # Debug port
