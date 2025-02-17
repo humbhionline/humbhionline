@@ -12,7 +12,6 @@ import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.plugins.ecommerce.db.model.order.OrderLine;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class Cancel extends BecknAsyncTask {
