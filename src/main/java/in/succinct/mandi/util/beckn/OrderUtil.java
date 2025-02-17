@@ -573,14 +573,13 @@ public class OrderUtil {
                     params.put("google.api_key", Config.instance().getProperty("geocoder.google.api_key"));
                     StringBuilder addressString = new StringBuilder();
                     addressString.append(getAddressLine1()).append(" ").append(getAddressLine2()).append( " ").append( getCity().getName());
-                    for (GeoCoder coder : new GeoCoder[] { new GeoCoder("google") , new GeoCoder("here") }){
-                        if (coder.isEnabled(params)){
-                            GeoLocation revEncodedLocation = coder.getLocation(addressString.toString(),params);
-                            if (revEncodedLocation != null){
-                                setLat(revEncodedLocation.getLat());
-                                setLng(revEncodedLocation.getLng());
-                                location.setGps(new GeoCoordinate(revEncodedLocation));
-                            }
+                    GeoCoder coder = GeoCoder.getInstance();
+                    if (coder.isEnabled(params)){
+                        GeoLocation revEncodedLocation = coder.getLocation(addressString.toString(),params);
+                        if (revEncodedLocation != null){
+                            setLat(revEncodedLocation.getLat());
+                            setLng(revEncodedLocation.getLng());
+                            location.setGps(new GeoCoordinate(revEncodedLocation));
                         }
                     }
 

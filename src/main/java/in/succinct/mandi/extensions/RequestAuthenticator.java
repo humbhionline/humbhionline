@@ -13,7 +13,7 @@ import org.json.simple.JSONValue;
 
 import java.io.IOException;
 
-public class RequestAuthenticator extends com.venky.swf.extensions.request.authenticators.RequestAuthenticator {
+public class RequestAuthenticator extends com.venky.swf.extensions.request.authenticators.ApiKeyAuthenticator {
     static{
         Registry.instance().registerExtension(Path.REQUEST_AUTHENTICATOR,new RequestAuthenticator());
     }

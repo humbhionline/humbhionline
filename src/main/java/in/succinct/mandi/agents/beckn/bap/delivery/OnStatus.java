@@ -1,6 +1,7 @@
 package in.succinct.mandi.agents.beckn.bap.delivery;
 
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
+import in.succinct.beckn.Order.Status;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Order;
 
@@ -17,7 +18,7 @@ public class OnStatus extends BecknTask {
         String orderId = order.getId();
         Order myorder = Order.find(orderId);
         if (myorder != null){
-            if (order.getState().equals("COMPLETE")){
+            if (order.getState() == Status.Completed){
                 myorder.deliver();
             }
         }
