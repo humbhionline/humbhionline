@@ -18,7 +18,7 @@ public class OnStatus extends BecknTask {
         String orderId = order.getId();
         Order myorder = Order.find(orderId);
         if (myorder != null){
-            if (order.getState() == Status.Completed){
+            if (order.getStatus() == Status.Completed){
                 myorder.deliver();
             }
         }

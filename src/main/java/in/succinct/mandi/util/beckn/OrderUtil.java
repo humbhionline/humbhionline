@@ -35,7 +35,7 @@ import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
 import in.succinct.beckn.Payment.PaymentStatus;
 
-import in.succinct.beckn.PaymentType;
+import in.succinct.beckn.Payments;
 import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
@@ -189,16 +189,16 @@ public class OrderUtil {
         fulfillment.getCustomer().getPerson().setName(getName(shipToAddress));
 
         becknOrder.setFulfillment(fulfillment);
-        fulfillment.setStart(new FulfillmentStop());
+        fulfillment._setStart(new FulfillmentStop());
         Location startLocation = new Location();
-        fulfillment.getStart().setLocation(startLocation);
+        fulfillment._getStart().setLocation(startLocation);
         startLocation.setGps(new GeoCoordinate(order.getFacility()));
 
-        fulfillment.setEnd(new FulfillmentStop());
+        fulfillment._setEnd(new FulfillmentStop());
         Location endLocation = new Location();
         fulfillment.setTracking(false);
 
-        fulfillment.getEnd().setLocation(endLocation);
+        fulfillment._getEnd().setLocation(endLocation);
         endLocation.setGps(new GeoCoordinate(shipToAddress));
         if (transport != null){
             fulfillment.setType(RetailFulfillmentType.store_pickup.toString());
@@ -212,20 +212,23 @@ public class OrderUtil {
             }
             fulfillment.setId(BecknUtil.getBecknId(order.getId(),Entity.fulfillment));
             if (ObjectUtil.equals(Order.FULFILLMENT_STATUS_SHIPPED,order.getFulfillmentStatus())){
-                fulfillment.setFulfillmentStatus(FulfillmentStatus.Out_for_delivery);
+                fulfillment.setFulfillmentStatus(FulfillmentStatus.In_Transit);
             }else if (Arrays.asList(Order.FULFILLMENT_STATUS_DELIVERED,Order.FULFILLMENT_STATUS_RETURNED).contains(order.getFulfillmentStatus())){
-                fulfillment.setFulfillmentStatus(FulfillmentStatus.Order_delivered);
+                fulfillment.setFulfillmentStatus(FulfillmentStatus.Completed);
             }else {
-                fulfillment.setFulfillmentStatus(FulfillmentStatus.Pending);
+                fulfillment.setFulfillmentStatus(FulfillmentStatus.Preparing);
             }
         }
         if (format.ordinal() >= OrderFormat.initialized.ordinal()){
             Payment payment = new Payment();
-            becknOrder.setPayment(payment);
+            payment.setId(Payment.POST_FULFILLMENT);
+            becknOrder.setPayments(new Payments(){{
+                add(payment);
+            }});
             if (order.getAmountPendingPayment() > 0){
                 payment.setStatus(PaymentStatus.NOT_PAID);
                 payment.setParams(new Params());
-                payment.getParams().setTransactionId("O:"+order.getId());
+                payment.getParams().set("transaction_id","O:"+order.getId());
                 payment.getParams().setAmount(order.getAmountPendingPayment());
                 payment.getParams().setCurrency("INR");
                 User seller = order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class);
@@ -254,7 +257,7 @@ public class OrderUtil {
                 payment.setStatus(PaymentStatus.PAID);
             }
 
-            payment.setType(PaymentType.POST_FULFILLMENT);
+            payment.setPaymentType(Payment.POST_FULFILLMENT);
 
             buckets.get("SHIPPING_SELLING_PRICE").increment(order.getShippingSellingPrice());
             buckets.get("SHIPPING_PRICE").increment(order.getShippingPrice());
@@ -386,7 +389,17 @@ public class OrderUtil {
             public void setAddressLine4(String line4) {
 
             }
-
+            
+            @Override
+            public String getLandmark() {
+                return "";
+            }
+            
+            @Override
+            public void setLandmark(String landmark) {
+            
+            }
+            
             @Override
             public Long getCityId() {
                 return getCity().getId();
@@ -596,19 +609,19 @@ public class OrderUtil {
     private static FulfillmentStatus getFulfillmentStatus(Order transport) {
         FulfillmentStatus fulfillmentStatus = fulfillmentStatusMap.get(transport.getFulfillmentStatus());
         if (fulfillmentStatus == null){
-            fulfillmentStatus = FulfillmentStatus.Pending;
+            fulfillmentStatus = FulfillmentStatus.Preparing;
         }
         return fulfillmentStatus;
     }
     private static final Map<String, Fulfillment.FulfillmentStatus> fulfillmentStatusMap = new HashMap<>(){{
-        put(Order.FULFILLMENT_STATUS_SHIPPED, FulfillmentStatus.Out_for_delivery);
-        put(Order.FULFILLMENT_STATUS_DELIVERED, FulfillmentStatus.Order_delivered);
+        put(Order.FULFILLMENT_STATUS_SHIPPED, FulfillmentStatus.In_Transit);
+        put(Order.FULFILLMENT_STATUS_DELIVERED, FulfillmentStatus.Completed);
     }};
 
     private static final Map<String, Status> orderStatusMap = new HashMap<>(){{
         put(Order.FULFILLMENT_STATUS_DOWNLOADED, Status.Created);
         put(Order.FULFILLMENT_STATUS_ACKNOWLEDGED, Status.Accepted);
-        put(Order.FULFILLMENT_STATUS_SHIPPED,Status.Out_for_delivery);
+        put(Order.FULFILLMENT_STATUS_SHIPPED,Status.In_Transit);
         put(Order.FULFILLMENT_STATUS_DELIVERED, Status.Completed);
         put(Order.FULFILLMENT_STATUS_CANCELLED, Status.Cancelled);
     }};

@@ -30,7 +30,7 @@ import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
 import in.succinct.beckn.Payment.PaymentStatus;
 
-import in.succinct.beckn.PaymentType;
+import in.succinct.beckn.Payments;
 import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
@@ -122,8 +122,8 @@ class BecknCourierAggregator implements CourierAggregator {
         message.setIntent(intent);
 
         Fulfillment fulfillment = new Fulfillment();
-        fulfillment.setStart(makeFulfillmentStop(from));
-        fulfillment.setEnd(makeFulfillmentStop(to));
+        fulfillment._setStart(makeFulfillmentStop(from));
+        fulfillment._setEnd(makeFulfillmentStop(to));
         intent.setFulfillment(fulfillment);
         return message;
     }
@@ -167,9 +167,9 @@ class BecknCourierAggregator implements CourierAggregator {
         message.setOrder(order);
 
         Fulfillment fulfillment = new Fulfillment();
-        fulfillment.setStart(makeFulfillmentStop(from));
+        fulfillment._setStart(makeFulfillmentStop(from));
         fulfillment.setTracking(false);
-        fulfillment.setEnd(makeFulfillmentStop(to));
+        fulfillment._setEnd(makeFulfillmentStop(to));
         order.setFulfillment(fulfillment);
 
         Billing billing = new Billing();
@@ -212,13 +212,16 @@ class BecknCourierAggregator implements CourierAggregator {
             order.setItems(items);
         }
         Payment payment = new Payment();
-        order.setPayment(payment);
+        payment.setId(Payment.POST_FULFILLMENT);
+        order.setPayments(new Payments(){{
+            add(payment);
+        }});
         payment.setParams(new Params());
         payment.getParams().set("currency","INR");
         payment.getParams().set("transaction_id",context.getTransactionId());
         payment.getParams().set("transaction_status","NOT-PAID");
         payment.getParams().set("amount",String.valueOf(courierOrder.getShippingSellingPrice()));
-        payment.setType(PaymentType.POST_FULFILLMENT);
+        payment.setPaymentType(Payment.POST_FULFILLMENT);
         payment.setStatus(PaymentStatus.NOT_PAID);
         order.setAddOns(new AddOns());
         order.setOffers(new Offers());

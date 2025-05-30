@@ -46,7 +46,7 @@ public class Cancel extends BecknAsyncTask {
         becknOrder.setId(order_id);
         becknOrder.setCreatedAt(order.getCreatedAt());
         becknOrder.setUpdatedAt(order.getUpdatedAt());
-        becknOrder.setState(OrderUtil.getBecknStatus(order));
+        becknOrder.setStatus(OrderUtil.getBecknStatus(order));
 
 
         onCancel.getMessage().setOrder(becknOrder);

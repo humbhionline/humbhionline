@@ -18,7 +18,6 @@ import in.succinct.beckn.Category;
 import in.succinct.beckn.Circle;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
-
 import in.succinct.beckn.Fulfillment.RetailFulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
@@ -33,7 +32,6 @@ import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
 import in.succinct.beckn.Request;
-import in.succinct.beckn.Tags;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Sku;
@@ -117,7 +115,7 @@ public class Search extends BecknAsyncTask {
 
         Price price = item != null ? item.getPrice() : null ;
         Fulfillment fulfillment = intent.getFulfillment();
-        FulfillmentStop end = fulfillment == null ? null : fulfillment.getEnd();
+        FulfillmentStop end = fulfillment == null ? null : fulfillment._getEnd();
         GeoCoordinate deliveryLocation = end == null ? null : end.getLocation().getGps();
         double maxDistance = getMaxDistance(end);
 
@@ -134,19 +132,19 @@ public class Search extends BecknAsyncTask {
             qryString.append("FACILITY:").append(providerName).append("*");
         }
         if (!ObjectUtil.isVoid(itemName)){
-            if (qryString.length() > 0){
+            if (!qryString.isEmpty()){
                 qryString.append(" AND ");
             }
             qryString.append("(").append(q("SKU", itemName)).append(" OR ").append(q("TAGS",itemName)).append(" )");
         }
         if (!ObjectUtil.isVoid(catagoryName)){
-            if (qryString.length() > 0){
+            if (!qryString.isEmpty()){
                 qryString.append(" AND ");
             }
             qryString.append("(").append(q("TAGS", catagoryName)).append(" )");
         }
         if (facilityIds != null){
-            if (qryString.length() > 0){
+            if (!qryString.isEmpty()){
                 qryString.append(" AND ");
             }
             qryString.append("(");
@@ -158,7 +156,7 @@ public class Search extends BecknAsyncTask {
             }
             qryString.append(")");
         }
-        if (qryString.length() == 0){
+        if (qryString.isEmpty()){
             return push_onsearch(new ArrayList<>());
         }
         Query q = indexer.constructQuery(qryString.toString() );
@@ -316,7 +314,7 @@ public class Search extends BecknAsyncTask {
     private List<Long> getCloseByFacilities(Fulfillment fulfillment, String name, Long providerId) {
         ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);
         if (fulfillment != null){
-            FulfillmentStop end = fulfillment.getEnd();
+            FulfillmentStop end = fulfillment._getEnd();
             double radius = getMaxDistance(end);
             if (radius > 0){
                 BoundingBox bb = new BoundingBox(end.getLocation().getGps(),2,radius);
