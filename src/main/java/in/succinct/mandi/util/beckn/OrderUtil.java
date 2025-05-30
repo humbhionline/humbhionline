@@ -445,7 +445,17 @@ public class OrderUtil {
             public void setAddressLine4(String line4) {
 
             }
-
+            
+            @Override
+            public String getLandmark() {
+                return "";
+            }
+            
+            @Override
+            public void setLandmark(String landmark) {
+            
+            }
+            
             @Override
             public Long getCityId() {
                 return getCity().getId();
@@ -652,19 +662,19 @@ public class OrderUtil {
     private static FulfillmentStatus getFulfillmentStatus(Order transport) {
         FulfillmentStatus fulfillmentStatus = fulfillmentStatusMap.get(transport.getFulfillmentStatus());
         if (fulfillmentStatus == null){
-            fulfillmentStatus = FulfillmentStatus.Pending;
+            fulfillmentStatus = FulfillmentStatus.Preparing;
         }
         return fulfillmentStatus;
     }
     private static final Map<String, Fulfillment.FulfillmentStatus> fulfillmentStatusMap = new HashMap<>(){{
-        put(Order.FULFILLMENT_STATUS_SHIPPED, FulfillmentStatus.Out_for_delivery);
-        put(Order.FULFILLMENT_STATUS_DELIVERED, FulfillmentStatus.Order_delivered);
+        put(Order.FULFILLMENT_STATUS_SHIPPED, FulfillmentStatus.In_Transit);
+        put(Order.FULFILLMENT_STATUS_DELIVERED, FulfillmentStatus.Completed);
     }};
 
     private static final Map<String, Status> orderStatusMap = new HashMap<>(){{
         put(Order.FULFILLMENT_STATUS_DOWNLOADED, Status.Created);
         put(Order.FULFILLMENT_STATUS_ACKNOWLEDGED, Status.Accepted);
-        put(Order.FULFILLMENT_STATUS_SHIPPED,Status.Out_for_delivery);
+        put(Order.FULFILLMENT_STATUS_SHIPPED,Status.In_Transit);
         put(Order.FULFILLMENT_STATUS_DELIVERED, Status.Completed);
         put(Order.FULFILLMENT_STATUS_CANCELLED, Status.Cancelled);
     }};

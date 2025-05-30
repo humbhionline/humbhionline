@@ -3,6 +3,8 @@ package in.succinct.mandi.agents.beckn;
 import in.succinct.beckn.Context;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnConfirm;
+import in.succinct.beckn.Payment;
+import in.succinct.beckn.Payment.PaymentStatus;
 import in.succinct.beckn.Request;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.util.beckn.OrderUtil;
@@ -30,8 +32,9 @@ public class Confirm extends BecknAsyncTask{
         }
         order.setOnHold(false);
         in.succinct.beckn.Order becknOrder = request.getMessage().getOrder();
-        if (becknOrder != null && becknOrder.getPayment() != null && "PAID".equals(becknOrder.getPayment().getStatus())){
-            order.setAmountPaid(becknOrder.getPayment().getParams().getAmount());
+        Payment payment = becknOrder == null || becknOrder.getPayments() == null || becknOrder.getPayments().isEmpty() ? null : becknOrder.getPayments().get(0);
+        if (payment != null && payment.getStatus() == PaymentStatus.PAID){
+            order.setAmountPaid(payment.getParams().getAmount());
         }
         order.save();
 

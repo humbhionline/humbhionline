@@ -9,13 +9,14 @@ tmp/pid
 overrideProperties/
 nohup.out
 database/*.db
-database/*.db.save
 database/*.db.safe
 database/*.dmp
 database/indexes/**/*.done
 database/images/**
 database/*xlsx
 database/*csv
+database/*.save
+database/*.sql
 
 /.gradle/
 .keystore

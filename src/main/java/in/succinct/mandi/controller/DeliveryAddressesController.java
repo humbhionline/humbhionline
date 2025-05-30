@@ -18,7 +18,7 @@ public class DeliveryAddressesController extends VirtualModelController<Delivery
 
         for (DeliveryAddress address : addressList){
             new BeforeValidateAddress<DeliveryAddress>().beforeValidate(address);
-            new LocationSetterTask<>(address).setLatLng(false);
+            new LocationSetterTask<>(address,getPath().getHeaders()).setLatLng(false);
         }
         return getReturnIntegrationAdaptor().createResponse(getPath(),addressList);
     }

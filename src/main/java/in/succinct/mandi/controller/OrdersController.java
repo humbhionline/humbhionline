@@ -251,7 +251,7 @@ public class OrdersController extends in.succinct.plugins.ecommerce.controller.O
                 CourierAggregator courierAggregator = CourierAggregatorFactory.getInstance().getCourierAggregator(BecknNetwork.find(inventory.getNetworkId()));
                 CourierOrder courierOrder = courierAggregator.book(inventory,order,order.getParentOrder());
 
-                double sellingPrice = courierOrder.getOrder().getPayment().getParams().getAmount();
+                double sellingPrice = courierOrder.getOrder().getPayments().get(0).getParams().getAmount();
                 if  (sellingPrice == 0){
                     sellingPrice = courierOrder.getOrder().getQuote().getPrice().getValue();
                 }

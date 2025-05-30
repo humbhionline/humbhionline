@@ -164,7 +164,7 @@ public class Search extends BecknAsyncTask {
 
         Price price = item != null ? item.getPrice() : null ;
         Fulfillment fulfillment = intent.getFulfillment();
-        FulfillmentStop end = fulfillment == null ? null : fulfillment.getEnd();
+        FulfillmentStop end = fulfillment == null ? null : fulfillment._getEnd();
         GeoCoordinate deliveryLocation = end == null ? null : end.getLocation().getGps();
         double maxDistance = getMaxDistance(end);
 
@@ -211,7 +211,7 @@ public class Search extends BecknAsyncTask {
             qryString.append(")");
 
         }
-        if (qryString.length() == 0){
+        if (qryString.isEmpty()){
             return push_onsearch(new ArrayList<>());
         }
         Query q = indexer.constructQuery(qryString.toString() );
@@ -448,7 +448,7 @@ public class Search extends BecknAsyncTask {
     private List<Long> getCloseByFacilities(Fulfillment fulfillment, String name, Long providerId) {
         ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);
         if (fulfillment != null){
-            FulfillmentStop end = fulfillment.getEnd();
+            FulfillmentStop end = fulfillment._getEnd();
             double radius = getMaxDistance(end);
             if (radius > 0){
                 BoundingBox bb = new BoundingBox(end.getLocation().getGps(),2,radius);
