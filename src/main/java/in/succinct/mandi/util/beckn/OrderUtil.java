@@ -24,7 +24,6 @@ import in.succinct.beckn.Document;
 import in.succinct.beckn.Documents;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.Fulfillment.FulfillmentStatus;
-import in.succinct.beckn.Fulfillment.RetailFulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Item;
@@ -33,9 +32,7 @@ import in.succinct.beckn.Locations;
 import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Order.Status;
 import in.succinct.beckn.Payment;
-import in.succinct.beckn.Payment.Params;
-import in.succinct.beckn.Payment.PaymentStatus;
-import in.succinct.beckn.PaymentType;
+import in.succinct.beckn.Payments;
 import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
@@ -111,24 +108,24 @@ public class OrderUtil {
             becknOrder.setUpdatedAt(order.getUpdatedAt());
             switch (order.getFulfillmentStatus()){
                 case Order.FULFILLMENT_STATUS_DOWNLOADED:
-                    becknOrder.setState(Status.Created);
+                    becknOrder.setStatus(Status.Created);
                     break;
                 case Order.FULFILLMENT_STATUS_ACKNOWLEDGED:
-                    becknOrder.setState(Status.Accepted);
+                    becknOrder.setStatus(Status.Accepted);
                     break;
                 case Order.FULFILLMENT_STATUS_PACKED:
                 case Order.FULFILLMENT_STATUS_MANIFESTED:
-                    becknOrder.setState(Status.In_progress);
+                    becknOrder.setStatus(Status.Prepared);
                     break;
                 case Order.FULFILLMENT_STATUS_SHIPPED:
-                    becknOrder.setState(Status.Out_for_delivery);
+                    becknOrder.setStatus(Status.In_Transit);
                     break;
                 case Order.FULFILLMENT_STATUS_DELIVERED:
-                    becknOrder.setState(Status.Completed);
+                    becknOrder.setStatus(Status.Completed);
                     break;
                 case Order.FULFILLMENT_STATUS_CANCELLED:
                 case Order.FULFILLMENT_STATUS_RETURNED:
-                    becknOrder.setState(Status.Cancelled);
+                    becknOrder.setStatus(Status.Cancelled);
                     break;
             }
         }
@@ -153,7 +150,7 @@ public class OrderUtil {
         });
         NonUniqueItems items = new NonUniqueItems();
         becknOrder.setItems(items);
-        Cache<String, Bucket> buckets = new Cache<String, Bucket>() {
+        Cache<String, Bucket> buckets = new Cache<>() {
             @Override
             protected Bucket getValue(String s) {
                 return new Bucket(0);
@@ -213,7 +210,7 @@ public class OrderUtil {
                     setName(OrderUtil.getName(shipToAddress));
                 }});
             }});
-            setStart(new FulfillmentStop(){{
+            _setStart(new FulfillmentStop(){{
                 setLocation(new Location(){{
                     setGps(new GeoCoordinate(order.getFacility()));
                     setId(becknOrder.getProviderLocation().getId());
@@ -223,7 +220,7 @@ public class OrderUtil {
                     setEmail(order.getFacility().getEmail());
                 }});
             }});
-            setEnd(new FulfillmentStop(){{
+            _setEnd(new FulfillmentStop(){{
                 Location endLocation = new Location();
                 endLocation.setGps(new GeoCoordinate(shipToAddress));
                 endLocation.setCountry(new in.succinct.beckn.Country(){{
@@ -262,11 +259,11 @@ public class OrderUtil {
                 }
                 setId(BecknUtil.getBecknId(order.getId(),Entity.fulfillment));
                 if (ObjectUtil.equals(Order.FULFILLMENT_STATUS_SHIPPED,order.getFulfillmentStatus())){
-                    setFulfillmentStatus(FulfillmentStatus.Out_for_delivery);
+                    setFulfillmentStatus(FulfillmentStatus.In_Transit);
                 }else if (Arrays.asList(Order.FULFILLMENT_STATUS_DELIVERED,Order.FULFILLMENT_STATUS_RETURNED).contains(order.getFulfillmentStatus())){
-                    setFulfillmentStatus(FulfillmentStatus.Order_delivered);
+                    setFulfillmentStatus(FulfillmentStatus.Completed);
                 }else {
-                    setFulfillmentStatus(FulfillmentStatus.Pending);
+                    setFulfillmentStatus(FulfillmentStatus.Preparing);
                 }
             }
         }});
@@ -274,30 +271,32 @@ public class OrderUtil {
 
 
         if (format.ordinal() >= OrderFormat.initialized.ordinal()){
-            becknOrder.setPayment(new Payment(){{
-                setParams(new Params(){{
-                    setTransactionId(order.getExternalTransactionReference());
-                    setAmount(order.getAmountPendingPayment());
-                    setCurrency("INR");
-                }});
-                if (order.getAmountPendingPayment() > 0){
-                    setStatus(PaymentStatus.NOT_PAID);
-                    User seller = order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class);
-                    if (!ObjectUtil.isVoid(seller.getVirtualPaymentAddress())) {
-                        StringBuilder url = new StringBuilder();
-                        url.append("upi://pay").append("?pa=").append(seller.getVirtualPaymentAddress()).append("&pn=").append(seller.getNameAsInBankAccount()).append(
-                                "&tr=$transaction_id").append("&tn=HumBhiOnline Txn ").append(order.getId()).append(
-                                "&am=$amount").append("&cu=INR&mode=04&orgId=000000&sign=");
-
-                        setUri(URLEncoder.encode(url.toString(), StandardCharsets.UTF_8));
+            becknOrder.setPayments(new Payments(){{
+                add(new Payment(){{
+                    setParams(new Params(){{
+                        set("transaction_id",order.getExternalTransactionReference());
+                        setAmount(order.getAmountPendingPayment());
+                        setCurrency("INR");
+                    }});
+                    if (order.getAmountPendingPayment() > 0){
+                        setStatus(PaymentStatus.NOT_PAID);
+                        User seller = order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class);
+                        if (!ObjectUtil.isVoid(seller.getVirtualPaymentAddress())) {
+                            StringBuilder url = new StringBuilder();
+                            url.append("upi://pay").append("?pa=").append(seller.getVirtualPaymentAddress()).append("&pn=").append(seller.getNameAsInBankAccount()).append(
+                                    "&tr=$transaction_id").append("&tn=HumBhiOnline Txn ").append(order.getId()).append(
+                                    "&am=$amount").append("&cu=INR&mode=04&orgId=000000&sign=");
+                            
+                            setUri(URLEncoder.encode(url.toString(), StandardCharsets.UTF_8));
+                        }
+                    }else if (order.getAmountToRefund() > 0){
+                        setStatus(PaymentStatus.NOT_PAID);
+                    }else {
+                        setStatus(PaymentStatus.PAID);
                     }
-                }else if (order.getAmountToRefund() > 0){
-                    setStatus(PaymentStatus.NOT_PAID);
-                }else {
-                    setStatus(PaymentStatus.PAID);
-                }
-
-                setType(PaymentType.POST_FULFILLMENT);
+                    
+                    setPaymentType(Payment.POST_FULFILLMENT);
+                }});
             }});
 
             if (order.getAmountPaid() + order.getAmountPendingPayment() - order.getAmountRefunded() > 0) {

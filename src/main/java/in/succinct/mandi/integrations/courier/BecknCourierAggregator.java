@@ -22,7 +22,7 @@ import in.succinct.beckn.Order.NonUniqueItems;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.Params;
 import in.succinct.beckn.Payment.PaymentStatus;
-import in.succinct.beckn.PaymentType;
+import in.succinct.beckn.Payments;
 import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
@@ -40,6 +40,7 @@ import in.succinct.mandi.util.beckn.BecknUtil;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
 import in.succinct.onet.core.adaptor.NetworkAdaptor;
 import in.succinct.onet.core.adaptor.NetworkAdaptor.Domain;
+import in.succinct.onet.core.adaptor.NetworkAdaptor.DomainCategory;
 import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import in.succinct.plugins.ecommerce.db.model.order.PersonAddress;
 import org.jetbrains.annotations.NotNull;
@@ -59,7 +60,7 @@ class BecknCourierAggregator implements CourierAggregator {
         this.network = network;
         NetworkAdaptor networkAdaptor = NetworkAdaptorFactory.getInstance().getAdaptor(network.getNetworkId());
         for (Domain d : networkAdaptor.getDomains()){
-            if (d.getName().equals("logistics")){
+            if (d.getDomainCategory() == DomainCategory.HIRE_TRANSPORT_SERVICE){
                 logistics = d;
                 break;
             }

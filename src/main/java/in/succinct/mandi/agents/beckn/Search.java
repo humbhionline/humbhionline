@@ -240,10 +240,10 @@ public class Search extends BecknAsyncTask {
                     storePickup.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
                     storePickup.setProviderName(facility.getName());
                     storePickup.setFulfillmentStatus(FulfillmentStatus.Serviceable);
-                    storePickup.setStart(new FulfillmentStop());
-                    storePickup.getStart().setLocation(storeLocation);
-                    storePickup.setEnd(new FulfillmentStop());
-                    storePickup.getEnd().setLocation(storeLocation);
+                    storePickup._setStart(new FulfillmentStop());
+                    storePickup._getStart().setLocation(storeLocation);
+                    storePickup._setEnd(new FulfillmentStop());
+                    storePickup._getEnd().setLocation(storeLocation);
 
 
                     Fulfillment delivery = new Fulfillment();
@@ -254,11 +254,11 @@ public class Search extends BecknAsyncTask {
                     delivery.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
                     delivery.setProviderName(facility.getName());
                     delivery.setFulfillmentStatus(FulfillmentStatus.Serviceable);
-                    delivery.setStart(new FulfillmentStop());
-                    delivery.setEnd(new FulfillmentStop());
-                    delivery.getStart().setLocation(storeLocation);
+                    delivery._setStart(new FulfillmentStop());
+                    delivery._setEnd(new FulfillmentStop());
+                    delivery._getStart().setLocation(storeLocation);
                     if (deliveryLocation != null) {
-                        delivery.getEnd().setLocation(createLocation(deliveryLocation));
+                        delivery._getEnd().setLocation(createLocation(deliveryLocation));
                     }
 
                     BecknStrings fulfillment_ids = new BecknStrings();

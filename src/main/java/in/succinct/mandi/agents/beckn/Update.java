@@ -45,7 +45,7 @@ public class Update extends Init {
                     createShipTo(order, becknOrder.getFulfillment());
                     break;
                 case "payment":
-                    update_payment(order,becknOrder.getPayment());
+                    update_payment(order,becknOrder.getPayments().get(0));
                     break;
                 case "items":
                     //
