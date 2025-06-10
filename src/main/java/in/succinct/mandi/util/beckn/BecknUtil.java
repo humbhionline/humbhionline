@@ -11,7 +11,7 @@ public class BecknUtil {
 
     public static String getCryptoKeyId(BecknNetwork network){
         if (network != null){
-            return network.getCryptoKeyId();
+            return String.format("%s.%s",network.getSubscriberId(),network.getCryptoKeyId());
         }else {
             return String.format("%s.%s",Config.instance().getHostName(),"k0");
         }
@@ -34,7 +34,8 @@ public class BecknUtil {
         catalog,
         cancellation_reason,
         return_reason,
-        order
+        order,
+        stop,
     }
     public static String getBecknId(Long localUniqueId,Entity becknEntity){
         return getBecknId(String.valueOf(localUniqueId),becknEntity);

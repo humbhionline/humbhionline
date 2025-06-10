@@ -5,11 +5,15 @@ import com.venky.swf.db.annotations.column.validations.Enumeration;
 import com.venky.swf.db.model.Model;
 
 public interface Rating extends Model {
-    public static final String RATING_CATEGORIES = "item,provider,order,fulfillment";
     @UNIQUE_KEY
-    @Enumeration(RATING_CATEGORIES)
+    @Enumeration(enumClass = "in.succinct.beckn.Rating$RatingCategory")
     public String getRatingCategory();
     public void setRatingCategory(String ratingCategory);
+    
+    @UNIQUE_KEY
+    String getTransactionId();
+    void setTransactionId(String transactionId);
+    
 
     @UNIQUE_KEY
     public String getObjectId();

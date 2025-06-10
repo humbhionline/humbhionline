@@ -1,6 +1,7 @@
 package in.succinct.mandi.agents.beckn;
 
 
+import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.Database;
 import com.venky.swf.db.annotations.column.ui.mimes.MimeType;
 import com.venky.swf.integration.api.Call;
@@ -42,9 +43,17 @@ public class Status extends BecknAsyncTask {
                 orderId = order.getId();
             }
         }
-        Long lOrderId = Long.valueOf(BecknUtil.getLocalUniqueId(orderId, Entity.order));
-
-        Order order = Database.getTable(Order.class).get(lOrderId);
+        long lOrderId = Long.parseLong(BecknUtil.getLocalUniqueId(orderId, Entity.order));
+        Order order = null;
+        if (lOrderId < 0){
+            order  = Order.find(request.getContext().getTransactionId());
+            if (order != null && !ObjectUtil.equals(order.getAttributeMap().get("external_order_id").getValue(),orderId)){
+                order = null;
+            }
+        }else {
+            order = Database.getTable(Order.class).get(lOrderId);
+        }
+        
         if (order == null){
             return onStatus;
         }

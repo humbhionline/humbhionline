@@ -14,6 +14,7 @@ import in.succinct.beckn.Context;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Item;
+import in.succinct.beckn.ItemQuantity;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnInit;
 import in.succinct.beckn.Order;
@@ -102,6 +103,7 @@ public class Init extends BecknAsyncTask {
         map.get("self_platform_url").setValue(context.getBppUri());
         map.get("self_platform_id").setValue(context.getBppId());
         map.get("domain").setValue(context.getDomain());
+        map.get("external_order_id").setValue(becknOrder.getId());
 
         order.saveAttributeMap(map);
 
@@ -236,7 +238,7 @@ public class Init extends BecknAsyncTask {
 
         for (Item item : items){
             long invId = Long.parseLong(BecknUtil.getLocalUniqueId(item.getId(), Entity.item));
-            Quantity quantity = item.get(Quantity.class,"quantity");
+            ItemQuantity quantity = item.get(ItemQuantity.class,"quantity");
 
             Inventory inventory = Database.getTable(Inventory.class).get(invId);
             OrderLine orderLine = Database.getTable(OrderLine.class).newRecord();
@@ -244,9 +246,9 @@ public class Init extends BecknAsyncTask {
             orderLine.setShipFromId(inventory.getFacilityId());
             orderLine.setSkuId(inventory.getSkuId());
             orderLine.setInventoryId(invId);
-            orderLine.setOrderedQuantity(quantity.getCount());
-            orderLine.setSellingPrice(inventory.getSellingPrice() * quantity.getCount());
-            orderLine.setMaxRetailPrice(inventory.getMaxRetailPrice() * quantity.getCount());
+            orderLine.setOrderedQuantity(quantity.getSelected().getCount());
+            orderLine.setSellingPrice(inventory.getSellingPrice() * quantity.getSelected().getCount());
+            orderLine.setMaxRetailPrice(inventory.getMaxRetailPrice() * quantity.getSelected().getCount());
             if (orderLine.getMaxRetailPrice() == 0){
                 orderLine.setMaxRetailPrice(orderLine.getSellingPrice());
             }

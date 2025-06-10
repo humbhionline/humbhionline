@@ -1,10 +1,9 @@
 package in.succinct.mandi.agents.beckn;
 
+import in.succinct.beckn.Rating;
 import in.succinct.beckn.RatingCategories;
 import in.succinct.beckn.Request;
-import in.succinct.mandi.db.model.beckn.Rating;
 
-import java.util.Arrays;
 import java.util.Map;
 
 public class RatingCategory extends BecknAsyncTask {
@@ -18,10 +17,10 @@ public class RatingCategory extends BecknAsyncTask {
         callback.setContext(getRequest().getContext());
         callback.getContext().setAction("rating_categories");
         RatingCategories ratingCategories = new RatingCategories();
+        for (Rating.RatingCategory value : Rating.RatingCategory.values()) {
+            ratingCategories.add(value);
+        }
         callback.setRatingCategories(ratingCategories);
-
-        Arrays.stream(Rating.RATING_CATEGORIES.split(",")).forEach(ratingCategories::add);
-
         return callback;
     }
 }

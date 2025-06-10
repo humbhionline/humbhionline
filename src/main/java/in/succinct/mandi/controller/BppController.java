@@ -170,5 +170,8 @@ public class BppController extends Controller implements in.succinct.bap.shell.c
 
         return new BytesView(getPath(),output.toString().getBytes(),MimeType.APPLICATION_JSON);
     }
-
+    @Override
+    public View status() {
+        return in.succinct.bap.shell.controller.proxies.BppController.super.status();
+    }
 }

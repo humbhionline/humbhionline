@@ -65,7 +65,6 @@ public class AppInstaller implements Installer {
         createSavedAddresses();
         insertCompany();
         insertRole();
-        //registerBecknKeys();
         updateFacilityMinMaxLatLng();
         updateBecknNetwork();
     }
@@ -186,26 +185,6 @@ public class AppInstaller implements Installer {
 
     }
 
-    /*
-    private void registerBecknKeys() {
-        List<BecknNetwork> networks =  new Select().from(BecknNetwork.class).execute(BecknNetwork.class);
-        for (BecknNetwork network : networks){
-            if (network.isDisabled()){
-                continue;
-            }
-            if (!network.isSubscriptionActive()) {
-                Subscriber bppSubscriber = network.getBppSubscriber();
-                Subscriber bapSubscriber = network.getBapSubscriber();
-                NetworkAdaptorFactory.getInstance().getAdaptor(network.getNetworkId()).subscribe(network.getBppSubscriber());
-                NetworkAdaptorFactory.getInstance().getAdaptor(network.getNetworkId()).subscribe(network.getBapSubscriber());
-                if (network.isMqSupported()){
-                    new BppSubscriber(bppSubscriber).registerSubscriber();
-                    new BapSubscriber(bapSubscriber).registerSubscriber();
-                }
-            }
-        }
-    }
-    */
 
 
 }

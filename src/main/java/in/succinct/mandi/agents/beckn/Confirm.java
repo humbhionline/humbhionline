@@ -1,15 +1,19 @@
 package in.succinct.mandi.agents.beckn;
 
 import in.succinct.beckn.Context;
+import in.succinct.beckn.Error;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnConfirm;
 import in.succinct.beckn.Payment;
 import in.succinct.beckn.Payment.PaymentStatus;
 import in.succinct.beckn.Request;
+import in.succinct.beckn.SellerException;
+import in.succinct.beckn.SellerException.InvalidRequestError;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.util.beckn.OrderUtil;
 import in.succinct.mandi.util.beckn.OrderUtil.OrderFormat;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class Confirm extends BecknAsyncTask{
@@ -28,6 +32,21 @@ public class Confirm extends BecknAsyncTask{
 
         Order order = Order.find(context.getTransactionId());
         if (order == null){
+            Request initMessage = new Request(request.toString());
+            initMessage.getContext().setAction("init");
+            
+            Init init = new Init(initMessage,new HashMap<>(getHeaders()));
+            init.setNetwork(getNetwork());
+            init.setSubscriber(getSubscriber());
+            Request on_init = init.executeInternal();
+            order = Order.find(context.getTransactionId());
+        }
+        if (order == null){
+            SellerException.InvalidRequestError ex = new InvalidRequestError();
+            onConfirm.setError(new Error(){{
+                setCode(ex.getErrorCode());
+                setMessage(ex.getMessage());
+            }});
             return onConfirm;
         }
         order.setOnHold(false);

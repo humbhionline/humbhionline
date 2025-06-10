@@ -2,6 +2,7 @@ package in.succinct.mandi.db.model.beckn;
 
 import com.venky.core.util.ObjectUtil;
 import com.venky.swf.db.model.CryptoKey;
+import com.venky.swf.db.model.reflection.ModelReflector;
 import com.venky.swf.db.table.ModelImpl;
 import com.venky.swf.plugins.beckn.messaging.BapSubscriber;
 import com.venky.swf.plugins.beckn.messaging.BppSubscriber;
@@ -9,7 +10,10 @@ import com.venky.swf.plugins.beckn.messaging.Mq;
 import com.venky.swf.plugins.beckn.messaging.Subscriber;
 import com.venky.swf.plugins.beckn.tasks.BecknTask;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Expression;
+import com.venky.swf.sql.Operator;
 import in.succinct.beckn.Organization;
+import in.succinct.beckn.Request;
 import in.succinct.beckn.Subscriber.Domains;
 import in.succinct.mandi.agents.beckn.Cancel;
 import in.succinct.mandi.agents.beckn.CancellationReason;
@@ -30,9 +34,12 @@ import in.succinct.onet.core.adaptor.NetworkAdaptor.Domain;
 import in.succinct.onet.core.adaptor.NetworkAdaptorFactory;
 import in.succinct.plugins.ecommerce.db.model.participation.Company;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,23 +49,46 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
     }
 
     public String getRegistryUrl() {
+        if (getProxy().getRawRecord().isNewRecord()){
+            return null;
+        }
         return NetworkAdaptorFactory.getInstance().getAdaptor(getProxy().getNetworkId()).getRegistryUrl();
     }
 
 
 
     public NetworkAdaptor getNetworkAdaptor() {
+        if (getProxy().getRawRecord().isNewRecord()){
+            return null;
+        }
         return NetworkAdaptorFactory.getInstance().getAdaptor(getProxy().getNetworkId());
     }
-
-
+    public String getLatestKeyId(){
+        String selfKeyId;
+        CryptoKey latestSigning = getLatestKey(Request.SIGNATURE_ALGO);
+        if (latestSigning != null){
+            selfKeyId = latestSigning.getAlias();
+        }else {
+            BecknNetwork network = getProxy();
+            selfKeyId = "%s.%s".formatted(network.getSubscriberId(),network.getCryptoKeyId());
+        }
+        return selfKeyId;
+    }
+    public CryptoKey getLatestKey(String purpose){
+        List<CryptoKey> latest = new com.venky.swf.sql.Select().from(CryptoKey.class).
+                where(new Expression(ModelReflector.instance(CryptoKey.class).getPool(), "PURPOSE",
+                        Operator.EQ, purpose)).
+                orderBy("ID DESC").execute(1);
+        if (!latest.isEmpty()) {
+            return latest.get(0);
+        }
+        return null;
+    }
     public Subscriber getBppSubscriber() {
         BecknNetwork network = getProxy();
         Domains domains = new Domains();
         NetworkAdaptor adaptor = network.getNetworkAdaptor();
-        CryptoKey encKey = CryptoKey.find(network.getCryptoKeyId(), CryptoKey.PURPOSE_ENCRYPTION);
-        CryptoKey signKey = CryptoKey.find(network.getCryptoKeyId(), CryptoKey.PURPOSE_SIGNING);
-
+        
         network.getBecknNetworkRoles().forEach(becknNetworkRole -> {
             if (ObjectUtil.equals(Subscriber.SUBSCRIBER_TYPE_BPP, becknNetworkRole.getRole())) {
                 Domain domain = adaptor.getDomains().get(becknNetworkRole.getDomain());
@@ -71,17 +101,19 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
         return new Subscriber() {
             {
                 setSubscriberId(network.getSubscriberId());
-                setUniqueKeyId(network.getCryptoKeyId());
-                setAlias(network.getCryptoKeyId());
+                setAppId(getSubscriberId());
+                setPubKeyId(getLatestKeyId());
+                setUniqueKeyId(getLatestKeyId());
+                setAlias(getLatestKeyId());
+                setNonce(Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
+                
                 setDomains(domains);
                 setType(Subscriber.SUBSCRIBER_TYPE_BPP);
-                setSubscriberUrl(String.format("%s/%s/%s", Config.instance().getServerBaseUrl(), network.getNetworkId(), "bpp"));
-                setEncrPublicKey(encKey.getPublicKey());
-                setSigningPublicKey(signKey.getPublicKey());
-                setValidFrom(signKey.getCreatedAt());
-                setValidTo(new Date(signKey.getUpdatedAt().getTime() + (long) (10L * 365.25D * 24L * 60L * 60L * 1000L)));
+                setSubscriberUrl(String.format("https://%s/%s/%s", network.getSubscriberId(), network.getNetworkId(), "bpp"));
+                
                 setCity(adaptor.getWildCard());
                 setCountry(adaptor.getCountry());
+                
                 Organization organization = new Organization();
                 Company mandi = CompanyUtil.getCompany();
                 organization.setName(mandi.getName());
@@ -105,17 +137,7 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
                     put("get_cancellation_reasons", CancellationReason.class);
                     put("get_return_reasons", ReturnReason.class);
                 }};
-            /*
-                put("on_search", GenericCallBackRecorder.class);
-                put("on_select", GenericCallBackRecorder.class);
-                put("on_init", GenericCallBackRecorder.class);
-                put("on_confirm", GenericCallBackRecorder.class);
-                put("on_status", OnStatus.class);
-                put("on_cancel", GenericCallBackRecorder.class);
-
-            }};
-            */
-
+            
             @Override
             public Mq getMq() {
                 if (!network.isMqSupported()) {
@@ -161,8 +183,6 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
         BecknNetwork network = getProxy();
         Domains domains = new Domains();
         NetworkAdaptor adaptor = network.getNetworkAdaptor();
-        CryptoKey encKey = CryptoKey.find(network.getCryptoKeyId(), CryptoKey.PURPOSE_ENCRYPTION);
-        CryptoKey signKey = CryptoKey.find(network.getCryptoKeyId(), CryptoKey.PURPOSE_SIGNING);
 
         network.getBecknNetworkRoles().forEach(becknNetworkRole -> {
             if (ObjectUtil.equals(Subscriber.SUBSCRIBER_TYPE_BAP, becknNetworkRole.getRole())) {
@@ -176,24 +196,25 @@ public class BecknNetworkImpl extends ModelImpl<BecknNetwork> {
         return new Subscriber() {
             {
                 setSubscriberId(network.getSubscriberId());
-                setUniqueKeyId(network.getCryptoKeyId());
-                setAlias(network.getCryptoKeyId());
+                setAppId(getSubscriberId());
+                setPubKeyId(getLatestKeyId());
+                setUniqueKeyId(getLatestKeyId());
+                setAlias(getLatestKeyId());
+                setNonce(Base64.getEncoder().encodeToString(String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
+                
                 setDomains(domains);
                 setType(Subscriber.SUBSCRIBER_TYPE_BAP);
-                setSubscriberUrl(String.format("%s/%s/%s", Config.instance().getServerBaseUrl(), network.getNetworkId(), "network"));
-                setEncrPublicKey(encKey.getPublicKey());
-                setSigningPublicKey(signKey.getPublicKey());
-                setValidFrom(signKey.getCreatedAt());
-                setValidTo(new Date(signKey.getUpdatedAt().getTime() + (long) (10L * 365.25D * 24L * 60L * 60L * 1000L)));
+                setSubscriberUrl(String.format("https://%s/%s/%s", network.getSubscriberId(), network.getNetworkId(), "network"));
+                
                 setCity(adaptor.getWildCard());
                 setCountry(adaptor.getCountry());
+                
                 Organization organization = new Organization();
                 Company mandi = CompanyUtil.getCompany();
                 organization.setName(mandi.getName());
                 organization.setDateOfIncorporation(mandi.getDateOfIncorporation());
                 setOrganization(organization);
-
-                adaptor.getSubscriptionJson(this);
+                adaptor.getSubscriptionJson(this); // Actually creates the crypto keys entries
             }
 
 

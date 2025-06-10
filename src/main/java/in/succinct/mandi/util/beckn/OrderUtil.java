@@ -14,6 +14,9 @@ import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.db.model.config.PinCode;
 import com.venky.swf.plugins.collab.db.model.config.State;
 import com.venky.swf.routing.Config;
+import com.venky.swf.sql.Expression;
+import com.venky.swf.sql.Operator;
+import com.venky.swf.sql.Select;
 import in.succinct.beckn.Address;
 import in.succinct.beckn.Billing;
 import in.succinct.beckn.BreakUp;
@@ -24,9 +27,11 @@ import in.succinct.beckn.Document;
 import in.succinct.beckn.Documents;
 import in.succinct.beckn.Fulfillment;
 import in.succinct.beckn.Fulfillment.FulfillmentStatus;
+import in.succinct.beckn.Fulfillment.RetailFulfillmentType;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Images;
 import in.succinct.beckn.Item;
+import in.succinct.beckn.ItemQuantity;
 import in.succinct.beckn.Location;
 import in.succinct.beckn.Locations;
 import in.succinct.beckn.Order.NonUniqueItems;
@@ -38,13 +43,16 @@ import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Quantity;
 import in.succinct.beckn.Quote;
+import in.succinct.beckn.Rating.RatingCategory;
 import in.succinct.beckn.TagGroups;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Order;
 import in.succinct.mandi.db.model.OrderAddress;
 import in.succinct.mandi.db.model.User;
+import in.succinct.mandi.db.model.beckn.Rating;
 import in.succinct.mandi.util.beckn.BecknUtil.Entity;
+import in.succinct.plugins.ecommerce.db.model.order.OrderAttribute;
 
 import java.math.BigDecimal;
 import java.net.URLEncoder;
@@ -102,8 +110,30 @@ public class OrderUtil {
     }
     public static in.succinct.beckn.Order toBeckn(Order order, OrderFormat format){
         in.succinct.beckn.Order becknOrder = new in.succinct.beckn.Order();
+        Map<String, OrderAttribute> attributeMap  =order.getAttributeMap();
+        Select ratingSelect = new Select().from(Rating.class);
+        ratingSelect.where(new Expression(ratingSelect.getPool(),"TRANSACTION_ID", Operator.EQ,order.getExternalTransactionReference()));
+        List<Rating> ratings = ratingSelect.execute();
+        Cache<RatingCategory,Cache<String,Integer>> ratingCache = new Cache<RatingCategory, Cache<String, Integer>>() {
+            @Override
+            protected Cache<String, Integer> getValue(RatingCategory ratingCategory) {
+                return new Cache<String, Integer>() {
+                    @Override
+                    protected Integer getValue(String objectId) {
+                        return null;
+                    }
+                };
+            }
+        };
+        for (Rating rating : ratings) {
+            ratingCache.get(RatingCategory.valueOf(rating.getRatingCategory())).put(rating.getObjectId(),rating.getValue());
+        }
+        
         if (format == OrderFormat.order) {
-            becknOrder.setId(BecknUtil.getBecknId(order.getId(), Entity.order));
+            OrderAttribute external_order_id = attributeMap.get("external_order_id");
+            
+            becknOrder.setId(external_order_id != null ? external_order_id.getValue() : BecknUtil.getBecknId(order.getId(), Entity.order));
+            becknOrder.setRating(ratingCache.get(RatingCategory.Order).get(becknOrder.getId()));
             becknOrder.setCreatedAt(order.getCreatedAt());
             becknOrder.setUpdatedAt(order.getUpdatedAt());
             switch (order.getFulfillmentStatus()){
@@ -131,16 +161,15 @@ public class OrderUtil {
         }
         becknOrder.setProvider(new Provider());
         becknOrder.getProvider().setId(BecknUtil.getBecknId(String.valueOf(order.getFacility().getCreatorUserId()), Entity.provider));
+        becknOrder.getProvider().setRating(ratingCache.get(RatingCategory.Provider).get(becknOrder.getProvider().getId()));
         becknOrder.getProvider().setDescriptor(new Descriptor());
         becknOrder.getProvider().getDescriptor().setName(order.getFacility().getName());
-        becknOrder.setProviderLocation(new Location());
-        becknOrder.getProviderLocation().setId(BecknUtil.getBecknId(String.valueOf(order.getFacilityId()),Entity.provider_location));
-        becknOrder.getProviderLocation().setDescriptor(new Descriptor());
-        becknOrder.getProviderLocation().getDescriptor().setName(order.getFacility().getName());
-        becknOrder.getProvider().setLocations(new Locations());
-        becknOrder.getProvider().getLocations().add(new Location(){{
-            setId(BecknUtil.getBecknId(String.valueOf(order.getFacilityId()),Entity.provider_location));
-        }});
+        Location providerLocation = new Location();
+        providerLocation.setId(BecknUtil.getBecknId(String.valueOf(order.getFacilityId()),Entity.provider_location));
+        providerLocation.setDescriptor(new Descriptor());
+        providerLocation.getDescriptor().setName(order.getFacility().getName());
+        
+        becknOrder.setProviderLocation(providerLocation);
         becknOrder.setDocuments(new Documents());
         order.getOrderPrints().forEach(op-> {
                 Document document = new Document();
@@ -156,15 +185,20 @@ public class OrderUtil {
                 return new Bucket(0);
             }
         };
+        User seller = order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class);
+        
         order.getOrderLines().forEach(ol->{
             Item item = new Item();
             item.setId(BecknUtil.getBecknId(String.valueOf(ol.getInventoryId()),Entity.item)); //Change skuId to inventoryId /select jul 7 change
+            item.setRating(ratingCache.get(RatingCategory.Item).get(item.getId()));
             item.set("tags",getTags(ol.getInventory().getRawRecord().getAsProxy(Inventory.class)));
 
 
             Quantity quantity = new Quantity();
             quantity.setCount((int)ol.getRemainingCancellableQuantity());
-            item.setQuantity(quantity);
+            item.setItemQuantity(new ItemQuantity(){{
+                setSelected(quantity);
+            }});
 
             item.setDescriptor(new Descriptor());
             item.getDescriptor().setName(ol.getSku().getName());
@@ -210,14 +244,21 @@ public class OrderUtil {
                     setName(OrderUtil.getName(shipToAddress));
                 }});
             }});
+            setContact(new Contact(){{
+                setPhone(order.getFacility().getPhoneNumber());
+                setEmail(order.getFacility().getEmail());
+            }});
             _setStart(new FulfillmentStop(){{
                 setLocation(new Location(){{
                     setGps(new GeoCoordinate(order.getFacility()));
-                    setId(becknOrder.getProviderLocation().getId());
+                    setId(providerLocation.getId());
                 }});
                 setContact(new Contact(){{
                     setPhone(order.getFacility().getPhoneNumber());
                     setEmail(order.getFacility().getEmail());
+                }});
+                setPerson(new Person(){{
+                    setName(seller.getLongName());
                 }});
             }});
             _setEnd(new FulfillmentStop(){{
@@ -254,6 +295,7 @@ public class OrderUtil {
             }else {
                 if (!order.isCustomerPickup()){
                     setType(RetailFulfillmentType.home_delivery.toString());
+                    setTags(OrderUtil.getTags(order.getFacility(),new GeoCoordinate(order.getShipToAddress()).distanceTo(new GeoCoordinate(order.getFacility()))))  ;
                 }else {
                     setType(RetailFulfillmentType.store_pickup.toString());
                 }
@@ -266,6 +308,8 @@ public class OrderUtil {
                     setFulfillmentStatus(FulfillmentStatus.Preparing);
                 }
             }
+            setTags(OrderUtil.getTags(order.getFacility()));
+            setRating(ratingCache.get(RatingCategory.Fulfillment).get(this.getId()));
         }});
 
 
@@ -280,7 +324,6 @@ public class OrderUtil {
                     }});
                     if (order.getAmountPendingPayment() > 0){
                         setStatus(PaymentStatus.NOT_PAID);
-                        User seller = order.getFacility().getCreatorUser().getRawRecord().getAsProxy(User.class);
                         if (!ObjectUtil.isVoid(seller.getVirtualPaymentAddress())) {
                             StringBuilder url = new StringBuilder();
                             url.append("upi://pay").append("?pa=").append(seller.getVirtualPaymentAddress()).append("&pn=").append(seller.getNameAsInBankAccount()).append(
@@ -470,6 +513,11 @@ public class OrderUtil {
             @Override
             public City getCity() {
                 if (city == null) {
+                    PinCode p = getPinCode();
+                    if (p != null){
+                        address.setState(p.getState().getName());
+                        address.setCountry(p.getState().getCountry().getName());
+                    }
                     city = City.findByStateAndName(getStateId(),address.getCity(),true);
                 }
                 return city;
@@ -699,5 +747,22 @@ public class OrderUtil {
             }
         }
         return tags;
+    }
+    public static TagGroups getTags(Facility facility){
+        User user = facility.getCreatorUser().getRawRecord().getAsProxy(User.class);
+        TagGroups tags = new TagGroups();
+        tags.setTag("APPLICABILITY","MAX_DISTANCE",String.valueOf(facility.getDeliveryRadius()));
+        tags.setTag("kyc","owner_name",user.getLongName());
+        tags.setTag("kyc","complete",String.valueOf(user.isVerified()));
+        tags.setTag("kyc","ok",String.valueOf(user.isVerified()));
+        tags.setTag("network","environment",Config.instance().isDevelopmentEnvironment() ? "testing" : "production");
+        tags.setTag("network","suspended",String.valueOf(user.getBalanceOrderLineCount() <=0));
+        return tags;
+    }
+    public static TagGroups getTags(Facility facility , double distance ){
+        TagGroups tagGroups = new TagGroups();
+        tagGroups.setTag("DELIVERY_CHARGES", "ESTIMATED", "Estimated Charges %f".formatted(
+                facility.getDeliveryCharges(distance,true)));
+        return tagGroups;
     }
 }

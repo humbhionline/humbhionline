@@ -34,6 +34,9 @@ public class BeforeValidateInventory extends BeforeModelValidateExtension<Invent
 
     public void raiseEvent(String operation, Catalog catalog, Subscriber bppSubscriber, NetworkAdaptor networkAdaptor){
         Event event = Event.find("catalog_" + operation);
+        if (event == null){
+            return;
+        }
         Request request = new Request();
         Context context = new Context();
         request.setContext(context);

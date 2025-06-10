@@ -20,7 +20,5 @@ public interface BecknNetworkRole extends Model {
     public String getRole();
     public void setRole(String role);
 
-    public String getDeliveryDomain();
-    public void setDeliveryDomain(String deliveryDomain);
 
 }

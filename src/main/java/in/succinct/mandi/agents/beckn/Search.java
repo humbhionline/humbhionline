@@ -8,6 +8,7 @@ import com.venky.geo.GeoCoordinate;
 import com.venky.geo.GeoLocation;
 import com.venky.swf.db.model.Model;
 import com.venky.swf.db.model.reflection.ModelReflector;
+import com.venky.swf.plugins.collab.db.model.config.Country;
 import com.venky.swf.plugins.collab.util.BoundingBox;
 import com.venky.swf.plugins.lucene.index.LuceneIndexer;
 import com.venky.swf.pm.DataSecurityFilter;
@@ -21,6 +22,7 @@ import in.succinct.beckn.BecknStrings;
 import in.succinct.beckn.Catalog;
 import in.succinct.beckn.Category;
 import in.succinct.beckn.Circle;
+import in.succinct.beckn.City;
 import in.succinct.beckn.Contact;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
@@ -36,11 +38,17 @@ import in.succinct.beckn.Location;
 import in.succinct.beckn.Locations;
 import in.succinct.beckn.Message;
 import in.succinct.beckn.OnSearch;
+import in.succinct.beckn.Payment;
+import in.succinct.beckn.Payment.CollectedBy;
+import in.succinct.beckn.Payment.Params;
+import in.succinct.beckn.Payments;
+import in.succinct.beckn.Person;
 import in.succinct.beckn.Price;
 import in.succinct.beckn.Provider;
 import in.succinct.beckn.Providers;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Scalar;
+import in.succinct.beckn.State;
 import in.succinct.mandi.db.model.Facility;
 import in.succinct.mandi.db.model.Inventory;
 import in.succinct.mandi.db.model.Sku;
@@ -101,6 +109,22 @@ public class Search extends BecknAsyncTask {
             }
             location.setDescriptor(new Descriptor());
             location.getDescriptor().setName(facility.getName());
+            com.venky.swf.plugins.collab.db.model.config.City city =facility.getCity();
+            location.setCity(new City(){{
+                setCode(city.getCode());
+                setName(city.getName());
+            }});
+            com.venky.swf.plugins.collab.db.model.config.State state = facility.getState();
+            location.setState(new State(){{
+                setCode(state.getCode());
+                setName(state.getName());
+            }});
+            Country country = facility.getCountry();
+            location.setCountry(new in.succinct.beckn.Country(){{
+                setCode(country.getCode());
+                setName(country.getName());
+            }});
+            location.setAreaCode(facility.getPinCode().getPinCode());
         }
         return location;
     }
@@ -118,6 +142,24 @@ public class Search extends BecknAsyncTask {
         address.setLocality(facility.getAddressLine4());
         return address;
     }
+    public String getCriteria(Descriptor descriptor){
+        if (descriptor == null){
+            return null;
+        }
+        if (!ObjectUtil.isVoid(descriptor.getName())){
+            return descriptor.getName();
+        }
+        if (!ObjectUtil.isVoid(descriptor.getLongDesc())){
+            return descriptor.getLongDesc();
+        }
+        if (!ObjectUtil.isVoid(descriptor.getShortDesc())){
+            return descriptor.getShortDesc();
+        }
+        if (!ObjectUtil.isVoid(descriptor.getCode())){
+            return descriptor.getCode();
+        }
+        return null;
+    }
 
     @Override
     public Request executeInternal() {
@@ -129,17 +171,13 @@ public class Search extends BecknAsyncTask {
         final List<Long> deliverySkuIds = AssetCode.getDeliverySkuIds();
         if (item != null) {
             Descriptor descriptor = item.getDescriptor();
-            if (descriptor != null) {
-                itemName = descriptor.getName();
-            }
+            itemName = getCriteria(descriptor);
         }
         Provider provider = intent.getProvider();
         Long providerId = null;
         if (provider != null){
             Descriptor descriptor =provider.getDescriptor();
-            if (descriptor != null){
-                providerName = descriptor.getName();
-            }
+            providerName = getCriteria(descriptor);
             if (provider.getId() != null){
                 String id = BecknUtil.getLocalUniqueId(provider.getId(),Entity.provider);
                 if (!ObjectUtil.isVoid(id)){
@@ -150,26 +188,21 @@ public class Search extends BecknAsyncTask {
         Category category = intent.getCategory();
         String catagoryName = null;
         if (category != null){
-            Descriptor descriptor = category.getDescriptor();
-            if (descriptor != null){
-                catagoryName = descriptor.getName();
-            }
+            catagoryName = getCriteria(category.getDescriptor());
         }
-        String intentName = null;
-        Descriptor descriptor = intent.getDescriptor();
-        if (descriptor != null){
-            intentName = descriptor.getName();
-        }
+        String intentName = getCriteria(intent.getDescriptor());
 
 
         Price price = item != null ? item.getPrice() : null ;
+        
+        
+        double maxDistance = getMaxDistance(intent);
+        Location location =  getDeliveryLocation(intent);
         Fulfillment fulfillment = intent.getFulfillment();
-        FulfillmentStop end = fulfillment == null ? null : fulfillment._getEnd();
-        GeoCoordinate deliveryLocation = end == null ? null : end.getLocation().getGps();
-        double maxDistance = getMaxDistance(end);
+        GeoCoordinate deliveryLocation = location == null ? null : location.getGps();
+        
 
-
-        List<Long> facilityIds = getCloseByFacilities(fulfillment,providerName,providerId);
+        List<Long> facilityIds = getCloseByFacilities(location,providerName,providerId);
         if (facilityIds != null && facilityIds.isEmpty()){
             List<Inventory> inventories = new ArrayList<>();
             return push_onsearch(inventories);
@@ -178,7 +211,13 @@ public class Search extends BecknAsyncTask {
         LuceneIndexer indexer = LuceneIndexer.instance(Inventory.class);
         StringBuilder qryString = new StringBuilder();
         if (providerName != null || intentName != null){
-            qryString.append("FACILITY:").append(providerName != null ? providerName : intentName).append("*");
+            
+            String name = providerName != null ? providerName : intentName;
+            
+            if (qryString.length() > 0){
+                qryString.append(providerName != null ? " AND " : " OR ");
+            }
+            qryString.append("(").append(q("FACILITY", name)).append(" )");
         }
 
 
@@ -221,7 +260,20 @@ public class Search extends BecknAsyncTask {
         Expression inventoryWhere = new Expression(inventoryModelReflector.getPool(),"ID", Operator.IN,ids.toArray());
 
         Fulfillments fulfillments = new Fulfillments();
-
+        Cache<Long,Fulfillment> storePickupCache = new Cache<Long, Fulfillment>() {
+            @Override
+            protected Fulfillment getValue(Long aLong) {
+                return null;
+            }
+        };
+        Cache<Long,Fulfillment> homeDeliveryCache = new Cache<Long, Fulfillment>() {
+            @Override
+            protected Fulfillment getValue(Long aLong) {
+                return null;
+            }
+        };
+        
+        
         List<Inventory> inventories = new Select().from(Inventory.class).where(inventoryWhere).execute(Inventory.class,Select.MAX_RECORDS_ALL_RECORDS,
                 record -> {
                         Facility facility = record.getFacility().getRawRecord().getAsProxy(Facility.class);
@@ -232,34 +284,68 @@ public class Search extends BecknAsyncTask {
                     pass = pass && !deliverySkuIds.contains(record.getSkuId());
 
                     Location storeLocation = createLocation(facility);
-                    Fulfillment storePickup = new Fulfillment();
-                    storePickup.setId(BecknUtil.getBecknId(RetailFulfillmentType.store_pickup + ":" + facility.getId(),Entity.fulfillment));
-                    storePickup.setType(RetailFulfillmentType.store_pickup.toString());
-                    storePickup.setContact(new Contact());
-                    storePickup.getContact().setPhone(facility.getPhoneNumber());
-                    storePickup.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
-                    storePickup.setProviderName(facility.getName());
-                    storePickup.setFulfillmentStatus(FulfillmentStatus.Serviceable);
-                    storePickup._setStart(new FulfillmentStop());
-                    storePickup._getStart().setLocation(storeLocation);
-                    storePickup._setEnd(new FulfillmentStop());
-                    storePickup._getEnd().setLocation(storeLocation);
-
-
-                    Fulfillment delivery = new Fulfillment();
-                    delivery.setId(BecknUtil.getBecknId(RetailFulfillmentType.home_delivery + ":" + facility.getId(),Entity.fulfillment));
-                    delivery.setType(RetailFulfillmentType.home_delivery.toString());
-                    delivery.setContact(new Contact());
-                    delivery.getContact().setPhone(facility.getPhoneNumber());
-                    delivery.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
-                    delivery.setProviderName(facility.getName());
-                    delivery.setFulfillmentStatus(FulfillmentStatus.Serviceable);
-                    delivery._setStart(new FulfillmentStop());
-                    delivery._setEnd(new FulfillmentStop());
-                    delivery._getStart().setLocation(storeLocation);
-                    if (deliveryLocation != null) {
-                        delivery._getEnd().setLocation(createLocation(deliveryLocation));
+                    Fulfillment storePickup = storePickupCache.get(facility.getId());
+                    
+                    if (storePickup == null){
+                        storePickup = new Fulfillment();
+                        storePickup.setId(BecknUtil.getBecknId(RetailFulfillmentType.store_pickup + ":" + facility.getId(),Entity.fulfillment));
+                        storePickup.setType(RetailFulfillmentType.store_pickup.toString());
+                        storePickup.setContact(new Contact());
+                        storePickup.getContact().setPhone(facility.getPhoneNumber());
+                        storePickup.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
+                        storePickup.setProviderName(facility.getName());
+                        storePickup.setFulfillmentStatus(FulfillmentStatus.Serviceable);
+                        if (storePickup.getFulfillmentStops() == null){
+                            storePickup._setStart(new FulfillmentStop(){{
+                                setId("start:"+BecknUtil.getBecknId(facility.getId(),Entity.stop));
+                                setLocation(storeLocation);
+                                setPerson(new Person(){{
+                                    setName(facility.getCreatorUser().getLongName());
+                                }});
+                            }});
+                            storePickup._setEnd(new FulfillmentStop(){{
+                                setId("end:"+BecknUtil.getBecknId(facility.getId(),Entity.stop));
+                                setLocation(storeLocation);
+                                setPerson(new Person(){{
+                                    setName(facility.getCreatorUser().getLongName());
+                                }});
+                            }});
+                        }
+                        storePickupCache.put(facility.getId(),storePickup);
                     }
+                    
+
+                    Fulfillment delivery = homeDeliveryCache.get(facility.getId());
+                    if (delivery == null){
+                        delivery  =new Fulfillment();
+                        delivery.setId(BecknUtil.getBecknId(RetailFulfillmentType.home_delivery + ":" + facility.getId(),Entity.fulfillment));
+                        delivery.setType(RetailFulfillmentType.home_delivery.toString());
+                        delivery.setContact(new Contact());
+                        delivery.getContact().setPhone(facility.getPhoneNumber());
+                        delivery.setProviderId(BecknUtil.getBecknId(String.valueOf(facility.getCreatorUserId()),Entity.provider));
+                        delivery.setProviderName(facility.getName());
+                        delivery.setFulfillmentStatus(FulfillmentStatus.Serviceable);
+                        if (delivery.getFulfillmentStops() == null){
+                            delivery._setStart(new FulfillmentStop(){{
+                                setId("start:"+BecknUtil.getBecknId(facility.getId(),Entity.stop));
+                                setLocation(storeLocation);
+                                setPerson(new Person(){{
+                                    setName(facility.getCreatorUser().getLongName());
+                                }});
+                            }});
+                            if (deliveryLocation != null) {
+                                delivery._setEnd(new FulfillmentStop() {{
+                                    setId("end:"+BecknUtil.getBecknId(facility.getId(),Entity.stop));
+                                    setLocation(createLocation(deliveryLocation));
+                                }});
+                            }
+                            delivery.setTag("DELIVERY_CHARGES", "ESTIMATED", "Estimated Charges %f".formatted(
+                                    facility.getDeliveryCharges()));
+                        }
+                        homeDeliveryCache.put(facility.getId(),delivery);
+                    }
+                    
+                    
 
                     BecknStrings fulfillment_ids = new BecknStrings();
                     if (pass){
@@ -357,6 +443,8 @@ public class Search extends BecknAsyncTask {
         }
         String providerId = BecknUtil.getBecknId(String.valueOf(inv.getFacility().getCreatorUserId()),Entity.provider);
         Facility facility = inv.getFacility().getRawRecord().getAsProxy(Facility.class);
+        User seller = facility.getCreatorUser().getRawRecord().getAsProxy(User.class);
+        
         Provider provider = providers.get(providerId);
         if (provider == null){
             provider = new Provider();
@@ -370,6 +458,26 @@ public class Search extends BecknAsyncTask {
                 provider.set("matched",true);
             }
             providers.add(provider);
+            provider.setTags(OrderUtil.getTags(facility));
+            
+            Payment cod = provider.getObjectCreator().create(Payment.class);
+            cod.setCollectedBy(CollectedBy.BPP);
+            cod.setInvoiceEvent(FulfillmentStatus.Completed);
+            cod.setPaymentType(Payment.ON_FULFILLMENT);
+            cod.setId("COD");
+            
+            if (!ObjectUtil.isVoid(seller.getVirtualPaymentAddress())) {
+                cod.setParams(new Params(){{
+                    setVirtualPaymentAddress(seller.getVirtualPaymentAddress());
+                    setBankAccountName(seller.getLongName());
+                }});
+            }
+            
+            provider.setPayments(new Payments(){{
+                add(cod);
+            }});
+            
+            
         }
         String locationId = BecknUtil.getBecknId(String.valueOf(inv.getFacilityId()),Entity.provider_location);
         if (provider.getLocations().get(locationId) == null){
@@ -416,42 +524,53 @@ public class Search extends BecknAsyncTask {
         //item.setTag("general_attributes",);
         //item.set("tags",OrderUtil.getTags(inv));
         item.setTags(OrderUtil.getTags(inv));
-
+        
         BecknStrings fulfillment_ids =  inv.getTxnProperty("fulfillment_ids");
-        for (String id : fulfillment_ids) {
-            Item fitem = new Item(item.toString());
-            fitem.setFulfillmentId(id);
-            provider.getItems().add(fitem);
+        item.setFulfillmentIds(fulfillment_ids);
+        item.setPaymentIds(new BecknStrings());
+        for (Payment payment : provider.getPayments()) {
+            item.getPaymentIds().add(payment.getId());
         }
-
+        provider.getItems().add(item);
 
     }
     private Request push_onsearch(List<Inventory> inventories) {
         return push_onsearch(inventories,new Fulfillments());
     }
+    private double getMaxDistance(Intent intent){
+        double radius = getMaxDistance(getDeliveryLocation(intent));
+        if (radius == 0){
+            radius = 50.0;
+        }
+        return radius;
+    }
+    private Location getDeliveryLocation(Intent intent){
+        Location location = intent.getLocation();
+        if (location == null){
+            Fulfillment fulfillment  = intent.getFulfillment();
+            FulfillmentStop end = fulfillment == null ? null : fulfillment._getEnd();
+            location  = end == null ? null : end.getLocation();
+        }
+        return location;
+    }
 
-
-    private double getMaxDistance(FulfillmentStop end){
+    private double getMaxDistance(Location end){
         double radius = 0;
-        if (end != null && end.getLocation().getGps() != null){
-            Circle circle = end.getLocation().getCircle();
+        if (end != null && end.getGps() != null){
+            Circle circle = end.getCircle();
             if (circle != null){
                 radius = circle.getRadius().getValue();
-            }
-            if (radius == 0){
-                radius = 50.0;
             }
         }
         return radius;
     }
 
-    private List<Long> getCloseByFacilities(Fulfillment fulfillment, String name, Long providerId) {
+    private List<Long> getCloseByFacilities(Location location, String name, Long providerId) {
         ModelReflector<Facility> ref = ModelReflector.instance(Facility.class);
-        if (fulfillment != null){
-            FulfillmentStop end = fulfillment._getEnd();
-            double radius = getMaxDistance(end);
+        if (location != null){
+            double radius = getMaxDistance(location);
             if (radius > 0){
-                BoundingBox bb = new BoundingBox(end.getLocation().getGps(),2,radius);
+                BoundingBox bb = new BoundingBox(location.getGps(),2,radius);
                 Expression where = new Expression(ref.getPool(), Conjunction.AND);
                 where.add(new Expression(ref.getPool(),"PUBLISHED", Operator.EQ, true));
                 if (!ObjectUtil.isVoid(name)){
@@ -463,8 +582,7 @@ public class Search extends BecknAsyncTask {
 
                 Expression or = new Expression(ref.getPool(), Conjunction.OR);
                 where.add(or);
-                Location location = end.getLocation();
-                GeoCoordinate gps = location == null ? null : location.getGps();
+                GeoCoordinate gps =  location.getGps();
                 if (gps != null) {
                     Expression deliveryProvidedWhere = new Expression(ref.getPool(),Conjunction.AND);
                     deliveryProvidedWhere.add(new Expression(ref.getPool(),"DELIVERY_RADIUS",Operator.GT, 0));
