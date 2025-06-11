@@ -10,6 +10,7 @@ import in.succinct.beckn.Contact;
 import in.succinct.beckn.Context;
 import in.succinct.beckn.Descriptor;
 import in.succinct.beckn.Fulfillment;
+import in.succinct.beckn.Fulfillment.FulfillmentStatus;
 import in.succinct.beckn.FulfillmentStop;
 import in.succinct.beckn.Intent;
 import in.succinct.beckn.Item;
@@ -227,7 +228,7 @@ class BecknCourierAggregator implements CourierAggregator {
         payment.getParams().set("transaction_id",context.getTransactionId());
         payment.getParams().set("transaction_status","NOT-PAID");
         payment.getParams().set("amount",String.valueOf(courierOrder.getShippingSellingPrice()));
-        payment.setPaymentType(Payment.POST_FULFILLMENT);
+        payment.setInvoiceEvent(FulfillmentStatus.Completed);
         payment.setStatus(PaymentStatus.NOT_PAID);
         order.setAddOns(new AddOns());
         order.setOffers(new Offers());

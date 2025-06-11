@@ -338,7 +338,7 @@ public class OrderUtil {
                         setStatus(PaymentStatus.PAID);
                     }
                     
-                    setPaymentType(Payment.POST_FULFILLMENT);
+                    setInvoiceEvent(FulfillmentStatus.Completed);
                 }});
             }});
 

@@ -463,7 +463,6 @@ public class Search extends BecknAsyncTask {
             Payment cod = provider.getObjectCreator().create(Payment.class);
             cod.setCollectedBy(CollectedBy.BPP);
             cod.setInvoiceEvent(FulfillmentStatus.Completed);
-            cod.setPaymentType(Payment.ON_FULFILLMENT);
             cod.setId("COD");
             
             if (!ObjectUtil.isVoid(seller.getVirtualPaymentAddress())) {
