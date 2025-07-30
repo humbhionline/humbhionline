@@ -87,7 +87,7 @@ class BecknCourierAggregator implements CourierAggregator {
         context.setMessageId(UUID.randomUUID().toString());
         context.setTransactionId(context.getMessageId());
         context.setCoreVersion("0.9.1");
-        context.setTtl(6);
+        context.setTtl(6L);
         //context.setKey(BecknUtil.getSelfEncryptionKey(network).getPublicKey());
         return context;
     }

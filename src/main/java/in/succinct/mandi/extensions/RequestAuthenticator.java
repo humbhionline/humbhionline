@@ -45,16 +45,11 @@ public class RequestAuthenticator extends com.venky.swf.extensions.request.authe
         if (!ObjectUtil.equals(path.controllerPath(),"/login") || !ObjectUtil.equals(path.action(),"index")){
             return;
         }
-        JSONObject input ;
-        try {
-            input = (JSONObject)JSONValue.parse(StringUtil.read(path.getInputStream()));
-            if (input == null){
-                return;
-            }
-            input = (JSONObject)input.get("User");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        JSONObject input = (JSONObject)JSONValue.parse(StringUtil.read(path.getInputStream()));
+        if (input == null){
+            return;
         }
+        input = (JSONObject)input.get("User");
         String phoneNumber = (String)input.get("PhoneNumber");
         if (ObjectUtil.isVoid(phoneNumber)){
             return;

@@ -53,7 +53,7 @@ public class BeforeValidateInventory extends BeforeModelValidateExtension<Invent
         context.setNetworkId(networkAdaptor.getId());
         context.setCity(bppSubscriber.getCity());
         context.setAction("on_search");
-        context.setTtl(60);
+        context.setTtl(60L);
         for (in.succinct.beckn.Provider provider : catalog.getProviders()){
             provider.setTag("general_attributes","catalog.indexer.reset","N");
             provider.setTag("general_attributes","catalog.indexer.operation",operation);
