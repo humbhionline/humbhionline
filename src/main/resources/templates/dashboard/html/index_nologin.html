@@ -36,6 +36,11 @@
                         if ((self.User && self.User.Verified === 'Y') || (self.SignUp && self.SignUp.Validated === 'Y')) {
                             window.location.replace("/login");
                         }
+                        $("#root").show();
+                    }else if (!self.isAndroidApp){
+                        window.location.replace("https://bizlocal.humbhionline.in");
+                    }else {
+                        $("#root").show();
                     }
                 })
             }
@@ -48,7 +53,7 @@
 </script>
 
 
-<div id="root" style="w-100">
+<div id="root" style="display:none; " class="w-100">
     <header>
         <div class="container">
             <div class="row">
